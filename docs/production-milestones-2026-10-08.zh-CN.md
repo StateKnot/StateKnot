@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot 生产完善里程碑与会话交接
 
-更新日期：2026-10-09，Asia/Shanghai。执行顺序：R0 至 R7。
+更新日期：2026-10-17，Asia/Shanghai。执行顺序：R0 至 R7。
 
 StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户调度、审批恢复及 MCP/A2A 适配的实现基础。整体生产验收仍未完成。后续工作集中在契约收尾、数据生命周期、运维观测、可靠协议服务、可部署运行时和完整生产验证。
 
@@ -27,7 +27,7 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 
 ## 接手时的代码与发布状态
 
-以下状态已按 2026-10-09 的最近验收更新。新会话必须先核对实际分支、工作区和 GitHub 状态。
+以下状态按 2026-10-16 的源码和验收记录更新。新会话必须先核对实际分支、工作区和 GitHub 状态。
 
 | 项目 | 当前状态 |
 | --- | --- |
@@ -35,7 +35,7 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 | 当前工作目录 | `/Users/jiawy/Documents/RustAgentFramework` |
 | R0 验收的 main | `5f156b94516d2eb9ed96e2a648e0a13e66debc14`，2026-10-08 合并 JWT/JWKS #146；此前 #141/#145 已合并 |
 | 当前开发分支 | `codex/r1-nested-frame-contract` |
-| 工作区 | 原始 JWT/JWKS 工作已完整保存并提交，R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156/#157/#158/#159/#160 已合并；181 个对象 reader 及 71 枚举/298 固定分支已通过完整验收，复合预算及 Graph 状态/route/checkpoint 模型已通过完整验收，当前推进同 Run 嵌套帧契约与实现 |
+| 工作区 | R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156/#157/#158/#159/#160 已合并。#161 仍为实验性草稿，继续推进同 Run 嵌套帧。当前限定证据包含完整 owning Root 校验、Return 与 scoped Wait 的真实 COMMIT 丢失及冷 Driver 恢复；scoped child Join、完整故障矩阵、stdio 生命周期和最终完整 CI 仍未完成 |
 | 已发布 crate 版本 | `0.1.0-alpha.1`，预览版；源码新增能力不都包含在该发布包中 |
 | 官网 | `https://stknot.com`，中英双语文档；当前 release `aa11b4f44a94` 的四个关键页面已核对构建字节 |
 | 依赖 PR | 16 个依赖升级 PR 已由 #141/#145 收口；#146 已合并，后续以 GitHub 实时状态为准 |
@@ -114,6 +114,11 @@ R0 至 R7 是本轮收尾编号，不自动改变旧路线图中 M0 至 M4 的�
 - 本轮 R0 收口不自动发布 crate，也不改变框架整体生产支持声明。
 
 ## R1 核心契约与开发者接入
+
+2026-10-16 的 [A2A 订阅夹具修复](qualification/experimental-a2a-subscription-zero-delay-fixture-2026-10-16.zh-CN.md)
+保留全部原预算和矩阵，用真实请求证明零延迟回调首次 poll 的 red→green；组合源码
+六门禁与双版 PostgreSQL Wait 定向验证通过。原 Windows CI 失败的根因及完整 CI
+仍须实际确认，不能由本机结果关闭。
 
 2026-10-16 增量：[scoped Wait 进程故障记录](qualification/experimental-scoped-wait-process-faults-2026-10-16.zh-CN.md)
 覆盖真实 COMMIT 请求/响应丢失、writer 终止、双条件授权恢复和冷 Driver 继续。

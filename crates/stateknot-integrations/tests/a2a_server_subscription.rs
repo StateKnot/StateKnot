@@ -235,7 +235,7 @@ impl A2aServerAuthorizer for Policy {
             };
             if probe.setup.block_at == Some(index) {
                 std::thread::sleep(delay);
-            } else {
+            } else if !delay.is_zero() {
                 tokio::time::sleep(delay).await;
             }
             if is_original
@@ -729,10 +729,109 @@ impl Server {
         self.sender.as_ref().unwrap().send(value).await.unwrap();
     }
 
-    async fn healthy(&self, binding: Binding) {
+    // Failure-only evidence never consumes successful response bodies.
+    async fn observe_response_failure(
+        &self,
+        response: &mut Response,
+        binding: Binding,
+        case: &str,
+        event: Option<&Value>,
+    ) {
+        if response.status() == 200 && event.is_none() {
+            return;
+        }
+        let authorization = {
+            let requests = self.probe.requests.lock().unwrap();
+            let healthy_checks = requests
+                .iter()
+                .filter(|request| request.task_id() == Some(HEALTHY))
+                .count();
+            let last = requests
+                .last()
+                .map(|request| (request.operation(), request.task_id()));
+            format!("healthy_checks={healthy_checks} last_authorization={last:?}")
+        };
+        let setup = &self.probe.setup;
+        eprintln!(
+            "[DEBUG-a2a-subscription-status-v1] binding={binding:?} case={case} status={} \
+             request_timeout={:?} idle_timeout={:?} pre_delay={:?} post_delay={:?} \
+             gate_at={:?} pending_at={:?} block_at={:?} event_cap={} enabled={} \
+             enable_before_limits={} hold_admission={} initial_controls={} \
+             authn={} task_checks={} admissions={} created={} polls={} yielded={} \
+             dropped={} pending_entered={} pending_drops={} shutdown={} mode={} \
+             remapped={} {authorization}",
+            response.status(),
+            setup.request_timeout,
+            setup.idle_timeout,
+            setup.pre_delay,
+            setup.post_delay,
+            setup.gate_at,
+            setup.pending_at,
+            setup.block_at,
+            setup.event_cap,
+            setup.enabled,
+            setup.enable_before_limits,
+            setup.hold_admission,
+            setup.initial.is_some(),
+            self.probe.authn.load(Ordering::SeqCst),
+            self.probe.checks.load(Ordering::SeqCst),
+            self.probe.admissions.load(Ordering::SeqCst),
+            self.probe.created.load(Ordering::SeqCst),
+            self.probe.polls.load(Ordering::SeqCst),
+            self.probe.yielded.load(Ordering::SeqCst),
+            self.probe.dropped.load(Ordering::SeqCst),
+            self.probe.pending_entered.load(Ordering::SeqCst),
+            self.probe.pending_drops.load(Ordering::SeqCst),
+            self.shutdown.is_cancelled(),
+            self.probe.mode.load(Ordering::SeqCst),
+            self.probe.remapped.load(Ordering::SeqCst),
+        );
+        if let Some(event) = event {
+            let rendered = event
+                .to_string()
+                .replace("subscription-token", "<REDACTED>");
+            let prefix = &rendered.as_bytes()[..rendered.len().min(2048)];
+            eprintln!(
+                "[DEBUG-a2a-subscription-status-v1] binding={binding:?} case={case} \
+                 event_prefix_bytes={} limit=2048 event={:?}",
+                prefix.len(),
+                String::from_utf8_lossy(prefix),
+            );
+            return;
+        }
+        let body = tokio::time::timeout(HARNESS_WAIT, async {
+            let mut bytes = Vec::new();
+            while bytes.len() < 2048 {
+                match response.chunk().await {
+                    Ok(Some(chunk)) => {
+                        let remaining = 2048 - bytes.len();
+                        bytes.extend_from_slice(&chunk[..chunk.len().min(remaining)]);
+                    }
+                    Ok(None) => break,
+                    Err(error) => return format!("body read failed: {error}"),
+                }
+            }
+            format!(
+                "body_prefix_bytes={} limit=2048 body={:?}",
+                bytes.len(),
+                String::from_utf8_lossy(&bytes).replace("subscription-token", "<REDACTED>"),
+            )
+        })
+        .await
+        .unwrap_or_else(|_| "body capture exceeded HARNESS_WAIT".to_owned());
+        eprintln!("[DEBUG-a2a-subscription-status-v1] binding={binding:?} case={case} {body}");
+    }
+
+    async fn healthy(&self, binding: Binding, case: &str) {
         let mut response = self.subscribe(binding, HEALTHY).await;
+        self.observe_response_failure(&mut response, binding, case, None)
+            .await;
         assert_eq!(response.status(), 200);
         let value = next_event(&mut response, &mut Vec::new()).await.unwrap();
+        if payload(binding, &value)["task"]["id"] != HEALTHY {
+            self.observe_response_failure(&mut response, binding, case, Some(&value))
+                .await;
+        }
         assert_eq!(payload(binding, &value)["task"]["id"], HEALTHY);
     }
 
@@ -830,6 +929,9 @@ async fn first(server: &Server, binding: Binding, operation: &str) -> (Response,
     .await
     .unwrap()
     .unwrap();
+    server
+        .observe_response_failure(&mut response, binding, "first", None)
+        .await;
     assert_eq!(response.status(), 200);
     assert!(
         response.headers()["Content-Type"]
@@ -839,6 +941,11 @@ async fn first(server: &Server, binding: Binding, operation: &str) -> (Response,
     );
     let mut buffered = Vec::new();
     let value = next_event(&mut response, &mut buffered).await.unwrap();
+    if payload(binding, &value)["task"]["id"] != TASK {
+        server
+            .observe_response_failure(&mut response, binding, "first", Some(&value))
+            .await;
+    }
     assert_eq!(payload(binding, &value)["task"]["id"], TASK);
     (response, buffered, value)
 }
@@ -867,7 +974,7 @@ async fn success(binding: Binding, setup: Setup) -> Vec<Value> {
     assert_eq!(server.probe.created.load(Ordering::SeqCst), 1);
     assert_eq!(server.probe.yielded.load(Ordering::SeqCst), 3);
     server.probe.fixed_facts();
-    server.healthy(binding).await;
+    server.healthy(binding, "success_fixed_facts").await;
     events
 }
 
@@ -924,7 +1031,12 @@ async fn refused(binding: Binding, post: bool, unavailable: bool, remapped: bool
     assert_eq!(server.probe.authn.load(Ordering::SeqCst), 1);
     server.probe.fixed_facts();
     // Keep the rejected response/body alive during a distinct healthy request.
-    server.healthy(binding).await;
+    server
+        .healthy(
+            binding,
+            &format!("refused post={post} unavailable={unavailable} remapped={remapped}"),
+        )
+        .await;
     assert!(next_event(&mut response, &mut buffered).await.is_none());
 }
 
@@ -949,7 +1061,9 @@ async fn callback_timeout(binding: Binding, post: bool) {
     );
     server.retired().await;
     assert_eq!(server.probe.pending_drops.load(Ordering::SeqCst), 1);
-    server.healthy(binding).await;
+    server
+        .healthy(binding, &format!("callback_timeout post={post}"))
+        .await;
 }
 
 async fn cumulative_idle(binding: Binding) {
@@ -985,6 +1099,9 @@ async fn cumulative_idle(binding: Binding) {
     };
     let (response, ()) = tokio::join!(request.send(), producer);
     let mut response = response.unwrap();
+    server
+        .observe_response_failure(&mut response, binding, "cumulative_idle_budget", None)
+        .await;
     assert_eq!(response.status(), 200);
     let value = next_event(&mut response, &mut Vec::new()).await.unwrap();
     assert_error(
@@ -995,7 +1112,7 @@ async fn cumulative_idle(binding: Binding) {
     server.retired().await;
     assert_eq!(server.probe.checks.load(Ordering::SeqCst), 3);
     server.sender.take();
-    server.healthy(binding).await;
+    server.healthy(binding, "cumulative_idle_budget").await;
 }
 
 async fn ready_race(binding: Binding) {
@@ -1007,6 +1124,9 @@ async fn ready_race(binding: Binding) {
     })
     .await;
     let mut response = server.subscribe(binding, TASK).await;
+    server
+        .observe_response_failure(&mut response, binding, "ready_deadline_race", None)
+        .await;
     assert_eq!(response.status(), 200);
     let value = next_event(&mut response, &mut Vec::new()).await.unwrap();
     assert_error(
@@ -1016,7 +1136,7 @@ async fn ready_race(binding: Binding) {
     );
     assert_eq!(server.probe.polls.load(Ordering::SeqCst), 0);
     server.retired().await;
-    server.healthy(binding).await;
+    server.healthy(binding, "ready_deadline_race").await;
 }
 
 async fn pending_phase(binding: Binding, phase: usize, disconnect: bool) {
@@ -1064,7 +1184,9 @@ async fn pending_phase(binding: Binding, phase: usize, disconnect: bool) {
         tokio::time::timeout(Duration::from_secs(2), server.retired())
             .await
             .expect("disconnect must release before the5s policy/idle deadlines");
-        server.healthy(binding).await;
+        server
+            .healthy(binding, &format!("tcp_disconnect phase={phase}"))
+            .await;
     } else {
         server.shutdown.cancel();
         let value = next_event(&mut response, &mut buffered).await.unwrap();
@@ -1115,7 +1237,9 @@ async fn lifecycle(binding: Binding, case: usize) {
         ),
     }
     server.retired().await;
-    server.healthy(binding).await;
+    server
+        .healthy(binding, &format!("backend_lifecycle case={case}"))
+        .await;
 }
 
 async fn legacy(binding: Binding, enabled: bool, sending: bool) {
@@ -1229,7 +1353,7 @@ async fn admission_change(binding: Binding) {
     assert_eq!(server.probe.created.load(Ordering::SeqCst), 1);
     assert_eq!(server.probe.yielded.load(Ordering::SeqCst), 0);
     server.retired().await;
-    server.healthy(binding).await;
+    server.healthy(binding, "admission_change").await;
 }
 
 async fn enable_lifecycle(binding: Binding) {
@@ -1288,7 +1412,40 @@ async fn backpressure(binding: Binding) {
         &a2a::A2AError::task_not_found("authorized resource"),
     );
     server.retired().await;
-    server.healthy(binding).await;
+    server.healthy(binding, "backpressure_scope").await;
+}
+
+#[tokio::test]
+async fn zero_delay_policy_is_ready_for_real_healthy_and_task_authorizations() {
+    let server = Server::start(Setup::default()).await;
+    server
+        .healthy(Binding::Rest, "zero_delay_callback_control")
+        .await;
+    let (_response, _buffered, _) = first(&server, Binding::Rest, "SubscribeToTask").await;
+    let requests = {
+        let requests = server.probe.requests.lock().unwrap();
+        [HEALTHY, TASK].map(|id| {
+            requests
+                .iter()
+                .find(|request| request.task_id() == Some(id))
+                .unwrap()
+                .clone()
+        })
+    };
+    let policy = Policy(server.probe.clone());
+    let observed = requests.map(|request| {
+        let task_id = request.task_id().unwrap().to_owned();
+        let mut future = policy.authorize(request);
+        let mut context = Context::from_waker(futures_util::task::noop_waker_ref());
+        let result = future.as_mut().poll(&mut context);
+        (task_id, result)
+    });
+    assert!(
+        observed
+            .iter()
+            .all(|(_, result)| matches!(result, Poll::Ready(Ok(())))),
+        "zero-delay fixture callbacks must be ready on first poll: {observed:?}",
+    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]

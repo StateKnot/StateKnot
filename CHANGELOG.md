@@ -102,6 +102,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Make zero-delay A2A subscription test policies ready on their first poll,
+  preserving every configured delay and request budget. Add bounded failure
+  diagnostics and a regression control using real decoded HTTP requests.
+  See the [local qualification record](docs/qualification/experimental-a2a-subscription-zero-delay-fixture-2026-10-16.md);
+  cross-platform CI remains required.
+
 - Redact Debug/pretty Debug for the four unreleased MCP HTTP response types:
   notifications, complete Tool results, remote errors and the outer call response.
   Retain fixed kind/count/presence fields and the allowed error code; the outer
