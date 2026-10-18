@@ -7,12 +7,17 @@ work=$1
 control=$2
 expected_parent=$3
 shift 3
-[[ $# == 4 && $1 == python3 && $3 == run && ( $4 == store || $4 == runtime ) ]]
+[[ $# == 4 && $1 == python3 ]]
+case "$3:$4" in
+  run:store|run:runtime) status_name=suite-status ;;
+  prebuild:downstream) status_name=build-lane-status ;;
+  *) exit 94 ;;
+esac
 
 # The parent's inherited O_RDWR bootstrap descriptor prevents an open/EOF race.
 # Open a read-only endpoint, then close every inherited writer before any child.
 exec 3< "$control"
-exec 8>&- 9>&-
+exec 8>&- 9>&- 10>&-
 [[ $PPID == "$expected_parent" ]]
 IFS= read -r stat < "/proc/$$/stat"
 read -r -a fields <<< "${stat##*) }"
@@ -27,8 +32,8 @@ mv "$work/leader-identity.tmp" "$work/leader-identity"
   # alive long enough to wait for its true exit status when the group gets TERM.
   trap ':' TERM INT HUP
   if "$@"; then code=0; else code=$?; fi
-  printf '%s\n' "$code" > "$work/suite-status.tmp"
-  mv "$work/suite-status.tmp" "$work/suite-status"
+  printf '%s\n' "$code" > "$work/$status_name.tmp"
+  mv "$work/$status_name.tmp" "$work/$status_name"
   exit "$code"
 ) 3<&- &
 helper=$!

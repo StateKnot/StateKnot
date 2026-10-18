@@ -14,6 +14,12 @@ import time
 ROOT = Path.cwd().resolve()
 OUT = ROOT / 'postgres-native-parallel'
 ROLES = {'store': ('stateknot-store-postgres', 264), 'runtime': ('stateknot-runtime', 193)}
+PREBUILDS = (
+    ('provider_native_postgres', ('cargo', 'test', '-p', 'stateknot-integrations', '--test',
+                                 'provider_native_postgres', '--locked', '--no-run')),
+    ('deepseek_agent', ('cargo', 'test', '-p', 'stateknot', '--example',
+                        'deepseek_agent', '--locked', '--no-run')),
+)
 PROFILE = {'CARGO_INCREMENTAL': '0', 'CARGO_PROFILE_DEV_DEBUG': '0',
            'CARGO_PROFILE_TEST_DEBUG': '0', 'CARGO_PROFILE_TEST_OPT_LEVEL': '1',
            'CARGO_PROFILE_TEST_DEBUG_ASSERTIONS': 'true', 'CARGO_PROFILE_TEST_OVERFLOW_CHECKS': 'true'}
@@ -229,9 +235,54 @@ def build(role):
 def load_bound(role):
     guards()
     receipt = decode((OUT / (role + '-binary.json')).read_bytes())
+    binary = Path(receipt['binary'])
+    require(binary.parent == ROOT / 'target/debug/deps' and
+            re.fullmatch(r'postgres-[0-9a-f]{16}', binary.name) and binary.is_file() and
+            not binary.is_symlink() and os.access(binary, os.X_OK) and
+            binary.stat().st_size == receipt['binary_bytes'], 'bound native binary layout changed: ' + role)
     require(receipt['role'] == role and receipt['source'] == source_binding() and
-            sha(Path(receipt['binary'])) == receipt['binary_sha256'], 'source/lock/binary binding changed: ' + role)
+            sha(binary) == receipt['binary_sha256'], 'source/lock/binary binding changed: ' + role)
     return receipt
+
+
+def prebuild():
+    # Only Cargo compilation overlaps the native pair. The original later
+    # workflow commands still execute their real test harnesses in order.
+    overlap = decode((OUT / 'native-binary-overlap.json').read_bytes())
+    started_unix_ns = time.time_ns()
+    require(overlap['both_actual_binary_processes_alive'] is True and
+            type(overlap['observed_unix_ns']) is int and overlap['observed_unix_ns'] <= started_unix_ns,
+            'actual native-pair overlap must precede downstream compilation')
+    fields = Path('/proc/self/stat').read_text().rsplit(') ', 1)[1].split()
+    save(OUT / 'compile-execution.json', {'pid': os.getpid(), 'start_ticks': fields[19],
+         'started_unix_ns': started_unix_ns, 'native_overlap_observed_unix_ns': overlap['observed_unix_ns'],
+         'argv': [list(argv) for _, argv in PREBUILDS], 'mode': 'cargo-no-run'})
+
+    def originals():
+        bindings = {}
+        for role in ROLES:
+            receipt = load_bound(role)
+            bindings[role] = {key: receipt[key] for key in ('binary', 'binary_sha256', 'binary_bytes', 'source')}
+        return bindings
+
+    for target, argv in PREBUILDS:
+        before = originals()
+        save(OUT / (target + '-prebuild-originals-before.json'), before)
+        started = time.monotonic()
+        started_unix_ns = time.time_ns()
+        with (OUT / (target + '-prebuild.stdout')).open('wb') as stdout, \
+                (OUT / (target + '-prebuild.stderr')).open('wb') as stderr:
+            completed = subprocess.run(argv, cwd=ROOT, stdout=stdout, stderr=stderr)
+        save(OUT / (target + '-prebuild-exit.json'), {'build_process_exit_code': completed.returncode,
+             'seconds': time.monotonic() - started, 'started_unix_ns': started_unix_ns,
+             'completed_unix_ns': time.time_ns(), 'argv': list(argv), 'mode': 'cargo-no-run',
+             'stdout_sha256': sha(OUT / (target + '-prebuild.stdout')),
+             'stderr_sha256': sha(OUT / (target + '-prebuild.stderr'))})
+        after = originals()
+        save(OUT / (target + '-prebuild-originals-after.json'), after)
+        require(before == after, 'native source/binary changed during downstream compilation: ' + target)
+        require(completed.returncode == 0, 'downstream Cargo no-run build failed: ' + target)
+        print(target + ': downstream Cargo no-run build passed; both original native bindings unchanged', flush=True)
 
 
 def main():
@@ -258,6 +309,9 @@ def main():
                         'LD_LIBRARY_PATH', *TOOLCHAIN_ENV)}})
             os.chdir(Path(receipt['package']['manifest_path']).parent)
             os.execve(receipt['binary'], [receipt['binary'], '--test-threads=1'], env)
+    elif mode == 'prebuild':
+        require(len(sys.argv) == 3 and sys.argv[2] == 'downstream', 'only fixed downstream prebuilds supported')
+        prebuild()
     elif mode == 'overlap':
         require(len(sys.argv) == 2, 'overlap takes no arguments')
         deadline = time.monotonic() + 8

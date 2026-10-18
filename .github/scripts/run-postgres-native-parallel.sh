@@ -9,11 +9,14 @@ mkdir "$out"
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 leader=$script_dir/postgres-native-leader.sh
 binary_helper=$script_dir/postgres-native-binaries.py
-declare -A worker_pid worker_start worker_state worker_fd suite_code
+roles=(store runtime compile)
+declare -A worker_pid worker_start worker_state worker_fd worker_code cleanup_requested
 worker_fd[store]=8
 worker_fd[runtime]=9
+worker_fd[compile]=10
 worker_state[store]=unstarted
 worker_state[runtime]=unstarted
+worker_state[compile]=unstarted
 
 identity_alive() {
   local role=$1 stat
@@ -50,19 +53,21 @@ group_present_readonly() {
 }
 
 record_status() {
-  local role=$1 code
-  [[ -f "$out/$role-owner/suite-status" ]] || return 1
-  IFS= read -r code < "$out/$role-owner/suite-status" || return 1
+  local role=$1 code status_name=suite-status exit_file=suite-exits.tsv
+  if [[ $role == compile ]]; then status_name=build-lane-status; exit_file=build-lane-exits.tsv; fi
+  [[ -f "$out/$role-owner/$status_name" ]] || return 1
+  IFS= read -r code < "$out/$role-owner/$status_name" || return 1
   [[ "$code" =~ ^[0-9]{1,3}$ ]] && (( 10#$code <= 255 )) || return 1
-  if [[ -z ${suite_code[$role]:-} ]]; then
-    suite_code[$role]=$code
-    printf '%s\t%s\n' "$role" "$code" >> "$out/suite-exits.tsv"
+  if [[ -z ${worker_code[$role]:-} ]]; then
+    worker_code[$role]=$code
+    printf '%s\t%s\n' "$role" "$code" >> "$out/$exit_file"
   fi
 }
 
-retire() {
-  local role=$1 reason=$2 deadline result=0 code
+request_cleanup() {
+  local role=$1 reason=$2
   [[ ${worker_state[$role]} == active ]] || return 0
+  [[ ${cleanup_requested[$role]:-} != 1 ]] || return 0
   if [[ -z ${worker_start[$role]:-} ]]; then bind_identity "$role" || true; fi
   if ! identity_alive "$role"; then
     printf '%s\tleader-lost; no numeric PID/PGID signal\n' "$role" >> "$out/ownership-errors.tsv"
@@ -71,6 +76,13 @@ retire() {
   fi
   printf '%s\t%s\n' "$role" "$reason" >> "$out/retire-requests.tsv" || return 1
   printf 'cleanup\n' >&"${worker_fd[$role]}" || return 1
+  cleanup_requested[$role]=1
+}
+
+retire() {
+  local role=$1 reason=$2 deadline result=0 code
+  [[ ${worker_state[$role]} == active ]] || return 0
+  request_cleanup "$role" "$reason" || return 1
   deadline=$((SECONDS + 12))
   while identity_alive "$role"; do
     if (( SECONDS >= deadline )); then
@@ -92,7 +104,7 @@ retire() {
   if group_present_readonly "${worker_pid[$role]}"; then result=1; fi
   printf '%s\t%s\t%s\n' "$role" "${worker_pid[$role]}" "$result" >> "$out/retired.tsv"
   worker_state[$role]=retired
-  case ${worker_fd[$role]} in 8) exec 8>&- ;; 9) exec 9>&- ;; esac
+  case ${worker_fd[$role]} in 8) exec 8>&- ;; 9) exec 9>&- ;; 10) exec 10>&- ;; esac
   if [[ -p "$out/$role-owner/control" ]]; then rm -- "$out/$role-owner/control" || result=1; fi
   unset "worker_pid[$role]" "worker_start[$role]"
   return "$result"
@@ -102,14 +114,21 @@ finish() {
   local status=$? role
   trap - EXIT
   trap '' INT TERM
-  for role in store runtime; do
+  # Every owner receives cleanup before any wait. A slow owner cannot leave a
+  # different native/Cargo group running until its turn in a sequential loop.
+  for role in "${roles[@]}"; do
+    if ! request_cleanup "$role" monitor-exit; then
+      if [[ $status == 0 ]]; then status=1; fi
+    fi
+  done
+  for role in "${roles[@]}"; do
     if ! retire "$role" monitor-exit; then
       if [[ $status == 0 ]]; then status=1; fi
     fi
   done
   # Closing every writer also handles parent death via the leaders' read EOF.
-  exec 8>&- 9>&-
-  for role in store runtime; do
+  exec 8>&- 9>&- 10>&-
+  for role in "${roles[@]}"; do
     if [[ -p "$out/$role-owner/control" ]]; then rm -- "$out/$role-owner/control" || status=1; fi
   done
   printf 'monitor_exit\t%s\n' "$status" >> "$out/cleanup.tsv"
@@ -191,19 +210,30 @@ for role in store runtime; do
 done
 python3 "$binary_helper" overlap
 printf 'Both original leader identities bound.\n' > "$out/monitor-ready"
-printf 'Owned leaders started; complete native-binary outputs are retained separately.\n'
-while [[ ${worker_state[store]} == active || ${worker_state[runtime]} == active ]]; do
-  for role in store runtime; do
+mkdir "$out/compile-owner"
+mkfifo "$out/compile-owner/control"
+exec 10<> "$out/compile-owner/control"
+printf '%s\n' 'python3 .github/scripts/postgres-native-binaries.py prebuild downstream' > "$out/compile-command.txt"
+setsid bash "$leader" "$out/compile-owner" "$out/compile-owner/control" "$$" \
+  python3 "$binary_helper" prebuild downstream \
+  8>&- 9>&- > "$out/compile.stdout" 2> "$out/compile.stderr" &
+worker_pid[compile]=$!
+worker_state[compile]=active
+printf 'compile\t%s\n' "${worker_pid[compile]}" >> "$out/pids.tsv"
+bind_identity compile
+printf 'Owned native pair and compile-only lane started; complete outputs are retained separately.\n'
+while [[ ${worker_state[store]} == active || ${worker_state[runtime]} == active || ${worker_state[compile]} == active ]]; do
+  for role in "${roles[@]}"; do
     [[ ${worker_state[$role]} == active ]] || continue
     identity_alive "$role"
     if record_status "$role"; then
-      retire "$role" suite-complete
-      (( 10#${suite_code[$role]} == 0 )) || exit "${suite_code[$role]}"
+      retire "$role" command-complete
+      (( 10#${worker_code[$role]} == 0 )) || exit "${worker_code[$role]}"
     fi
   done
-  if [[ ${worker_state[store]} == active || ${worker_state[runtime]} == active ]]; then sleep 0.05; fi
+  if [[ ${worker_state[store]} == active || ${worker_state[runtime]} == active || ${worker_state[compile]} == active ]]; then sleep 0.05; fi
 done
-[[ ${suite_code[store]} == 0 && ${suite_code[runtime]} == 0 ]]
+[[ ${worker_code[store]} == 0 && ${worker_code[runtime]} == 0 && ${worker_code[compile]} == 0 ]]
 # Full original test harnesses must actually finish; suite exit alone is insufficient.
 [[ $(grep -Fxc 'running 264 tests' "$out/store.stdout") == 1 ]]
 [[ $(grep -Ec '^test result: ok[.] 264 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' "$out/store.stdout") == 1 ]]
