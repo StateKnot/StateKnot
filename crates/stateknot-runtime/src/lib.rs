@@ -39,6 +39,7 @@ mod driver_schema;
 mod durable_admission;
 mod durable_runs;
 mod fair_scheduler;
+mod frame_cancellation;
 mod invocation_executor;
 mod invocation_schema;
 mod lifecycle;
@@ -153,6 +154,10 @@ pub use fair_scheduler::{
     DurableFairSchedulerOptionsError, FairSchedulerError, FairSchedulerTick, TenantFairnessWeight,
     TenantFairnessWeightError, TenantStarvationBound, WeightedFairnessPolicy,
     WeightedFairnessPolicyError,
+};
+pub use frame_cancellation::{
+    DurableFrameCancellationFinalizer, FrameCancellationBuildError, FrameCancellationItem,
+    FrameCancellationOutcome, FrameCancellationTick,
 };
 pub use lifecycle::{
     DurableGraphLifecycle, DurableGraphLifecycleBuildError, DurableGraphLifecycleOptions,

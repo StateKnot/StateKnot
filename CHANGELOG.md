@@ -12,6 +12,27 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Add an experimental cancellation-only F2 Driver handoff after complete owning
+  preflight of the actual current-leaf registered, unpublished Join. The cold
+  `DurableFrameCancellationFinalizer` then continues an original cancellation
+  from its durable whole-frame closure and authenticates the actual committed
+  ACK, preserving the original Root, failure and complete usage. Public Rust
+  `GraphFrameClosureCursor`/`GraphFrameClosurePage` provide bounded raw 16+1
+  discovery; `StoredGraphFrameClosure::root_checkpoint()` and
+  `original_cancellation_lifecycle()` borrow the already verified full record.
+  These readers grant no execution authority, add no wire format or SQL migration,
+  and do not enable ordinary scoped Join dispatch; all three ordinary guards remain.
+
+- Extend experimental owned Agent maintenance with the fifth `FrameCancellation`
+  job. `AgentMaintenanceBinding::new` now requires the existing exact standard
+  Agent cancellation schema alongside the original four schemas, and each
+  tenant/job receives a turn within 5N admitted quanta. Register the fifth schema
+  before construction and deploy the continuation with closed-frame scheduler
+  exclusion. See the [guide](docs/agent-maintenance.md) and
+  [Draft RFC-0014](docs/rfcs/0014-owned-agent-maintenance.md). Stable release,
+  complete qualification and measured production capacity remain separate;
+  this source increment does not close R1 or R6 or claim pending test/CI results.
+
 - Add an experimental Store cancellation proof for the unique latest current-leaf
   ordinary owner of a registered, unpublished child Join, preserving its Executing
   attempt and settled accounting without ordinary completion/result or Join
@@ -20,7 +41,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   `PostgresStore::graph_frame_join_stop_event_schema()` exposes the exact v2 schema.
   See the [bounded Store record](docs/qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
   and [RFC-0022](docs/rfcs/0022-namespaced-graph-frames.md#registered-join-handoff-during-whole-frame-cancellation).
-  Root ConfirmCancellation, scoped Driver, complete CI and R1 remain gated.
+  This Store-only record provides no Root confirmation or scoped Driver
+  qualification; complete CI and R1 remain gated.
 
 ### Added
 

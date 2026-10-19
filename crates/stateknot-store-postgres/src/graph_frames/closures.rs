@@ -210,6 +210,22 @@ impl StoredGraphFrameClosure {
     pub const fn failure(&self) -> &Failure {
         &self.intent.failure
     }
+    /// Exact Root checkpoint authenticated by the whole closure proof.
+    #[must_use]
+    pub const fn root_checkpoint(&self) -> &CheckpointHead {
+        &self.intent.root
+    }
+    /// Original requested cancellation, excluding every sealed failure close.
+    #[must_use]
+    pub fn original_cancellation_lifecycle(&self) -> Option<&RunLifecycle> {
+        if self.intent.failure_close.is_none()
+            && self.intent.lifecycle.status() == RunStatus::CancellationRequested
+        {
+            Some(&self.intent.lifecycle)
+        } else {
+            None
+        }
+    }
     /// Complete DIRECT usage frozen before this maintenance transaction.
     ///
     /// Closing performs no application work; its audit does not consume a new
@@ -499,6 +515,100 @@ async fn prepare_stopped_work(
         .ok_or(StoreError::IncompleteChildAccounting)?;
     child_runs::verify_settlement_heads_before(tx, &account, observed).await?;
     Ok(Some(stop))
+}
+
+impl ClaimedRunRecovery<'_> {
+    /// Authenticates a claimed scoped cancellation of one registered Join owner.
+    ///
+    /// The complete active stack, unique latest unfinished owner, unpublished
+    /// Join, settled provider work and whole child account are reloaded under
+    /// parent-then-child locks. The exact session journal, lifecycle and live
+    /// fence must still match. No business fact is written and all locks are
+    /// released before returning; this observation grants no dispatch or close
+    /// authority. The eventual closure independently verifies the whole proof.
+    ///
+    /// # Errors
+    /// Rejects crossed scope, nonselected cancellation profiles, changed heads,
+    /// stale or expired ownership, unfinished work, quarantine and database
+    /// failures. Durable contradictions use this session's original exact
+    /// quarantine context; ordinary profile/availability failures do not.
+    pub fn validate_registered_join_frame_cancellation<'a>(
+        &'a self,
+        expected_leaf: &'a GraphFrameCheckpointHead,
+    ) -> stateknot_core::BoxFuture<'a, Result<(), StoreError>> {
+        Box::pin(async move {
+            self.validate_checkpoint_scope(expected_leaf.checkpoint())?;
+            self.read(Box::pin(
+                self.validate_registered_join_frame_cancellation_inner(expected_leaf),
+            ))
+            .await
+        })
+    }
+
+    async fn validate_registered_join_frame_cancellation_inner(
+        &self,
+        expected_leaf: &GraphFrameCheckpointHead,
+    ) -> Result<(), StoreError> {
+        let tenant = self.fence.tenant_id();
+        let run = self.fence.run_id();
+        // The shared verifier takes row locks. The ordinary read-only replay
+        // transaction cannot supply those locks; no mutation is issued here.
+        let mut tx = self
+            .store
+            .begin_mutation("registered Join cancellation preflight")
+            .await?;
+        let stored = decode_run(fetch_locked_run_row(&mut tx, tenant, run).await?)?;
+        verify_current_wait_set(&mut tx, &stored).await?;
+        Box::pin(root_graph_barriers::verify_run(&mut tx, &stored)).await?;
+        validate_runnable(&stored)?;
+        if !journal_expectation_matches_stored(&stored, self.context.expectation()) {
+            return Err(StoreError::StaleClaimedRunRecoveryObservation);
+        }
+        if stored.lifecycle().status() != RunStatus::CancellationRequested
+            || self.initial_run.lifecycle().status() != RunStatus::CancellationRequested
+        {
+            return Err(StoreError::InvalidRunFailureClose);
+        }
+        if !canonical_equal(stored.lifecycle(), self.initial_run.lifecycle())?
+            || stored.checkpoint() != self.initial_run.checkpoint()
+        {
+            return Err(StoreError::StaleClaimedRunRecoveryObservation);
+        }
+        let observed = stored
+            .journal_head()
+            .cloned()
+            .ok_or(StoreError::InvalidRunFailureClose)?;
+        let before = database_now(&mut tx, "registered Join cancellation clock").await?;
+        authorize_worker(&stored, &self.fence, before)?;
+        let active = Box::pin(active::verified_snapshot(
+            &mut tx,
+            tenant,
+            run,
+            stored.clone(),
+        ))
+        .await?
+        .ok_or(StoreError::GraphFrameConflict)?;
+        if active.checkpoint().head() != *expected_leaf {
+            return Err(StoreError::GraphFrameConflict);
+        }
+        if prepare_stopped_work(&mut tx, &stored, &active, &observed)
+            .await?
+            .is_none()
+        {
+            // The no-unfinished-work v1 closure path is not this profile.
+            return Err(StoreError::InvalidRunFailureClose);
+        }
+        let after = database_now(&mut tx, "registered Join cancellation final clock").await?;
+        if after < before {
+            return Err(StoreError::DatabaseClockRegression);
+        }
+        authorize_worker(&stored, &self.fence, after)?;
+        tx.commit().await.map_err(|source| {
+            StoreError::database("registered Join cancellation preflight commit", source)
+        })?;
+        self.revalidate().await?;
+        Ok(())
+    }
 }
 
 async fn verify_stopped_work(

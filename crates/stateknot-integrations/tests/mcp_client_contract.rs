@@ -508,7 +508,9 @@ impl DiagnosticServer {
                 } else {
                     write_json(&mut socket, &response).await;
                 }
-                socket.shutdown().await.unwrap();
+                // Every response byte was accepted by write_all. The client may
+                // already have closed its completed request-scoped SSE stream;
+                // let this scope close the socket without an extra shutdown.
                 captured.push(request);
             }
             captured

@@ -113,10 +113,10 @@ mod frame_retry;
 #[path = "graph_frames.rs"]
 mod graph_frames;
 pub use graph_frames::{
-    GraphFrameBarrierCommitOutcome, GraphFrameClosureCommitOutcome, GraphFrameEntryCommitOutcome,
-    GraphFrameReturnCommitOutcome, GraphRecoveryReplayReport, GraphWaitEffect,
-    StoredActiveGraphFrame, StoredGraphFrameBarrier, StoredGraphFrameClosure,
-    StoredGraphFrameEntry, StoredGraphFrameReturn, StoredOpenGraphFrame,
+    GraphFrameBarrierCommitOutcome, GraphFrameClosureCommitOutcome, GraphFrameClosureCursor,
+    GraphFrameClosurePage, GraphFrameEntryCommitOutcome, GraphFrameReturnCommitOutcome,
+    GraphRecoveryReplayReport, GraphWaitEffect, StoredActiveGraphFrame, StoredGraphFrameBarrier,
+    StoredGraphFrameClosure, StoredGraphFrameEntry, StoredGraphFrameReturn, StoredOpenGraphFrame,
 };
 
 use crate::{
@@ -1074,6 +1074,8 @@ WHERE tenant_id = $1
   AND lifecycle_status IN ('pending', 'active', 'cancellation_requested')
   AND NOT EXISTS (SELECT 1 FROM stateknot.run_failure_closes AS closing
       WHERE closing.tenant_id=stateknot.runs.tenant_id AND closing.run_id=stateknot.runs.run_id)
+  AND NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_closures AS closed
+      WHERE closed.tenant_id=stateknot.runs.tenant_id AND closed.run_id=stateknot.runs.run_id)
   AND (lifecycle_status <> 'active' OR NOT EXISTS (
       SELECT 1 FROM stateknot.child_run_joins AS joined
       WHERE joined.tenant_id = stateknot.runs.tenant_id

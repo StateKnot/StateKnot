@@ -232,11 +232,21 @@ async fn complete_journal(
         .sum()
 }
 
-#[allow(clippy::too_many_lines)]
 async fn prepare(store: &PostgresStore) -> Scenario {
-    let (fixture, leaf, isolated, agent) = graphs();
+    let definitions = graphs();
     let tenant = tenant("scoped-join-close-process");
     let ids = AgentRunIds::generate();
+    Box::pin(prepare_with_identity(store, definitions, tenant, ids)).await
+}
+
+#[allow(clippy::too_many_lines)]
+async fn prepare_with_identity(
+    store: &PostgresStore,
+    definitions: (DriverFixture, CompiledGraph, CompiledGraph, AgentDescriptor),
+    tenant: TenantId,
+    ids: AgentRunIds,
+) -> Scenario {
+    let (fixture, leaf, isolated, agent) = definitions;
     let run = ids.run_id();
     for graph in [&fixture.graph, &leaf, &isolated] {
         store
@@ -1029,3 +1039,21 @@ async fn registered_scoped_join_close_lost_commit_ack_survives_real_kill_and_col
     Box::pin(run_controller(&store, connection.as_ref().unwrap())).await;
     store.close().await;
 }
+
+#[path = "scoped_join_driver_f2_red.rs"]
+mod f2_driver;
+
+#[path = "scoped_join_driver_f2_bounds.rs"]
+mod f2_bounds;
+
+#[path = "scoped_frame_cancellation_cold_red.rs"]
+mod cold_continuation;
+
+#[path = "scoped_frame_cancellation_child_quarantine.rs"]
+mod child_quarantine;
+
+#[path = "scoped_frame_cancellation_finalizer_acceptance.rs"]
+mod finalizer_acceptance;
+
+#[path = "scoped_frame_cancellation_terminal_process_faults.rs"]
+mod terminal_confirmation;

@@ -42,6 +42,7 @@ pub(super) enum TransactionTarget {
     LeaseRenewal,
     LeaseRelease,
     RunQuarantine,
+    GraphFrameCancellationConfirmation,
 }
 
 impl TransactionTarget {
@@ -65,6 +66,18 @@ impl TransactionTarget {
             Self::LeaseRenewal => b"\nUPDATE stateknot.runs\nSET lease_renewed_at = $5,",
             Self::LeaseRelease => b"\nUPDATE stateknot.runs\nSET lease_attempt_id = NULL,",
             Self::RunQuarantine => b"\nINSERT INTO stateknot.run_quarantines (",
+            Self::GraphFrameCancellationConfirmation => {
+                b"
+UPDATE stateknot.runs
+SET journal_sequence = $3,
+    journal_event_id = $4,
+    journal_recorded_at = $5,
+    journal_digest = $6,
+    lifecycle_bytes = $7,
+    lifecycle_revision = $8::numeric,
+    lifecycle_status = $9,
+"
+            }
         }
     }
 }
@@ -372,6 +385,7 @@ async fn commit_proxy_rejects_truncated_oversized_and_malformed_frames() {
         TransactionTarget::ChildJoinPublication,
         TransactionTarget::ChildJoinConsumption,
         TransactionTarget::AgentDeadlineCancellation,
+        TransactionTarget::GraphFrameCancellationConfirmation,
     ] {
         assert!(!target.parse_prefix().is_empty());
     }

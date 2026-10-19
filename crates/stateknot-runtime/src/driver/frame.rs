@@ -30,9 +30,15 @@ pub(super) struct IterationScope {
 
 // Complete owning values for this actual read only. Allocation changes layout;
 // the original replay, quarantine and live-fence checks remain authoritative.
-pub(super) struct DriveStartup {
-    pub(super) continuation: ReplayContinuation,
-    pub(super) report: GraphDriveReport,
+pub(super) enum DriveStartup {
+    Dispatch {
+        continuation: Box<ReplayContinuation>,
+        report: GraphDriveReport,
+    },
+    Cancellation {
+        handoff: Box<super::GraphCancellationHandoff>,
+        report: GraphDriveReport,
+    },
 }
 
 pub(super) struct IterationRead<'driver> {
@@ -175,6 +181,46 @@ impl DurableGraphDriver {
                 leaf: replay.leaf().cloned(),
                 journal: replay.journal_head().clone(),
             };
+            let mut report = GraphDriveReport::new(replay.root_report());
+            report.whole_replay_passes = 1;
+            report.whole_replay = GraphDriveReplayReport::from_completed(&replay);
+            report.lease_renewals = startup_renewals;
+            report.mutation_retries = startup_retries;
+            if initial_scope.active.is_some()
+                && initial_scope.executable.graph().child_runs().is_some()
+                && initial_recovery.initial_run().lifecycle().status()
+                    == super::RunStatus::CancellationRequested
+            {
+                // Only the complete selected owning proof can bypass ordinary
+                // dispatch preparation. This branch never plans or starts nodes.
+                let preparing = async {
+                    let leaf = initial_scope
+                        .leaf()
+                        .ok_or(GraphDriverError::StaleBarrierSnapshot)?;
+                    initial_recovery
+                        .validate_registered_join_frame_cancellation(&leaf)
+                        .await?;
+                    let live = initial_recovery.revalidate().await?;
+                    if !continuation.matches(&initial_scope, &live) {
+                        return Err(GraphDriverError::StaleBarrierSnapshot);
+                    }
+                    super::cancellation_handoff(
+                        &initial_recovery,
+                        &initial_scope,
+                        &live,
+                        &continuation.journal,
+                    )
+                };
+                let handoff = match preparing.await {
+                    Ok(handoff) => handoff,
+                    Err(error) => {
+                        // Retain exact-fence cleanup and its complete failure.
+                        self.release_with_retry(fence, &mut report).await?;
+                        return Err(error);
+                    }
+                };
+                return Ok(Box::new(DriveStartup::Cancellation { handoff, report }));
+            }
             drop(initial_recovery);
             drop(initial_scope);
 
@@ -185,17 +231,11 @@ impl DurableGraphDriver {
                     graph: Box::new(continuation.root.graph().clone()),
                 })?;
             if let Err(error) = self.validate_frame_dispatch_profile(root_executable.graph()) {
-                let mut report = GraphDriveReport::new(replay.root_report());
                 self.release_with_retry(fence, &mut report).await?;
                 return Err(error);
             }
-            let mut report = GraphDriveReport::new(replay.root_report());
-            report.whole_replay_passes = 1;
-            report.whole_replay = GraphDriveReplayReport::from_completed(&replay);
-            report.lease_renewals = startup_renewals;
-            report.mutation_retries = startup_retries;
-            Ok(Box::new(DriveStartup {
-                continuation,
+            Ok(Box::new(DriveStartup::Dispatch {
+                continuation: Box::new(continuation),
                 report,
             }))
         })

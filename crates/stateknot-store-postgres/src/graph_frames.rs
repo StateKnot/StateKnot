@@ -25,6 +25,11 @@ pub(super) fn verified_active_snapshot<'a>(
 #[path = "graph_frames/closures.rs"]
 mod closures;
 pub use closures::{GraphFrameClosureCommitOutcome, StoredGraphFrameClosure};
+
+#[path = "graph_frames/discovery.rs"]
+mod discovery;
+pub use discovery::{GraphFrameClosureCursor, GraphFrameClosurePage};
+
 pub(super) async fn closed_completion(
     tx: &mut Transaction<'_, Postgres>,
     start: &NodeAttemptStart,
@@ -1536,9 +1541,30 @@ pub(super) async fn validate_closed_direct_usage(
         .fetch_one(&mut **tx)
         .await
         .map_err(|e| StoreError::database("closed terminal Run", e))?;
-    let record = Box::pin(closures::verified_record(tx, &decode_run(current)?, saved)).await?;
+    let current = decode_run(current)?;
+    let record = Box::pin(closures::verified_record(tx, &current, saved)).await?;
     if record.direct_usage() != direct {
         return Err(StoreError::IncompleteChildAccounting);
+    }
+    // The parent is locked by the existing terminal writer. Historical closure
+    // proofs and existing terminal ACKs do not impose a new quarantine gate.
+    if record.original_cancellation_lifecycle().is_some()
+        && current.lifecycle().status() == RunStatus::CancellationRequested
+        && Box::pin(child_runs::load_account_inner(
+            tx,
+            event.tenant_id(),
+            event.run_id(),
+            false,
+        ))
+        .await?
+        .is_some()
+    {
+        Box::pin(child_runs::lock_settled_account_children(
+            tx,
+            event.tenant_id(),
+            event.run_id(),
+        ))
+        .await?;
     }
     Ok(())
 }

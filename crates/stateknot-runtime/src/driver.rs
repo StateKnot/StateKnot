@@ -402,10 +402,36 @@ impl DurableGraphDriver {
     ) -> BoxFuture<'a, Result<GraphDriveResult, GraphDriverError>> {
         Box::pin(async move {
             let startup = self.prepare_drive_start(&fence, &shutdown).await?;
-            let frame::DriveStartup {
-                mut continuation,
-                mut report,
-            } = *startup;
+            let (mut continuation, mut report) = match *startup {
+                frame::DriveStartup::Dispatch {
+                    continuation,
+                    report,
+                } => (*continuation, report),
+                frame::DriveStartup::Cancellation {
+                    handoff,
+                    mut report,
+                } => {
+                    // Keep the same startup control precedence as dispatch.
+                    if shutdown.is_cancelled() {
+                        let release = self.release_with_retry(&fence, &mut report).await?;
+                        return Ok(GraphDriveResult::new(
+                            GraphDriveOutcome::Cancelled { release },
+                            report,
+                        ));
+                    }
+                    if report.durable_events >= self.options.maximum_durable_events {
+                        let release = self.release_with_retry(&fence, &mut report).await?;
+                        return Ok(GraphDriveResult::new(
+                            GraphDriveOutcome::Yielded { release },
+                            report,
+                        ));
+                    }
+                    return Ok(GraphDriveResult::new(
+                        GraphDriveOutcome::CancellationRequested(handoff),
+                        report,
+                    ));
+                }
+            };
             loop {
                 if shutdown.is_cancelled() {
                     let release = self.release_with_retry(&fence, &mut report).await?;
@@ -433,38 +459,10 @@ impl DurableGraphDriver {
                 } = *iteration;
                 let executable = &scope.executable;
                 if live.lifecycle().status() == RunStatus::CancellationRequested {
-                    let lease = exact_live_lease(&live, &fence)?.clone();
-                    let request = live.lifecycle().cancellation_request().ok_or(
-                        GraphDriverError::RuntimeInvariant {
-                            operation: "recover durable cancellation intent",
-                        },
-                    )?;
-                    let checkpoint = scope.root.head();
-                    let pointer = live
-                        .checkpoint()
-                        .ok_or(GraphDriverError::RuntimeInvariant {
-                            operation: "bind cancellation to the current checkpoint",
-                        })?;
-                    if pointer.checkpoint_id() != checkpoint.checkpoint_id()
-                        || pointer.superstep() != checkpoint.superstep()
-                        || pointer.digest() != checkpoint.digest()
-                        || live.journal_head() != Some(plan.journal_head())
-                    {
-                        return Err(GraphDriverError::StaleBarrierSnapshot);
-                    }
+                    let handoff =
+                        cancellation_handoff(&recovery, &scope, &live, plan.journal_head())?;
                     return Ok(GraphDriveResult::new(
-                        GraphDriveOutcome::CancellationRequested(Box::new(
-                            GraphCancellationHandoff {
-                                quarantine_context: recovery.quarantine_context().clone(),
-                                checkpoint,
-                                leaf: scope.leaf(),
-                                journal_head: plan.journal_head().clone(),
-                                event_id: EventId::generate(),
-                                expected_revision: live.lifecycle().revision(),
-                                lease,
-                                failure_id: request.failure().id(),
-                            },
-                        )),
+                        GraphDriveOutcome::CancellationRequested(handoff),
                         report,
                     ));
                 }
@@ -2372,6 +2370,52 @@ fn guarded_run_lease(
         return Err(StoreError::LeaseExpired.into());
     }
     Ok(GuardedRunLease { lease, deadline })
+}
+
+fn cancellation_handoff(
+    recovery: &ClaimedRunRecovery<'_>,
+    scope: &frame::IterationScope,
+    live: &StoredRun,
+    journal: &JournalHead,
+) -> Result<Box<GraphCancellationHandoff>, GraphDriverError> {
+    let lease = exact_live_lease(live, recovery.fence())?.clone();
+    let request =
+        live.lifecycle()
+            .cancellation_request()
+            .ok_or(GraphDriverError::RuntimeInvariant {
+                operation: "recover durable cancellation intent",
+            })?;
+    let checkpoint = scope.root.head();
+    let pointer = live
+        .checkpoint()
+        .ok_or(GraphDriverError::RuntimeInvariant {
+            operation: "bind cancellation to the current checkpoint",
+        })?;
+    if live.lifecycle().status() != RunStatus::CancellationRequested
+        || live.lifecycle().revision() != recovery.initial_run().lifecycle().revision()
+        || pointer.checkpoint_id() != checkpoint.checkpoint_id()
+        || pointer.superstep() != checkpoint.superstep()
+        || pointer.digest() != checkpoint.digest()
+        || live.journal_head() != Some(journal)
+        || recovery.initial_run().journal_head() != Some(journal)
+        || scope.active.as_ref().is_some_and(|active| {
+            active.run().journal_head() != Some(journal)
+                || active.run().checkpoint() != live.checkpoint()
+                || active.run().lifecycle().revision() != live.lifecycle().revision()
+        })
+    {
+        return Err(GraphDriverError::StaleBarrierSnapshot);
+    }
+    Ok(Box::new(GraphCancellationHandoff {
+        quarantine_context: recovery.quarantine_context().clone(),
+        checkpoint,
+        leaf: scope.leaf(),
+        journal_head: journal.clone(),
+        event_id: EventId::generate(),
+        expected_revision: live.lifecycle().revision(),
+        lease,
+        failure_id: request.failure().id(),
+    }))
 }
 
 fn exact_live_lease<'run>(

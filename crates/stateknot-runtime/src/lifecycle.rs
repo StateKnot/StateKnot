@@ -29,7 +29,7 @@ use thiserror::Error;
 
 use crate::{
     ExecutableGraphRegistry, GraphBlockedHandoff, GraphCancellationHandoff, GraphDriveBlockers,
-    GraphLifecycleBarrierHandoff, StandardAgentCancellationSchemaError,
+    GraphLifecycleBarrierHandoff, JsonSchemaRegistry, StandardAgentCancellationSchemaError,
     StandardGraphLifecycleSchemaError, standard_agent_cancellation_event_schema,
     standard_graph_lifecycle_event_schema,
 };
@@ -1362,16 +1362,11 @@ impl DurableGraphLifecycle {
         checkpoint: &CheckpointHead,
         failure_id: FailureId,
     ) -> Result<JournalPayload, GraphLifecycleError> {
-        self.event_payload_with_schema(
+        cancelled_payload(
+            self.registry.schemas(),
             &self.cancellation_schema,
-            "agent-cancellation-confirmed",
-            json!({
-                "operation": "agent_cancellation_confirmed",
-                "graph_digest": digest_hex(checkpoint.graph().definition_digest()),
-                "checkpoint_id": checkpoint.checkpoint_id().to_string(),
-                "superstep": checkpoint.superstep().get().to_string(),
-                "failure_id": failure_id.to_string()
-            }),
+            checkpoint,
+            failure_id,
         )
     }
 
@@ -1400,6 +1395,33 @@ impl DurableGraphLifecycle {
         JournalPayload::new(schema.clone(), kind, data)
             .map_err(|_| GraphLifecycleError::EventPayloadInvalid)
     }
+}
+
+// Shared with cold maintenance; preserve the hot path's exact release payload.
+pub(crate) fn cancelled_payload(
+    schemas: &JsonSchemaRegistry,
+    schema: &SchemaReference,
+    checkpoint: &CheckpointHead,
+    failure_id: FailureId,
+) -> Result<JournalPayload, GraphLifecycleError> {
+    let data = BoundedJson::try_from_value(json!({
+        "operation": "agent_cancellation_confirmed",
+        "graph_digest": digest_hex(checkpoint.graph().definition_digest()),
+        "checkpoint_id": checkpoint.checkpoint_id().to_string(),
+        "superstep": checkpoint.superstep().get().to_string(),
+        "failure_id": failure_id.to_string()
+    }))
+    .map_err(|_| GraphLifecycleError::EventPayloadInvalid)?;
+    schemas
+        .validate_bounded(schema, &data)
+        .map_err(|_| GraphLifecycleError::EventPayloadInvalid)?;
+    JournalPayload::new(
+        schema.clone(),
+        JournalEventKind::new("agent-cancellation-confirmed")
+            .map_err(|_| GraphLifecycleError::EventPayloadInvalid)?,
+        data,
+    )
+    .map_err(|_| GraphLifecycleError::EventPayloadInvalid)
 }
 
 pub(crate) fn superstep_limit_failure() -> Failure {

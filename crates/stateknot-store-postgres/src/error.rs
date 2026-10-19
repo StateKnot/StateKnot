@@ -91,6 +91,9 @@ pub enum StoreError {
     /// An inherited lifetime or depth ceiling was exhausted.
     #[error("graph frame inherited limit reached")]
     GraphFrameLimitExceeded,
+    /// A frame closure cursor crossed tenant scope or its fixed upper bound.
+    #[error("graph frame closure cursor is invalid")]
+    InvalidGraphFrameClosureCursor,
     /// The failure-close boundary lacks complete settled direct evidence or scope.
     #[error("invalid failure close boundary or evidence")]
     InvalidRunFailureClose,

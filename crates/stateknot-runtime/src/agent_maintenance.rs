@@ -53,7 +53,7 @@ pub enum AgentMaintenanceError {
     Stopped,
 }
 
-/// Four concrete jobs; child reconciliation includes cancellation and settlement.
+/// Five concrete jobs; child reconciliation includes cancellation and settlement.
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum AgentMaintenanceJob {
     /// Request cancellation for admitted Agent deadlines using database time.
@@ -64,10 +64,18 @@ pub enum AgentMaintenanceJob {
     Join,
     /// Close failed parents after durable child accounting completes.
     FailureClose,
+    /// Confirm cancellation from an authenticated durable whole-frame closure.
+    FrameCancellation,
 }
 impl AgentMaintenanceJob {
     /// Deterministic job order within each tenant's rotation.
-    pub const ALL: [Self; 4] = [Self::Deadline, Self::Child, Self::Join, Self::FailureClose];
+    pub const ALL: [Self; 5] = [
+        Self::Deadline,
+        Self::Child,
+        Self::Join,
+        Self::FailureClose,
+        Self::FrameCancellation,
+    ];
     const fn index(self) -> usize {
         self as usize
     }
@@ -106,7 +114,7 @@ pub struct AgentMaintenanceReport {
     pub forced_ticks: usize,
     /// First fail-stop cause; absence means requested shutdown, not Run success.
     pub failure: Option<AgentMaintenanceFailure>,
-    jobs: [AgentMaintenanceJobReport; 4],
+    jobs: [AgentMaintenanceJobReport; 5],
 }
 impl AgentMaintenanceReport {
     /// Counters for a concrete job, without tenant or Run labels.
