@@ -65,7 +65,7 @@ async fn observe(
 `request_id`、`host`。host 固定字段为 `status/live/ready/failure/http/worker/maintenance`。
 失败只包含封闭的阶段和角色标签；尚未启动的角色为 null。HTTP 提供状态和连接/SSE 数，
 Worker 提供状态、活动 tick/节点和累计执行计数，维护提供状态、tick 及
-deadline/child/join/failure_close 四项固定任务计数。
+deadline/child/join/failure_close/frame_cancellation 五项固定任务计数。
 累计 `u64` 计数使用十进制**字符串**避免 JSON 精度损失；活动和强制回收数为有界整数。
 计数随进程重启清零，不是持久化用量或成功结算凭证。
 
