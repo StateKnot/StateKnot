@@ -43,7 +43,7 @@ def validate_bytes(raw, major, expected_os, expected_arch):
     require(lines.count('running 1 test') == 1, 'exact Wait controller did not run once')
     require(sum(line.startswith('test ' + CASE + ' ...') for line in lines) == 1, 'exact Wait start missing/repeated')
     summaries = re.findall(r'^test result: ok[.] (\d+) passed; (\d+) failed; (\d+) ignored; (\d+) measured; (\d+) filtered out; finished in [0-9.]+s$', text, re.MULTILINE)
-    require(summaries == [('1', '0', '0', '0', '205')], 'complete 1/205 Wait harness summary missing/repeated')
+    require(summaries == [('1', '0', '0', '0', '209')], 'complete 1/209 Wait harness summary missing/repeated')
     marker_lines = [line[len(PREFIX):] for line in lines if line.startswith(PREFIX)]
     require(len(marker_lines) == 2, 'exactly two Wait cut markers required')
     seen = {}
@@ -77,7 +77,7 @@ def main():
     major = os.environ['STATEKNOT_WAIT_EXPECTED_POSTGRES_MAJOR']
     rows = validate_bytes(raw, major, 'linux', platform.machine())
     result = {'profile': 'scoped-wait-commit-loss-v1', 'status': 'passed', 'exact_case': CASE,
-              'full_runtime_inventory': 206, 'selected_passed': 1, 'filtered_out': 205, 'marker_count': 2,
+              'full_runtime_inventory': 210, 'selected_passed': 1, 'filtered_out': 209, 'marker_count': 2,
               'log_sha256': hashlib.sha256(raw).hexdigest(), 'postgres_major': major,
               'runner_os': 'linux', 'runner_arch': platform.machine(), 'cuts': rows}
     Path('scoped-wait-commit-loss-validation.json').write_text(json.dumps(result, indent=2) + '\n')

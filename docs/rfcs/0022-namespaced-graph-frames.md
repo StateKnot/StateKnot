@@ -752,8 +752,37 @@ evidence includes scoped spawn/ACK, wrong leaf/namespace/declaration rejection,
 shared Root/frame capacity and topology, suspended-caller exclusivity, real
 child settlement and publication, higher-fence Join completion, returned-frame
 historical reads, cancellation/failure, Unknown-cost blocking and final-source
-PostgreSQL 16/17 qualification. A Driver that has not completed this integration
-rejects reachable scoped ChildRun declarations before dispatch.
+PostgreSQL 16/17 qualification. These gates remain distinct from the source
+increment below.
+
+The experimental G1 Driver profile admits higher-fence (F2) recovery of an
+already published, unconsumed scoped child Join. Each iteration binds the actual
+claimed Run, fence, journal, Root/leaf checkpoint and recovery plan. Before caller
+rebind or a fresh Start, every unfinished scoped declared-child activation must
+have its complete owning Join, original publication and binding, an Exclusive
+executor with typed ChildJoin support, and all sealed child terminal/output
+proofs validated through the existing `GraphChildJoin` reader. The normal
+callback returns Completed; the existing transaction commits the result and
+consumes that exact publication once. Scoped barriers, frame Return, Root
+continuation and repeated terminal handoff retain their original paths. Root
+terminal handoff leaves the Agent lifecycle Active until a separate terminal
+commit; it is not itself a committed Succeeded lifecycle.
+
+Fresh frame entry whose target or reachable nested frame declares ChildRun is
+still rejected before entry. Fresh scoped Join suspension and partial-spawn
+recovery remain unsupported. G1 does not enable general scoped cancellation;
+the existing cancellation-only F2 profile retains its separate bounded contract.
+The two fresh scoped ChildJoin return guards remain in place. Completed recovery
+nodes and subsequent barrier, Return and Root handoff are not rejected merely
+because their graph contains a scoped ChildRun declaration.
+
+A child already quarantined before drive is rejected during owning preflight,
+before caller rebind or any fresh Start. This is a preflight guarantee, not a
+promise to revoke in-flight I/O if quarantine is committed after the gate. Final
+result/Join consumption retains the existing atomic fresh publication and child
+quarantine guards; a reader handle grants no write authority. This G1 increment
+does not change the RFC's Draft or Supported status, qualify the full integration,
+or close R1. Actual native and CI evidence must be recorded separately.
 
 ### Logical identity and scope
 

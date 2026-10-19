@@ -7,8 +7,8 @@ use super::{
     AssertUnwindSafe, AttemptId, BoxFuture, BudgetUsage, Checkpoint, CheckpointId,
     ClaimedRunRecovery, CompactByteCounter, DurableGraphDriver, EventId, ExecutableGraph,
     GraphBarrierDisposition, GraphBarrierPlanError, GraphDriveReplayReport, GraphDriveReport,
-    GraphDriverError, JournalHead, NodeAttemptCommitOutcome, ReadyNodeRecoveryPlan, RunFence,
-    RunRevision, StoreError, StoredRun,
+    GraphDriverError, GraphNodeScheduling, JournalHead, NodeAttemptCommitOutcome,
+    ReadyNodeRecoveryPlan, RecoveryNodeKind, RunFence, RunRevision, StoreError, StoredRun,
 };
 use futures_util::FutureExt;
 use stateknot_core::{
@@ -71,14 +71,16 @@ impl IterationScope {
 }
 
 impl DurableGraphDriver {
-    // Only the actual Root's reachable frame-call closure is restricted. A
-    // registry can also serve independent Root child graphs without dispatching
-    // those graphs under a frame namespace.
-    pub(super) fn validate_frame_dispatch_profile(
+    // G1 resumes an existing published Join. It does not admit a new frame
+    // whose application would need fresh scoped child suspension.
+    fn validate_fresh_frame_dispatch_profile(
         &self,
-        root: &CompiledGraph,
+        target: &CompiledGraph,
     ) -> Result<(), GraphDriverError> {
-        let mut pending = root
+        if target.child_runs().is_some() {
+            return Err(GraphDriverError::ScopedChildJoinUnsupported);
+        }
+        let mut pending = target
             .frame_calls()
             .into_iter()
             .flat_map(|policy| policy.calls().iter())
@@ -102,6 +104,98 @@ impl DurableGraphDriver {
             }
         }
         Ok(())
+    }
+
+    fn validate_iteration_dispatch_profile<'a>(
+        &'a self,
+        recovery: &'a ClaimedRunRecovery<'_>,
+        scope: &'a IterationScope,
+        plan: &'a ReadyNodeRecoveryPlan,
+    ) -> BoxFuture<'a, Result<(), GraphDriverError>> {
+        Box::pin(async move {
+            if recovery.initial_run().lifecycle().status()
+                == super::RunStatus::CancellationRequested
+            {
+                return Ok(());
+            }
+            let checkpoint = scope.active.as_ref().map_or_else(
+                || scope.root.head(),
+                |active| active.checkpoint().checkpoint().head(),
+            );
+            if plan.fence() != recovery.fence()
+                || Some(plan.journal_head()) != recovery.initial_run().journal_head()
+                || plan.checkpoint().head() != checkpoint
+                || plan.frame()
+                    != scope
+                        .active
+                        .as_ref()
+                        .map(|active| active.checkpoint().frame())
+            {
+                return Err(GraphDriverError::StaleBarrierSnapshot);
+            }
+            for node in plan
+                .nodes()
+                .iter()
+                .filter(|node| node.kind() != RecoveryNodeKind::Completed)
+            {
+                if let Some(call) = scope
+                    .executable
+                    .graph()
+                    .frame_calls()
+                    .and_then(|policy| policy.call(node.activation().node_id()))
+                {
+                    if node.kind() != RecoveryNodeKind::Dispatchable {
+                        continue;
+                    }
+                    let target = self.registry.resolve(call.target()).ok_or_else(|| {
+                        GraphDriverError::ExecutableGraphUnavailable {
+                            graph: Box::new(call.target().clone()),
+                        }
+                    })?;
+                    self.validate_fresh_frame_dispatch_profile(target.graph())?;
+                    continue;
+                }
+                let declares_children =
+                    scope.executable.graph().child_runs().is_some_and(|policy| {
+                        policy
+                            .declarations()
+                            .iter()
+                            .any(|declaration| declaration.node_id() == node.activation().node_id())
+                    });
+                if scope.active.is_none() || !declares_children {
+                    continue;
+                }
+                let executor =
+                    Self::resolve_node_executor(&scope.executable, node.activation().node_id())?;
+                if !executor.supports_child_join()
+                    || executor.scheduling() != GraphNodeScheduling::Exclusive
+                {
+                    return Err(GraphDriverError::ScopedChildJoinUnsupported);
+                }
+                let loading = self.store.load_child_join(node.activation());
+                let record = self
+                    .store
+                    .with_corruption_quarantine(recovery.quarantine_context().clone(), loading)
+                    .await?
+                    .ok_or(GraphDriverError::ScopedChildJoinUnsupported)?;
+                if record.head().is_none()
+                    || record.binding().is_none()
+                    || record.consumed().is_some()
+                {
+                    return Err(GraphDriverError::ScopedChildJoinUnsupported);
+                }
+                // Reuse the full slot, terminal, quarantine, executable and
+                // output-schema checks before any caller rebind or fresh Start.
+                // This read is not launch authority; Store rechecks each write.
+                let _join = Box::pin(crate::GraphChildJoin::prepare(
+                    self.store.clone(),
+                    self.registry.clone(),
+                    &record,
+                ))
+                .await?;
+            }
+            Ok(())
+        })
     }
 
     pub(super) fn load_iteration_scope<'a>(
@@ -224,16 +318,6 @@ impl DurableGraphDriver {
             drop(initial_recovery);
             drop(initial_scope);
 
-            let root_executable = self
-                .registry
-                .resolve(continuation.root.graph())
-                .ok_or_else(|| GraphDriverError::ExecutableGraphUnavailable {
-                    graph: Box::new(continuation.root.graph().clone()),
-                })?;
-            if let Err(error) = self.validate_frame_dispatch_profile(root_executable.graph()) {
-                self.release_with_retry(fence, &mut report).await?;
-                return Err(error);
-            }
             Ok(Box::new(DriveStartup::Dispatch {
                 continuation: Box::new(continuation),
                 report,
@@ -280,6 +364,14 @@ impl DurableGraphDriver {
                 }
                 None => recovery.plan_ready_nodes().await?,
             });
+            if let Err(error) = self
+                .validate_iteration_dispatch_profile(&recovery, &scope, &plan)
+                .await
+            {
+                // Preserve exact-fence cleanup, including its actual failure.
+                self.release_with_retry(fence, report).await?;
+                return Err(error);
+            }
             let live = Box::new(recovery.revalidate().await?);
             Ok(Box::new(IterationRead {
                 recovery,

@@ -1057,3 +1057,6 @@ mod finalizer_acceptance;
 
 #[path = "scoped_frame_cancellation_terminal_process_faults.rs"]
 mod terminal_confirmation;
+
+#[path = "scoped_child_join_active_resume_red.rs"]
+mod active_join_resume;

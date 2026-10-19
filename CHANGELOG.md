@@ -12,6 +12,19 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Add experimental G1 higher-fence (F2) recovery of an already published,
+  unconsumed scoped child Join after complete owning preflight. The existing
+  callback completion, atomic result/Join consumption, scoped barriers and frame
+  Return continue to Root terminal handoff; the Agent lifecycle remains Active
+  until a separate terminal commit. Fresh scoped Join suspension, partial-spawn
+  recovery and general scoped cancellation remain outside this profile. A child
+  quarantined before drive is rejected before a fresh Start. This preflight does
+  not promise to revoke in-flight I/O if quarantine is committed after its gate;
+  final consumption retains the existing atomic fresh guards. See
+  [Draft RFC-0022](docs/rfcs/0022-namespaced-graph-frames.md#scoped-isolated-childrun-integration-in-development).
+  This increment does not change Supported status or close R1; qualification
+  remains separate.
+
 - Add an experimental cancellation-only F2 Driver handoff after complete owning
   preflight of the actual current-leaf registered, unpublished Join. The cold
   `DurableFrameCancellationFinalizer` then continues an original cancellation
@@ -21,7 +34,7 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   discovery; `StoredGraphFrameClosure::root_checkpoint()` and
   `original_cancellation_lifecycle()` borrow the already verified full record.
   These readers grant no execution authority, add no wire format or SQL migration,
-  and do not enable ordinary scoped Join dispatch; all three ordinary guards remain.
+  and do not themselves enable ordinary scoped Join dispatch.
 
 - Extend experimental owned Agent maintenance with the fifth `FrameCancellation`
   job. `AgentMaintenanceBinding::new` now requires the existing exact standard
