@@ -800,9 +800,55 @@ async fn source_schema_29_upgrade_preserves_real_barrier_history_before_rebindin
     upgraded.verify_schema().await.unwrap();
     upgraded.close().await;
     fixture.close().await;
-    query(&format!("DROP DATABASE {name}"))
-        .execute(&admin)
-        .await
-        .unwrap();
+    // Pool close completes the frontend shutdown, not an acknowledgement that
+    // every PostgreSQL backend has exited. Observe this task's unique database
+    // from the separate admin database; each probe is a fresh autocommit read.
+    let cleanup_deadline = tokio::time::Instant::now() + Duration::from_secs(30);
+    let mut cleanup_phase = "activity probe";
+    let mut last_sessions = Vec::<(i32, String, String)>::new();
+    let mut last_drop_error = None;
+    tokio::time::timeout_at(cleanup_deadline, async {
+        loop {
+            cleanup_phase = "activity probe";
+            last_sessions = query_as::<_, (i32, String, String)>(
+                "SELECT pid,COALESCE(state,''),COALESCE(backend_start::text,'') FROM pg_stat_activity WHERE datname=$1 ORDER BY pid",
+            )
+            .bind(&name)
+            .fetch_all(&admin)
+            .await
+            .unwrap_or_else(|error| {
+                panic!("owned database cleanup activity read failed for {name}: {error:?}")
+            });
+            if last_sessions.is_empty() {
+                cleanup_phase = "DROP DATABASE";
+                match query(&format!("DROP DATABASE {name}")).execute(&admin).await {
+                    Ok(_) => break,
+                    Err(error)
+                        if error
+                            .as_database_error()
+                            .and_then(sqlx_core::error::DatabaseError::code)
+                            .as_deref()
+                            == Some("55006") =>
+                    {
+                        // Activity visibility can precede the backend's final
+                        // database-detach boundary. Only this explicit refusal
+                        // is known not to have dropped the database.
+                        last_drop_error = Some(error);
+                    }
+                    Err(error) => panic!(
+                        "non-retryable owned database DROP failure for {name}: {error:?}; last sessions(pid,state,backend_start)={last_sessions:?}; previous 55006={last_drop_error:?}"
+                    ),
+                }
+            }
+            cleanup_phase = "waiting for backend exit";
+            tokio::time::sleep(Duration::from_millis(25)).await;
+        }
+    })
+    .await
+    .unwrap_or_else(|error| {
+        panic!(
+            "owned database cleanup deadline for {name} during {cleanup_phase}: {error:?}; last sessions(pid,state,backend_start)={last_sessions:?}; last 55006={last_drop_error:?}; no forced cleanup or unknown DROP replay"
+        )
+    });
     admin.close().await;
 }
