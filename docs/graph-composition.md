@@ -146,10 +146,13 @@ evidence or changing the original terminal failure.
 The separate Draft [RFC-0022](rfcs/0022-namespaced-graph-frames.md) experiment
 now includes whole Store closure after an original cancellation or sealed
 failure. It retains the Root state and actual old caller fences, freezes
-complete priced DIRECT accounting and refuses outstanding ordinary/provider or
-child work. Scoped provider activations authenticate their actual frame; a Root
-checkpoint relabeled as nested retains the original invalid-activation error.
-It uses Schema 33 and the matching 52-table trusted-role profile.
+complete priced DIRECT accounting and refuses unfinished work except the
+fully authenticated cancellation-only registered, unpublished Join owner
+[disposition](durable-child-runs.md#experimental-frame-owned-isolated-children).
+Scoped provider activations authenticate their actual frame; a Root checkpoint
+relabeled as nested retains the original invalid-activation error. Whole closure
+was introduced in schema33; current experimental source requires all migrations
+through 37 and the matching 54-table trusted-role profile.
 Existing committed decisions are fully authenticated before retries; cleanup
 granting no execution can finish after the execution deadline. Completion
 restoration and caller-anchor verification use private heap-backed Future
@@ -158,6 +161,9 @@ on the normal thread stack. These Store primitives still require actual nested
 Driver dispatch and final qualification.
 
 [Frozen experimental whole-frame qualification](qualification/experimental-whole-frames-2026-10-10.md)
+retains its original schema33 execution scope. The separate
+[schema37 Store owner-stop record](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+does not enable scoped Driver Join or close the complete fault/CI/R1 gates.
 
 Private whole-return Wire intents retain their original canonical bytes while
 being decoded on the heap, preserving full ancestor authentication during

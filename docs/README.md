@@ -37,6 +37,11 @@ all lifetime frames, transaction-free callbacks, bounded direct-edge proof and
 explicit legacy Root disposition compatibility limits. Actual nested Driver and
 R1 qualification remain open.
 
+Experimental Store cancellation: [Registered scoped Join owner stop](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+([中文](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)) — cancellation-only closure-v2 proof,
+schema37 adoption and exact retained-v1/schema-consumer evidence. Scoped Driver
+Join, Root ConfirmCancellation, complete CI and R1 remain separately gated.
+
 ## Start here
 
 For database deployment, use the [trusted PostgreSQL role profile](postgresql-roles.md)

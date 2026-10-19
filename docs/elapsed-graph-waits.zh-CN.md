@@ -41,8 +41,12 @@ Scoped Driver 更新精确持久观察，在原共享 quantum 内，先取得 fr
 已有 Agent Root V1、trusted Root V2、scoped V1/V2 字节及 owning reader 保持不变。新 V3 Wait 绑定完整原来源、plan、库存与 effect；缺 V3 库存属于腐败，不给合法旧历史伪造库存。Root 来源仍认证完整 Agent admission 或原 FIRST/Start/INITIAL 历史。
 
 1. 排空旧 Worker 并关闭旧池，保留经验证备份和精确旧 binary。
-2. migration owner 使用正常 SQLx 升至36，保留原 checksum/字节。非空源码 schema 重建测试与实际发布版本测试是不同证据。
-3. 安装匹配当前源码的 trusted-role profile，验证精确 schema36、全部54业务表及 ACL，不能复用 schema35 白名单。
+2. 当前实验性 binary 由 migration owner 使用正常 SQLx 完整升至37，保留原 checksum/字节。非空源码 schema 重建测试与实际发布版本测试是不同证据。
+3. 安装匹配当前源码的 trusted-role profile，验证精确 schema37、全部54业务表及 ACL。迁移37改变关闭 guard，保留 schema36 表/ACL 库存；不能复用旧版本配置。
 4. 启动匹配 reader/writer；catalog 不符便拒绝运行。旧 V1/V2-only reader 不能服务新 V3 事实，这不是 mixed-version rolling upgrade 或自动回滚。
+
+独立的 [schema37 Store Join owner-stop 记录](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)
+说明仅用于取消的 closure-v2 增量。迁移36仍是原 WaitV3 引入版本；当前完整部署至37
+不会把历史资格转授给后续源码。
 
 Restore 后仍须通过同样完整 catalog 与 owning reader。静态门禁、条件资源测试入口、源码重建 schema32、单一真实发布 alpha.1 升级各有独立范围，均不能单独授予完整兼容窗口或 R1 资格。证据须记录精确 source、binary、原资源、实际 marker 与全部原失败。

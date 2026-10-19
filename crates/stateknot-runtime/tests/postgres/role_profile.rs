@@ -1049,7 +1049,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 36);
+    assert_eq!(schema_version, 37);
     store.close().await;
     fixture.cleanup().await;
     println!(

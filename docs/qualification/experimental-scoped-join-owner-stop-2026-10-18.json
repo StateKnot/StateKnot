@@ -1,0 +1,820 @@
+{
+  "format_version": 1,
+  "profile": "experimental-scoped-join-owner-stop-2026-10-18",
+  "snapshot_utc": "2026-10-18T11:26:00Z",
+  "publication_status": "AUTHOR_DRAFT_PENDING_FULL_NATIVE_AND_RAW_EVIDENCE_DELIVERY",
+  "scope": "selected experimental registered-unpublished scoped Join cancellation in public Store",
+  "origin_commit": "e372184fb1c80ffb9903ac0d9feb8380db51253e",
+  "execution_source": {
+    "directory": "scoped-join-owner-stop-composed-source-v2",
+    "source_count": 936,
+    "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+    "compiled_count": 544,
+    "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+    "Cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+    "qualification_documents_authored_after_execution_snapshot": true
+  },
+  "contract": {
+    "unique_latest_current_leaf_registered_unpublished_ordinary_owner": true,
+    "complete_Root_bound_lifetime_account_all_terminal_and_settled": true,
+    "complete_priced_Run_wide_DIRECT_required": true,
+    "owner_retains_Executing_without_completion": true,
+    "no_ordinary_result_Join_publication_consumption_lease_or_launch": true,
+    "whole_owning_Root_frame_history_fence_Join_and_account_proof_required": true,
+    "failure_close_strict_checks_unchanged": true,
+    "committed_original_ACK_authentication_precedes_candidate_checks": true
+  },
+  "migration": {
+    "version": 37,
+    "new_tables": 0,
+    "backfill": false,
+    "ACL_expansion": false,
+    "current_business_table_inventory": 54,
+    "exact_graph_frame_catalog_sha256": "cc9ddd58510822215dfa18cab1a956eacf2dd707860270da63f0b8d707ee0ad7",
+    "schema37_sqlx_checksum_sha384": "b5f2096c0247028c680d5b086cd7e0531e74f25e5fde9648654b45d2f69016c36cac366a948acc2649eeeb58483407a4",
+    "normal_SQLx_Migrator_required": true,
+    "raw_guard_replacement_is_not_deployment": true,
+    "retained_v2_test_revert_refused": true
+  },
+  "schemas": {
+    "v1": {
+      "id": "https://stknot.com/schemas/store/graph-frame-closure-event/1.0.0",
+      "version": "1.0.0",
+      "digest": "sha256:453045e205133eb10d3cd58f0242ee2ebbd26dd78051b0888cd6a95f8a53e520"
+    },
+    "v2": {
+      "id": "https://stknot.com/schemas/store/graph-frame-closure-event/2.0.0",
+      "version": "2.0.0",
+      "digest": "sha256:aec9b96de74a4185f288e1425a59a7fb8d8eb4363378bbd5522b2500a261ea5f"
+    }
+  },
+  "six_local_gates": [
+    {
+      "name": "fmt",
+      "actual_exit_code": 0,
+      "seconds": 1.213993787765503,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v2/fmt.receipt.json",
+      "receipt_sha256": "6538ae1096ef1f53f49086bb22e3ff1c68e5f8f8b3472e11101f3ba709623120",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "native_database_execution": false
+    },
+    {
+      "name": "clippy",
+      "actual_exit_code": 0,
+      "seconds": 19.900853157043457,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v2/clippy.receipt.json",
+      "receipt_sha256": "20be90b0b767d467ec9011ddb146f69e9df348f2f1b8df1d3c05681b92f9c3a6",
+      "log_sha256": "dd326c176d4d72a987d976066b8a0c454a714e12a38e131faf6fb8d7d865e6c4",
+      "native_database_execution": false
+    },
+    {
+      "name": "workspace",
+      "actual_exit_code": 0,
+      "seconds": 122.537034034729,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v3/workspace.receipt.json",
+      "receipt_sha256": "d109a70d5ad6f19faf3ef5884fa8b9c3f64c295eb36a4642244022de6b8eaa47",
+      "log_sha256": "40ee072b7e0f08b7e4fd50289eed87820212a61a7c9fa54d8ab63c5b1120e7b6",
+      "native_database_execution": false,
+      "harness_summary_count": 100,
+      "libtest_totals": {
+        "passed": 2128,
+        "failed": 0,
+        "ignored": 6,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "name": "doctests",
+      "actual_exit_code": 0,
+      "seconds": 8.4376220703125,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked"
+      ],
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v3/doctests.receipt.json",
+      "receipt_sha256": "0e6d04473c2ad3ee70dbe40ffb651230c76a2a1156d7b9f474f46cdca69bded7",
+      "log_sha256": "485e163bb27b9a4d47a6b163eb1423cb8101a09288ae1d26b038cd9eb5f6135e",
+      "native_database_execution": false,
+      "harness_summary_count": 10,
+      "libtest_totals": {
+        "passed": 48,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered": 0
+      }
+    },
+    {
+      "name": "rustdoc",
+      "actual_exit_code": 0,
+      "seconds": 14.694121837615967,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ],
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v3/rustdoc.receipt.json",
+      "receipt_sha256": "79cefbe41d02c517c4545efbafd6e33f1bbce150b484aa191e9f41f13e18049b",
+      "log_sha256": "61f7d35439688b72377b7985340d17ec8ed33abbd40f9c5e95b59c7e500770e7",
+      "native_database_execution": false
+    },
+    {
+      "name": "nightly",
+      "actual_exit_code": 0,
+      "seconds": 20.151067972183228,
+      "argv": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v3/nightly.receipt.json",
+      "receipt_sha256": "daa7f1620d039a5a77eb280ebf37fa587534101b64017229e8c4de06b6659da7",
+      "log_sha256": "65108d6954bcd148b2abc22ecbba1803336fe20c57217fc4fbcb6a3830247043",
+      "native_database_execution": false
+    }
+  ],
+  "exact_native_runs": [
+    {
+      "major": 16,
+      "package": "store",
+      "mode": "exact",
+      "actual_exit_code": 0,
+      "seconds": 2.6120479106903076,
+      "exact_case": "frame_children::cancellation::registered_scoped_join_close_requires_child_settlement_before_stopping_owner",
+      "libtest_summary": [
+        [
+          1,
+          0,
+          0,
+          0,
+          266
+        ]
+      ],
+      "inventory": 267,
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+      "binary_sha256": "c7c5daf1e2c9606d57f2fdf5c4791b2eacffc65e37b7b50c50de60465a63d474",
+      "database": {
+        "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+        "image_id": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+        "port": 55416,
+        "name": "stateknot_r1_joincomposed_20261018_pg16_store_b",
+        "URL_credentials_not_logged": true
+      },
+      "environment_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "overrides_present": {
+        "RUST_MIN_STACK": false,
+        "CARGO_ENCODED_RUSTFLAGS": false,
+        "RUSTC_WRAPPER": false,
+        "RUSTC_WORKSPACE_WRAPPER": false,
+        "RUSTC_BOOTSTRAP": false,
+        "RUSTC": false
+      },
+      "raw_stdout_sha256": "585323faad6e1706f2bc63aef391a5375f7a93a7c1dd38a91a54c774b1725816",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_redactions": 0,
+      "original_observer_green": true,
+      "whole_suite_CI_or_R1_qualified": false,
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg16-store-exact-v1/test.receipt.json"
+    },
+    {
+      "major": 16,
+      "package": "runtime",
+      "mode": "exact",
+      "actual_exit_code": 0,
+      "seconds": 3.8833279609680176,
+      "exact_case": "scoped_join_close_process_faults::registered_scoped_join_close_lost_commit_ack_survives_real_kill_and_cold_retry",
+      "libtest_summary": [
+        [
+          1,
+          0,
+          0,
+          0,
+          193
+        ]
+      ],
+      "inventory": 194,
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+      "binary_sha256": "6f633c5883ccdba9308d7ba408c044653ec4c3a95c9a3c27469ae15e0dda4e7e",
+      "database": {
+        "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+        "image_id": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+        "port": 55416,
+        "name": "stateknot_r1_joincomposed_20261018_pg16_runtime_b",
+        "URL_credentials_not_logged": true
+      },
+      "environment_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "overrides_present": {
+        "RUST_MIN_STACK": false,
+        "CARGO_ENCODED_RUSTFLAGS": false,
+        "RUSTC_WRAPPER": false,
+        "RUSTC_WORKSPACE_WRAPPER": false,
+        "RUSTC_BOOTSTRAP": false,
+        "RUSTC": false
+      },
+      "raw_stdout_sha256": "b2212405b83c44ea770ee031aab1db4f6fefa266ea499d13fed9e206ae607e15",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_redactions": 0,
+      "original_observer_green": false,
+      "whole_suite_CI_or_R1_qualified": false,
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg16-runtime-exact-v1/test.receipt.json",
+      "marker_fields": 22,
+      "marker": {
+        "arch": "aarch64",
+        "closure_bytes_digest": "sha256:057f45407ed54bbe345e558a86e3a76cefa19b3fcb6da304bf3014325687d794",
+        "closure_digest": "sha256:200ac443530c648c4810af31ecd6cc8df0247029205b084df28d99dc18a88567",
+        "closure_version": 2,
+        "cold_process_success": true,
+        "commit_forwarded": true,
+        "commit_response_forwarded": false,
+        "cut": "commit_response_withheld",
+        "driver_exercised": false,
+        "invariants": "passed",
+        "join_consumed": false,
+        "original_closure_recovered": true,
+        "os": "macos",
+        "owner_completion": false,
+        "owner_status": "Executing",
+        "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+        "profile": "scoped-join-close-commit-loss-v1",
+        "qualification": "public-store-only",
+        "termination": "SIGKILL",
+        "whole_tenant_unchanged_after_commit": true,
+        "writer_exit": "signal: 9 (SIGKILL)",
+        "writer_killed_and_reaped": true
+      },
+      "independent_validator_actual_exit_code": 0,
+      "independent_validator_receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-commit-loss-root-validation-v1/pg16/validation.receipt.json",
+      "independent_validator_receipt_sha256": "58cb75113ffdd53463472e135bb977e61adecc50be748a7a147a86c48ffc0459",
+      "original_wrapper_actual_exit_code": 1,
+      "outer_receipt_provenance": "root-observed-tool-execution-result",
+      "wrapper_observer_error_preserved": true,
+      "qualification": "public Store only; Driver not exercised"
+    },
+    {
+      "major": 17,
+      "package": "store",
+      "mode": "exact",
+      "actual_exit_code": 0,
+      "seconds": 6.53252100944519,
+      "exact_case": "frame_children::cancellation::registered_scoped_join_close_requires_child_settlement_before_stopping_owner",
+      "libtest_summary": [
+        [
+          1,
+          0,
+          0,
+          0,
+          266
+        ]
+      ],
+      "inventory": 267,
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+      "binary_sha256": "c7c5daf1e2c9606d57f2fdf5c4791b2eacffc65e37b7b50c50de60465a63d474",
+      "database": {
+        "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+        "image_id": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+        "port": 55417,
+        "name": "stateknot_r1_joincomposed_20261018_pg17_store_b",
+        "URL_credentials_not_logged": true
+      },
+      "environment_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "overrides_present": {
+        "RUST_MIN_STACK": false,
+        "CARGO_ENCODED_RUSTFLAGS": false,
+        "RUSTC_WRAPPER": false,
+        "RUSTC_WORKSPACE_WRAPPER": false,
+        "RUSTC_BOOTSTRAP": false,
+        "RUSTC": false
+      },
+      "raw_stdout_sha256": "41dd6df606700e2c911ac44217d78de4d3101859366f5bc19d1dc2e0b0a48387",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_redactions": 0,
+      "original_observer_green": true,
+      "whole_suite_CI_or_R1_qualified": false,
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg17-store-exact-v1/test.receipt.json"
+    },
+    {
+      "major": 17,
+      "package": "runtime",
+      "mode": "exact",
+      "actual_exit_code": 0,
+      "seconds": 3.936113119125366,
+      "exact_case": "scoped_join_close_process_faults::registered_scoped_join_close_lost_commit_ack_survives_real_kill_and_cold_retry",
+      "libtest_summary": [
+        [
+          1,
+          0,
+          0,
+          0,
+          193
+        ]
+      ],
+      "inventory": 194,
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+      "binary_sha256": "6f633c5883ccdba9308d7ba408c044653ec4c3a95c9a3c27469ae15e0dda4e7e",
+      "database": {
+        "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+        "image_id": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+        "port": 55417,
+        "name": "stateknot_r1_joincomposed_20261018_pg17_runtime_b",
+        "URL_credentials_not_logged": true
+      },
+      "environment_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "overrides_present": {
+        "RUST_MIN_STACK": false,
+        "CARGO_ENCODED_RUSTFLAGS": false,
+        "RUSTC_WRAPPER": false,
+        "RUSTC_WORKSPACE_WRAPPER": false,
+        "RUSTC_BOOTSTRAP": false,
+        "RUSTC": false
+      },
+      "raw_stdout_sha256": "d45c762c297a1ae3f442b54dd0bc1d6d5d47647a98eb81bd30edb4de310595e9",
+      "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "capture_redactions": 0,
+      "original_observer_green": true,
+      "whole_suite_CI_or_R1_qualified": false,
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg17-runtime-exact-v1/test.receipt.json",
+      "marker_fields": 22,
+      "marker": {
+        "arch": "aarch64",
+        "closure_bytes_digest": "sha256:49092d6f656912912f73a9f8d7fba7b612edec792cd8c5d162228c184289406b",
+        "closure_digest": "sha256:fe3b6e6cf94dcbbcd1be7c72ece00f078ffd8697a49b2e99fdbce886037d2a13",
+        "closure_version": 2,
+        "cold_process_success": true,
+        "commit_forwarded": true,
+        "commit_response_forwarded": false,
+        "cut": "commit_response_withheld",
+        "driver_exercised": false,
+        "invariants": "passed",
+        "join_consumed": false,
+        "original_closure_recovered": true,
+        "os": "macos",
+        "owner_completion": false,
+        "owner_status": "Executing",
+        "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+        "profile": "scoped-join-close-commit-loss-v1",
+        "qualification": "public-store-only",
+        "termination": "SIGKILL",
+        "whole_tenant_unchanged_after_commit": true,
+        "writer_exit": "signal: 9 (SIGKILL)",
+        "writer_killed_and_reaped": true
+      },
+      "independent_validator_actual_exit_code": 0,
+      "independent_validator_receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-commit-loss-root-validation-v1/pg17/validation.receipt.json",
+      "independent_validator_receipt_sha256": "d3c8343860e7f6ac0d069561e0f8035ad82fdff56061b96b7c161b62d7aee43d",
+      "original_wrapper_actual_exit_code": 0,
+      "outer_receipt_provenance": "captured-tool-execution-result",
+      "wrapper_observer_error_preserved": false,
+      "qualification": "public Store only; Driver not exercised"
+    }
+  ],
+  "full_native_runs_at_snapshot": [
+    {
+      "major": 16,
+      "package": "store",
+      "status": "PENDING",
+      "actual_exit_code": null,
+      "passed": null,
+      "inventory_expected": 267
+    },
+    {
+      "major": 16,
+      "package": "runtime",
+      "status": "PENDING",
+      "actual_exit_code": null,
+      "passed": null,
+      "inventory_expected": 194
+    },
+    {
+      "major": 17,
+      "package": "store",
+      "status": "PENDING",
+      "actual_exit_code": null,
+      "passed": null,
+      "inventory_expected": 267
+    },
+    {
+      "major": 17,
+      "package": "runtime",
+      "status": "PENDING",
+      "actual_exit_code": null,
+      "passed": null,
+      "inventory_expected": 194
+    }
+  ],
+  "separate_prior_public_consumer": {
+    "exact_product_and_consumer_sources": {
+      "product_tree": "bf329a3da4eacc9ccd9c34e681a1d53c8c9eab662e2c0a4b1831aac8f8266509",
+      "product_compiled_inputs": "30a3126e0f1e743192b69b80a6049a96e55b9eeca79a2d75f6b50648042013d3",
+      "consumer_tree": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+      "consumer_compiled_inputs": "625def171e1b8f43de7bff2a55115a29d7751f7c5d44dde07081a28007aa35c5",
+      "all_935_product_files_and_543_product_inputs_byte_exact": true,
+      "consumer_only_additions": [
+        "crates/stateknot-runtime/tests/fixtures/join_stop_closure_schema_v1.json",
+        "crates/stateknot-runtime/tests/fixtures/join_stop_closure_schema_v2.json",
+        "crates/stateknot-runtime/tests/join_stop_public_qualification.rs"
+      ],
+      "consumer_file_count": 938,
+      "consumer_compiled_count": 546,
+      "Cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+    },
+    "actual_binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+    "selected_cases": [
+      {
+        "major": 16,
+        "mode": "v2-schema",
+        "actual_exit_code": 0,
+        "libtest": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1
+        },
+        "source_tree_sha256": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+        "binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+        "closure_count": 1,
+        "migration_versions_before": 37,
+        "migration_versions_after": 37,
+        "retained_business_and_Root_bytes_exact": true
+      },
+      {
+        "major": 16,
+        "mode": "v1-upgrade",
+        "actual_exit_code": 0,
+        "libtest": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1
+        },
+        "source_tree_sha256": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+        "binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+        "closure_count": 1,
+        "migration_versions_before": 36,
+        "migration_versions_after": 37,
+        "retained_business_and_Root_bytes_exact": true
+      },
+      {
+        "major": 17,
+        "mode": "v2-schema",
+        "actual_exit_code": 0,
+        "libtest": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1
+        },
+        "source_tree_sha256": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+        "binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+        "closure_count": 1,
+        "migration_versions_before": 37,
+        "migration_versions_after": 37,
+        "retained_business_and_Root_bytes_exact": true
+      },
+      {
+        "major": 17,
+        "mode": "v1-upgrade",
+        "actual_exit_code": 0,
+        "libtest": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1
+        },
+        "source_tree_sha256": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+        "binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+        "closure_count": 1,
+        "migration_versions_before": 36,
+        "migration_versions_after": 37,
+        "retained_business_and_Root_bytes_exact": true
+      }
+    ],
+    "qualifies_only": "Actual saved default-feature Native public-consumer executions on PostgreSQL16/17: persisted v2 offline-schema/cold-read seam and retained source-v1 schema36→37 public SQLx migration/cold-read seam.",
+    "automatically_qualifies_later_source": false,
+    "published_N_minus_1_N_minus_2_or_rolling_upgrade_qualification": false
+  },
+  "retained_failure_receipts": [
+    {
+      "kind": "Version local declaration lint",
+      "actual_exit_code": 101,
+      "source_tree_sha256": "3d8de3dff0929d666783b44ed69f2ee0a4a8fda89e7c78561768f348f012afc2",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-ack-clippy-preflight-v1/clippy.receipt.json",
+      "receipt_sha256": "010f6b509ec79074a69dd6d2122ee92e15fab2ce2fbd6a0cf4f5314105d92174",
+      "original_retained": true
+    },
+    {
+      "kind": "Runtime controller too_many_lines",
+      "actual_exit_code": 101,
+      "source_tree_sha256": "dae0ca2b4a5bfd901c647e80e1e881e63cad52cf24ec3f06072697a54334d909",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v1/clippy.receipt.json",
+      "receipt_sha256": "ce984c268026066b55ffb6ff644a2b59acb060302fafb121aaffdec7f6b91c08",
+      "original_retained": true
+    },
+    {
+      "kind": "five loopback bind permission failures",
+      "actual_exit_code": 101,
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v2/workspace.receipt.json",
+      "receipt_sha256": "02364c3cf1de6defe978beb91bb7c6ddc3aa553d5084d7e58bbd8ad6511fc850",
+      "original_retained": true
+    }
+  ],
+  "other_retained_original_failures": [
+    "baseline PostgreSQL16/17 exact tracer test101 InvalidRunFailureClose with no-write snapshot",
+    "manifest string-order preflight1 before Cargo",
+    "initial sandbox Docker permission wrapper1 before DB/test execution",
+    "PG16 actual test0 with wrapper observer1; original observations false and transcription provenance retained"
+  ],
+  "historical_CI_measurement": {
+    "run_id": 39120579635,
+    "url": "https://github.com/StateKnot/StateKnot/actions/runs/39120579635",
+    "head_sha": "dc13238b766eef98783f05cabb896e840a723be6",
+    "tree": "3d70d97aa095e08220404f0e77dd88a85b037e83",
+    "scope": "pure CI scheduling measurement against unchanged e372 product inputs; no Join candidate transfer",
+    "conclusion": "cancelled",
+    "success_jobs": 11,
+    "cancelled_jobs": 2,
+    "PostgreSQL_source_steps": 60,
+    "original_PostgreSQL_job_timeout_minutes": 30,
+    "full_CI_success": false,
+    "contains_this_Join_candidate": false,
+    "transfers_qualification": false
+  },
+  "static_review": {
+    "Standards": {
+      "hard_violations": 0,
+      "existing_heuristic_findings": 1,
+      "worst": "P3 possible Duplicated Code in unchanged ordinary-work SQL predicates",
+      "v2_delta_new_findings": 0
+    },
+    "Spec": {
+      "v1_actionable_findings": 0,
+      "v2_delta_actionable_findings": 0
+    },
+    "static_review_confers_execution_qualification": false
+  },
+  "remaining_gates": [
+    "final composed Store267 and Runtime194 full Native suites on PostgreSQL16/17",
+    "portable raw evidence bundle with complete hash index and preserved failures",
+    "published-but-unconsumed Join cancellation",
+    "spawn-before-registration cancellation",
+    "later-resumed physical-owner cancellation",
+    "broader negatives and deferred-guard/fault matrices",
+    "current LOGIN/ACL qualification",
+    "Root ConfirmCancellation and terminal proof",
+    "all three scoped Driver guards and complete Driver profile",
+    "published-version compatibility and restore windows",
+    "final-source complete CI and required PR checks",
+    "capacity independent security real deployment and release gates"
+  ],
+  "qualification": {
+    "Driver_enabled": false,
+    "Driver_exercised_by_new_COMMIT_loss_case": false,
+    "Root_ConfirmCancellation": false,
+    "complete_CI": false,
+    "complete_fault_matrix": false,
+    "published_compatibility_window": false,
+    "capacity": false,
+    "production_deployment": false,
+    "RFC_0022_accepted": false,
+    "Supported": false,
+    "R1_complete": false
+  },
+  "raw_evidence_delivery": {
+    "status": "PENDING_ROOT_ASSEMBLY",
+    "planned_artifact_prefix": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/",
+    "portable_index_sha256": null,
+    "binary_files_required_to_be_archived": false,
+    "actual_binary_hashes_and_profiles_must_be_preserved": true
+  },
+  "source_evidence_references": [
+    {
+      "source_path": "scoped-join-owner-stop-composed-qualification-v2/scope.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-qualification-v2/scope.json",
+      "bytes": 2722,
+      "sha256": "af20bc25e8ac7bfe62df4f91626bb20337bdf50b756c11d6729da2a4201c86d2"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-public-validation-independent-review-v1/facts.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-public-validation-independent-review-v1/facts.json",
+      "bytes": 22752,
+      "sha256": "49033465c3dfcdd17a3c3c0c59580170edc8b901d539a69c2771893ec7c35d9e"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-gates-v2/fmt.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v2/fmt.receipt.json",
+      "bytes": 1475,
+      "sha256": "6538ae1096ef1f53f49086bb22e3ff1c68e5f8f8b3472e11101f3ba709623120"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-gates-v2/clippy.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v2/clippy.receipt.json",
+      "bytes": 1567,
+      "sha256": "20be90b0b767d467ec9011ddb146f69e9df348f2f1b8df1d3c05681b92f9c3a6"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-gates-v3/workspace.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v3/workspace.receipt.json",
+      "bytes": 1531,
+      "sha256": "d109a70d5ad6f19faf3ef5884fa8b9c3f64c295eb36a4642244022de6b8eaa47"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-gates-v3/doctests.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v3/doctests.receipt.json",
+      "bytes": 1521,
+      "sha256": "0e6d04473c2ad3ee70dbe40ffb651230c76a2a1156d7b9f474f46cdca69bded7"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-gates-v3/rustdoc.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v3/rustdoc.receipt.json",
+      "bytes": 1527,
+      "sha256": "79cefbe41d02c517c4545efbafd6e33f1bbce150b484aa191e9f41f13e18049b"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-gates-v3/nightly.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v3/nightly.receipt.json",
+      "bytes": 1552,
+      "sha256": "daa7f1620d039a5a77eb280ebf37fa587534101b64017229e8c4de06b6659da7"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-native-v2/pg16-store-exact-v1/test.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg16-store-exact-v1/test.receipt.json",
+      "bytes": 3045,
+      "sha256": "58d18a1ba488cd153f98db4cdd7444e2125e463385cdec59d3a699889b10b222"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-native-v2/pg16-store-exact-v1/observations.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg16-store-exact-v1/observations.json",
+      "bytes": 500,
+      "sha256": "2ecf1bed360fd19950a9c52887487bf28ebced6f9c8176bd59378e78450fad23"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-native-v2/pg16-runtime-exact-v1/test.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg16-runtime-exact-v1/test.receipt.json",
+      "bytes": 3060,
+      "sha256": "671a98471245634e245e4a9a97d5eea8989cb567a35b3b6956febed05ef969cb"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-native-v2/pg16-runtime-exact-v1/observations.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg16-runtime-exact-v1/observations.json",
+      "bytes": 502,
+      "sha256": "3f8fd99c2a5d6f6e1dffe644db8120840d75d0c0753aee54fcb8c56c45b10ffb"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-commit-loss-root-validation-v1/pg16/validation.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-commit-loss-root-validation-v1/pg16/validation.receipt.json",
+      "bytes": 4587,
+      "sha256": "58cb75113ffdd53463472e135bb977e61adecc50be748a7a147a86c48ffc0459"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-native-v2/pg17-store-exact-v1/test.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg17-store-exact-v1/test.receipt.json",
+      "bytes": 3043,
+      "sha256": "fa362fa9d0d30daa61966a058f3dce8be65041e6efccd7805f61b37ed957388f"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-native-v2/pg17-store-exact-v1/observations.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg17-store-exact-v1/observations.json",
+      "bytes": 500,
+      "sha256": "4bef6d2f049cca7445959d6d60662a10bfbe41244ce2e8a595b95ed322dfce5a"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-native-v2/pg17-runtime-exact-v1/test.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg17-runtime-exact-v1/test.receipt.json",
+      "bytes": 3058,
+      "sha256": "a709cf4ea1af3b78ac4f727278a55df3685fde5b9c916d37fe61e1f6f40744e9"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-native-v2/pg17-runtime-exact-v1/observations.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg17-runtime-exact-v1/observations.json",
+      "bytes": 500,
+      "sha256": "8bc4c09faea012fabe370b3c85e59c80f16804d66a8d549ce9fc8bbba1cccc28"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-commit-loss-root-validation-v1/pg17/validation.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-commit-loss-root-validation-v1/pg17/validation.receipt.json",
+      "bytes": 7103,
+      "sha256": "d3c8343860e7f6ac0d069561e0f8035ad82fdff56061b96b7c161b62d7aee43d"
+    },
+    {
+      "source_path": "evidence/ci-native-dc13238/root-independent-review-v1/receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/evidence/ci-native-dc13238/root-independent-review-v1/receipt.json",
+      "bytes": 41739,
+      "sha256": "35138f8d06952e1a59e595fda7829007d7ffc19e7070b486b725349166cb0ec8"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-ack-clippy-preflight-v1/clippy.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-ack-clippy-preflight-v1/clippy.receipt.json",
+      "bytes": 1567,
+      "sha256": "010f6b509ec79074a69dd6d2122ee92e15fab2ce2fbd6a0cf4f5314105d92174"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-gates-v1/clippy.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v1/clippy.receipt.json",
+      "bytes": 1572,
+      "sha256": "ce984c268026066b55ffb6ff644a2b59acb060302fafb121aaffdec7f6b91c08"
+    },
+    {
+      "source_path": "scoped-join-owner-stop-composed-gates-v2/workspace.receipt.json",
+      "planned_archive_path": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v2/workspace.receipt.json",
+      "bytes": 1536,
+      "sha256": "02364c3cf1de6defe978beb91bb7c6ddc3aa553d5084d7e58bbd8ad6511fc850"
+    }
+  ],
+  "author_no_build_DB_Docker_network_execution": true
+}

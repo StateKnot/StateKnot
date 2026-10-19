@@ -24,6 +24,9 @@ mod commit_proxy;
 #[path = "postgres/ordinary_root.rs"]
 mod ordinary_root;
 
+#[path = "postgres/scoped_join_close_process_faults.rs"]
+mod scoped_join_close_process_faults;
+
 use std::{
     collections::VecDeque,
     future,

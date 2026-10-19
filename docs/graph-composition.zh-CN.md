@@ -113,14 +113,19 @@ Driver 在**派发新节点之前**检查 `maximum_supersteps`，重启后正好
 
 独立的 [RFC-0022 草案](rfcs/0022-namespaced-graph-frames.md)实验已加入原始取消
 或封存失败后的整栈 Store 关闭：保留根状态和 Caller 的实际旧 fence，冻结完整已定价
-DIRECT 用量，并拒绝未完成的普通节点、provider 或子任务。作用域 provider 调用验证
-实际帧身份；将 Root checkpoint 伪装为嵌套调用仍返回原有的无效激活错误。它使用 Schema 33 与对应
-的 52 表受信服务端角色配置。重试先完整认证已提交决定；不授予执行权限的清理可以在
+DIRECT 用量；除经过完整认证、仅用于取消的已注册未发布 Join owner
+[处置](durable-child-runs.zh-CN.md#实验性的帧内独立子-run)外，仍拒绝未完成工作。
+作用域 provider 调用验证实际帧身份；将 Root checkpoint 伪装为嵌套调用仍返回原有的
+无效激活错误。整栈关闭最初加入 schema33；当前实验性源码要求完整迁移至37并使用
+匹配的54表受信服务端角色配置。重试先完整认证已提交决定；不授予执行权限的清理可以在
 执行截止期后完成。完成记录恢复与 Caller 锚点校验使用私有的堆上 Future 边界，使祖先
 重放在普通线程栈上保留全部普通完成与关闭完成校验。实际嵌套 Driver 派发和最终完整验收
 仍待完成。
 
 [冻结实验性 whole-frame 限定验收](qualification/experimental-whole-frames-2026-10-10.zh-CN.md)
+保留原 schema33 执行范围。独立的
+[schema37 Store owner-stop 记录](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)
+不启用 scoped Driver Join，也不关闭完整故障/CI/R1 门禁。
 
 私有 whole-return Wire Intent 在堆上解码，保留原始规范字节、摘要和全部认证，
 避免 scoped 结果分页在多次 return 后扩大 Serde visitor 的栈占用。

@@ -1128,3 +1128,157 @@ acceptance.
 
 These questions materially affect the supported contract. This RFC cannot be
 accepted until they are resolved with actual code and evidence.
+
+## Registered Join handoff during whole-frame cancellation
+
+Draft implementation contract, 2026-10-18. This section extends the cancellation
+proposal; it does not enable scoped child Join in the Driver or qualify R1.
+
+After a child-owning ordinary node registers its exact Join, its worker lease is
+released. Its original physical start remains historical Executing evidence:
+registration is neither node completion nor successful Join consumption. If
+cancellation is requested after that handoff and every owned child is terminal
+and settled, whole-frame cancellation must be able to close the stack without
+re-executing the owner or inventing a successful result.
+
+The selected disposition preserves that original attempt and binds its stop to
+the immutable whole-frame cancellation proof. It does not insert an ordinary
+completion under a different worker's fence. Framework caller completions retain
+their existing separate meaning and exact original fences.
+
+A fresh close may select this disposition only when it authenticates all of the
+following within the owning transaction:
+
+1. The actual cancellation decision and revision, observed journal, admitted
+   Root, complete open-frame lineage and exact current leaf.
+2. The registered Join's immutable request, registration event, owning activation,
+   namespace, original physical attempt and original fence. That physical attempt
+   must still be the latest start for the activation, with no later start, ordinary
+   completion, logical success or Join consumption.
+3. The Join's exact complete ownership-key set and every corresponding terminal
+   and settlement fact, including the existing Root-bound account observation.
+   An unrelated Join, superseded physical owner, pending child or partial key set provides
+   no exception for unfinished ordinary work.
+4. Complete, priced DIRECT usage at the observed head, including work before the
+   handoff; the structural floor and account DIRECT observation remain lower
+   bounds. Settled delegated usage is added once. Unresolved Tool/Model outcomes,
+   unpriced usage and quarantine continue to reject closure.
+
+The disposition must be covered by the same atomic compound proof as the closure
+event, caller changes and stack return to Root. Cold owning readers must rebuild
+these bindings from persisted evidence. Merely excluding all Join owners from an
+unfinished-work query does not establish a disposition. No launch grant, output,
+node success or Join consumption is created by cancellation.
+
+The close remains trusted control-plane maintenance: an expired execution deadline
+or exhausted execution budget does not erase incurred usage or grant new work.
+Authentication and tenant/resource authorization remain external preconditions;
+digests and namespaces do not supply them. Any required persisted-format extension
+must be versioned explicitly, preserve existing v1 canonical bytes, and update the
+owning reader, SQL deferred guards, migration and exact catalog together. This
+contract does not prescribe an additional table.
+
+Recovery authenticates a complete committed original decision before evaluating a
+new candidate event, time, fence or DIRECT report. A rejected fresh decision leaves
+all business facts unchanged. A successful stop permits zero accepted subsequent
+ordinary worker writes under either the released original fence or a later fence.
+
+The first executable tracer uses the public Store admission, Join registration,
+child cancellation and settlement, whole-frame close and owning-read interfaces.
+It requires legal closure with nonzero measured fixture DIRECT while preserving
+the original ordinary attempt and exact accounting. Its scope ends at whole-frame
+closure and child-usage aggregation; Root ConfirmCancellation and Driver recovery
+require separate qualification. The pre-change implementation at
+`e372184fb1c80ffb9903ac0d9feb8380db51253e` rejected this immutable tracer as
+`InvalidRunFailureClose`; that original red and no-write evidence is retained.
+The implemented schema37 Store profile and its separately bounded qualification
+are described below; the red source does not gain the later source's results.
+
+Subsequent qualification must cover unrelated ordinary siblings, stale physical
+owners, crossed scope/request/keys, unsettled or unknown effects, late deferred
+guard rollback, committed-ACK loss and process replacement with cold owning reads.
+Spawn-before-registration and a new physical start after Join publication are
+separate cancellation cases; this narrow disposition gives them no qualification.
+The three scoped Driver guards stay until the complete supported Driver profile,
+these cancellation cases and the original R1 gates are independently satisfied.
+
+The initial Store increment accepts only registered, unpublished Joins.
+Published-but-unconsumed cancellation remains a separate required case
+before scoped Driver enablement.
+
+### Implemented Store v2 proof and schema37 adoption
+
+The selected experimental Store implementation keeps `close_graph_frames` and
+the existing whole owning-read interface. A fresh cancellation may retain exactly
+one unique latest ordinary owner of the actual current leaf, bound to its exact
+registered, unpublished Join. Every child in the complete Root-bound lifetime
+account must be terminal and settled, and the caller supplies complete priced Run-wide DIRECT
+at the observed head. Account DIRECT and the active structural floor remain lower
+bounds; settled delegated usage is added once. Unknown Tool/Model effects,
+unpriced or unsettled work, another unfinished ordinary owner, a superseded owner
+or a published Join still reject this disposition. Sealed failure close keeps
+the original strict unfinished-work checks.
+
+The private closure envelope and intent use version2 and retain all v1 common
+fields, adding one required `stopped_join` object with exactly three fields:
+
+| Field | Persisted binding |
+| --- | --- |
+| `owner` | The full original `NodeAttemptStartHead`, including activation/base/namespace, physical attempt, original fence and start journal/digest |
+| `request_digest` | The immutable complete `ChildRunJoinRequest` digest; owning reads restore its full exact key set |
+| `registration` | The full original `JournalHead`, authenticated against the worker registration event, its original fence and projection |
+
+The full stop object participates in JCS intent hashing under
+`stateknot-postgres-frame-closure-intent-v2\0`; compound hashing uses
+`stateknot-postgres-frame-closure-compound-v2\0`, the intent digest, actual event
+digest and ordered real framework completion digests. A no-stop close still
+writes the original v1 wire, canonical bytes, domains and schema without adding
+null/empty stop fields. The 4 MiB envelope, seven frames, 64 physical attempts,
+64 Join members and 256 lifetime account entries remain bounded as before.
+
+Fresh eligibility checks and writes share the original parent-locked transaction.
+After complete Join eligibility preflight, it reads the whole account and proves
+all entries settled, locks its terminal children in canonical account key order,
+then re-reads their owning records and the exact selected Join. It rejects fresh
+quarantine and does not acquire a tree lock after the parent. Registration and
+every parent settlement audit head must be no later than the saved observation.
+Cold reads use full historical Root/frame/owner/Join/account/terminal evidence;
+later operator quarantine does not invalidate an already committed original ACK.
+The ordinary owner remains Executing. No ordinary completion/result, Join
+publication/consumption or new lease/execution authority is created. Real
+framework caller completions keep their original fences and zero incremental
+application usage. Deferred guards and complete post-guard owning verification
+remain inside the same atomic event/closure/caller/stack/Run transaction.
+
+The new public interface
+`PostgresStore::graph_frame_join_stop_event_schema()` returns the exact v2
+`SchemaReference` and JSON Schema 2020-12 document. Its ID is
+`https://stknot.com/schemas/store/graph-frame-closure-event/2.0.0`, version2.0.0,
+and JCS document digest
+`sha256:aec9b96de74a4185f288e1425a59a7fb8d8eb4363378bbd5522b2500a261ea5f`.
+Its closed payload contains `version: 2`, `intent_digest` and `frame_count`.
+`PostgresStore::graph_frame_closure_event_schema()` retains its original v1
+reference/document and digest
+`sha256:453045e205133eb10d3cd58f0242ee2ebbd26dd78051b0888cd6a95f8a53e520`.
+Consumers of both histories register both documents through
+`JsonSchemaRegistryBuilder` and validate the actual payload using its exact
+persisted schema reference. They must not validate v2 under the v1 document or
+fetch a substitute schema at runtime.
+
+Migration37 replaces the complete closure guard and extends only its exact
+authenticated-owner exception. It adds no table, backfill or ACL privilege;
+schema36's 54-table inventory remains unchanged. Deploy with old workers drained,
+a verified pre-upgrade backup, normal checksum-pinned SQLx migration through37,
+the matching role profile and exact catalog, then matching reader/writer binaries.
+The test-only revert fixture refuses retained v2 and is not a downgrade path.
+Retained-v1 source-fixture migration/cold-read evidence is distinct from published
+N−1/N−2 compatibility, rolling upgrades and complete restore qualification.
+
+The [English qualification record](../qualification/experimental-scoped-join-owner-stop-2026-10-18.md),
+[Chinese record](../qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)
+and [machine-readable manifest](../qualification/experimental-scoped-join-owner-stop-2026-10-18.json)
+identify exact source/binary inputs, actual executed cases and remaining gates.
+The selected Store profile does not qualify Root ConfirmCancellation, scoped
+Driver Join, published-but-unconsumed cancellation, spawn-before-registration or
+later-resumed-owner cancellation. Complete negative/fault/compatibility/CI gates,
+RFC acceptance and R1 remain open; all three Driver guards remain unchanged.

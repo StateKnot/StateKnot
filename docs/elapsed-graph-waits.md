@@ -41,8 +41,13 @@ Migration 36 adds immutable `graph_wait_conditions`. Its physical `(tenant_id, w
 Existing Agent Root V1, trusted Root V2 and scoped V1/V2 bytes and owning readers remain intact. New V3 Wait facts bind their complete original source, plan, inventory and effect. Missing V3 inventory is corruption; legal legacy history is not assigned fabricated inventory. Root source authentication still verifies the full Agent admission or original FIRST/Start/INITIAL history.
 
 1. Drain old workers and close their pools; retain a verified backup and exact old binary.
-2. Run normal SQLx migrations through 36 with the migration owner. Preserve original checksums and bytes. Nonempty source-reconstruction tests and actual published-version tests are distinct evidence.
-3. Install the matching current trusted-role profile and verify exact schema36, all 54 business tables and ACLs. Do not reuse a schema35 whitelist.
+2. For current experimental binaries, run normal SQLx migrations through 37 with the migration owner. Preserve original checksums and bytes. Nonempty source-reconstruction tests and actual published-version tests are distinct evidence.
+3. Install the matching current trusted-role profile and verify exact schema37, all 54 business tables and ACLs. Migration37 changes a closure guard, retaining the schema36 table/ACL inventory; do not reuse an older version's profile.
 4. Start the matching reader/writer. Catalog mismatch refuses operation. New V3 facts cannot be served by old V1/V2-only readers; this is not a mixed-version rolling upgrade or an automatic rollback.
+
+The separate [schema37 Store Join owner-stop record](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+describes its cancellation-only closure-v2 increment. Migration36 remains the
+original WaitV3 introduction; current deployment through37 does not transfer
+its historical qualification to the later source.
 
 A restored schema must pass the same complete catalog and owning readers. Static checks, a conditional resource test entry, source-reconstructed schema32 and a single true published alpha.1 upgrade each have limited scopes; none alone qualifies the complete compatibility window or R1. Qualification evidence must identify exact source, binary, resources, actual markers and all original failures.

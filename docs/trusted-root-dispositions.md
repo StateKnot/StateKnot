@@ -9,8 +9,10 @@ This is the experimental implementation contract of
 [RFC-0022](rfcs/0022-namespaced-graph-frames.md). Its qualification scope is
 recorded in [the current evidence report](qualification/experimental-trusted-root-dispositions-2026-10-12.md).
 The RFC and R1 remain open. This report records the historical schema35
-increment; current schema36 deployment also requires the
-[original absolute Wait profile](elapsed-graph-waits.md) and its own evidence.
+increment; current schema37 deployment also requires the
+[original absolute Wait profile](elapsed-graph-waits.md) and the
+[selected Store Join cancellation profile](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+with their separate evidence and remaining gates.
 
 ## Creating a Root Run
 
@@ -78,8 +80,8 @@ are complete-record reader ceilings, not permission to raise component limits.
 
 ## Historical schema 34 to 35 upgrade
 
-Current unreleased binaries require migrations through 36 and the matching
-current role profile; follow the [schema36 deployment sequence](elapsed-graph-waits.md#migration-and-deployment).
+Current unreleased binaries require migrations through 37 and the matching
+54-table role profile; follow the [current deployment sequence](elapsed-graph-waits.md#migration-and-deployment).
 The steps below describe the original schema35 increment.
 
 1. Drain old workers and close schema-34 runtime pools.

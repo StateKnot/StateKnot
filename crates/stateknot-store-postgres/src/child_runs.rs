@@ -1440,6 +1440,58 @@ pub(super) async fn load_account_inner(
     Ok(Some(account))
 }
 
+// Parent is already locked. Settle first, then lock immutable terminal children
+// in the account's canonical key-digest order; never acquire the tree afterwards.
+pub(super) async fn lock_settled_account_children(
+    tx: &mut Transaction<'_, Postgres>,
+    tenant: &TenantId,
+    run: RunId,
+) -> Result<(), StoreError> {
+    let account = Box::pin(load_account_inner(tx, tenant, run, false))
+        .await?
+        .ok_or(StoreError::IncompleteChildAccounting)?;
+    ensure_settled(&account)?;
+    for entry in account.children() {
+        let record = Box::pin(load_record_inner(tx, entry.key(), true))
+            .await?
+            .ok_or(StoreError::ChildRunNotFound)?;
+        if record.child().run().is_quarantined() {
+            return Err(StoreError::RunQuarantined);
+        }
+        if !record.child().run().lifecycle().status().is_terminal()
+            || record.settlement() != entry.settlement()
+        {
+            return Err(StoreError::IncompleteChildAccounting);
+        }
+    }
+    let current = Box::pin(load_account_inner(tx, tenant, run, false))
+        .await?
+        .ok_or(StoreError::IncompleteChildAccounting)?;
+    if current != account {
+        return Err(StoreError::IncompleteChildAccounting);
+    }
+    Ok(())
+}
+
+pub(super) async fn verify_settlement_heads_before(
+    tx: &mut Transaction<'_, Postgres>,
+    account: &ChildRunBudgetAccount,
+    observed: &JournalHead,
+) -> Result<(), StoreError> {
+    ensure_settled(account)?;
+    for entry in account.children() {
+        let event = load_settlement_event(tx, entry.key()).await?;
+        if event.tenant_id() != observed.tenant_id()
+            || event.run_id() != observed.run_id()
+            || event.sequence() > observed.sequence()
+            || event.recorded_at() > observed.recorded_at()
+        {
+            return Err(StoreError::corrupt("closure child settlement cut"));
+        }
+    }
+    Ok(())
+}
+
 pub(super) async fn verify_schema(pool: &PgPool) -> Result<(), StoreError> {
     let complete = query_scalar::<_, bool>(r"SELECT
         NOT EXISTS (

@@ -171,3 +171,5 @@ R1 首先补齐 C2/C3 和 G3 的证据/语义，并保留 C5 注册/隐私回归
 R2/R5/R6/R7 项有明确后续阶段，但仍是原 RFC 的整体验收门禁。R1 关闭表示
 本阶段剩余语义与接入交付已完成，并不表示已有整套生产容量、稳定 API 或发布
 认证；完整 RFC 接受和最终生产声明仍须等待所有相关证据。
+
+2026-10-18 限定增量：[scoped Join owner-stop Store 记录](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)补充取消专用 closure-v2、schema37与当前54表部署及 v2 public schema getter；原普通 owner 保持 Executing，整个子账户的子级均已结算且 DIRECT 完整已定价才允许该精确 registered-unpublished profile。记录分别绑定实际源码/执行/迁移/冷读，不改写旧 schema33/35/36 或原 red 证据。该 Store 边界不关闭 Root ConfirmCancellation、scoped Driver Join、其他取消反例、完整故障/兼容/CI、G3/G4/D3 或 R1。

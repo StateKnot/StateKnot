@@ -65,9 +65,28 @@ block. Publication requires actual settled child terminals. A higher-fence scope
 attempt consumes that exact published Join in its immutable result; publication
 and consumption retries retain the original identities and charge each child
 once. Historical child and Join reads remain valid after the frame returns.
-The released original fence grants no execution authority. Nested Driver
-integration, cancellation/failure and
-final-source PostgreSQL 16/17 fault qualification remain required before this
+The released original fence grants no execution authority.
+
+The experimental schema-37 Store can close a cancelled frame stack when its
+sole latest current-leaf ordinary owner has an exact registered, unpublished
+Join and every child in the complete Root-bound account is terminal and settled. It
+preserves that physical attempt as Executing and freezes complete priced DIRECT
+plus settled delegated usage once. It creates no ordinary result/completion or
+Join publication/consumption. Complete owning reads authenticate the v2 stop
+proof; they recover an already committed decision before fresh candidate checks.
+Fresh quarantine, unresolved Tool/Model work, unpriced usage, unsettled children
+or another unfinished ordinary owner still reject closure. Failure-close keeps
+its original strict unfinished-work checks.
+
+Consumers of both closure event versions must register the v2 reference/document
+from `PostgresStore::graph_frame_join_stop_event_schema()` alongside the unchanged
+v1 `graph_frame_closure_event_schema()` document in the offline schema registry.
+Migration 37 and the matching schema-37 reader/writer and 54-table role profile
+are required; v1 bytes and digest domains are preserved. The
+[selected Store qualification record](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+binds the actual source, executed cases and remaining gates. Broader cancellation
+and failure cases, Root ConfirmCancellation, nested Driver integration and full
+fault/compatibility/CI qualification remain separate requirements before this
 profile becomes Supported. The Driver continues to reject reachable scoped child
 declarations until that integration is complete.
 

@@ -150,8 +150,8 @@ let store = PostgresStore::connect(&runtime_url, options).await?;
 The migration role needs database `CONNECT`/`CREATE` and permission to create
 `public._sqlx_migrations` and the owned `stateknot` schema. It need not be a
 superuser. The executable [trusted-server role profile](postgresql-roles.md)
-([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema-27 table/column
-allowlist, transactional apply, effective-privilege audit and separate
+([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema37 table/column
+allowlist for all 54 tables, transactional apply, effective-privilege audit and separate
 reservation-retention credential. It grants no runtime DDL, DELETE or immutable
 evidence UPDATE, including node starts and submission mappings. Follow that
 guide's dedicated-database prerequisites and apply/audit the profile before
@@ -713,15 +713,18 @@ does not establish entry/return authority, compound journal integrity, waiting
 frame recovery or historical-release compatibility. RFC-0022 remains Draft and
 no supported nested execution API is enabled by this migration.
 
-Roll out with workers stopped and a consistent pre-upgrade backup, migrate with
-the dedicated owner, apply/audit the schema-27 role profile, then start only the
-matching executable after exact schema verification. An old schema-26 binary
-cannot validate migration 27. The test-only revert fixture is not a downgrade
+The original schema27 rollout stopped workers, retained a consistent pre-upgrade
+backup, migrated with the dedicated owner and applied/audited its matching role
+profile before starting the matching executable. An old schema-26 binary cannot
+validate migration 27. Current experimental binaries require the complete
+schema37 deployment sequence above, rather than the historical schema27 profile.
+ The test-only revert fixture is not a downgrade
 procedure; new scoped history requires a forward fix or a consistent restore.
 
 Schema 33 adds experimental whole-stack closure under Draft
-[RFC-0022](rfcs/0022-namespaced-graph-frames.md). Apply the matching schema-33
-52-table role profile after migration and before resuming matching executables.
+[RFC-0022](rfcs/0022-namespaced-graph-frames.md). Its original schema33 increment
+used a 52-table role profile; current experimental deployment requires all
+migrations through 37 and the matching 54-table profile before resuming workers.
 A trusted coordinator must supply complete priced DIRECT usage and authenticate
 actual cancellation/sealed failure and settled work; a structural recovery floor
 is insufficient. The transaction retains Root state and original caller fences
@@ -733,6 +736,22 @@ Once closure facts are retained, prefer a forward fix or a consistent pre-upgrad
 restore; the test-only revert fixture refuses to erase them. Actual nested
 Driver dispatch, complete fault qualification and production acceptance remain
 required.
+
+Schema37 adds a cancellation-only v2 closure proof for one unique latest
+current-leaf ordinary owner of an exact registered, unpublished Join, after the
+children in the complete Root-bound account are terminal and settled. It keeps the owner
+Executing and creates no ordinary result/completion or Join consumption. The
+original no-stop and sealed-failure paths retain v1 and their strict checks.
+Consumers obtain the new exact v2 event schema through
+`PostgresStore::graph_frame_join_stop_event_schema()`; the original
+`graph_frame_closure_event_schema()` continues to return v1. Register both when
+reading both histories. Migration37 replaces one complete guard without a
+backfill, new table or ACL expansion; the schema36 54-table inventory is unchanged.
+Use normal checksum-pinned SQLx migration and the exact catalog, never a raw
+function replacement or migration-ledger edit. The
+[selected Store record](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+distinguishes actual retained-v1 upgrade/cold reads from broader compatibility,
+Root ConfirmCancellation, scoped Driver, fault, CI and R1 gates that remain open.
 
 ## Not yet implemented
 

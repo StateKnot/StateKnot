@@ -64,6 +64,110 @@ impl ChildJoinCommitOutcome {
     }
 }
 
+// Private persisted evidence, never an execution or ordinary-completion permit.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct RegisteredJoinStop {
+    pub(super) owner: NodeAttemptStartHead,
+    pub(super) request_digest: Digest,
+    pub(super) registration: JournalHead,
+}
+
+pub(super) async fn registered_join_stop(
+    tx: &mut Transaction<'_, Postgres>,
+    owner: &NodeAttemptStartHead,
+    leaf: &stateknot_core::GraphFrameCheckpointHead,
+    observed: &JournalHead,
+) -> Result<RegisteredJoinStop, StoreError> {
+    let activation = owner.activation();
+    if activation.graph_namespace().is_root()
+        || activation.tenant_id() != observed.tenant_id()
+        || activation.run_id() != observed.run_id()
+        || activation.graph_namespace() != leaf.frame().namespace()
+        || activation.base_checkpoint() != leaf.checkpoint()
+    {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    verify_stopped_owner_history(tx, owner).await?;
+    let record = load(tx, activation, false)
+        .await?
+        .ok_or(StoreError::InvalidRunFailureClose)?;
+    let id = query_scalar::<_, Uuid>("SELECT node_attempt_id FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3")
+        .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid())
+        .bind(record.request().activation_digest().as_bytes()).fetch_one(&mut **tx).await
+        .map_err(|source| StoreError::database("stopped Join physical owner", source))?;
+    if id != *owner.attempt_id().as_uuid()
+        || record.binding().is_some()
+        || record.head().is_some()
+        || record.consumed().is_some()
+        || record.registration().source().worker_fence() != Some(owner.fence())
+        || record.registration().sequence() > observed.sequence()
+        || record.registration().recorded_at() > observed.recorded_at()
+        || load_pending_node_result_row(tx, activation)
+            .await?
+            .is_some()
+    {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    if verify_members(tx, record.request(), false).await?.is_none() {
+        return Err(StoreError::ChildRunSettlementUnavailable);
+    }
+    Ok(RegisteredJoinStop {
+        owner: owner.clone(),
+        request_digest: record.request().digest(),
+        registration: record.registration().head(),
+    })
+}
+
+async fn verify_stopped_owner_history(
+    tx: &mut Transaction<'_, Postgres>,
+    owner: &NodeAttemptStartHead,
+) -> Result<(), StoreError> {
+    let activation = owner.activation();
+    let base = activation.base_checkpoint();
+    let rows = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_HISTORY)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*base.checkpoint_id().as_uuid())
+        .bind(
+            i64::try_from(base.superstep().get())
+                .map_err(|_| StoreError::InvalidRunFailureClose)?,
+        )
+        .bind(base.digest().as_bytes())
+        .bind(activation.graph_namespace().as_str())
+        .bind(activation.node_id().as_str())
+        .bind(activation.input_digest().as_bytes())
+        .bind(0_i64)
+        .bind(
+            i64::try_from(ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE + 1)
+                .map_err(|_| StoreError::InvalidRunFailureClose)?,
+        )
+        .fetch_all(&mut **tx)
+        .await
+        .map_err(|source| StoreError::database("stopped owner complete history", source))?;
+    if rows.is_empty() || rows.len() > ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    let mut verifier = NodeAttemptHistoryVerifier::new();
+    let mut latest = None;
+    for row in rows {
+        let attempt = Box::pin(load_node_attempt_from_start_row(tx, row)).await?;
+        verifier
+            .verify_next(&attempt)
+            .map_err(|_| StoreError::corrupt("stopped owner history"))?;
+        let event = Box::pin(verify_node_attempt(tx, &attempt)).await?;
+        if graph_frames::is_framework_kind(event.payload().kind().as_str()) {
+            return Err(StoreError::InvalidRunFailureClose);
+        }
+        latest = Some(attempt);
+    }
+    let latest = latest.ok_or(StoreError::InvalidRunFailureClose)?;
+    if latest.start().head() != *owner || latest.completion().is_some() {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    Ok(())
+}
+
 impl PostgresStore {
     /// Seals ALL children owned by one exact current activation, journals the
     /// registration, and releases the parent lease in the SAME transaction.

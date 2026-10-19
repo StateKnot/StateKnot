@@ -12,6 +12,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Add an experimental Store cancellation proof for the unique latest current-leaf
+  ordinary owner of a registered, unpublished child Join, preserving its Executing
+  attempt and settled accounting without ordinary completion/result or Join
+  consumption. Migration37 installs the v2 closure guard without new tables or ACL
+  privileges; v1 bytes/domains and its schema getter remain unchanged. The new
+  `PostgresStore::graph_frame_join_stop_event_schema()` exposes the exact v2 schema.
+  See the [bounded Store record](docs/qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+  and [RFC-0022](docs/rfcs/0022-namespaced-graph-frames.md#registered-join-handoff-during-whole-frame-cancellation).
+  Root ConfirmCancellation, scoped Driver, complete CI and R1 remain gated.
+
 ### Added
 
 - Exercise scoped Wait COMMIT request/response loss with real writer termination,

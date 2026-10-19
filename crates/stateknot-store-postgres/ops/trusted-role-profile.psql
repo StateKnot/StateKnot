@@ -1,6 +1,6 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
--- Schema 36. Run as the dedicated database/migration owner; credentials belong in libpq
+-- Schema 37. Run as the dedicated database/migration owner; credentials belong in libpq
 -- services/passfiles, never in this file. Variables are quoted as SQL literals.
 \set ON_ERROR_STOP on
 BEGIN;

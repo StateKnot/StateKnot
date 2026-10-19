@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot 生产完善里程碑与会话交接
 
-更新日期：2026-10-17，Asia/Shanghai。执行顺序：R0 至 R7。
+更新日期：2026-10-18，Asia/Shanghai。执行顺序：R0 至 R7。
 
 StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户调度、审批恢复及 MCP/A2A 适配的实现基础。整体生产验收仍未完成。后续工作集中在契约收尾、数据生命周期、运维观测、可靠协议服务、可部署运行时和完整生产验证。
 
@@ -488,3 +488,5 @@ npm run verify
 - [测试 profile 限定执行记录](qualification/experimental-postgres-test-profile-2026-10-15.zh-CN.md)保留组合923源码/main531输入的本机test opt1实验：六门禁、双版原Store264/Runtime189/provider2/example1及单列facts6命令全部exit0；默认栈七层与原marker保留。runner因最终两缓存缺TAG而exit1，原红回执不改，独立只读资源审计通过但不授缓存清理资格。原head686 CI为11success/2cancelled，两普通PG job均原30m耗尽、Store264通过而Runtime189无终态；同tree Linux PITR双版各exact1单列通过。本机workspace feature union不转授CI默认features；拟议仅9行CI job env保留原53steps/31run/30m及全部资源，完整CI终态、容量、Supported与R1继续开放。
 
 - 已采用opt1的后续head85f CI [38752172054](https://github.com/StateKnot/StateKnot/actions/runs/38752172054)终态11success/2cancelled，两普通PG job均原30m耗尽；双版Store264/Runtime189均真实终态通过，后续完整链未完成，没有显式FAILED测试判定。它尚不含新MCP候选，不能认证本组合；新增MCP Ubuntu/test-opt1步骤与完整CI仍未执行。
+
+- 2026-10-18：[选中 scoped Join owner-stop Store 增量](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)描述 schema37 的取消专用 closure-v2：唯一最新当前叶普通 owner 精确对应已注册未发布 Join，整个子账户中的子级均已终态/结算，保留原 Executing 历史并冻结完整已定价 DIRECT；不写普通完成/结果或 Join 消费。原 v1 字节与54表 ACL 保留，新增 v2 public schema getter。实际源码/二进制、双版执行与迁移/冷读结果以该独立记录为准，不转授历史资格；Root ConfirmCancellation、scoped Driver Join、其余反例/故障/兼容/完整 CI、RFC-0022 与 R1 继续开放。

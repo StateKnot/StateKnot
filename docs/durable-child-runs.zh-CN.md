@@ -48,8 +48,23 @@ Scoped Join 封闭该 activation 的完整子集，并原子释放 Run 租约。
 完整 stack 认证的挂起 framework caller，未完成的普通 sibling 仍会阻止注册。
 发布要求真实的子 Run 终态结算；新 fence 下的 scoped 物理尝试必须将该精确 Join
 绑定到不可变结果。发布和消费重试保留原身份，子树只结算一次；帧返回后仍能读取
-原子 Run 归属及 Join。已释放的原 fence 不授予执行权限。嵌套 Driver 集成、取消及
-失败关闭，以及最终源码的 PostgreSQL 16/17 故障验收仍须完成后才可声明 Supported；
+原子 Run 归属及 Join。已释放的原 fence 不授予执行权限。
+
+实验性 schema37 Store 可关闭这样一个已请求取消的帧栈：唯一最新的当前叶普通
+owner 精确对应已注册、未发布的 Join，且整个 Root 绑定子账户中的子级均已终态并结算。
+原物理尝试仍为 Executing，冻结完整已定价 DIRECT，并只累计一次已结算子树用量；
+不创建普通结果/完成或 Join 发布/消费。完整 owning reader 认证 v2 stop proof，
+并在 fresh 候选检查之前恢复原已提交决定。Fresh quarantine、未解决的 Tool/Model、
+未定价用量、未结算子级或第二个未完成普通 owner 仍拒绝关闭；失败关闭继续使用
+原有严格的未完成工作检查。
+
+消费两版关闭事件时，须将 `PostgresStore::graph_frame_join_stop_event_schema()` 返回的
+v2 reference/document 与原 `graph_frame_closure_event_schema()` 的 v1 文档一起注册到
+离线 schema registry。部署须完成迁移37并使用匹配的 schema37 reader/writer 与
+54表角色配置；既有 v1 字节和 digest domain 保留。
+[选中 Store 资格记录](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)
+绑定实际源码、执行用例和剩余门禁。其他取消/失败分支、Root ConfirmCancellation、
+嵌套 Driver 集成及完整故障/兼容/CI 验收仍须分别完成后才可声明 Supported；
 在集成完成前 Driver 继续拒绝可达的 scoped 子 Run 声明。
 
 ## PostgreSQL 事务存储（迁移 20）

@@ -12,6 +12,8 @@ const EVENT_KIND: &str = "graph-frames-closed";
 const MAX_BYTES: usize = 4_194_304;
 const INTENT_DOMAIN: &[u8] = b"stateknot-postgres-frame-closure-intent-v1\0";
 const COMPOUND_DOMAIN: &[u8] = b"stateknot-postgres-frame-closure-compound-v1\0";
+const INTENT_DOMAIN_V2: &[u8] = b"stateknot-postgres-frame-closure-intent-v2\0";
+const COMPOUND_DOMAIN_V2: &[u8] = b"stateknot-postgres-frame-closure-compound-v2\0";
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -54,6 +56,78 @@ struct Intent {
     delegated_usage: BudgetUsage,
     child_account: Option<AccountObservation>,
 }
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct IntentV2 {
+    version: u8,
+    admission_digest: Digest,
+    root: CheckpointHead,
+    observed_head: JournalHead,
+    lifecycle: RunLifecycle,
+    failure: Failure,
+    failure_close: Option<JournalHead>,
+    caller_failure: Failure,
+    lifetime_starts: u16,
+    #[serde(deserialize_with = "bounded_seven")]
+    frames: Vec<Frame>,
+    direct_usage: BudgetUsage,
+    delegated_usage: BudgetUsage,
+    child_account: Option<AccountObservation>,
+    stopped_join: child_joins::RegisteredJoinStop,
+}
+
+impl IntentV2 {
+    fn new(intent: &Intent, stopped_join: child_joins::RegisteredJoinStop) -> Self {
+        Self {
+            version: intent.version,
+            admission_digest: intent.admission_digest,
+            root: intent.root.clone(),
+            observed_head: intent.observed_head.clone(),
+            lifecycle: intent.lifecycle.clone(),
+            failure: intent.failure.clone(),
+            failure_close: intent.failure_close.clone(),
+            caller_failure: intent.caller_failure.clone(),
+            lifetime_starts: intent.lifetime_starts,
+            frames: intent.frames.clone(),
+            direct_usage: intent.direct_usage.clone(),
+            delegated_usage: intent.delegated_usage.clone(),
+            child_account: intent.child_account.clone(),
+            stopped_join,
+        }
+    }
+
+    fn into_parts(self) -> (Intent, child_joins::RegisteredJoinStop) {
+        (
+            Intent {
+                version: self.version,
+                admission_digest: self.admission_digest,
+                root: self.root,
+                observed_head: self.observed_head,
+                lifecycle: self.lifecycle,
+                failure: self.failure,
+                failure_close: self.failure_close,
+                caller_failure: self.caller_failure,
+                lifetime_starts: self.lifetime_starts,
+                frames: self.frames,
+                direct_usage: self.direct_usage,
+                delegated_usage: self.delegated_usage,
+                child_account: self.child_account,
+            },
+            self.stopped_join,
+        )
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct WireV2 {
+    version: u8,
+    intent: IntentV2,
+    event: JournalEvent,
+    #[serde(deserialize_with = "bounded_seven")]
+    completions: Vec<NodeAttemptCompletion>,
+}
+
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 struct Wire {
@@ -108,6 +182,7 @@ pub struct StoredGraphFrameClosure {
     event: JournalEvent,
     completions: Vec<NodeAttemptCompletion>,
     digest: Digest,
+    stopped_join: Option<child_joins::RegisteredJoinStop>,
 }
 impl fmt::Debug for StoredGraphFrameClosure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -166,21 +241,34 @@ impl GraphFrameClosureCommitOutcome {
         }
     }
 }
-fn intent_digest(intent: &Intent) -> Result<Digest, StoreError> {
-    let mut bytes = INTENT_DOMAIN.to_vec();
-    bytes.extend(
-        serde_json_canonicalizer::to_vec(intent)
-            .map_err(|_| StoreError::encoding("frame closure intent"))?,
-    );
+fn intent_digest(
+    intent: &Intent,
+    stopped_join: Option<&child_joins::RegisteredJoinStop>,
+) -> Result<Digest, StoreError> {
+    let (domain, canonical) = match (intent.version, stopped_join) {
+        (1, None) => (INTENT_DOMAIN, serde_json_canonicalizer::to_vec(intent)),
+        (2, Some(stop)) => (
+            INTENT_DOMAIN_V2,
+            serde_json_canonicalizer::to_vec(&IntentV2::new(intent, stop.clone())),
+        ),
+        _ => return Err(StoreError::corrupt("frame closure version or stop shape")),
+    };
+    let mut bytes = domain.to_vec();
+    bytes.extend(canonical.map_err(|_| StoreError::encoding("frame closure intent"))?);
     Ok(Digest::sha256(bytes))
 }
 fn compound(
     intent: &Intent,
     event: &JournalEvent,
     completions: &[NodeAttemptCompletion],
+    stopped_join: Option<&child_joins::RegisteredJoinStop>,
 ) -> Result<Digest, StoreError> {
-    let mut bytes = COMPOUND_DOMAIN.to_vec();
-    bytes.extend_from_slice(intent_digest(intent)?.as_bytes());
+    let mut bytes = match intent.version {
+        1 => COMPOUND_DOMAIN.to_vec(),
+        2 => COMPOUND_DOMAIN_V2.to_vec(),
+        _ => return Err(StoreError::corrupt("frame closure version")),
+    };
+    bytes.extend_from_slice(intent_digest(intent, stopped_join)?.as_bytes());
     bytes.extend_from_slice(event.digest().as_bytes());
     for completion in completions {
         bytes.extend_from_slice(completion.digest().as_bytes());
@@ -188,13 +276,22 @@ fn compound(
     Ok(Digest::sha256(bytes))
 }
 fn encode(record: &StoredGraphFrameClosure) -> Result<Vec<u8>, StoreError> {
-    let bytes = serde_json_canonicalizer::to_vec(&Wire {
-        version: 1,
-        intent: record.intent.clone(),
-        event: record.event.clone(),
-        completions: record.completions.clone(),
-    })
-    .map_err(|_| StoreError::encoding("frame closure wire"))?;
+    let encoded = match (record.intent.version, &record.stopped_join) {
+        (1, None) => serde_json_canonicalizer::to_vec(&Wire {
+            version: 1,
+            intent: record.intent.clone(),
+            event: record.event.clone(),
+            completions: record.completions.clone(),
+        }),
+        (2, Some(stop)) => serde_json_canonicalizer::to_vec(&WireV2 {
+            version: 2,
+            intent: IntentV2::new(&record.intent, stop.clone()),
+            event: record.event.clone(),
+            completions: record.completions.clone(),
+        }),
+        _ => return Err(StoreError::corrupt("frame closure version or stop shape")),
+    };
+    let bytes = encoded.map_err(|_| StoreError::encoding("frame closure wire"))?;
     if bytes.is_empty() || bytes.len() > MAX_BYTES {
         return Err(StoreError::GraphFrameLimitExceeded);
     }
@@ -216,8 +313,36 @@ static EVENT_SCHEMA: LazyLock<
         document,
     ))
 });
-fn payload(intent: &Intent) -> Result<JournalPayload, StoreError> {
-    JournalPayload::new(EVENT_SCHEMA.as_ref().map_err(|_| StoreError::encoding("frame closure schema"))?.0.clone(),stateknot_core::JournalEventKind::new(EVENT_KIND).map_err(|_| StoreError::GraphFrameRejected)?,BoundedJson::try_from(serde_json::json!({"version":1,"intent_digest":intent_digest(intent)?,"frame_count":intent.frames.len()})).map_err(|_| StoreError::GraphFrameRejected)?).map_err(|_| StoreError::GraphFrameRejected)
+static EVENT_SCHEMA_V2: LazyLock<
+    Result<(stateknot_core::SchemaReference, serde_json::Value), &'static str>,
+> = LazyLock::new(|| {
+    let document = serde_json::json!({"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://stknot.com/schemas/store/graph-frame-closure-event/2.0.0","type":"object","additionalProperties":false,"properties":{"version":{"const":2},"intent_digest":{"type":"string","minLength":71,"maxLength":71,"pattern":"^sha256:[0-9a-f]{64}$"},"frame_count":{"type":"integer","minimum":1,"maximum":7}},"required":["version","intent_digest","frame_count"]});
+    let bytes = serde_json_canonicalizer::to_vec(&document).map_err(|_| "frame closure schema")?;
+    Ok((
+        stateknot_core::SchemaReference::new(
+            "https://stknot.com/schemas/store/graph-frame-closure-event/2.0.0"
+                .parse()
+                .map_err(|_| "frame closure schema ID")?,
+            stateknot_core::Version::new(2, 0, 0),
+            Digest::sha256(bytes),
+        ),
+        document,
+    ))
+});
+fn payload(
+    intent: &Intent,
+    stopped_join: Option<&child_joins::RegisteredJoinStop>,
+) -> Result<JournalPayload, StoreError> {
+    let schema = match intent.version {
+        1 => &*EVENT_SCHEMA,
+        2 => &*EVENT_SCHEMA_V2,
+        _ => return Err(StoreError::corrupt("frame closure payload version")),
+    };
+    JournalPayload::new(
+        schema.as_ref().map_err(|_| StoreError::encoding("frame closure schema"))?.0.clone(),
+        stateknot_core::JournalEventKind::new(EVENT_KIND).map_err(|_| StoreError::GraphFrameRejected)?,
+        BoundedJson::try_from(serde_json::json!({"version":intent.version,"intent_digest":intent_digest(intent, stopped_join)?,"frame_count":intent.frames.len()})).map_err(|_|StoreError::GraphFrameRejected)?,
+    ).map_err(|_|StoreError::GraphFrameRejected)
 }
 fn caller_failure(event_id: EventId) -> Result<Failure, StoreError> {
     Ok(Failure::new(
@@ -292,6 +417,19 @@ pub(super) async fn ensure_settled_work(
     tenant: &TenantId,
     run: RunId,
 ) -> Result<(), StoreError> {
+    ensure_settled_provider_work(tx, tenant, run).await?;
+    let unfinished:bool=query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND NOT EXISTS(SELECT 1 FROM stateknot.node_attempts later WHERE later.tenant_id=n.tenant_id AND later.run_id=n.run_id AND later.activation_digest=n.activation_digest AND later.journal_sequence>n.journal_sequence) AND NOT EXISTS(SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id) AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=n.tenant_id AND e.run_id=n.run_id AND e.caller_attempt_id=n.attempt_id) AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_caller_bindings b WHERE b.tenant_id=n.tenant_id AND b.run_id=n.run_id AND b.caller_attempt_id=n.attempt_id))").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("frame closure ordinary physical work",e))?;
+    if unfinished {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    Ok(())
+}
+
+async fn ensure_settled_provider_work(
+    tx: &mut Transaction<'_, Postgres>,
+    tenant: &TenantId,
+    run: RunId,
+) -> Result<(), StoreError> {
     let tool:bool=query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.tool_invocations WHERE tenant_id=$1 AND run_id=$2 AND current_status NOT IN ('committed','failed'))").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("frame closure Tool work",e))?;
     if tool {
         return Err(StoreError::CheckpointBlockedByToolInvocation);
@@ -300,11 +438,106 @@ pub(super) async fn ensure_settled_work(
     if model {
         return Err(StoreError::CheckpointBlockedByModelInvocation);
     }
-    let unfinished:bool=query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND NOT EXISTS(SELECT 1 FROM stateknot.node_attempts later WHERE later.tenant_id=n.tenant_id AND later.run_id=n.run_id AND later.activation_digest=n.activation_digest AND later.journal_sequence>n.journal_sequence) AND NOT EXISTS(SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id) AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=n.tenant_id AND e.run_id=n.run_id AND e.caller_attempt_id=n.attempt_id) AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_caller_bindings b WHERE b.tenant_id=n.tenant_id AND b.run_id=n.run_id AND b.caller_attempt_id=n.attempt_id))").bind(tenant.as_str()).bind(*run.as_uuid()).fetch_one(&mut **tx).await.map_err(|e|StoreError::database("frame closure ordinary physical work",e))?;
-    if unfinished {
+    Ok(())
+}
+
+async fn unfinished_ordinary_ids(
+    tx: &mut Transaction<'_, Postgres>,
+    tenant: &TenantId,
+    run: RunId,
+) -> Result<Vec<Uuid>, StoreError> {
+    query_scalar("SELECT n.attempt_id FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND NOT EXISTS(SELECT 1 FROM stateknot.node_attempts later WHERE later.tenant_id=n.tenant_id AND later.run_id=n.run_id AND later.activation_digest=n.activation_digest AND later.journal_sequence>n.journal_sequence) AND NOT EXISTS(SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id) AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_entries e WHERE e.tenant_id=n.tenant_id AND e.run_id=n.run_id AND e.caller_attempt_id=n.attempt_id) AND NOT EXISTS(SELECT 1 FROM stateknot.graph_frame_caller_bindings b WHERE b.tenant_id=n.tenant_id AND b.run_id=n.run_id AND b.caller_attempt_id=n.attempt_id) ORDER BY n.journal_sequence LIMIT 2")
+        .bind(tenant.as_str()).bind(*run.as_uuid()).fetch_all(&mut **tx).await
+        .map_err(|source| StoreError::database("closure unfinished ordinary inventory", source))
+}
+
+async fn prepare_stopped_work(
+    tx: &mut Transaction<'_, Postgres>,
+    stored: &StoredRun,
+    active: &StoredActiveGraphFrame,
+    observed: &JournalHead,
+) -> Result<Option<child_joins::RegisteredJoinStop>, StoreError> {
+    let tenant = observed.tenant_id();
+    let run = observed.run_id();
+    ensure_settled_provider_work(tx, tenant, run).await?;
+    let ids = unfinished_ordinary_ids(tx, tenant, run).await?;
+    if ids.is_empty() {
+        ensure_settled_work(tx, tenant, run).await?;
+        return Ok(None);
+    }
+    if ids.len() != 1 || stored.lifecycle().status() != RunStatus::CancellationRequested {
         return Err(StoreError::InvalidRunFailureClose);
     }
-    Ok(())
+    let attempt_id =
+        AttemptId::from_uuid(ids[0]).map_err(|_| StoreError::InvalidRunFailureClose)?;
+    let attempt = Box::pin(load_node_attempt_record(tx, tenant, &run, attempt_id))
+        .await?
+        .ok_or(StoreError::NodeAttemptNotFound)?;
+    let stop = Box::pin(child_joins::registered_join_stop(
+        tx,
+        &attempt.start().head(),
+        &active.checkpoint().head(),
+        observed,
+    ))
+    .await?;
+    // This owning preflight keeps the existing non-Join rejection intact.
+    // It grants no stop authority: lock the complete settled account, then
+    // reconstruct the exact selected Join again while those locks are held.
+    Box::pin(child_runs::lock_settled_account_children(tx, tenant, run)).await?;
+    let locked_stop = Box::pin(child_joins::registered_join_stop(
+        tx,
+        &attempt.start().head(),
+        &active.checkpoint().head(),
+        observed,
+    ))
+    .await?;
+    if locked_stop != stop {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    let account = Box::pin(child_runs::load_account_inner(tx, tenant, run, false))
+        .await?
+        .ok_or(StoreError::IncompleteChildAccounting)?;
+    child_runs::verify_settlement_heads_before(tx, &account, observed).await?;
+    Ok(Some(stop))
+}
+
+async fn verify_stopped_work(
+    tx: &mut Transaction<'_, Postgres>,
+    intent: &Intent,
+    stop: &child_joins::RegisteredJoinStop,
+) -> Result<(), StoreError> {
+    let tenant = intent.root.tenant_id();
+    let run = intent.root.run_id();
+    if intent.version != 2
+        || intent.failure_close.is_some()
+        || intent.lifecycle.status() != RunStatus::CancellationRequested
+        || intent.child_account.is_none()
+    {
+        return Err(StoreError::corrupt("stopped Join cancellation decision"));
+    }
+    ensure_settled_provider_work(tx, tenant, run).await?;
+    let ids = unfinished_ordinary_ids(tx, tenant, run).await?;
+    if ids.as_slice() != [*stop.owner.attempt_id().as_uuid()] {
+        return Err(StoreError::corrupt("stopped Join unfinished inventory"));
+    }
+    let leaf = intent
+        .frames
+        .last()
+        .ok_or_else(|| StoreError::corrupt("stopped Join leaf"))?;
+    let actual = Box::pin(child_joins::registered_join_stop(
+        tx,
+        &stop.owner,
+        &leaf.checkpoint,
+        &intent.observed_head,
+    ))
+    .await?;
+    if actual != *stop {
+        return Err(StoreError::corrupt("stopped Join immutable evidence"));
+    }
+    let account = Box::pin(child_runs::load_account_inner(tx, tenant, run, false))
+        .await?
+        .ok_or(StoreError::IncompleteChildAccounting)?;
+    child_runs::verify_settlement_heads_before(tx, &account, &intent.observed_head).await
 }
 
 fn digest_column(row: &PgRow, name: &str, expected: Digest) -> Result<(), StoreError> {
@@ -321,28 +554,52 @@ async fn anchored_record(
     tx: &mut Transaction<'_, Postgres>,
     row: PgRow,
 ) -> Result<StoredGraphFrameClosure, StoreError> {
+    #[derive(Deserialize)]
+    struct Version {
+        version: u8,
+    }
     let bytes: Vec<u8> = row
         .try_get("closure_bytes")
         .map_err(|e| StoreError::database("frame closure bytes", e))?;
     if bytes.is_empty() || bytes.len() > MAX_BYTES {
         return Err(StoreError::corrupt("frame closure byte bound"));
     }
-    let wire: Wire =
-        serde_json::from_slice(&bytes).map_err(|_| StoreError::corrupt("frame closure wire"))?;
-    if wire.version != 1
-        || wire.intent.version != 1
-        || wire.intent.frames.len() != wire.completions.len()
+    let version: Version =
+        serde_json::from_slice(&bytes).map_err(|_| StoreError::corrupt("frame closure version"))?;
+    let (intent, event, completions, stopped_join) = match version.version {
+        1 => {
+            let wire: Wire = serde_json::from_slice(&bytes)
+                .map_err(|_| StoreError::corrupt("frame closure v1 wire"))?;
+            if wire.version != 1 || wire.intent.version != 1 {
+                return Err(StoreError::corrupt("frame closure v1 version"));
+            }
+            (wire.intent, wire.event, wire.completions, None)
+        }
+        2 => {
+            let wire: WireV2 = serde_json::from_slice(&bytes)
+                .map_err(|_| StoreError::corrupt("frame closure v2 wire"))?;
+            if wire.version != 2 || wire.intent.version != 2 {
+                return Err(StoreError::corrupt("frame closure v2 version"));
+            }
+            let (intent, stop) = wire.intent.into_parts();
+            (intent, wire.event, wire.completions, Some(stop))
+        }
+        _ => return Err(StoreError::corrupt("frame closure version")),
+    };
+    if intent.frames.len() != completions.len()
+        || (stopped_join.is_some() && intent.failure_close.is_some())
     {
         return Err(StoreError::corrupt(
-            "frame closure version or component count",
+            "frame closure component count or decision",
         ));
     }
-    let digest = compound(&wire.intent, &wire.event, &wire.completions)?;
+    let digest = compound(&intent, &event, &completions, stopped_join.as_ref())?;
     let record = StoredGraphFrameClosure {
-        intent: wire.intent,
-        event: wire.event,
-        completions: wire.completions,
+        intent,
+        event,
+        completions,
         digest,
+        stopped_join,
     };
     if encode(&record)? != bytes {
         return Err(StoreError::corrupt("frame closure canonical bytes"));
@@ -361,7 +618,10 @@ async fn anchored_record(
             "active_frame_identity_digest",
             leaf.checkpoint.frame().digest(),
         ),
-        ("intent_digest", intent_digest(intent)?),
+        (
+            "intent_digest",
+            intent_digest(intent, record.stopped_join.as_ref())?,
+        ),
         ("compound_digest", record.digest),
         ("closure_checksum", Digest::sha256(&bytes)),
         ("journal_digest", record.event.digest()),
@@ -428,7 +688,7 @@ async fn anchored_record(
     if actual.projection_digest.as_deref() != Some(record.digest.as_bytes())
         || decode_event(actual)? != record.event
         || record.event.source() != &JournalEventSource::ControlPlane
-        || record.event.payload() != &payload(intent)?
+        || record.event.payload() != &payload(intent, record.stopped_join.as_ref())?
     {
         return Err(StoreError::corrupt("frame closure journal binding"));
     }
@@ -602,7 +862,11 @@ pub(super) fn verified_record<'a>(
             }
         }
         verify_account(tx, intent).await?;
-        ensure_settled_work(tx, tenant, run).await?;
+        if let Some(stop) = &record.stopped_join {
+            verify_stopped_work(tx, intent, stop).await?;
+        } else {
+            ensure_settled_work(tx, tenant, run).await?;
+        }
         Ok(record)
     })
 }
@@ -754,6 +1018,20 @@ impl PostgresStore {
             .cloned()
             .map_err(|_| StoreError::encoding("frame closure schema"))
     }
+    /// Exact v2 whole-close schema for retaining a registered Join owner.
+    ///
+    /// Register this document with the offline schema registry before accepting
+    /// v2 closure events. The original closure schema accessor still returns v1.
+    ///
+    /// # Errors
+    /// Rejects local canonical schema encoding failure.
+    pub fn graph_frame_join_stop_event_schema()
+    -> Result<(stateknot_core::SchemaReference, serde_json::Value), StoreError> {
+        EVENT_SCHEMA_V2
+            .as_ref()
+            .cloned()
+            .map_err(|_| StoreError::encoding("frame Join stop schema"))
+    }
     /// Authenticates an immutable whole closure without acquiring execution authority.
     ///
     /// # Errors
@@ -788,8 +1066,12 @@ impl PostgresStore {
     }
     /// Closes every open frame after an immutable cancellation or sealed failure.
     ///
-    /// Complete priced DIRECT usage and settled ordinary/provider/child work are
-    /// required. This trusted control-plane maintenance API grants no execution
+    /// Complete priced DIRECT usage and settled provider/child work are required.
+    /// Ordinary work must be complete, except the unique latest scoped owner
+    /// of a registered, unpublished Join may stop under an exact cancellation
+    /// proof while retaining its original Executing history. No ordinary
+    /// completion, result, publication or consumption is created for that owner.
+    /// This trusted control-plane maintenance API grants no execution
     /// lease, creates no parent result and does not require an unexpired deadline.
     /// Every actual current physical caller receives a non-retryable completion
     /// at its original fence. Exact committed recovery precedes fresh candidates.
@@ -853,7 +1135,7 @@ impl PostgresStore {
         direct_usage
             .validate_monotonic_after(active.minimum_direct_usage())
             .map_err(|_| StoreError::GraphFrameConflict)?;
-        ensure_settled_work(&mut tx, tenant, run).await?;
+        let stopped_join = prepare_stopped_work(&mut tx, &stored, &active, &observed).await?;
         let account = child_runs::load_account_inner(&mut tx, tenant, run, false).await?;
         let (delegated_usage, child_account) = if let Some(account) = account {
             child_runs::ensure_settled(&account)?;
@@ -900,7 +1182,7 @@ impl PostgresStore {
         let admission_digest = active.entry().scope.admission_digest;
         drop(active);
         let intent = Intent {
-            version: 1,
+            version: if stopped_join.is_some() { 2 } else { 1 },
             admission_digest,
             root,
             observed_head: observed.clone(),
@@ -917,8 +1199,13 @@ impl PostgresStore {
         };
         let append = JournalAppend::new(
             stateknot_core::JournalExpectation::exact(observed.clone()),
-            JournalEventIntent::control_plane(tenant.clone(), run, event_id, payload(&intent)?)
-                .map_err(|_| StoreError::GraphFrameRejected)?,
+            JournalEventIntent::control_plane(
+                tenant.clone(),
+                run,
+                event_id,
+                payload(&intent, stopped_join.as_ref())?,
+            )
+            .map_err(|_| StoreError::GraphFrameRejected)?,
         )
         .map_err(|_| StoreError::GraphFrameRejected)?;
         let now = database_now(&mut tx, "frame closure database clock")
@@ -944,12 +1231,13 @@ impl PostgresStore {
                 .map_err(|_| StoreError::GraphFrameRejected)?,
             );
         }
-        let digest = compound(&intent, &event, &completions)?;
+        let digest = compound(&intent, &event, &completions, stopped_join.as_ref())?;
         let record = StoredGraphFrameClosure {
             intent,
             event,
             completions,
             digest,
+            stopped_join,
         };
         let bytes = encode(&record)?;
         insert_event(&mut tx, &record.event, digest).await?;
@@ -992,7 +1280,7 @@ async fn insert_record(
     let i = &record.intent;
     let e = &record.event;
     let leaf = i.frames.last().ok_or(StoreError::GraphFrameConflict)?;
-    query("INSERT INTO stateknot.graph_frame_closures(tenant_id,run_id,admission_digest,root_checkpoint_id,root_superstep,root_checkpoint_digest,active_namespace,active_frame_identity_digest,lifetime_starts,frame_count,intent_digest,compound_digest,closure_bytes,journal_sequence,journal_event_id,journal_recorded_at,journal_digest) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)").bind(i.root.tenant_id().as_str()).bind(*i.root.run_id().as_uuid()).bind(i.admission_digest.as_bytes()).bind(*i.root.checkpoint_id().as_uuid()).bind(i64::try_from(i.root.superstep().get()).map_err(|_|StoreError::GraphFrameLimitExceeded)?).bind(i.root.digest().as_bytes()).bind(leaf.checkpoint.frame().namespace().as_str()).bind(leaf.checkpoint.frame().digest().as_bytes()).bind(i32::from(i.lifetime_starts)).bind(i32::try_from(i.frames.len()).map_err(|_|StoreError::GraphFrameLimitExceeded)?).bind(intent_digest(i)?.as_bytes()).bind(record.digest.as_bytes()).bind(bytes).bind(i64::try_from(e.sequence().get()).map_err(|_|StoreError::JournalSequenceExhausted)?).bind(*e.event_id().as_uuid()).bind(to_database_time(e.recorded_at())?).bind(e.digest().as_bytes()).execute(&mut **tx).await.map_err(|e|StoreError::database("whole frame closure insert",e))?;
+    query("INSERT INTO stateknot.graph_frame_closures(tenant_id,run_id,admission_digest,root_checkpoint_id,root_superstep,root_checkpoint_digest,active_namespace,active_frame_identity_digest,lifetime_starts,frame_count,intent_digest,compound_digest,closure_bytes,journal_sequence,journal_event_id,journal_recorded_at,journal_digest) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)").bind(i.root.tenant_id().as_str()).bind(*i.root.run_id().as_uuid()).bind(i.admission_digest.as_bytes()).bind(*i.root.checkpoint_id().as_uuid()).bind(i64::try_from(i.root.superstep().get()).map_err(|_|StoreError::GraphFrameLimitExceeded)?).bind(i.root.digest().as_bytes()).bind(leaf.checkpoint.frame().namespace().as_str()).bind(leaf.checkpoint.frame().digest().as_bytes()).bind(i32::from(i.lifetime_starts)).bind(i32::try_from(i.frames.len()).map_err(|_|StoreError::GraphFrameLimitExceeded)?).bind(intent_digest(i, record.stopped_join.as_ref())?.as_bytes()).bind(record.digest.as_bytes()).bind(bytes).bind(i64::try_from(e.sequence().get()).map_err(|_|StoreError::JournalSequenceExhausted)?).bind(*e.event_id().as_uuid()).bind(to_database_time(e.recorded_at())?).bind(e.digest().as_bytes()).execute(&mut **tx).await.map_err(|e|StoreError::database("whole frame closure insert",e))?;
     Ok(())
 }
 async fn insert_caller(

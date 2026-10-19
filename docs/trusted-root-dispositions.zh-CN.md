@@ -7,8 +7,10 @@ SPDX-License-Identifier: Apache-2.0
 
 本文说明 [RFC-0022](rfcs/0022-namespaced-graph-frames.md) 的实验实现契约。
 实际验收范围见[当前证据报告](qualification/experimental-trusted-root-dispositions-2026-10-12.zh-CN.md)。
-RFC 与 R1 仍未关闭。该报告记录历史 schema35 增量；当前 schema36 部署还须采用
-[原始绝对 Wait profile](elapsed-graph-waits.zh-CN.md)及其独立证据。
+RFC 与 R1 仍未关闭。该报告记录历史 schema35 增量；当前 schema37 部署还须采用
+[原始绝对 Wait profile](elapsed-graph-waits.zh-CN.md)和
+[选中 Store Join 取消 profile](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)，
+分别保留其证据与剩余门禁。
 
 ## 创建 Root Run
 
@@ -63,8 +65,8 @@ V2 完整 bundle 读取上限为 14,241,792 字节，原 V1 仍为 9,474,048 字
 
 ## 历史 schema 34→35 升级
 
-当前未发布 binary 要求完整迁移至36并匹配当前 role profile，遵循
-[schema36 部署顺序](elapsed-graph-waits.zh-CN.md#迁移与部署)。
+当前未发布 binary 要求完整迁移至37并匹配当前54表 role profile，遵循
+[当前部署顺序](elapsed-graph-waits.zh-CN.md#迁移与部署)。
 以下步骤仅说明原 schema35 增量。
 
 1. 排空旧 worker，并关闭 schema-34 runtime pool。
