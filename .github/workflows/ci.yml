@@ -333,9 +333,71 @@ jobs:
       - name: Check and test workspace
         run: cargo test --workspace --all-targets --all-features --locked
 
+  postgres-native-build:
+    name: PostgreSQL Native build
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      CARGO_INCREMENTAL: "0"
+      CARGO_PROFILE_DEV_DEBUG: "0"
+      CARGO_PROFILE_TEST_DEBUG: "0"
+      CARGO_PROFILE_TEST_OPT_LEVEL: "1"
+      CARGO_PROFILE_TEST_DEBUG_ASSERTIONS: "true"
+      CARGO_PROFILE_TEST_OVERFLOW_CHECKS: "true"
+      STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+    outputs:
+      artifact_id: ${{ steps.native-artifact.outputs.artifact-id }}
+      artifact_digest: ${{ steps.native-artifact.outputs.artifact-digest }}
+      manifest_sha256: ${{ steps.export.outputs.manifest_sha256 }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install pinned Rust toolchain
+        run: rustup toolchain install 1.88.0 --profile minimal
+
+      - name: Install pinned components before separate native builds
+        run: rustup component add --toolchain 1.88.0 clippy rustfmt
+
+      - name: Verify Native artifact rejection controls
+        env:
+          PYTHONDONTWRITEBYTECODE: "1"
+        run: python3 -m unittest discover -s .github/scripts/tests -p test_postgres_native_artifacts.py -v
+
+      - name: Build and export cold Native binaries
+        id: export
+        run: bash .github/scripts/build-postgres-native.sh
+
+      - name: Upload same-run Native binaries
+        id: native-artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: postgres-native-build-${{ github.run_id }}-${{ github.run_attempt }}
+          path: postgres-native-artifact/
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Retain producer compilation diagnostics
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: postgres-native-build-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}
+          path: |
+            postgres-native-parallel/
+            postgres-native-artifact/
+            !postgres-native-parallel/**/*.live
+            !postgres-native-artifact/**/*.live
+            !postgres-native-live/
+          if-no-files-found: error
+          retention-days: 30
+
   postgres-native:
     name: PostgreSQL Native (${{ matrix.version }})
     runs-on: ubuntu-latest
+    needs: postgres-native-build
+    permissions:
+      contents: read
+      actions: read
     timeout-minutes: 30
     # Optimize the CPU-heavy contract tests while retaining panic checks.
     # Build/test profile only; leases, fixtures and job budgets are unchanged.
@@ -387,6 +449,19 @@ jobs:
             [[ -z $(find target -mindepth 1 -print -quit) ]]
           fi
 
+      - name: Import and verify same-run Native binaries
+        env:
+          GH_TOKEN: ${{ github.token }}
+          STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
+          STATEKNOT_NATIVE_ARTIFACT_ID: ${{ needs.postgres-native-build.outputs.artifact_id }}
+          STATEKNOT_NATIVE_ARTIFACT_DIGEST: ${{ needs.postgres-native-build.outputs.artifact_digest }}
+          STATEKNOT_NATIVE_MANIFEST_SHA256: ${{ needs.postgres-native-build.outputs.manifest_sha256 }}
+        run: |
+          python3 .github/scripts/postgres-native-artifacts.py import \
+            --artifact-id "$STATEKNOT_NATIVE_ARTIFACT_ID" \
+            --artifact-digest "$STATEKNOT_NATIVE_ARTIFACT_DIGEST" \
+            --manifest-sha256 "$STATEKNOT_NATIVE_MANIFEST_SHA256"
+
       - name: Run complete Store and Graph Driver suites concurrently
         env:
           STATEKNOT_REQUIRE_POSTGRES_TESTS: "1"
@@ -394,7 +469,7 @@ jobs:
           STATEKNOT_PARALLEL_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
           STATEKNOT_PARALLEL_POSTGRES_MAJOR: ${{ matrix.version }}
         # Separate fresh databases; each original harness remains serial.
-        # Separate no-run Cargo builds precede two owned native-binary groups.
+        # Same-run cold producer binaries retain two owned native-binary groups.
         run: bash .github/scripts/run-postgres-native-parallel.sh
 
       - name: Upload complete native-suite outputs

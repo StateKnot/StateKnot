@@ -5,7 +5,7 @@ set -euo pipefail
 set +m
 (( BASH_VERSINFO[0] > 5 || (BASH_VERSINFO[0] == 5 && BASH_VERSINFO[1] >= 1) ))
 out=postgres-native-parallel
-mkdir "$out"
+[[ -d "$out" && ! -L "$out" ]]
 script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 leader=$script_dir/postgres-native-leader.sh
 binary_helper=$script_dir/postgres-native-binaries.py
@@ -141,15 +141,10 @@ for key in CARGO_TARGET_DIR RUSTFLAGS RUSTDOCFLAGS CARGO_ENCODED_RUSTFLAGS RUST_
   printf '%s\t%s\t%s\n' "$key" "$present" "${#value}" >> "$out/override-presence.tsv"
   [[ -z "$value" ]]
 done
-if [[ ! -e target ]]; then printf 'absent\n' > "$out/cold-target.txt"; else
-  [[ -d target && ! -L target && -z $(find target -mindepth 1 -print -quit) ]]
-  printf 'empty\n' > "$out/cold-target.txt"
-fi
+[[ $(cat "$out/cold-target.txt") == imported-same-run ]]
+python3 "$script_dir/postgres-native-artifacts.py" verify before
 docker inspect --format '{{.Id}} {{.State.Running}}' "$container" > "$out/service.txt"
 [[ $(cat "$out/service.txt") == "$container true" ]]
-
-python3 "$binary_helper" build store
-python3 "$binary_helper" build runtime
 
 psql_in_service() {
   docker exec "$container" psql -X -v ON_ERROR_STOP=1 -U postgres -d postgres -At -c "$1"
@@ -212,6 +207,7 @@ done
 psql_in_service "$settings" > "$out/settings-after.tsv"
 cmp "$out/settings-before.tsv" "$out/settings-after.tsv"
 python3 "$binary_helper" verify
+python3 "$script_dir/postgres-native-artifacts.py" verify after
 sha256sum "$out/store.stdout" "$out/store.stderr" "$out/runtime.stdout" "$out/runtime.stderr" > "$out/log-sha256.txt"
 date -u +%Y-%m-%dT%H:%M:%SZ > "$out/pair-completed.txt"
 printf 'Both complete native suites passed their full harness guards.\n'

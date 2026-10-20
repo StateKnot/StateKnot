@@ -1,0 +1,1377 @@
+{
+  "schema": "stateknot-postgres-native-shared-build-ci-contract-v1",
+  "expected_jobs": 22,
+  "expected_checkouts": 20,
+  "original21_job_names": [
+    "Website",
+    "Quality",
+    "Core bounded fuzz",
+    "Release packages",
+    "PostgreSQL PITR (16)",
+    "PostgreSQL PITR (17)",
+    "MCP Conformance",
+    "A2A 1.0 Conformance",
+    "Test (ubuntu-latest)",
+    "Test (macos-latest)",
+    "Test (windows-latest)",
+    "PostgreSQL Native (16)",
+    "PostgreSQL Native (17)",
+    "PostgreSQL Process qualification (16)",
+    "PostgreSQL Process qualification (17)",
+    "PostgreSQL Protocol qualification (16)",
+    "PostgreSQL Protocol qualification (17)",
+    "PostgreSQL Host and identity qualification (16)",
+    "PostgreSQL Host and identity qualification (17)",
+    "PostgreSQL (16)",
+    "PostgreSQL (17)"
+  ],
+  "additional_job": "PostgreSQL Native build",
+  "jobs": {
+    "website": {
+      "names": [
+        "Website"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Node.js toolchain",
+        "Install website dependencies",
+        "Install Chromium",
+        "Install Caddy configuration validator",
+        "Check formatting",
+        "Check deployment script syntax",
+        "Check Astro and TypeScript",
+        "Verify published runtime schemas",
+        "Audit dependencies",
+        "Build website",
+        "Run browser and accessibility tests"
+      ]
+    },
+    "quality": {
+      "names": [
+        "Quality"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Check formatting",
+        "Compile public core contract examples",
+        "Verify sealed Core compatibility fixture catalog",
+        "Verify closed Core public type and schema inventory",
+        "Verify every public Core enum wire alternative",
+        "Verify typed durable Core execution wires",
+        "Verify typed Core value fixtures and reproducible property models",
+        "Verify optimized timestamp rejection with overflow checks",
+        "Run Clippy",
+        "Run tests",
+        "Verify executable documentation and compile-fail privacy contracts",
+        "Build documentation",
+        "Validate workspace metadata"
+      ]
+    },
+    "core-fuzz": {
+      "names": [
+        "Core bounded fuzz"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned fuzz toolchains and engine",
+        "Fetch frozen fuzz and product dependencies",
+        "Qualify all seeds and bounded ASan mutations",
+        "Retain qualification, coverage corpus and failure reproducers"
+      ]
+    },
+    "release-packages": {
+      "names": [
+        "Release packages"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Verify crates.io source lists and bootstrap archives"
+      ]
+    },
+    "postgres-pitr": {
+      "names": [
+        "PostgreSQL PITR (16)",
+        "PostgreSQL PITR (17)"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Record PITR qualification environment",
+        "Qualify physical base backup and named WAL recovery",
+        "Upload physical PITR evidence"
+      ]
+    },
+    "mcp-conformance": {
+      "names": [
+        "MCP Conformance"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Install pinned Node.js toolchain",
+        "Install pinned official MCP runner",
+        "Audit MCP runner dependencies",
+        "Run frozen MCP client requirement set",
+        "Run frozen MCP server requirement set"
+      ]
+    },
+    "a2a-conformance": {
+      "names": [
+        "A2A 1.0 Conformance"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Install pinned uv",
+        "Run frozen A2A 1.0 server profile",
+        "Upload A2A conformance evidence"
+      ]
+    },
+    "cross-platform": {
+      "names": [
+        "Test (ubuntu-latest)",
+        "Test (macos-latest)",
+        "Test (windows-latest)"
+      ],
+      "steps": [
+        "Enable long paths on Windows",
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Check and test workspace"
+      ]
+    },
+    "postgres-native": {
+      "names": [
+        "PostgreSQL Native (16)",
+        "PostgreSQL Native (17)"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Install pinned components before separate native builds",
+        "Assert fresh job has no compilation cache",
+        "Import and verify same-run Native binaries",
+        "Run complete Store and Graph Driver suites concurrently",
+        "Upload complete native-suite outputs"
+      ]
+    },
+    "postgres-process": {
+      "names": [
+        "PostgreSQL Process qualification (16)",
+        "PostgreSQL Process qualification (17)"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Install pinned components before separate native builds",
+        "Assert fresh job has no compilation cache",
+        "Record process-kill qualification environment",
+        "Qualify frame Return COMMIT loss and cold higher-fence recovery",
+        "Upload frame Return COMMIT-loss evidence",
+        "Qualify scoped Wait COMMIT loss and authorized cold-driver recovery",
+        "Upload scoped Wait COMMIT-loss evidence",
+        "Qualify committed failure-close process-kill boundaries",
+        "Qualify commit loss and expired-fence takeover",
+        "Qualify Join and deadline COMMIT loss",
+        "Qualify child-admission COMMIT loss",
+        "Upload child-admission COMMIT-loss evidence",
+        "Qualify child-cancellation delivery COMMIT loss",
+        "Upload child-cancellation COMMIT-loss evidence",
+        "Qualify child-settlement COMMIT loss",
+        "Upload child-settlement COMMIT-loss evidence",
+        "Qualify parent-finalization COMMIT loss",
+        "Upload parent-finalization COMMIT-loss evidence",
+        "Qualify child-join consumption COMMIT loss",
+        "Upload child-join consumption COMMIT-loss evidence",
+        "Qualify isolated child-join logical backup restore",
+        "Upload child-join logical restore evidence",
+        "Upload Join and deadline COMMIT-loss evidence",
+        "Qualify committed child-join process-loss boundaries",
+        "Qualify deadline cancel-and-join process-loss boundaries",
+        "Upload child-join process qualification evidence",
+        "Upload deadline cancel-and-join qualification evidence",
+        "Upload process-kill qualification evidence",
+        "Qualify trusted SQL role profile",
+        "Upload trusted SQL role evidence",
+        "Qualify owned Agent maintenance",
+        "Upload owned maintenance evidence"
+      ]
+    },
+    "postgres-protocol": {
+      "names": [
+        "PostgreSQL Protocol qualification (16)",
+        "PostgreSQL Protocol qualification (17)"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Install pinned components before separate native builds",
+        "Assert fresh job has no compilation cache",
+        "Record process-kill qualification environment",
+        "Qualify real model adapter, pricing, and exact-key authorization",
+        "Execute recoverable DeepSeek Agent example against PostgreSQL",
+        "Run durable protocol integration tests",
+        "Upload MCP call authorization evidence",
+        "Qualify mandatory MCP host-bound state ingress",
+        "Upload MCP host-bound state ingress evidence",
+        "Qualify authenticated MCP result and known-error reconciliation",
+        "Upload MCP outcome reconciliation evidence",
+        "Qualify MCP compute Worker isolation and recovery",
+        "Upload MCP compute Worker evidence",
+        "Run durable artifact storage integration tests"
+      ]
+    },
+    "postgres-host": {
+      "names": [
+        "PostgreSQL Host and identity qualification (16)",
+        "PostgreSQL Host and identity qualification (17)"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Install pinned components before separate native builds",
+        "Assert fresh job has no compilation cache",
+        "Record process-kill qualification environment",
+        "Qualify Agent HTTP ingress and lost-response recovery",
+        "Upload Agent HTTP evidence",
+        "Qualify owned durable scheduling Worker",
+        "Qualify exact-key in-process Agent execution and recovery",
+        "Upload owned Worker evidence",
+        "Qualify co-located Agent host",
+        "Upload co-located host evidence",
+        "Qualify protected host operations",
+        "Upload protected operations evidence",
+        "Record reduced host qualification metadata",
+        "Run reduced host capacity and recovery qualification",
+        "Upload reduced host qualification evidence",
+        "Qualify real TLS identity, rotation, revocation and ingress",
+        "Upload real identity qualification evidence"
+      ]
+    },
+    "postgres": {
+      "names": [
+        "PostgreSQL (16)",
+        "PostgreSQL (17)"
+      ],
+      "steps": [
+        "Require every PostgreSQL shard on both majors"
+      ]
+    },
+    "postgres-native-build": {
+      "names": [
+        "PostgreSQL Native build"
+      ],
+      "steps": [
+        "Check out repository",
+        "Install pinned Rust toolchain",
+        "Install pinned components before separate native builds",
+        "Verify Native artifact rejection controls",
+        "Build and export cold Native binaries",
+        "Upload same-run Native binaries",
+        "Retain producer compilation diagnostics"
+      ]
+    }
+  },
+  "full_inventory": {
+    "store": 272,
+    "runtime": 216
+  },
+  "native_majors": [
+    16,
+    17
+  ],
+  "native_job_timeout_minutes": 30,
+  "native_pair_owner_unchanged": true,
+  "business_ready_timeout_seconds": 90,
+  "outer_observer_cap_seconds": 1800,
+  "profile": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true"
+  },
+  "original_step_mapping_sha256": "25db0e3a6695d4b83c2484c0395254acc6d850a302859660202ebfdf46df34a1",
+  "additional_consumer_steps": [
+    "Import and verify same-run Native binaries"
+  ],
+  "same_run_producer_artifact_name": "postgres-native-build-${{ github.run_id }}-${{ github.run_attempt }}",
+  "producer_diagnostics_artifact_name": "postgres-native-build-diagnostics-${{ github.run_id }}-${{ github.run_attempt }}",
+  "consumer_import_output": "postgres-native-parallel/import/",
+  "v11_21_job_analyzer_must_reject_this_successor": true,
+  "qualification_awarded": false,
+  "historical_original_60_step_mapping": [
+    {
+      "source_index": 1,
+      "name": "Check out repository",
+      "source_step_sha256": "dd2bce9d202260db44db02e6a20405f8a9017bc62acb86803a576f0107d43f11",
+      "shard": "native",
+      "candidate_index": 0,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 2,
+      "name": "Install pinned Rust toolchain",
+      "source_step_sha256": "ca0d34da3c267ce823098336bbaebe692ece9d76ac4814e5a85e1a48d76211ab",
+      "shard": "native",
+      "candidate_index": 1,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 3,
+      "name": "Install pinned components before separate native builds",
+      "source_step_sha256": "85821e1f8e147fd6bd46623de58ce5b85904524301f5bc7a196040bedaf2f69f",
+      "shard": "native",
+      "candidate_index": 2,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 4,
+      "name": "Run complete Store and Graph Driver suites concurrently",
+      "source_step_sha256": "eaaf745747cee8e74f144b46c915c87707700f6856b1085964c0c4a790f20608",
+      "shard": "native",
+      "candidate_index": 4,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 5,
+      "name": "Upload complete native-suite outputs",
+      "source_step_sha256": "e9c144f33ed5091a58b34bb167ab64478ab64185ce384925ea784aa73deff891",
+      "shard": "native",
+      "candidate_index": 5,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 6,
+      "name": "Qualify real model adapter, pricing, and exact-key authorization",
+      "source_step_sha256": "cfbc9425e8a5abfee44413c37bfa6acec78f159439fda9eccfc2af05306a52a2",
+      "shard": "protocol",
+      "candidate_index": 5,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 7,
+      "name": "Execute recoverable DeepSeek Agent example against PostgreSQL",
+      "source_step_sha256": "4c45540f88a7b2af3b3bd2aab246c2b3a36f421680f95608c705d834bd0da872",
+      "shard": "protocol",
+      "candidate_index": 6,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 8,
+      "name": "Record process-kill qualification environment",
+      "source_step_sha256": "b32477cbbc3393594cbf1fde48a7dec5163b948346b53ea216f7f23be1c6f8bf",
+      "shard": "process",
+      "candidate_index": 4,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 9,
+      "name": "Qualify frame Return COMMIT loss and cold higher-fence recovery",
+      "source_step_sha256": "3861482af480b6deb3bd26cc142217b5a30b29acea97175397ddd494e033b926",
+      "shard": "process",
+      "candidate_index": 5,
+      "equivalence": "Runtime210 inventory/filtered-count update only"
+    },
+    {
+      "source_index": 10,
+      "name": "Upload frame Return COMMIT-loss evidence",
+      "source_step_sha256": "1852e24f877944af441d4807d2b88b4a3ab13d70ab980be22c25a0eb971708bc",
+      "shard": "process",
+      "candidate_index": 6,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 11,
+      "name": "Qualify scoped Wait COMMIT loss and authorized cold-driver recovery",
+      "source_step_sha256": "e2500133d3d64f94fe1d5904a0c822b870ba293f441ff5a0149b4bca61afa842",
+      "shard": "process",
+      "candidate_index": 7,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 12,
+      "name": "Upload scoped Wait COMMIT-loss evidence",
+      "source_step_sha256": "0532ac222d9e30d82f535cbb52e91c68cb2645ce3c4ad6287a8ffa3163980fef",
+      "shard": "process",
+      "candidate_index": 8,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 13,
+      "name": "Qualify committed failure-close process-kill boundaries",
+      "source_step_sha256": "2d3a43d08e2d4b50a471d608b4c34aaa0b2b5a984fa224c66d329abd4d1529ab",
+      "shard": "process",
+      "candidate_index": 9,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 14,
+      "name": "Qualify commit loss and expired-fence takeover",
+      "source_step_sha256": "8b70978f29764ab48e002753a2a8ed582d2f8b0d9d9a91ef5d34a4e30dcf9030",
+      "shard": "process",
+      "candidate_index": 10,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 15,
+      "name": "Qualify Join and deadline COMMIT loss",
+      "source_step_sha256": "261f3587fb64b3f19bd97cc29a991b59b95d0b08c05b105c99ff7dc6bb53f297",
+      "shard": "process",
+      "candidate_index": 11,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 16,
+      "name": "Qualify child-admission COMMIT loss",
+      "source_step_sha256": "8525ef98f046d6ce862692d53d06f7e0de6ad30c86cf92f11ea1569b9d8d8534",
+      "shard": "process",
+      "candidate_index": 12,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 17,
+      "name": "Upload child-admission COMMIT-loss evidence",
+      "source_step_sha256": "da04d3d64fc5fb1260a0ae2477169b5e65d29657874b95ca985bf3add53b0753",
+      "shard": "process",
+      "candidate_index": 13,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 18,
+      "name": "Qualify child-cancellation delivery COMMIT loss",
+      "source_step_sha256": "70addbb771cd1da99bb946a4ca6e8f57ec8988c3d21153489462dec7605e93f2",
+      "shard": "process",
+      "candidate_index": 14,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 19,
+      "name": "Upload child-cancellation COMMIT-loss evidence",
+      "source_step_sha256": "24f9303e61835fbee524ba0e6424d6d61a8e41871a70fc69c372753d2e9e84ad",
+      "shard": "process",
+      "candidate_index": 15,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 20,
+      "name": "Qualify child-settlement COMMIT loss",
+      "source_step_sha256": "853285e81cc8f3deb5ea027aa0a9f08d5028a33a592d54bcf6e786f77eee3d8c",
+      "shard": "process",
+      "candidate_index": 16,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 21,
+      "name": "Upload child-settlement COMMIT-loss evidence",
+      "source_step_sha256": "3c3d90478dee1e2e50fbc1aba4114bb4f557369eeae17e8ab35141fae5678bd8",
+      "shard": "process",
+      "candidate_index": 17,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 22,
+      "name": "Qualify parent-finalization COMMIT loss",
+      "source_step_sha256": "8a5e42b52df9b9049f3f260f42c73641150135253ed24216f76d084ae44c07d3",
+      "shard": "process",
+      "candidate_index": 18,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 23,
+      "name": "Upload parent-finalization COMMIT-loss evidence",
+      "source_step_sha256": "5dfdca84a391a36180286cc012f4e1ac9cd8ff2a41d5393886706e538a3fa299",
+      "shard": "process",
+      "candidate_index": 19,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 24,
+      "name": "Qualify child-join consumption COMMIT loss",
+      "source_step_sha256": "ef9839a0f9547703d2c771db78819de6a48d05b26453ab3a0ea16a5c781a3915",
+      "shard": "process",
+      "candidate_index": 20,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 25,
+      "name": "Upload child-join consumption COMMIT-loss evidence",
+      "source_step_sha256": "096d7d6eef2d1dcf5c26c502d7b156e3b28e7160315e98bcc0f9d71968ecaf40",
+      "shard": "process",
+      "candidate_index": 21,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 26,
+      "name": "Qualify isolated child-join logical backup restore",
+      "source_step_sha256": "16a5cf71355c88693329f776302eefc8775b6df39998b73ca17a17ef96fd5b89",
+      "shard": "process",
+      "candidate_index": 22,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 27,
+      "name": "Upload child-join logical restore evidence",
+      "source_step_sha256": "6c04517d8c40b50f5f9a40d8ea62bd7483bcd25df8f86dd98972c45ede9daa8e",
+      "shard": "process",
+      "candidate_index": 23,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 28,
+      "name": "Upload Join and deadline COMMIT-loss evidence",
+      "source_step_sha256": "714793ddbda18b9aef3db9af166c0c504d5c8fc4dce0473ac54f5267bf98f4ae",
+      "shard": "process",
+      "candidate_index": 24,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 29,
+      "name": "Qualify committed child-join process-loss boundaries",
+      "source_step_sha256": "e5a9024753318c18537032f143bb708ce039eb2d9418267b7eb789089c9886ee",
+      "shard": "process",
+      "candidate_index": 25,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 30,
+      "name": "Qualify deadline cancel-and-join process-loss boundaries",
+      "source_step_sha256": "b7c7a89b989ea5f8ae56de0db4c738b223c2107e1c4cb92cfed225805f47deeb",
+      "shard": "process",
+      "candidate_index": 26,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 31,
+      "name": "Upload child-join process qualification evidence",
+      "source_step_sha256": "0815cd44d98d28d559f3adb261061e750fc2ae71d07f31926912621353441de2",
+      "shard": "process",
+      "candidate_index": 27,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 32,
+      "name": "Upload deadline cancel-and-join qualification evidence",
+      "source_step_sha256": "d0765dfaafb20cbbe2a49ae000a8f61aff737e0d303c243c4700e5f400d2f2af",
+      "shard": "process",
+      "candidate_index": 28,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 33,
+      "name": "Upload process-kill qualification evidence",
+      "source_step_sha256": "2dbf2abbe65ade1ad6413748302045f50f195a6d56d931fd272a2f69f9ad3f09",
+      "shard": "process",
+      "candidate_index": 29,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 34,
+      "name": "Run durable protocol integration tests",
+      "source_step_sha256": "7063908c4e1c0b5fe0df5d93bbb524e672a10ccfb74583fb6c6e88e1f56f272c",
+      "shard": "protocol",
+      "candidate_index": 7,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 35,
+      "name": "Upload MCP call authorization evidence",
+      "source_step_sha256": "9846218746a67c1879717e25b26ce16dfbf3a988a36d7d5367078cded3902318",
+      "shard": "protocol",
+      "candidate_index": 8,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 36,
+      "name": "Qualify mandatory MCP host-bound state ingress",
+      "source_step_sha256": "366287b278bb82b39de09a3fccbfad7960a7ab373d10a4c250e1fe98d03fc208",
+      "shard": "protocol",
+      "candidate_index": 9,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 37,
+      "name": "Upload MCP host-bound state ingress evidence",
+      "source_step_sha256": "5c56551f4b82cb2f74f1ca77f2731f2ba4eab6cef87ffee16e2ed944e8b79bcb",
+      "shard": "protocol",
+      "candidate_index": 10,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 38,
+      "name": "Qualify authenticated MCP result and known-error reconciliation",
+      "source_step_sha256": "c9de55b662a3cc0cb56cc25ffb3eb7fdf1378bde5f0589099aa8438fe5108e9c",
+      "shard": "protocol",
+      "candidate_index": 11,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 39,
+      "name": "Upload MCP outcome reconciliation evidence",
+      "source_step_sha256": "da8ead519da07f83fdabf9f1879efd09678d0efeb09dcaa333010882f69d03e9",
+      "shard": "protocol",
+      "candidate_index": 12,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 40,
+      "name": "Qualify trusted SQL role profile",
+      "source_step_sha256": "a8b10bd71fb07cfded53162c97f0c49734ae06088ddb2e14e4dc1c6a6d24744a",
+      "shard": "process",
+      "candidate_index": 30,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 41,
+      "name": "Upload trusted SQL role evidence",
+      "source_step_sha256": "3b71368c0c848594f53a65510261078ab35490cb999d1aea023e074ea310fd5b",
+      "shard": "process",
+      "candidate_index": 31,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 42,
+      "name": "Qualify MCP compute Worker isolation and recovery",
+      "source_step_sha256": "d3fbe5c1f8d51ba5f12994960faaf95fe1fb1c01643eb0ac8d3cb1f1d7f33868",
+      "shard": "protocol",
+      "candidate_index": 13,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 43,
+      "name": "Upload MCP compute Worker evidence",
+      "source_step_sha256": "239ae9a4431a21499095e461210cc2d6bce7d3ad3351856915cd3a755a644991",
+      "shard": "protocol",
+      "candidate_index": 14,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 44,
+      "name": "Qualify Agent HTTP ingress and lost-response recovery",
+      "source_step_sha256": "dd757531640386907d8e184aad0a57dc35b1be3841561f06890a3d1afbf16f09",
+      "shard": "host",
+      "candidate_index": 5,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 45,
+      "name": "Upload Agent HTTP evidence",
+      "source_step_sha256": "4c5fb1438394a91c400acf17fc70d0fd15fdd5557aaa1f8191d1f526d12dbdf6",
+      "shard": "host",
+      "candidate_index": 6,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 46,
+      "name": "Qualify owned durable scheduling Worker",
+      "source_step_sha256": "855aab433328f956d11548bc3f287c340950c907b8bf56982ce6ac3051eb580b",
+      "shard": "host",
+      "candidate_index": 7,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 47,
+      "name": "Qualify exact-key in-process Agent execution and recovery",
+      "source_step_sha256": "64dea3fbbc1a33872e896b3fa0999e261ba57fc208191cac0d0f9dddbafa54be",
+      "shard": "host",
+      "candidate_index": 8,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 48,
+      "name": "Upload owned Worker evidence",
+      "source_step_sha256": "979e5b1f35d30c255a8297f69b26cace046e4416d5cbd4150fc5b22924c6ef31",
+      "shard": "host",
+      "candidate_index": 9,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 49,
+      "name": "Qualify co-located Agent host",
+      "source_step_sha256": "747fcbb1aa33c4e57a72ce33de58df6bd3ec4a987f5be7ed2e27c17b21097baa",
+      "shard": "host",
+      "candidate_index": 10,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 50,
+      "name": "Upload co-located host evidence",
+      "source_step_sha256": "66815e6dee0d29b2e1b9a7622a9ecf9a6bf84b55587710076d7aa1dda14be113",
+      "shard": "host",
+      "candidate_index": 11,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 51,
+      "name": "Qualify protected host operations",
+      "source_step_sha256": "3c37b9ff40625f71a8d6e8da9149e3a6d603ad3669673ab11b245e8b848508fa",
+      "shard": "host",
+      "candidate_index": 12,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 52,
+      "name": "Upload protected operations evidence",
+      "source_step_sha256": "5a5cdb9c6109d9bc7ebbbfcaecff5fd57bfb831063c1563df2edfcb877c76efb",
+      "shard": "host",
+      "candidate_index": 13,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 53,
+      "name": "Record reduced host qualification metadata",
+      "source_step_sha256": "3903291c805e300ed2709f71c36b6918cf8d0dfe42ead877d704f7398c42405e",
+      "shard": "host",
+      "candidate_index": 14,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 54,
+      "name": "Run reduced host capacity and recovery qualification",
+      "source_step_sha256": "f566658334f0fa26478d3015d93b5c13f3f858a2123ceed69fec60c237ce2a0f",
+      "shard": "host",
+      "candidate_index": 15,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 55,
+      "name": "Upload reduced host qualification evidence",
+      "source_step_sha256": "8cab078a05c3df3384d3b477458a2eb9db5c744525e4ffb0c1c56224575ba272",
+      "shard": "host",
+      "candidate_index": 16,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 56,
+      "name": "Qualify owned Agent maintenance",
+      "source_step_sha256": "7160109b6ec7392ad6504f4ffb409d992fe7fb21eeb56194b2197d9fc5cb8c23",
+      "shard": "process",
+      "candidate_index": 32,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 57,
+      "name": "Upload owned maintenance evidence",
+      "source_step_sha256": "07d331a1b8a0fc41c5f85b9200d4d10e421da9068657415dac17fb3203234f1a",
+      "shard": "process",
+      "candidate_index": 33,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 58,
+      "name": "Run durable artifact storage integration tests",
+      "source_step_sha256": "48634e7070d405637b32a30d5670f08f983594ed0d6ddd1edcc65cc7b79c2f39",
+      "shard": "protocol",
+      "candidate_index": 15,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 59,
+      "name": "Qualify real TLS identity, rotation, revocation and ingress",
+      "source_step_sha256": "3cf38ee891ba8cded8f0dd641b2cce43c3151ab43257fa62c1380a18aa7bb719",
+      "shard": "host",
+      "candidate_index": 17,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 60,
+      "name": "Upload real identity qualification evidence",
+      "source_step_sha256": "71d2943baab385d13f4082b344d476e2de16d311542dd96c08a9e28c9d716852",
+      "shard": "host",
+      "candidate_index": 18,
+      "equivalence": "exact original step object and run body"
+    }
+  ],
+  "current_60_step_mapping": [
+    {
+      "source_index": 1,
+      "name": "Check out repository",
+      "source_step_sha256": "dd2bce9d202260db44db02e6a20405f8a9017bc62acb86803a576f0107d43f11",
+      "shard": "native",
+      "candidate_index": 0,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 2,
+      "name": "Install pinned Rust toolchain",
+      "source_step_sha256": "ca0d34da3c267ce823098336bbaebe692ece9d76ac4814e5a85e1a48d76211ab",
+      "shard": "native",
+      "candidate_index": 1,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 3,
+      "name": "Install pinned components before separate native builds",
+      "source_step_sha256": "85821e1f8e147fd6bd46623de58ce5b85904524301f5bc7a196040bedaf2f69f",
+      "shard": "native",
+      "candidate_index": 2,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 4,
+      "name": "Run complete Store and Graph Driver suites concurrently",
+      "source_step_sha256": "eaaf745747cee8e74f144b46c915c87707700f6856b1085964c0c4a790f20608",
+      "shard": "native",
+      "candidate_index": 5,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 5,
+      "name": "Upload complete native-suite outputs",
+      "source_step_sha256": "e9c144f33ed5091a58b34bb167ab64478ab64185ce384925ea784aa73deff891",
+      "shard": "native",
+      "candidate_index": 6,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 6,
+      "name": "Qualify real model adapter, pricing, and exact-key authorization",
+      "source_step_sha256": "cfbc9425e8a5abfee44413c37bfa6acec78f159439fda9eccfc2af05306a52a2",
+      "shard": "protocol",
+      "candidate_index": 5,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 7,
+      "name": "Execute recoverable DeepSeek Agent example against PostgreSQL",
+      "source_step_sha256": "4c45540f88a7b2af3b3bd2aab246c2b3a36f421680f95608c705d834bd0da872",
+      "shard": "protocol",
+      "candidate_index": 6,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 8,
+      "name": "Record process-kill qualification environment",
+      "source_step_sha256": "b32477cbbc3393594cbf1fde48a7dec5163b948346b53ea216f7f23be1c6f8bf",
+      "shard": "process",
+      "candidate_index": 4,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 9,
+      "name": "Qualify frame Return COMMIT loss and cold higher-fence recovery",
+      "source_step_sha256": "3861482af480b6deb3bd26cc142217b5a30b29acea97175397ddd494e033b926",
+      "shard": "process",
+      "candidate_index": 5,
+      "equivalence": "Runtime210 inventory/filtered-count update only"
+    },
+    {
+      "source_index": 10,
+      "name": "Upload frame Return COMMIT-loss evidence",
+      "source_step_sha256": "1852e24f877944af441d4807d2b88b4a3ab13d70ab980be22c25a0eb971708bc",
+      "shard": "process",
+      "candidate_index": 6,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 11,
+      "name": "Qualify scoped Wait COMMIT loss and authorized cold-driver recovery",
+      "source_step_sha256": "e2500133d3d64f94fe1d5904a0c822b870ba293f441ff5a0149b4bca61afa842",
+      "shard": "process",
+      "candidate_index": 7,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 12,
+      "name": "Upload scoped Wait COMMIT-loss evidence",
+      "source_step_sha256": "0532ac222d9e30d82f535cbb52e91c68cb2645ce3c4ad6287a8ffa3163980fef",
+      "shard": "process",
+      "candidate_index": 8,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 13,
+      "name": "Qualify committed failure-close process-kill boundaries",
+      "source_step_sha256": "2d3a43d08e2d4b50a471d608b4c34aaa0b2b5a984fa224c66d329abd4d1529ab",
+      "shard": "process",
+      "candidate_index": 9,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 14,
+      "name": "Qualify commit loss and expired-fence takeover",
+      "source_step_sha256": "8b70978f29764ab48e002753a2a8ed582d2f8b0d9d9a91ef5d34a4e30dcf9030",
+      "shard": "process",
+      "candidate_index": 10,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 15,
+      "name": "Qualify Join and deadline COMMIT loss",
+      "source_step_sha256": "261f3587fb64b3f19bd97cc29a991b59b95d0b08c05b105c99ff7dc6bb53f297",
+      "shard": "process",
+      "candidate_index": 11,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 16,
+      "name": "Qualify child-admission COMMIT loss",
+      "source_step_sha256": "8525ef98f046d6ce862692d53d06f7e0de6ad30c86cf92f11ea1569b9d8d8534",
+      "shard": "process",
+      "candidate_index": 12,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 17,
+      "name": "Upload child-admission COMMIT-loss evidence",
+      "source_step_sha256": "da04d3d64fc5fb1260a0ae2477169b5e65d29657874b95ca985bf3add53b0753",
+      "shard": "process",
+      "candidate_index": 13,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 18,
+      "name": "Qualify child-cancellation delivery COMMIT loss",
+      "source_step_sha256": "70addbb771cd1da99bb946a4ca6e8f57ec8988c3d21153489462dec7605e93f2",
+      "shard": "process",
+      "candidate_index": 14,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 19,
+      "name": "Upload child-cancellation COMMIT-loss evidence",
+      "source_step_sha256": "24f9303e61835fbee524ba0e6424d6d61a8e41871a70fc69c372753d2e9e84ad",
+      "shard": "process",
+      "candidate_index": 15,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 20,
+      "name": "Qualify child-settlement COMMIT loss",
+      "source_step_sha256": "853285e81cc8f3deb5ea027aa0a9f08d5028a33a592d54bcf6e786f77eee3d8c",
+      "shard": "process",
+      "candidate_index": 16,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 21,
+      "name": "Upload child-settlement COMMIT-loss evidence",
+      "source_step_sha256": "3c3d90478dee1e2e50fbc1aba4114bb4f557369eeae17e8ab35141fae5678bd8",
+      "shard": "process",
+      "candidate_index": 17,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 22,
+      "name": "Qualify parent-finalization COMMIT loss",
+      "source_step_sha256": "8a5e42b52df9b9049f3f260f42c73641150135253ed24216f76d084ae44c07d3",
+      "shard": "process",
+      "candidate_index": 18,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 23,
+      "name": "Upload parent-finalization COMMIT-loss evidence",
+      "source_step_sha256": "5dfdca84a391a36180286cc012f4e1ac9cd8ff2a41d5393886706e538a3fa299",
+      "shard": "process",
+      "candidate_index": 19,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 24,
+      "name": "Qualify child-join consumption COMMIT loss",
+      "source_step_sha256": "ef9839a0f9547703d2c771db78819de6a48d05b26453ab3a0ea16a5c781a3915",
+      "shard": "process",
+      "candidate_index": 20,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 25,
+      "name": "Upload child-join consumption COMMIT-loss evidence",
+      "source_step_sha256": "096d7d6eef2d1dcf5c26c502d7b156e3b28e7160315e98bcc0f9d71968ecaf40",
+      "shard": "process",
+      "candidate_index": 21,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 26,
+      "name": "Qualify isolated child-join logical backup restore",
+      "source_step_sha256": "16a5cf71355c88693329f776302eefc8775b6df39998b73ca17a17ef96fd5b89",
+      "shard": "process",
+      "candidate_index": 22,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 27,
+      "name": "Upload child-join logical restore evidence",
+      "source_step_sha256": "6c04517d8c40b50f5f9a40d8ea62bd7483bcd25df8f86dd98972c45ede9daa8e",
+      "shard": "process",
+      "candidate_index": 23,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 28,
+      "name": "Upload Join and deadline COMMIT-loss evidence",
+      "source_step_sha256": "714793ddbda18b9aef3db9af166c0c504d5c8fc4dce0473ac54f5267bf98f4ae",
+      "shard": "process",
+      "candidate_index": 24,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 29,
+      "name": "Qualify committed child-join process-loss boundaries",
+      "source_step_sha256": "e5a9024753318c18537032f143bb708ce039eb2d9418267b7eb789089c9886ee",
+      "shard": "process",
+      "candidate_index": 25,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 30,
+      "name": "Qualify deadline cancel-and-join process-loss boundaries",
+      "source_step_sha256": "b7c7a89b989ea5f8ae56de0db4c738b223c2107e1c4cb92cfed225805f47deeb",
+      "shard": "process",
+      "candidate_index": 26,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 31,
+      "name": "Upload child-join process qualification evidence",
+      "source_step_sha256": "0815cd44d98d28d559f3adb261061e750fc2ae71d07f31926912621353441de2",
+      "shard": "process",
+      "candidate_index": 27,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 32,
+      "name": "Upload deadline cancel-and-join qualification evidence",
+      "source_step_sha256": "d0765dfaafb20cbbe2a49ae000a8f61aff737e0d303c243c4700e5f400d2f2af",
+      "shard": "process",
+      "candidate_index": 28,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 33,
+      "name": "Upload process-kill qualification evidence",
+      "source_step_sha256": "2dbf2abbe65ade1ad6413748302045f50f195a6d56d931fd272a2f69f9ad3f09",
+      "shard": "process",
+      "candidate_index": 29,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 34,
+      "name": "Run durable protocol integration tests",
+      "source_step_sha256": "7063908c4e1c0b5fe0df5d93bbb524e672a10ccfb74583fb6c6e88e1f56f272c",
+      "shard": "protocol",
+      "candidate_index": 7,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 35,
+      "name": "Upload MCP call authorization evidence",
+      "source_step_sha256": "9846218746a67c1879717e25b26ce16dfbf3a988a36d7d5367078cded3902318",
+      "shard": "protocol",
+      "candidate_index": 8,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 36,
+      "name": "Qualify mandatory MCP host-bound state ingress",
+      "source_step_sha256": "366287b278bb82b39de09a3fccbfad7960a7ab373d10a4c250e1fe98d03fc208",
+      "shard": "protocol",
+      "candidate_index": 9,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 37,
+      "name": "Upload MCP host-bound state ingress evidence",
+      "source_step_sha256": "5c56551f4b82cb2f74f1ca77f2731f2ba4eab6cef87ffee16e2ed944e8b79bcb",
+      "shard": "protocol",
+      "candidate_index": 10,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 38,
+      "name": "Qualify authenticated MCP result and known-error reconciliation",
+      "source_step_sha256": "c9de55b662a3cc0cb56cc25ffb3eb7fdf1378bde5f0589099aa8438fe5108e9c",
+      "shard": "protocol",
+      "candidate_index": 11,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 39,
+      "name": "Upload MCP outcome reconciliation evidence",
+      "source_step_sha256": "da8ead519da07f83fdabf9f1879efd09678d0efeb09dcaa333010882f69d03e9",
+      "shard": "protocol",
+      "candidate_index": 12,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 40,
+      "name": "Qualify trusted SQL role profile",
+      "source_step_sha256": "a8b10bd71fb07cfded53162c97f0c49734ae06088ddb2e14e4dc1c6a6d24744a",
+      "shard": "process",
+      "candidate_index": 30,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 41,
+      "name": "Upload trusted SQL role evidence",
+      "source_step_sha256": "3b71368c0c848594f53a65510261078ab35490cb999d1aea023e074ea310fd5b",
+      "shard": "process",
+      "candidate_index": 31,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 42,
+      "name": "Qualify MCP compute Worker isolation and recovery",
+      "source_step_sha256": "d3fbe5c1f8d51ba5f12994960faaf95fe1fb1c01643eb0ac8d3cb1f1d7f33868",
+      "shard": "protocol",
+      "candidate_index": 13,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 43,
+      "name": "Upload MCP compute Worker evidence",
+      "source_step_sha256": "239ae9a4431a21499095e461210cc2d6bce7d3ad3351856915cd3a755a644991",
+      "shard": "protocol",
+      "candidate_index": 14,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 44,
+      "name": "Qualify Agent HTTP ingress and lost-response recovery",
+      "source_step_sha256": "dd757531640386907d8e184aad0a57dc35b1be3841561f06890a3d1afbf16f09",
+      "shard": "host",
+      "candidate_index": 5,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 45,
+      "name": "Upload Agent HTTP evidence",
+      "source_step_sha256": "4c5fb1438394a91c400acf17fc70d0fd15fdd5557aaa1f8191d1f526d12dbdf6",
+      "shard": "host",
+      "candidate_index": 6,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 46,
+      "name": "Qualify owned durable scheduling Worker",
+      "source_step_sha256": "855aab433328f956d11548bc3f287c340950c907b8bf56982ce6ac3051eb580b",
+      "shard": "host",
+      "candidate_index": 7,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 47,
+      "name": "Qualify exact-key in-process Agent execution and recovery",
+      "source_step_sha256": "64dea3fbbc1a33872e896b3fa0999e261ba57fc208191cac0d0f9dddbafa54be",
+      "shard": "host",
+      "candidate_index": 8,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 48,
+      "name": "Upload owned Worker evidence",
+      "source_step_sha256": "979e5b1f35d30c255a8297f69b26cace046e4416d5cbd4150fc5b22924c6ef31",
+      "shard": "host",
+      "candidate_index": 9,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 49,
+      "name": "Qualify co-located Agent host",
+      "source_step_sha256": "747fcbb1aa33c4e57a72ce33de58df6bd3ec4a987f5be7ed2e27c17b21097baa",
+      "shard": "host",
+      "candidate_index": 10,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 50,
+      "name": "Upload co-located host evidence",
+      "source_step_sha256": "66815e6dee0d29b2e1b9a7622a9ecf9a6bf84b55587710076d7aa1dda14be113",
+      "shard": "host",
+      "candidate_index": 11,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 51,
+      "name": "Qualify protected host operations",
+      "source_step_sha256": "3c37b9ff40625f71a8d6e8da9149e3a6d603ad3669673ab11b245e8b848508fa",
+      "shard": "host",
+      "candidate_index": 12,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 52,
+      "name": "Upload protected operations evidence",
+      "source_step_sha256": "5a5cdb9c6109d9bc7ebbbfcaecff5fd57bfb831063c1563df2edfcb877c76efb",
+      "shard": "host",
+      "candidate_index": 13,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 53,
+      "name": "Record reduced host qualification metadata",
+      "source_step_sha256": "3903291c805e300ed2709f71c36b6918cf8d0dfe42ead877d704f7398c42405e",
+      "shard": "host",
+      "candidate_index": 14,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 54,
+      "name": "Run reduced host capacity and recovery qualification",
+      "source_step_sha256": "f566658334f0fa26478d3015d93b5c13f3f858a2123ceed69fec60c237ce2a0f",
+      "shard": "host",
+      "candidate_index": 15,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 55,
+      "name": "Upload reduced host qualification evidence",
+      "source_step_sha256": "8cab078a05c3df3384d3b477458a2eb9db5c744525e4ffb0c1c56224575ba272",
+      "shard": "host",
+      "candidate_index": 16,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 56,
+      "name": "Qualify owned Agent maintenance",
+      "source_step_sha256": "7160109b6ec7392ad6504f4ffb409d992fe7fb21eeb56194b2197d9fc5cb8c23",
+      "shard": "process",
+      "candidate_index": 32,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 57,
+      "name": "Upload owned maintenance evidence",
+      "source_step_sha256": "07d331a1b8a0fc41c5f85b9200d4d10e421da9068657415dac17fb3203234f1a",
+      "shard": "process",
+      "candidate_index": 33,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 58,
+      "name": "Run durable artifact storage integration tests",
+      "source_step_sha256": "48634e7070d405637b32a30d5670f08f983594ed0d6ddd1edcc65cc7b79c2f39",
+      "shard": "protocol",
+      "candidate_index": 15,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 59,
+      "name": "Qualify real TLS identity, rotation, revocation and ingress",
+      "source_step_sha256": "3cf38ee891ba8cded8f0dd641b2cce43c3151ab43257fa62c1380a18aa7bb719",
+      "shard": "host",
+      "candidate_index": 17,
+      "equivalence": "exact original step object and run body"
+    },
+    {
+      "source_index": 60,
+      "name": "Upload real identity qualification evidence",
+      "source_step_sha256": "71d2943baab385d13f4082b344d476e2de16d311542dd96c08a9e28c9d716852",
+      "shard": "host",
+      "candidate_index": 18,
+      "equivalence": "exact original step object and run body"
+    }
+  ],
+  "current_candidate_workflow_sha256": "722d1bf3dfb3369ca8b0d9dac99491e8b6f1dda34a12d50793b3cb57417aa68c",
+  "explicit_extra_steps": [
+    {
+      "shard": "native",
+      "candidate_index": 3,
+      "kind": "cold-target-assertion"
+    },
+    {
+      "shard": "process",
+      "candidate_index": 0,
+      "kind": "independent-job-bootstrap",
+      "source_index": 1
+    },
+    {
+      "shard": "process",
+      "candidate_index": 1,
+      "kind": "independent-job-bootstrap",
+      "source_index": 2
+    },
+    {
+      "shard": "process",
+      "candidate_index": 2,
+      "kind": "independent-job-bootstrap",
+      "source_index": 3
+    },
+    {
+      "shard": "process",
+      "candidate_index": 3,
+      "kind": "cold-target-assertion"
+    },
+    {
+      "shard": "protocol",
+      "candidate_index": 0,
+      "kind": "independent-job-bootstrap",
+      "source_index": 1
+    },
+    {
+      "shard": "protocol",
+      "candidate_index": 1,
+      "kind": "independent-job-bootstrap",
+      "source_index": 2
+    },
+    {
+      "shard": "protocol",
+      "candidate_index": 2,
+      "kind": "independent-job-bootstrap",
+      "source_index": 3
+    },
+    {
+      "shard": "protocol",
+      "candidate_index": 3,
+      "kind": "cold-target-assertion"
+    },
+    {
+      "shard": "protocol",
+      "candidate_index": 4,
+      "kind": "actual-shard-environment-metadata",
+      "source_index": 8
+    },
+    {
+      "shard": "host",
+      "candidate_index": 0,
+      "kind": "independent-job-bootstrap",
+      "source_index": 1
+    },
+    {
+      "shard": "host",
+      "candidate_index": 1,
+      "kind": "independent-job-bootstrap",
+      "source_index": 2
+    },
+    {
+      "shard": "host",
+      "candidate_index": 2,
+      "kind": "independent-job-bootstrap",
+      "source_index": 3
+    },
+    {
+      "shard": "host",
+      "candidate_index": 3,
+      "kind": "cold-target-assertion"
+    },
+    {
+      "shard": "host",
+      "candidate_index": 4,
+      "kind": "actual-shard-environment-metadata",
+      "source_index": 8
+    },
+    {
+      "shard": "native",
+      "candidate_index": 4,
+      "kind": "same-run-producer-import-actual-ABI-and-full-inventory"
+    }
+  ],
+  "producer_artifact_rejection_unit_cases": 6,
+  "producer_command_lifecycle_unit_cases_expected": 6,
+  "producer_total_unit_cases_expected": 12,
+  "actual_new_unit_test_count": null,
+  "producer_diagnostics_paths": [
+    "postgres-native-parallel/",
+    "postgres-native-artifact/"
+  ],
+  "live_command_streams_not_uploaded": "postgres-native-live/",
+  "stable_partial_prefix_bytes": 1048576,
+  "producer_success_export_marker": "STATEKNOT_NATIVE_EXPORT_V1=",
+  "producer_success_export_receipt": "postgres-native-parallel/export.receipt.json",
+  "producer_export_receipt_outside_sealed_bundle": true
+}
