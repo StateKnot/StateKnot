@@ -202,8 +202,8 @@ done
 # Full original test harnesses must actually finish; suite exit alone is insufficient.
 [[ $(grep -Fxc 'running 275 tests' "$out/store.stdout") == 1 ]]
 [[ $(grep -Ec '^test result: ok[.] 275 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' "$out/store.stdout") == 1 ]]
-[[ $(grep -Fxc 'running 227 tests' "$out/runtime.stdout") == 1 ]]
-[[ $(grep -Ec '^test result: ok[.] 227 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' "$out/runtime.stdout") == 1 ]]
+[[ $(grep -Fxc 'running 228 tests' "$out/runtime.stdout") == 1 ]]
+[[ $(grep -Ec '^test result: ok[.] 228 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' "$out/runtime.stdout") == 1 ]]
 psql_in_service "$settings" > "$out/settings-after.tsv"
 cmp "$out/settings-before.tsv" "$out/settings-after.tsv"
 python3 "$binary_helper" verify

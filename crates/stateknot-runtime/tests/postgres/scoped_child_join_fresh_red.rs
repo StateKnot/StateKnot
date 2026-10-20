@@ -129,12 +129,31 @@ struct FreshDirectEvidence {
     calls: Arc<AtomicUsize>,
 }
 impl FreshDirectEvidence {
-    #[allow(clippy::too_many_lines)]
     fn usage_at<'a>(
         &'a self,
         tenant: &'a TenantId,
         run: RunId,
         head: &'a JournalHead,
+    ) -> BoxFuture<'a, Result<BudgetUsage, GraphLifecycleEvidenceError>> {
+        self.usage_at_with_cancellation(tenant, run, head, false)
+    }
+
+    fn cancellation_usage_at<'a>(
+        &'a self,
+        tenant: &'a TenantId,
+        run: RunId,
+        head: &'a JournalHead,
+    ) -> BoxFuture<'a, Result<BudgetUsage, GraphLifecycleEvidenceError>> {
+        self.usage_at_with_cancellation(tenant, run, head, true)
+    }
+
+    #[allow(clippy::too_many_lines)]
+    fn usage_at_with_cancellation<'a>(
+        &'a self,
+        tenant: &'a TenantId,
+        run: RunId,
+        head: &'a JournalHead,
+        cancellation: bool,
     ) -> BoxFuture<'a, Result<BudgetUsage, GraphLifecycleEvidenceError>> {
         Box::pin(async move {
             let admitted = self
@@ -152,6 +171,14 @@ impl FreshDirectEvidence {
                 .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?;
             if page.has_more()
                 || page.events().last().map(JournalEvent::head).as_ref() != Some(head)
+            {
+                return Err(GraphLifecycleEvidenceError::Corrupt);
+            }
+            if cancellation
+                && page.events().last().is_none_or(|event| {
+                    event.payload().kind().as_str()
+                        != "published-scoped-join-cancellation-requested"
+                })
             {
                 return Err(GraphLifecycleEvidenceError::Corrupt);
             }
@@ -341,6 +368,51 @@ impl FreshDirectEvidence {
                             || (event.payload().kind().as_str() == "child-join-published"
                                 && join.head().map(ChildRunJoinHead::journal_head)
                                     != Some(&event.head()))
+                        {
+                            return Err(GraphLifecycleEvidenceError::Corrupt);
+                        }
+                    }
+                    "published-scoped-join-cancellation-requested" if cancellation => {
+                        let current = self
+                            .store
+                            .load_run(tenant, run)
+                            .await
+                            .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?;
+                        let request = current
+                            .lifecycle()
+                            .cancellation_request()
+                            .ok_or(GraphLifecycleEvidenceError::Corrupt)?;
+                        let key = self
+                            .key
+                            .lock()
+                            .await
+                            .clone()
+                            .ok_or(GraphLifecycleEvidenceError::Corrupt)?;
+                        let join = self
+                            .store
+                            .load_child_join(key.parent())
+                            .await
+                            .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?
+                            .ok_or(GraphLifecycleEvidenceError::Corrupt)?;
+                        let publication =
+                            join.head().ok_or(GraphLifecycleEvidenceError::Corrupt)?;
+                        if key.tenant_id() != tenant
+                            || key.parent_run_id() != run
+                            || current.lifecycle().provenance()
+                                != admitted.admission().intent().provenance()
+                            || current.lifecycle().status() != RunStatus::CancellationRequested
+                            || current.journal_head() != Some(head)
+                            || &event.head() != head
+                            || page.events().last() != Some(event)
+                            || event.source() != &stateknot_core::JournalEventSource::ControlPlane
+                            || request.failure().caused_by_event_id() != Some(event.event_id())
+                            || request.requested_at() > event.recorded_at()
+                            || join.binding().is_none()
+                            || join.consumed().is_some()
+                            || event.previous_digest() != Some(publication.journal_head().digest())
+                            || event.sequence().get()
+                                != publication.journal_head().sequence().get() + 1
+                            || event.recorded_at() < publication.journal_head().recorded_at()
                         {
                             return Err(GraphLifecycleEvidenceError::Corrupt);
                         }

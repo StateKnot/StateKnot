@@ -504,3 +504,8 @@ npm run verify
 
 - [fresh scoped ChildJoin 新诊断](qualification/experimental-scoped-child-join-fresh-2026-10-19.zh-CN.md)保留原959/560截点；另绑定旧冻结final-v1的962/560：六门禁v2全部exit0，workspace2155 passed/6原ignored、doc48。完整Native-v2 Store16/17各272通过，Runtime17=216通过，Runtime16=215通过/1个partial原90秒冷进程readiness超时；本轮稳定clock、无旧sleep干扰，不是完整双版Native通过。
 - 同保存Runtime binary955d35d2…的PG16单例47.081秒、1pass/215filtered不覆盖原全套失败。失败journal到seq22 Root节点succeeded与guardian续租，不足以区分首次cold drive末段和1316行重复drive。拟议仅同usage_at内复用已完整读取记录，保留每事件唯一匹配/settlement及全部原守卫；无跨call缓存、预算/90秒扩张、唯一根因或性能断言。包含新文档/修复的六门禁、完整双PG Native、发布与新CI仍待Root；不转授G1，不关闭RFC Draft或R1/R6/R7。
+
+
+2026-10-21 published scoped Join 公开 Loop 定向追加（R1/RFC-0022/R6/R7 仍开放）：
+
+- [公开 Loop COMMIT 丢确认记录](qualification/experimental-published-join-public-loop-commit-loss-2026-10-21.zh-CN.md)分开绑定两组证据：已发布 `53b0d83` 的969/563、source `fbc2dc9c…`/compiled `3c6dd428…` 已通过完整 CI39444455774（22/22 job、20 checkout、56 artifact、15组件/111负控；双版各 Store275/Runtime227）；新 minimal-v2 的 source `1424fc42…`/compiled `54c23f83…` 仅实际通过 macOS aarch64、PostgreSQL16.15/17.11 各1项/227filtered 的四个 COMMIT 切点。Writer 是公开 `DurableAgentLoop::run` 的 lifecycle mutation，Driver handoff 已观察，独立 Driver mutation 未中断。冷 Before 由原身份/graph pins 重建并等原30秒租约自然到期，冷 After 优先原 closure ACK；完整 tenant/租约、原 owner/binding 与 child usage once 均保持。新库存275/228不等于新全套通过；两测试路径之外生产/API不变，首轮 json 宏编译101原样保留且非功能RED。新组合六门禁、完整Native/新CI及R1/stdio/发布资格继续待验，不继承53的CI。

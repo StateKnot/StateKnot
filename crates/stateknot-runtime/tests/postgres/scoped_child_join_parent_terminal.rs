@@ -3254,4 +3254,845 @@ mod published_stop_faults {
         let _guard = DATABASE_TEST_MUTEX.lock().await;
         Box::pin(controller(TERMINAL_CASE)).await;
     }
+
+    // This profile interrupts the real public Loop, not the Store-only writer above.
+    const PUBLIC_LOOP_CASE: &str = "scoped_join_close_process_faults::fresh_join::parent_terminal::published_stop_faults::published_scoped_join_public_loop_close_commit_loss_survives_real_kill_and_id_only_cold_recovery";
+
+    #[derive(serde::Deserialize)]
+    #[serde(tag = "role", rename_all = "snake_case", deny_unknown_fields)]
+    enum PublicLoopInput {
+        Writer {
+            tenant: TenantId,
+            run: RunId,
+            proxy_port: u16,
+        },
+        Cold {
+            tenant: TenantId,
+            run: RunId,
+        },
+    }
+
+    struct PublicLoopEvidence {
+        direct: Arc<FreshDirectEvidence>,
+        applications: [Arc<AtomicUsize>; 6],
+        other: AtomicUsize,
+        pause: tokio::sync::Mutex<Option<tokio::sync::oneshot::Receiver<()>>>,
+    }
+    impl PublicLoopEvidence {
+        fn applications(&self) -> [usize; 6] {
+            std::array::from_fn(|index| self.applications[index].load(Ordering::SeqCst))
+        }
+    }
+    impl GraphLifecycleEvidenceProvider for PublicLoopEvidence {
+        fn direct_usage_evidence(
+            &self,
+            context: GraphDirectUsageEvidenceContext,
+        ) -> BoxFuture<'_, Result<GraphDirectUsageEvidence, GraphLifecycleEvidenceError>> {
+            self.direct.calls.fetch_add(1, Ordering::SeqCst);
+            Box::pin(async move {
+                let usage = self
+                    .direct
+                    .cancellation_usage_at(
+                        context.provenance().tenant_id(),
+                        context.provenance().run_id(),
+                        context.journal_head(),
+                    )
+                    .await?;
+                assert_eq!(self.applications(), [0; 6]);
+                assert_eq!(self.other.load(Ordering::SeqCst), 0);
+                let pause = self.pause.lock().await.take();
+                if let Some(resume) = pause {
+                    publish_ready(&json!({"phase":"public_loop_direct_ready",
+                        "pid":std::process::id(), "fence":context.fence(),
+                        "head":context.journal_head(), "direct":usage,
+                        "applications":self.applications()}));
+                    resume
+                        .await
+                        .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?;
+                }
+                Ok(GraphDirectUsageEvidence::new(context, usage))
+            })
+        }
+        fn terminal_evidence(
+            &self,
+            context: GraphTerminalEvidenceContext,
+        ) -> BoxFuture<'_, Result<GraphTerminalEvidence, GraphLifecycleEvidenceError>> {
+            self.other.fetch_add(1, Ordering::SeqCst);
+            UnavailableLifecycleEvidence.terminal_evidence(context)
+        }
+        fn failure_evidence(
+            &self,
+            context: GraphFailureEvidenceContext,
+        ) -> BoxFuture<'_, Result<GraphFailureEvidence, GraphLifecycleEvidenceError>> {
+            self.other.fetch_add(1, Ordering::SeqCst);
+            UnavailableLifecycleEvidence.failure_evidence(context)
+        }
+        fn cancellation_evidence(
+            &self,
+            context: GraphCancellationEvidenceContext,
+        ) -> BoxFuture<'_, Result<GraphCancellationEvidence, GraphLifecycleEvidenceError>> {
+            self.other.fetch_add(1, Ordering::SeqCst);
+            UnavailableLifecycleEvidence.cancellation_evidence(context)
+        }
+    }
+
+    struct PublicLoopDeployment {
+        registry: ExecutableGraphRegistry,
+        evidence: Arc<PublicLoopEvidence>,
+        child: AgentResultProvenance,
+    }
+
+    async fn public_loop_deployment(
+        store: &PostgresStore,
+        tenant: &TenantId,
+        run: RunId,
+        pause: Option<tokio::sync::oneshot::Receiver<()>>,
+    ) -> PublicLoopDeployment {
+        let parent = store.load_agent_admission(tenant, run).await.unwrap();
+        let account = Box::pin(store.load_child_budget_account(tenant, run))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(account.children().len(), 1);
+        let key = account.children()[0].key().clone();
+        assert_eq!(key.tenant_id(), tenant);
+        assert_eq!(key.parent_run_id(), run);
+        let child = Box::pin(store.load_child_run(&key)).await.unwrap();
+        let intent = child.intent().child().clone();
+        assert_eq!(&intent, child.child().admission().intent());
+        assert_eq!(intent.provenance(), account.children()[0].child());
+        assert!(child.settlement().is_some());
+        let native = provider_native_fixture_with_budget(
+            store.clone(),
+            false,
+            false,
+            false,
+            None,
+            NativeBudgetMode::Durable,
+        );
+        assert_eq!(intent.descriptor(), native.definition.descriptor());
+        assert_eq!(child.intent().child_graph(), native.definition.graph());
+        assert_eq!(intent.graph(), &native.definition.graph().reference());
+        let (fixture, leaf) =
+            fresh_graphs(native.definition.graph(), native.definition.descriptor());
+        assert_eq!(
+            parent.admission().intent().graph(),
+            &fixture.graph.reference()
+        );
+        assert_eq!(key.parent().base_checkpoint().graph(), &leaf.reference());
+        for graph in [&fixture.graph, &leaf, native.definition.graph()] {
+            let stored = store
+                .load_graph_definition(tenant, &graph.reference())
+                .await
+                .unwrap();
+            assert_eq!(stored.graph(), graph);
+        }
+        let schemas = fresh_schemas(&fixture, &leaf, &native);
+        let direct = Arc::new(FreshDirectEvidence {
+            store: store.clone(),
+            key: Arc::new(tokio::sync::Mutex::new(Some(key))),
+            root: fixture.graph.reference(),
+            leaf: leaf.reference(),
+            calls: Arc::new(AtomicUsize::new(0)),
+        });
+        let counters = FreshCounters::new();
+        let registry = fresh_registry(
+            store, &fixture, &leaf, &native, &intent, &schemas, &direct, &counters,
+        );
+        let applications = [
+            Arc::clone(&counters.launched),
+            Arc::clone(&counters.resumed),
+            Arc::clone(&counters.leaf_tail),
+            Arc::clone(&counters.root_tail),
+            Arc::clone(&native.model_calls),
+            Arc::clone(&native.tool_calls),
+        ];
+        let evidence = Arc::new(PublicLoopEvidence {
+            direct,
+            applications,
+            other: AtomicUsize::new(0),
+            pause: tokio::sync::Mutex::new(pause),
+        });
+        PublicLoopDeployment {
+            registry,
+            evidence,
+            child: intent.provenance().clone(),
+        }
+    }
+
+    async fn public_loop_writer(tenant: TenantId, run: RunId, proxy_port: u16) {
+        let resume = parent_control();
+        let store = connection(Some(proxy_port)).await;
+        let deployed = Box::pin(public_loop_deployment(&store, &tenant, run, Some(resume))).await;
+        let current = store.load_run(&tenant, run).await.unwrap();
+        assert_eq!(
+            current.lifecycle().status(),
+            RunStatus::CancellationRequested
+        );
+        let fence = current.lease().unwrap().fence().clone();
+        let agent_loop = DurableAgentLoop::new(
+            store.clone(),
+            deployed.registry,
+            deployed.evidence.clone(),
+            DurableGraphDriverOptions::default(),
+            DurableGraphLifecycleOptions::default(),
+        )
+        .unwrap();
+        let result = Box::pin(agent_loop.run(fence, CancellationSignal::never())).await;
+        panic!("public Loop returned before the required COMMIT kill: {result:?}");
+    }
+
+    async fn public_loop_expiry(
+        store: &PostgresStore,
+        tenant: &TenantId,
+        run: RunId,
+        original: &stateknot_core::RunLease,
+    ) -> Timestamp {
+        assert_eq!(store.options().lease_duration(), Duration::from_secs(30));
+        tokio::time::timeout(Duration::from_secs(30), async {
+            loop {
+                let current = store.load_run(tenant, run).await.unwrap();
+                assert_eq!(current.lease(), Some(original));
+                let now = store.observe_database_clock().await.unwrap();
+                if now >= original.expires_at() {
+                    break now;
+                }
+                tokio::time::sleep(Duration::from_millis(25)).await;
+            }
+        })
+        .await
+        .expect("original lease must expire naturally within its unchanged 30s duration")
+    }
+
+    async fn public_loop_cold_resume(
+        store: &PostgresStore,
+        tenant: &TenantId,
+        run: RunId,
+    ) -> Value {
+        use futures_util::FutureExt;
+        let original = store
+            .load_run(tenant, run)
+            .await
+            .unwrap()
+            .lease()
+            .unwrap()
+            .clone();
+        let deployed = Box::pin(public_loop_deployment(store, tenant, run, None)).await;
+        let agent_loop = DurableAgentLoop::new(
+            store.clone(),
+            deployed.registry,
+            deployed.evidence.clone(),
+            DurableGraphDriverOptions::default(),
+            DurableGraphLifecycleOptions::default(),
+        )
+        .unwrap();
+        let observed = Box::pin(public_loop_expiry(store, tenant, run, &original)).await;
+        let fence = store
+            .claim_lease(tenant, run, AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .fence()
+            .clone();
+        let actual = std::panic::AssertUnwindSafe(async {
+            assert_eq!(
+                fence.epoch(),
+                original.fence().epoch().checked_next().unwrap()
+            );
+            assert_ne!(fence.attempt_id(), original.fence().attempt_id());
+            let result = Box::pin(agent_loop.run(fence.clone(), CancellationSignal::never()))
+                .await
+                .unwrap();
+            assert!(matches!(
+                result.outcome(),
+                AgentLoopOutcome::CancellationConfirmed(AppendOutcome::Committed(_))
+            ));
+            assert_eq!(deployed.evidence.applications(), [0; 6]);
+            assert_eq!(deployed.evidence.other.load(Ordering::SeqCst), 0);
+            let calls = deployed.evidence.direct.calls.load(Ordering::SeqCst);
+            assert!(calls > 0);
+            json!({"mode":"public_loop_new_fence", "old_fence":original.fence(),
+                "new_fence":fence, "expires_at":original.expires_at(), "observed_at":observed,
+                "child":deployed.child, "applications":deployed.evidence.applications(),
+                "direct_calls":calls, "other_calls":0})
+        })
+        .catch_unwind()
+        .await;
+        drop(agent_loop);
+        // Only our just-claimed F3 can be retired on an unexpected test failure.
+        // Public Loop mutation ACKs have finished before normal/error return.
+        let current = store.load_run(tenant, run).await.unwrap();
+        let retired = match current.lease() {
+            None => true,
+            Some(lease) if lease.fence() == &fence => store.release_lease(&fence).await.is_ok(),
+            Some(_) => false,
+        };
+        let result = match actual {
+            Ok(result) => result,
+            Err(panic) => std::panic::resume_unwind(panic),
+        };
+        assert!(retired, "cold cleanup cannot retire a replacement claim");
+        result
+    }
+
+    async fn public_loop_cold(tenant: TenantId, run: RunId) {
+        let resume = parent_control();
+        let store = connection(None).await;
+        let pool = PgPoolOptions::new()
+            .max_connections(2)
+            .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+            .await
+            .unwrap();
+        let original = Box::pin(store.load_graph_frame_closure(&tenant, run))
+            .await
+            .unwrap();
+        let finalizer = DurableFrameCancellationFinalizer::new(
+            store.clone(),
+            cancellation_schemas(),
+            DurableGraphLifecycleOptions::default(),
+        )
+        .unwrap();
+        let recovery = if let Some(original) = &original {
+            assert_eq!(
+                original.event().payload().schema(),
+                &PostgresStore::graph_frame_published_join_stop_event_schema()
+                    .unwrap()
+                    .0
+            );
+            json!({"mode":"original_closure_ack", "original":fingerprint(original),
+                "registry_or_provider_constructed":false})
+        } else {
+            assert!(matches!(
+                finalizer.resume(&tenant, run).await.unwrap(),
+                FrameCancellationOutcome::NotApplicable
+            ));
+            Box::pin(public_loop_cold_resume(&store, &tenant, run)).await
+        };
+        let closure = Box::pin(store.load_graph_frame_closure(&tenant, run))
+            .await
+            .unwrap()
+            .unwrap();
+        if let Some(original) = &original {
+            assert_eq!(fingerprint(&closure), fingerprint(original));
+        }
+        let bytes = raw_closure_bytes(&pool, &tenant, run).await;
+        let (first, first_kind) = cancelled(finalizer.resume(&tenant, run).await.unwrap());
+        let before = snapshot(&pool, &tenant).await;
+        let (second, second_kind) = cancelled(finalizer.resume(&tenant, run).await.unwrap());
+        assert_eq!(second_kind, "idempotent");
+        assert_eq!(first, second);
+        assert_eq!(snapshot(&pool, &tenant).await, before);
+        assert_eq!(raw_closure_bytes(&pool, &tenant, run).await, bytes);
+        let closed = Box::pin(store.load_graph_frame_closure(&tenant, run))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(fingerprint(&closed), fingerprint(&closure));
+        drop(finalizer);
+        pool.close().await;
+        store.close().await;
+        publish_ready(
+            &json!({"phase":"public_loop_cold_complete", "pid":std::process::id(),
+            "recovery":recovery, "closure":fingerprint(&closure), "wire_digest":Digest::sha256(&bytes),
+            "first_append":first_kind, "first_event":first, "second_append":second_kind,
+            "second_event":second}),
+        );
+        resume.await.unwrap();
+    }
+
+    async fn public_loop_worker(input: Value) {
+        match serde_json::from_value::<PublicLoopInput>(input).unwrap() {
+            PublicLoopInput::Writer {
+                tenant,
+                run,
+                proxy_port,
+            } => {
+                Box::pin(public_loop_writer(tenant, run, proxy_port)).await;
+            }
+            PublicLoopInput::Cold { tenant, run } => {
+                Box::pin(public_loop_cold(tenant, run)).await;
+            }
+        }
+    }
+
+    async fn public_loop_closure(
+        store: &PostgresStore,
+        fixture: &Fixture,
+    ) -> StoredGraphFrameClosure {
+        let key = &fixture.published.key;
+        let closure =
+            Box::pin(store.load_graph_frame_closure(key.tenant_id(), key.parent_run_id()))
+                .await
+                .unwrap()
+                .unwrap();
+        assert_eq!(
+            closure.root_checkpoint(),
+            &fixture.published.root_checkpoint.head()
+        );
+        assert_eq!(closure.direct_usage(), &fixture.direct);
+        assert_eq!(
+            serde_json::to_value(closure.failure()).unwrap(),
+            serde_json::to_value(fixture.request.failure()).unwrap()
+        );
+        assert_eq!(
+            closure.event().sequence().get(),
+            fixture.request_event.sequence().get() + 1
+        );
+        assert_eq!(
+            closure.event().previous_digest(),
+            Some(fixture.request_event.digest())
+        );
+        assert_eq!(
+            closure.event().payload().kind().as_str(),
+            "graph-frames-closed"
+        );
+        assert_eq!(
+            closure.event().payload().schema(),
+            &PostgresStore::graph_frame_published_join_stop_event_schema()
+                .unwrap()
+                .0
+        );
+        assert_eq!(closure.completions().len(), 1);
+        assert_eq!(
+            serde_json::to_value(closure.completions()[0].start()).unwrap(),
+            fixture.published.caller
+        );
+        assert_eq!(closure.completions()[0].status(), NodeAttemptStatus::Failed);
+        assert_ne!(closure.completions()[0].start(), &fixture.published.owner);
+        Box::pin(retained_published(store, &fixture.published)).await;
+        assert!(
+            Box::pin(store.load_active_graph_frame(key.tenant_id(), key.parent_run_id()))
+                .await
+                .unwrap()
+                .is_none()
+        );
+        closure
+    }
+
+    async fn public_loop_terminal(
+        store: &PostgresStore,
+        fixture: &Fixture,
+        closure: &StoredGraphFrameClosure,
+        cut: Cut,
+    ) -> JournalEvent {
+        let event = Box::pin(terminal_event(store, fixture, closure)).await;
+        let key = &fixture.published.key;
+        let current = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        assert_eq!(current.lifecycle().status(), RunStatus::Cancelled);
+        assert_eq!(current.journal_head(), Some(&event.head()));
+        assert_eq!(
+            current.lifecycle().revision().get(),
+            fixture.revision.get() + 1
+        );
+        assert!(current.lease().is_none());
+        assert!(!current.is_quarantined());
+        assert!(current.scheduler_ready_at().is_none());
+        assert!(current.scheduler_not_before().is_none());
+        assert!(current.lifecycle().result().is_none());
+        let epoch = if cut == Cut::BeforeCommit {
+            fixture.fence.epoch().checked_next().unwrap()
+        } else {
+            fixture.fence.epoch()
+        };
+        assert_eq!(current.last_fencing_epoch(), Some(epoch));
+        let total = fixture
+            .direct
+            .checked_accumulate(&fixture.published.child_usage.cumulative_only())
+            .unwrap();
+        assert_eq!(current.lifecycle().terminal_usage(), Some(&total));
+        let before: RunLifecycle = serde_json::from_value(fixture.lifecycle.clone()).unwrap();
+        let expected = before
+            .apply(RunTransition::ConfirmCancellation {
+                completed_at: current.lifecycle().changed_at(),
+                usage: total.clone(),
+            })
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(current.lifecycle()).unwrap(),
+            serde_json::to_value(expected).unwrap()
+        );
+        assert!(current.lifecycle().changed_at() >= closure.event().recorded_at());
+        assert!(current.lifecycle().changed_at() <= event.recorded_at());
+        let account =
+            Box::pin(store.load_child_budget_account(key.tenant_id(), key.parent_run_id()))
+                .await
+                .unwrap()
+                .unwrap();
+        assert_eq!(
+            account,
+            fixture
+                .published
+                .account
+                .observe_direct(event.head(), fixture.direct.clone())
+                .unwrap()
+        );
+        assert_eq!(
+            Box::pin(store.include_child_usage(
+                key.tenant_id(),
+                key.parent_run_id(),
+                fixture.direct.clone()
+            ))
+            .await
+            .unwrap(),
+            total
+        );
+        event
+    }
+
+    async fn public_loop_baseline(
+        store: &PostgresStore,
+        pool: &PgPool,
+        fixture: &Fixture,
+    ) -> (Snapshot, Value) {
+        let key = &fixture.published.key;
+        let initial = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        let original = initial.lease().unwrap().clone();
+        assert_eq!(original.fence(), &fixture.fence);
+        let ready_at = store.observe_database_clock().await.unwrap();
+        let observation = tokio::time::timeout(Duration::from_secs(30), async {
+            loop {
+                let observed = store.observe_live_lease(&fixture.fence).await.unwrap();
+                let lease = observed.lease();
+                assert_eq!(lease.fence(), original.fence());
+                assert_eq!(lease.acquired_at(), original.acquired_at());
+                if lease.renewed_at() >= ready_at
+                    && lease.expires_at().unix_micros() - observed.observed_at().unix_micros()
+                        > 15_000_000
+                {
+                    break observed;
+                }
+                tokio::time::sleep(Duration::from_millis(25)).await;
+            }
+        })
+        .await
+        .expect("the real public Loop guardian must ACK its next unchanged 30s lease renewal");
+        let before = snapshot(pool, key.tenant_id()).await;
+        let current = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        assert_eq!(current.lease(), Some(observation.lease()));
+        assert_eq!(
+            serde_json::to_value(current.lifecycle()).unwrap(),
+            fixture.lifecycle
+        );
+        assert_eq!(current.journal_head(), Some(&fixture.request_event.head()));
+        assert_eq!(
+            Box::pin(store.load_child_budget_account(key.tenant_id(), key.parent_run_id()))
+                .await
+                .unwrap()
+                .unwrap(),
+            fixture.published.account
+        );
+        Box::pin(retained_published(store, &fixture.published)).await;
+        assert_eq!(snapshot(pool, key.tenant_id()).await, before);
+        let proof = json!({"ready_at":ready_at, "original_lease":original,
+            "renewal":observation.lease(), "observed_at":observation.observed_at(),
+            "complete_tenant_snapshot_sha256":Digest::sha256(
+                serde_json_canonicalizer::to_vec(&before).unwrap())});
+        (before, proof)
+    }
+
+    async fn public_loop_inspect_cut(
+        store: &PostgresStore,
+        pool: &PgPool,
+        fixture: &Fixture,
+        cut: Cut,
+        before: &Snapshot,
+        observed: &Snapshot,
+    ) -> Option<StoredGraphFrameClosure> {
+        let key = &fixture.published.key;
+        if cut == Cut::BeforeCommit {
+            assert_eq!(
+                observed, before,
+                "unforwarded public Loop COMMIT exposes no tenant write"
+            );
+        } else {
+            close_snapshot_delta(before, observed, key.parent_run_id());
+        }
+        let current = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        if cut == Cut::BeforeCommit {
+            assert_eq!(
+                current.lifecycle().status(),
+                RunStatus::CancellationRequested
+            );
+            assert_eq!(
+                serde_json::to_value(current.lifecycle()).unwrap(),
+                fixture.lifecycle
+            );
+            assert_eq!(current.journal_head(), Some(&fixture.request_event.head()));
+            let lease = current.lease().unwrap();
+            assert_eq!(lease.fence(), &fixture.fence);
+            assert!(lease.renewed_at() >= lease.acquired_at());
+            assert!(lease.expires_at() > lease.renewed_at());
+            assert!(
+                Box::pin(store.load_graph_frame_closure(key.tenant_id(), key.parent_run_id()))
+                    .await
+                    .unwrap()
+                    .is_none()
+            );
+            assert_eq!(
+                Box::pin(store.load_child_budget_account(key.tenant_id(), key.parent_run_id()))
+                    .await
+                    .unwrap()
+                    .unwrap(),
+                fixture.published.account
+            );
+            Box::pin(retained_published(store, &fixture.published)).await;
+            None
+        } else {
+            assert_eq!(
+                current.lifecycle().status(),
+                RunStatus::CancellationRequested
+            );
+            assert!(current.lease().is_none());
+            assert_eq!(
+                serde_json::to_value(current.lifecycle()).unwrap(),
+                fixture.lifecycle
+            );
+            assert_eq!(current.last_fencing_epoch(), Some(fixture.fence.epoch()));
+            assert!(!current.is_quarantined());
+            let closed = Box::pin(public_loop_closure(store, fixture)).await;
+            assert_eq!(current.journal_head(), Some(&closed.event().head()));
+            assert_eq!(
+                Box::pin(store.load_child_budget_account(key.tenant_id(), key.parent_run_id()))
+                    .await
+                    .unwrap()
+                    .unwrap(),
+                fixture.published.account
+            );
+            let _wire = closure_bytes(pool, fixture).await;
+            Some(closed)
+        }
+    }
+
+    async fn public_loop_cut(
+        store: &PostgresStore,
+        pool: &PgPool,
+        connection: &PgConnectOptions,
+        fixture: &Fixture,
+        cut: Cut,
+    ) -> (Killed, Value, Option<StoredGraphFrameClosure>) {
+        let key = &fixture.published.key;
+        let mut proxy =
+            CommitProxy::start(connection, cut, TransactionTarget::GraphFrameClosure).await;
+        let mut writer = TestProcess::spawn(
+            PUBLIC_LOOP_CASE,
+            &json!({"role":"writer", "tenant":key.tenant_id(), "run":key.parent_run_id(),
+                "proxy_port":proxy.port()}),
+        );
+        let mut ready = writer.ready().await.unwrap();
+        assert_eq!(ready["phase"], "public_loop_direct_ready");
+        assert_eq!(ready["fence"], json!(fixture.fence));
+        assert_eq!(ready["head"], json!(fixture.request_event.head()));
+        assert_eq!(ready["direct"], json!(fixture.direct));
+        assert_eq!(ready["applications"], json!([0, 0, 0, 0, 0, 0]));
+        let writer_pid = ready["pid"].as_u64().unwrap();
+        assert_ne!(writer_pid, u64::from(std::process::id()));
+        // Wait for the actual guardian ACK, then retain every tenant/lease byte.
+        // No run field or table is filtered to manufacture a no-write baseline.
+        let (before, renewal) = Box::pin(public_loop_baseline(store, pool, fixture)).await;
+        ready["renewal_before_write"] = renewal;
+        writer.resume();
+        proxy.wait_cut(cut).await;
+        let backend_pid = proxy.backend_pid();
+        let observed = snapshot(pool, key.tenant_id()).await;
+        let closure = Box::pin(public_loop_inspect_cut(
+            store, pool, fixture, cut, &before, &observed,
+        ))
+        .await;
+        assert_eq!(snapshot(pool, key.tenant_id()).await, observed);
+        assert_eq!(proxy.messages_while_ack_held(), 0);
+        let status = writer.kill_and_reap().await;
+        assert_eq!(exit_signal(status), Some(9));
+        proxy.stop().await;
+        wait_backend_disconnect(pool, backend_pid).await;
+        assert_eq!(
+            snapshot(pool, key.tenant_id()).await,
+            observed,
+            "whole tenant cut, including every lease field, survives kill/rollback exactly"
+        );
+        (
+            Killed {
+                snapshot: observed,
+                writer_pid,
+                signal: 9,
+            },
+            ready,
+            closure,
+        )
+    }
+
+    async fn public_loop_leg_inner(
+        store: &PostgresStore,
+        pool: &PgPool,
+        connection: &PgConnectOptions,
+        fixture: &Fixture,
+        cut: Cut,
+    ) -> Value {
+        let (killed, ready, original) =
+            Box::pin(public_loop_cut(store, pool, connection, fixture, cut)).await;
+        let key = &fixture.published.key;
+        let cold = Box::pin(cold_process(
+            PUBLIC_LOOP_CASE,
+            &json!({"role":"cold",
+            "tenant":key.tenant_id(), "run":key.parent_run_id()}),
+            killed.writer_pid,
+        ))
+        .await;
+        assert_eq!(cold["phase"], "public_loop_cold_complete");
+        if cut == Cut::BeforeCommit {
+            assert_eq!(cold["recovery"]["mode"], "public_loop_new_fence");
+            assert_eq!(cold["recovery"]["old_fence"], json!(fixture.fence));
+            assert_eq!(
+                cold["recovery"]["child"],
+                json!(fixture.published.account.children()[0].child())
+            );
+            let expiry: Timestamp =
+                serde_json::from_value(cold["recovery"]["expires_at"].clone()).unwrap();
+            let observed: Timestamp =
+                serde_json::from_value(cold["recovery"]["observed_at"].clone()).unwrap();
+            assert!(observed >= expiry);
+            let recovered: RunFence =
+                serde_json::from_value(cold["recovery"]["new_fence"].clone()).unwrap();
+            assert_eq!(
+                recovered.epoch(),
+                fixture.fence.epoch().checked_next().unwrap()
+            );
+            assert_ne!(recovered.attempt_id(), fixture.fence.attempt_id());
+            assert_eq!(cold["recovery"]["applications"], json!([0, 0, 0, 0, 0, 0]));
+            assert_eq!(cold["recovery"]["other_calls"], 0);
+            assert!(cold["recovery"]["direct_calls"].as_u64().unwrap() > 0);
+            assert_eq!(cold["first_append"], "idempotent");
+        } else {
+            assert_eq!(cold["recovery"]["mode"], "original_closure_ack");
+            assert_eq!(cold["recovery"]["registry_or_provider_constructed"], false);
+            assert_eq!(cold["first_append"], "committed");
+        }
+        let closure = Box::pin(public_loop_closure(store, fixture)).await;
+        if let Some(original) = original {
+            assert_eq!(fingerprint(&closure), fingerprint(&original));
+        }
+        let event = Box::pin(public_loop_terminal(store, fixture, &closure, cut)).await;
+        assert_eq!(cold["closure"], fingerprint(&closure));
+        assert_eq!(cold["first_event"], json!(event));
+        assert_eq!(cold["second_event"], json!(event));
+        assert_eq!(cold["second_append"], "idempotent");
+        let bytes = closure_bytes(pool, fixture).await;
+        assert_eq!(cold["wire_digest"], json!(Digest::sha256(&bytes)));
+        json!({"profile":"published-join-v3-public-loop-commit-loss-v1",
+            "cut":if cut == Cut::BeforeCommit {"commit_not_forwarded"} else {"commit_response_withheld"},
+            "commit_forwarded":cut == Cut::CommitResponse, "commit_response_forwarded":false,
+            "writer_entrypoint":"DurableAgentLoop::run", "public_loop_lifecycle_mutation_interrupted":true,
+            "public_driver_handoff_observed":true, "standalone_driver_mutation_interrupted":false,
+            "writer_killed_and_reaped":true, "signal":killed.signal, "writer_pid":killed.writer_pid,
+            "writer_direct_ready":ready, "cold":cold, "cold_tenant_run_only":true,
+            "whole_cut_snapshot_preserved":true, "cut_snapshot_sha256":Digest::sha256(
+                serde_json_canonicalizer::to_vec(&killed.snapshot).unwrap()),
+            "original_owner_binding_retained":true, "child_usage_once":true,
+            "child_model_turns":fixture.published.child_usage.model_turns(),
+            "child_tool_calls":fixture.published.child_usage.tool_calls(),
+            "child_unpriced_cost_events":fixture.published.child_usage.unpriced_cost_events(),
+            "closure":fingerprint(&closure), "terminal_event":event, "invariants":"passed",
+            "os":std::env::consts::OS, "arch":std::env::consts::ARCH})
+    }
+
+    async fn public_loop_leg(
+        store: &PostgresStore,
+        pool: &PgPool,
+        connection: &PgConnectOptions,
+        cut: Cut,
+    ) -> Value {
+        use futures_util::FutureExt;
+        let fixture = Box::pin(prepare_v3(store)).await;
+        let actual = std::panic::AssertUnwindSafe(Box::pin(public_loop_leg_inner(
+            store, pool, connection, &fixture, cut,
+        )))
+        .catch_unwind()
+        .await;
+        let key = &fixture.published.key;
+        let current = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        // Child process Drop has killed/reaped every unfinished owned worker.
+        // Failed setup may retire our original F2, never a different claimant.
+        let retired = match current.lease() {
+            None => true,
+            Some(lease) if lease.fence() == &fixture.fence => {
+                store.release_lease(&fixture.fence).await.is_ok()
+            }
+            Some(_) => false,
+        };
+        let result = match actual {
+            Ok(result) => result,
+            Err(panic) => std::panic::resume_unwind(panic),
+        };
+        assert!(
+            retired,
+            "controller cleanup cannot retire a replacement claim"
+        );
+        result
+    }
+
+    async fn public_loop_controller() {
+        use futures_util::FutureExt;
+        let Some(store) = test_store().await else {
+            return;
+        };
+        let connection = std::env::var(DATABASE_URL_ENV)
+            .unwrap()
+            .parse::<PgConnectOptions>()
+            .unwrap();
+        let _target = loopback_target(&connection);
+        let pool = PgPoolOptions::new()
+            .max_connections(2)
+            .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+            .await
+            .unwrap();
+        let actual = std::panic::AssertUnwindSafe(async {
+            let mut rows = Vec::new();
+            for cut in [Cut::BeforeCommit, Cut::CommitResponse] {
+                rows.push(Box::pin(public_loop_leg(&store, &pool, &connection, cut)).await);
+            }
+            let version: String = query_scalar("SHOW server_version")
+                .fetch_one(&pool)
+                .await
+                .unwrap();
+            (rows, version)
+        })
+        .catch_unwind()
+        .await;
+        pool.close().await;
+        store.close().await;
+        let (rows, version) = match actual {
+            Ok(value) => value,
+            Err(panic) => std::panic::resume_unwind(panic),
+        };
+        for mut row in rows {
+            row["case"] = json!(PUBLIC_LOOP_CASE);
+            row["postgres"] = json!(version);
+            println!("\nSTATEKNOT_PUBLISHED_JOIN_V3_PUBLIC_LOOP_COMMIT_LOSS_EVIDENCE={row}");
+        }
+    }
+
+    #[tokio::test]
+    async fn published_scoped_join_public_loop_close_commit_loss_survives_real_kill_and_id_only_cold_recovery()
+     {
+        if let Ok(input) = std::env::var(INPUT_ENV) {
+            Box::pin(public_loop_worker(serde_json::from_str(&input).unwrap())).await;
+            return;
+        }
+        let _guard = DATABASE_TEST_MUTEX.lock().await;
+        Box::pin(public_loop_controller()).await;
+    }
 }
