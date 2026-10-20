@@ -160,6 +160,14 @@ impl FreshDirectEvidence {
             let mut steps = 0_u64;
             let mut depth = 1_u64;
             let mut retries = 0_u64;
+            // Reuse only complete successful owning reads within this exact page.
+            // Every invocation reloads admission and journal; no record grants authority.
+            let mut children: Vec<stateknot_store_postgres::ChildRunRecord> = Vec::new();
+            let mut attempts: Vec<stateknot_core::NodeAttempt> = Vec::new();
+            let mut joins: Vec<(
+                stateknot_core::NodeActivation,
+                stateknot_store_postgres::ChildJoinRecord,
+            )> = Vec::new();
             for event in page.events() {
                 event_bytes += serde_json_canonicalizer::to_vec(event).unwrap().len() as u64;
                 let data = event.payload().data().as_value();
@@ -173,15 +181,23 @@ impl FreshDirectEvidence {
                             .len() as u64;
                     }
                     "graph-node-attempt-started" | "graph-node-attempt-succeeded" => {
-                        let attempt = self
-                            .store
-                            .load_node_attempt(
-                                tenant,
-                                &run,
-                                data["attempt_id"].as_str().unwrap().parse().unwrap(),
-                            )
-                            .await
-                            .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?;
+                        let attempt_id: AttemptId =
+                            data["attempt_id"].as_str().unwrap().parse().unwrap();
+                        let index = if let Some(index) = attempts
+                            .iter()
+                            .position(|attempt| attempt.start().attempt_id() == attempt_id)
+                        {
+                            index
+                        } else {
+                            attempts.push(
+                                self.store
+                                    .load_node_attempt(tenant, &run, attempt_id)
+                                    .await
+                                    .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?,
+                            );
+                            attempts.len() - 1
+                        };
+                        let attempt = &attempts[index];
                         let activation = attempt.start().activation();
                         if ![&self.root, &self.leaf].contains(&activation.base_checkpoint().graph())
                             || !["Step_A", "Step.B", "finish"]
@@ -266,11 +282,21 @@ impl FreshDirectEvidence {
                             .await
                             .clone()
                             .ok_or(GraphLifecycleEvidenceError::Corrupt)?;
-                        let child = self
-                            .store
-                            .load_child_run(&key)
-                            .await
-                            .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?;
+                        let index = if let Some(index) = children
+                            .iter()
+                            .position(|record| record.intent().key() == &key)
+                        {
+                            index
+                        } else {
+                            children.push(
+                                self.store
+                                    .load_child_run(&key)
+                                    .await
+                                    .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?,
+                            );
+                            children.len() - 1
+                        };
+                        let child = &children[index];
                         if key.tenant_id() != tenant || key.parent_run_id() != run {
                             return Err(GraphLifecycleEvidenceError::Corrupt);
                         }
@@ -294,12 +320,22 @@ impl FreshDirectEvidence {
                             .await
                             .clone()
                             .ok_or(GraphLifecycleEvidenceError::Corrupt)?;
-                        let join = self
-                            .store
-                            .load_child_join(key.parent())
-                            .await
-                            .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?
-                            .ok_or(GraphLifecycleEvidenceError::Corrupt)?;
+                        let index = if let Some(index) = joins
+                            .iter()
+                            .position(|(activation, _)| activation == key.parent())
+                        {
+                            index
+                        } else {
+                            let join = self
+                                .store
+                                .load_child_join(key.parent())
+                                .await
+                                .map_err(|_| GraphLifecycleEvidenceError::Unavailable)?
+                                .ok_or(GraphLifecycleEvidenceError::Corrupt)?;
+                            joins.push((key.parent().clone(), join));
+                            joins.len() - 1
+                        };
+                        let join = &joins[index].1;
                         if (event.payload().kind().as_str() == "child-join-registered"
                             && join.registration() != event)
                             || (event.payload().kind().as_str() == "child-join-published"
