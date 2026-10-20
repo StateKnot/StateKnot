@@ -602,6 +602,10 @@ impl PostgresStore {
     /// A committed epoch is authenticated before new observation, usage or lease
     /// checks; `Idempotent` grants no permission to dispatch application code.
     /// A fresh epoch shares the original Run budget and bounded attempt history.
+    /// Outstanding isolated children retain their original reservations. Only
+    /// this structural caller Start may proceed after checking the complete
+    /// account with the new DIRECT charge; it neither settles those children
+    /// nor permits provider dispatch, checkpoint advancement or frame Return.
     /// `direct_usage` is a trusted complete Run-wide DIRECT-only observation.
     ///
     /// # Errors
@@ -705,9 +709,12 @@ impl PostgresStore {
         if unresolved {
             return Err(StoreError::GraphFrameRejected);
         }
-        let account = Box::pin(child_runs::load_account_inner(&mut tx, tenant, run, false)).await?;
-        let (delegated_usage, child_account_digest) = if let Some(account) = account {
-            child_runs::ensure_settled(&account)?;
+        // The parent row serializes admission and settlement. Lock children
+        // in the account's canonical key order too: their terminal commits do
+        // not lock parents, so a nonlocking READ COMMITTED owning read could
+        // combine an old lifecycle with a new terminal notification.
+        let account = Box::pin(child_runs::load_account_inner(&mut tx, tenant, run, true)).await?;
+        let (delegated_usage, child_account_digest) = if let Some(account) = &account {
             direct_usage
                 .validate_monotonic_after(account.direct_usage())
                 .map_err(|_| StoreError::IncompleteChildAccounting)?;
@@ -751,7 +758,8 @@ impl PostgresStore {
         let event = JournalEvent::commit(append, now.max(observed.recorded_at()))
             .map_err(|e| map_event_commit_error(&e))?;
         let binding = materialize(intent, event)?;
-        let total = charged(&binding)?
+        let direct_after = charged(&binding)?;
+        let total = direct_after
             .checked_accumulate(&binding.intent.budget.delegated_usage)
             .map_err(|_| StoreError::IncompleteChildAccounting)?;
         admission
@@ -760,6 +768,19 @@ impl PostgresStore {
             .budget()
             .remaining(&total, binding.event.recorded_at())
             .map_err(|_| StoreError::GraphFrameLimitExceeded)?;
+        // Capacity is a temporary projection, not spent delegated usage or a
+        // persisted account transition. Preserve the v1 receipt's original
+        // direct, settled usage and account digest; include every outstanding
+        // ceiling when authorizing this exact new structural charge.
+        let capacity = account
+            .map(|account| account.observe_direct(binding.event.head(), direct_after))
+            .transpose()
+            .map_err(|_| StoreError::IncompleteChildAccounting)?;
+        if let Some(capacity) = &capacity {
+            capacity
+                .remaining(binding.event.recorded_at())
+                .map_err(|_| StoreError::GraphFrameLimitExceeded)?;
+        }
         reject_reused_node_worker_attempt(&mut tx, frame.origin(), &fence).await?;
         insert_event_components(&mut tx, &binding.event, binding.digest).await?;
         insert_binding(&mut tx, &binding).await?;
@@ -767,6 +788,12 @@ impl PostgresStore {
         insert_node_attempt_start(&mut tx, &binding.start).await?;
         update_run_head(&mut tx, &binding.event, None).await?;
         revalidate_worker_after_components(&mut tx, &fence).await?;
+        if let Some(capacity) = &capacity {
+            let final_at = database_now(&mut tx, "framework final reserved capacity").await?;
+            capacity
+                .remaining(final_at)
+                .map_err(|_| StoreError::GraphFrameLimitExceeded)?;
+        }
         tx.commit()
             .await
             .map_err(|e| StoreError::database("framework rebinding commit", e))?;

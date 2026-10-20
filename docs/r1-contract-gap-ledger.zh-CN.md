@@ -173,3 +173,11 @@ R2/R5/R6/R7 项有明确后续阶段，但仍是原 RFC 的整体验收门禁。
 认证；完整 RFC 接受和最终生产声明仍须等待所有相关证据。
 
 2026-10-18 限定增量：[scoped Join owner-stop Store 记录](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)补充取消专用 closure-v2、schema37与当前54表部署及 v2 public schema getter；原普通 owner 保持 Executing，整个子账户的子级均已结算且 DIRECT 完整已定价才允许该精确 registered-unpublished profile。记录分别绑定实际源码/执行/迁移/冷读，不改写旧 schema33/35/36 或原 red 证据。该 Store 边界不关闭 Root ConfirmCancellation、scoped Driver Join、其他取消反例、完整故障/兼容/CI、G3/G4/D3 或 R1。
+
+2026-10-19 限定增量：[G1 已发布 scoped ChildJoin 恢复记录](qualification/experimental-scoped-child-join-resume-2026-10-19.zh-CN.md)补充 G3/G4 的 published-unconsumed F2 owning preflight、原 publication 一次消费、真实 Return 与 Root Active handoff。`343b244` 的本机六门禁/20 次双 PG 定向和准确 head 的完整 run39228803615（21/21；两版 Store267/Runtime210）通过；该正向采用零 I/O child failure 前置和同进程重连，不证明 fresh child 应用或 OS-kill 恢复。G2 fresh/partial-spawn、完整故障/取消/兼容与 stdio 等仍独立开放，R1/R6/R7 不关闭。这里的 G1 是开发切片名，不改本表原 G1 schema 条目的编号或退出条件；旧 C9dd 的失败 CI、原37本地记录/portable bundle 与历史限定语境均保留。后续文档采用提交及 G2 源码不转授本次 CI 资格。
+
+
+2026-10-19 G2 开发候选补充：[fresh scoped ChildJoin 采用与待验收记录](qualification/experimental-scoped-child-join-fresh-2026-10-19.zh-CN.md)给出实际 typed Exclusive fresh/partial ownership 接缝、稳定逻辑 slot/initial_state 与预算 headroom；reservation ceiling 不得作为spent，也不预加child usage。旧源码已分别实测partial、consumption、capacity与父真实Succeeded/childonce，旧admission双预算失败仍保留。同959/560基准已补Store实际构建/库存272与新caller/terminal并发双版通过，但v5、最终style组合的六门禁/完整Native与新CI仍待绑定；原Clippy101保留，不关闭G3/G4/D3或R1/R6/R7，不改既有G1 head343资格记录和RFC Draft状态。本段G2仍指开发切片，不重命名本表条目。
+
+
+2026-10-20 G2 限定实证追加：[fresh scoped ChildJoin诊断](qualification/experimental-scoped-child-join-fresh-2026-10-19.zh-CN.md)保留全部旧source-specific事实。旧冻结final-v1=962/560的six-gates-v2全exit0（workspace2155 passed/6原ignored、doc48）；完整Native-v2 Store双版各272通过、Runtime17=216通过，Runtime16=215/1 partial原90秒readiness失败，稳定clock下无旧sleep干扰，完整组合仍未通过。同binary955d35d2…PG16单例47.081秒1pass/215filtered只作诊断，不能覆盖失败。seq22 Root节点succeeded/guardian续租仍不能区分首次cold drive末段与1316行repeat drive；不得称DirectEvidence唯一根因。拟议test-only同usage_at完整reader按身份复用，仍逐事件全keys唯一匹配、settlement及tenant/run/digest校验，新call重新完整parent/account/journal/head；不跨call缓存、不减live/quarantine/write guard、不扩90秒或预算/fence。新候选六门禁、完整双PG Native、发布与新CI待实际绑定，G1资格不转授，G3/G4/D3、RFC Draft与R1/R6/R7不关闭。

@@ -271,6 +271,18 @@ pub trait GraphNodeExecutor: Send + Sync + 'static {
 
     /// Opts into child suspension/resumption. The registry requires declared
     /// child slots, exclusive scheduling and the embedded child Join schema.
+    ///
+    /// Before publication, a higher fence may execute this logical activation
+    /// again, including after only some children were admitted. Reconstruct
+    /// stable slot keys, requests, authority, resolved budgets and initial state.
+    /// Admission with the same key and spawn digest recovers the original child
+    /// identities; fresh candidate IDs do not create another reservation.
+    /// Changed spawn material conflicts rather than replacing the child.
+    ///
+    /// Once `context.child_join()` is present, read its sealed children and
+    /// complete the node; do not spawn or request another Join. This contract
+    /// does not make arbitrary callback side effects exactly once: external
+    /// effects must retain their durable invocation/reconciliation protocol.
     fn supports_child_join(&self) -> bool {
         false
     }

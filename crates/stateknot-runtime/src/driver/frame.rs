@@ -12,8 +12,8 @@ use super::{
 };
 use futures_util::FutureExt;
 use stateknot_core::{
-    CompiledGraph, GraphFrameBarrierPlan, GraphFrameEntryPlan, GraphReducerError,
-    GraphSchemaValidationError, NodeId,
+    GraphFrameBarrierPlan, GraphFrameEntryPlan, GraphReducerError, GraphSchemaValidationError,
+    NodeId,
 };
 use stateknot_store_postgres::{
     GraphFrameBarrierCommitOutcome, GraphFrameEntryCommitOutcome, GraphFrameReturnCommitOutcome,
@@ -71,36 +71,37 @@ impl IterationScope {
 }
 
 impl DurableGraphDriver {
-    // G1 resumes an existing published Join. It does not admit a new frame
-    // whose application would need fresh scoped child suspension.
+    // Qualify the frozen application bindings before entering a fresh frame.
+    // Every declaring owner must support exclusive, replayable suspension.
     fn validate_fresh_frame_dispatch_profile(
         &self,
-        target: &CompiledGraph,
+        target: &ExecutableGraph,
     ) -> Result<(), GraphDriverError> {
-        if target.child_runs().is_some() {
-            return Err(GraphDriverError::ScopedChildJoinUnsupported);
-        }
-        let mut pending = target
-            .frame_calls()
-            .into_iter()
-            .flat_map(|policy| policy.calls().iter())
-            .map(|call| call.target().clone())
-            .collect::<Vec<_>>();
+        let mut pending = vec![target.clone()];
         let mut visited = std::collections::HashSet::new();
-        while let Some(reference) = pending.pop() {
-            if !visited.insert(reference.clone()) {
+        while let Some(executable) = pending.pop() {
+            if !visited.insert(executable.graph().reference()) {
                 continue;
             }
-            let executable = self.registry.resolve(&reference).ok_or_else(|| {
-                GraphDriverError::ExecutableGraphUnavailable {
-                    graph: Box::new(reference.clone()),
+            if let Some(policy) = executable.graph().child_runs() {
+                for declaration in policy.declarations() {
+                    let executor = Self::resolve_node_executor(&executable, declaration.node_id())?;
+                    if !executor.supports_child_join()
+                        || executor.scheduling() != GraphNodeScheduling::Exclusive
+                    {
+                        return Err(GraphDriverError::ScopedChildJoinUnsupported);
+                    }
                 }
-            })?;
-            if executable.graph().child_runs().is_some() {
-                return Err(GraphDriverError::ScopedChildJoinUnsupported);
             }
             if let Some(policy) = executable.graph().frame_calls() {
-                pending.extend(policy.calls().iter().map(|call| call.target().clone()));
+                for call in policy.calls() {
+                    let nested = self.registry.resolve(call.target()).ok_or_else(|| {
+                        GraphDriverError::ExecutableGraphUnavailable {
+                            graph: Box::new(call.target().clone()),
+                        }
+                    })?;
+                    pending.push(nested.clone());
+                }
             }
         }
         Ok(())
@@ -152,7 +153,7 @@ impl DurableGraphDriver {
                             graph: Box::new(call.target().clone()),
                         }
                     })?;
-                    self.validate_fresh_frame_dispatch_profile(target.graph())?;
+                    self.validate_fresh_frame_dispatch_profile(target)?;
                     continue;
                 }
                 let declares_children =
@@ -176,13 +177,19 @@ impl DurableGraphDriver {
                 let record = self
                     .store
                     .with_corruption_quarantine(recovery.quarantine_context().clone(), loading)
-                    .await?
-                    .ok_or(GraphDriverError::ScopedChildJoinUnsupported)?;
-                if record.head().is_none()
-                    || record.binding().is_none()
-                    || record.consumed().is_some()
-                {
-                    return Err(GraphDriverError::ScopedChildJoinUnsupported);
+                    .await?;
+                let Some(record) = record else {
+                    // Fresh or higher-fence partial-spawn recovery. Each slot
+                    // still needs the Store's complete owning admission check.
+                    continue;
+                };
+                if record.consumed().is_some() {
+                    return Err(StoreError::ChildJoinRejected.into());
+                }
+                if record.head().is_none() || record.binding().is_none() {
+                    // Registration atomically released its owner. This is a
+                    // real wait, never fresh callback or resume authority.
+                    return Err(StoreError::RunNotRunnable.into());
                 }
                 // Reuse the full slot, terminal, quarantine, executable and
                 // output-schema checks before any caller rebind or fresh Start.

@@ -1132,9 +1132,6 @@ impl DurableGraphDriver {
                 .ok_or(GraphDriverError::MissingJournalHead)?;
             let committed_head = match execution.result {
                 Ok(GraphNodeExecution::ChildJoin(request)) => {
-                    if !start.activation().graph_namespace().is_root() {
-                        return Err(GraphDriverError::ScopedChildJoinUnsupported);
-                    }
                     if !started.executor.supports_child_join()
                         || started.executor.scheduling() != GraphNodeScheduling::Exclusive
                         || execution.child_join.is_some()

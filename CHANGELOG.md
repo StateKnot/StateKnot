@@ -12,6 +12,19 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Add the experimental G2 source path for fresh scoped child Join suspension.
+  Before frame entry, each reachable declared child owner requires typed Join
+  support and Exclusive scheduling. An activation without a registered Join may
+  enter or replay its stable admission sequence; existing slots recover their
+  original child identities and reservations. Registration retains the original
+  atomic membership/lease-release transaction and immediately hands off the
+  parent. Unpublished Joins stay blocked; published results use G1's guarded
+  consumption and Return. Document the executor's stable replay contract and
+  retain rejection before entry/rebind for unsupported bindings. Fresh child
+  execution, partial-spawn process loss and scoped ACK faults require their own
+  final-source PostgreSQL16/17 qualification; G1's earlier CI does not qualify
+  this increment. General scoped cancellation, R1 and Supported remain open.
+
 - Add experimental G1 higher-fence (F2) recovery of an already published,
   unconsumed scoped child Join after complete owning preflight. The existing
   callback completion, atomic result/Join consumption, scoped barriers and frame

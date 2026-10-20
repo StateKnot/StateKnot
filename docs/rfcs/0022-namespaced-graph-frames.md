@@ -755,32 +755,55 @@ historical reads, cancellation/failure, Unknown-cost blocking and final-source
 PostgreSQL 16/17 qualification. These gates remain distinct from the source
 increment below.
 
-The experimental G1 Driver profile admits higher-fence (F2) recovery of an
-already published, unconsumed scoped child Join. Each iteration binds the actual
-claimed Run, fence, journal, Root/leaf checkpoint and recovery plan. Before caller
-rebind or a fresh Start, every unfinished scoped declared-child activation must
-have its complete owning Join, original publication and binding, an Exclusive
-executor with typed ChildJoin support, and all sealed child terminal/output
-proofs validated through the existing `GraphChildJoin` reader. The normal
+Each experimental Driver iteration binds the actual claimed Run, fence,
+journal, Root/leaf checkpoint and recovery plan. G1 admits higher-fence (F2)
+recovery of an already published, unconsumed scoped child Join. Before caller
+rebind or a fresh Start, that recovery requires its complete owning Join,
+original publication and binding, an Exclusive executor with typed ChildJoin
+support, and all sealed child terminal/output proofs validated through the
+existing `GraphChildJoin` reader. The normal
 callback returns Completed; the existing transaction commits the result and
 consumes that exact publication once. Scoped barriers, frame Return, Root
 continuation and repeated terminal handoff retain their original paths. Root
 terminal handoff leaves the Agent lifecycle Active until a separate terminal
 commit; it is not itself a committed Succeeded lifecycle.
 
-Fresh frame entry whose target or reachable nested frame declares ChildRun is
-still rejected before entry. Fresh scoped Join suspension and partial-spawn
-recovery remain unsupported. G1 does not enable general scoped cancellation;
-the existing cancellation-only F2 profile retains its separate bounded contract.
-The two fresh scoped ChildJoin return guards remain in place. Completed recovery
-nodes and subsequent barrier, Return and Root handoff are not rejected merely
-because their graph contains a scoped ChildRun declaration.
+The G2 source path permits fresh frame entry only after every declared child
+owner in the target and reachable nested frames has an Exclusive executor with
+typed ChildJoin support. An unfinished scoped activation with no registered
+Join may enter its callback or re-enter under a higher fence after partial
+admission. The callback must reconstruct stable slots, requests, authority,
+resolved budgets and initial state; the same key/spawn digest recovers the
+original child and reservation despite fresh candidate IDs. This does not make
+arbitrary callback side effects exactly once. External effects retain their
+durable invocation and reconciliation protocol.
 
-A child already quarantined before drive is rejected during owning preflight,
-before caller rebind or any fresh Start. This is a preflight guarantee, not a
+An existing registration without publication is a real wait, never permission
+for another callback. Normal lease claims remain blocked until the existing reconciler has settled
+every sealed member and the existing publisher has published the complete
+binding. A callback
+given `context.child_join()` must read the publication and complete, rather
+than spawn or rejoin. Registration uses the existing complete Store transaction
+and immediately returns its ChildJoin handoff after releasing the parent lease;
+the released fence grants no subsequent dispatch. An already consumed Join
+cannot authorize an unfinished activation. Completed recovery nodes reuse the
+original result, and subsequent barrier, Return and Root handoff are not
+rejected merely because their graph contains a scoped ChildRun declaration.
+
+The fresh path retains the existing full Store ownership, current-leaf,
+declaration, fence, deadline, membership and shared budget checks. It adds no
+SQL migration, alternate coordinator or public frame getter. Final-source
+native evidence must separately exercise real child application execution,
+partial-spawn OS process loss and scoped admission/registration/consumption ACK
+faults; the earlier G1 CI does not qualify G2. General scoped cancellation
+remains outside this path; the cancellation-only F2 profile retains its
+separate bounded contract.
+
+For published-Join recovery, a sealed child already quarantined before drive
+is rejected during owning preflight, before caller rebind or any fresh Start. This is a preflight guarantee, not a
 promise to revoke in-flight I/O if quarantine is committed after the gate. Final
 result/Join consumption retains the existing atomic fresh publication and child
-quarantine guards; a reader handle grants no write authority. This G1 increment
+quarantine guards; a reader handle grants no write authority. This source increment
 does not change the RFC's Draft or Supported status, qualify the full integration,
 or close R1. Actual native and CI evidence must be recorded separately.
 

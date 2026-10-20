@@ -17,6 +17,9 @@ mod join;
 #[path = "frame_child_cancellation.rs"]
 mod cancellation;
 
+#[path = "frame_child_takeover.rs"]
+mod takeover;
+
 struct Fixture {
     admission: StoredAgentAdmission,
     intent: ChildRunAdmissionIntent,

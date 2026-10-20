@@ -1195,7 +1195,7 @@ mod profile_bounds {
     // Copyright 2026 StateKnot contributors
     // SPDX-License-Identifier: Apache-2.0
 
-    //! Public Driver boundaries for the published scoped-Join resume profile.
+    //! Public Driver boundaries for scoped child-Join execution.
     use super::*;
     use stateknot_store_postgres::{
         RunQuarantineCause, RunQuarantineCommitOutcome, RunQuarantineComponent,
@@ -1277,12 +1277,14 @@ mod profile_bounds {
                             delay: Duration::ZERO,
                             calls: Arc::clone(calls),
                         },
-                        child_join: graph.child_runs().is_some_and(|policy| {
-                            policy
-                                .declarations()
-                                .iter()
-                                .any(|declaration| declaration.node_id() == node.node_id())
-                        }),
+                        // This target deliberately lacks the typed child-Join binding.
+                        child_join: graph.reference() != leaf.reference()
+                            && graph.child_runs().is_some_and(|policy| {
+                                policy
+                                    .declarations()
+                                    .iter()
+                                    .any(|declaration| declaration.node_id() == node.node_id())
+                            }),
                     }))
                     .unwrap();
             }
@@ -1291,7 +1293,7 @@ mod profile_bounds {
     }
 
     #[tokio::test]
-    async fn fresh_frame_entry_with_child_declarations_stays_unsupported_before_work() {
+    async fn fresh_frame_entry_with_unsupported_child_executor_rejects_before_work() {
         let _guard = DATABASE_TEST_MUTEX.lock().await;
         let Some(store) = test_store().await else {
             return;
@@ -1349,7 +1351,7 @@ mod profile_bounds {
                 &result,
                 Err(stateknot_runtime::GraphDriverError::ScopedChildJoinUnsupported)
             ),
-            "fresh Root entry must remain outside the published-resume profile: {result:?}"
+            "fresh Root entry must reject the unsupported child executor: {result:?}"
         );
         assert_eq!(calls.load(Ordering::SeqCst), 0);
         assert_eq!(evidence_calls.load(Ordering::SeqCst), 0);
@@ -1536,7 +1538,7 @@ mod profile_bounds {
 
     #[tokio::test]
     #[allow(clippy::too_many_lines)]
-    async fn active_frame_unsupported_framework_target_rejects_before_f2_caller_rebind() {
+    async fn active_frame_unsupported_child_executor_rejects_before_f2_caller_rebind() {
         let _guard = DATABASE_TEST_MUTEX.lock().await;
         let Some(store) = test_store().await else {
             return;
@@ -1585,12 +1587,14 @@ mod profile_bounds {
                             delay: Duration::ZERO,
                             calls: Arc::clone(&calls),
                         },
-                        child_join: graph.child_runs().is_some_and(|policy| {
-                            policy
-                                .declarations()
-                                .iter()
-                                .any(|declaration| declaration.node_id() == node.node_id())
-                        }),
+                        // This target deliberately lacks the typed child-Join binding.
+                        child_join: graph.reference() != leaf.reference()
+                            && graph.child_runs().is_some_and(|policy| {
+                                policy
+                                    .declarations()
+                                    .iter()
+                                    .any(|declaration| declaration.node_id() == node.node_id())
+                            }),
                     }))
                     .unwrap();
             }

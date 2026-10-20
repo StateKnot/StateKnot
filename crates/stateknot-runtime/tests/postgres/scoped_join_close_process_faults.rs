@@ -1060,3 +1060,6 @@ mod terminal_confirmation;
 
 #[path = "scoped_child_join_active_resume_red.rs"]
 mod active_join_resume;
+
+#[path = "scoped_child_join_fresh_red.rs"]
+mod fresh_join;

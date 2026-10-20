@@ -170,9 +170,6 @@ impl DurableGraphDriver {
                                 continuation.journal = *head;
                             }
                             NodeExecutionCommit::ChildJoin(request) => {
-                                if !started.start.activation().graph_namespace().is_root() {
-                                    return Err(GraphDriverError::ScopedChildJoinUnsupported);
-                                }
                                 return Ok(Some(Box::new(GraphDriveOutcome::ChildJoin(request))));
                             }
                         }

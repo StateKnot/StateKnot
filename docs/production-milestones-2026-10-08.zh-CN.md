@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # StateKnot 生产完善里程碑与会话交接
 
-更新日期：2026-10-18，Asia/Shanghai。执行顺序：R0 至 R7。
+更新日期：2026-10-19，Asia/Shanghai。执行顺序：R0 至 R7。
 
 StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户调度、审批恢复及 MCP/A2A 适配的实现基础。整体生产验收仍未完成。后续工作集中在契约收尾、数据生命周期、运维观测、可靠协议服务、可部署运行时和完整生产验证。
 
@@ -27,7 +27,7 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 
 ## 接手时的代码与发布状态
 
-以下状态按 2026-10-16 的源码和验收记录更新。新会话必须先核对实际分支、工作区和 GitHub 状态。
+以下状态包含截至 2026-10-19 的限定源码与验收记录；各历史增量保留原时间和边界。新会话必须先核对实际分支、工作区和 GitHub 状态。
 
 | 项目 | 当前状态 |
 | --- | --- |
@@ -35,7 +35,7 @@ StateKnot 已具备持久化 Agent 和 Graph、模型与工具执行、多租户
 | 当前工作目录 | `/Users/jiawy/Documents/RustAgentFramework` |
 | R0 验收的 main | `5f156b94516d2eb9ed96e2a648e0a13e66debc14`，2026-10-08 合并 JWT/JWKS #146；此前 #141/#145 已合并 |
 | 当前开发分支 | `codex/r1-nested-frame-contract` |
-| 工作区 | R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156/#157/#158/#159/#160 已合并。#161 仍为实验性草稿，继续推进同 Run 嵌套帧。当前限定证据包含完整 owning Root 校验、Return 与 scoped Wait 的真实 COMMIT 丢失及冷 Driver 恢复；scoped child Join、完整故障矩阵、stdio 生命周期和最终完整 CI 仍未完成 |
+| 工作区 | R0 已合并；R1 #147/#148/#150/#151/#152/#153/#155/#156/#157/#158/#159/#160 已合并。#161 仍为实验性草稿。`343b244` 的 [G1 已发布 scoped Join 恢复记录](qualification/experimental-scoped-child-join-resume-2026-10-19.zh-CN.md)补充真实消费、Return/Root Active handoff，并通过准确源码的完整 21-job CI；fresh scoped Join/G2、完整故障矩阵、stdio 生命周期及 R1/R6/R7 仍开放。该 CI 不覆盖后续 G2 或本次文档采用候选 |
 | 已发布 crate 版本 | `0.1.0-alpha.1`，预览版；源码新增能力不都包含在该发布包中 |
 | 官网 | `https://stknot.com`，中英双语文档；当前 release `aa11b4f44a94` 的四个关键页面已核对构建字节 |
 | 依赖 PR | 16 个依赖升级 PR 已由 #141/#145 收口；#146 已合并，后续以 GitHub 实时状态为准 |
@@ -490,3 +490,17 @@ npm run verify
 - 已采用opt1的后续head85f CI [38752172054](https://github.com/StateKnot/StateKnot/actions/runs/38752172054)终态11success/2cancelled，两普通PG job均原30m耗尽；双版Store264/Runtime189均真实终态通过，后续完整链未完成，没有显式FAILED测试判定。它尚不含新MCP候选，不能认证本组合；新增MCP Ubuntu/test-opt1步骤与完整CI仍未执行。
 
 - 2026-10-18：[选中 scoped Join owner-stop Store 增量](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)描述 schema37 的取消专用 closure-v2：唯一最新当前叶普通 owner 精确对应已注册未发布 Join，整个子账户中的子级均已终态/结算，保留原 Executing 历史并冻结完整已定价 DIRECT；不写普通完成/结果或 Join 消费。原 v1 字节与54表 ACL 保留，新增 v2 public schema getter。实际源码/二进制、双版执行与迁移/冷读结果以该独立记录为准，不转授历史资格；Root ConfirmCancellation、scoped Driver Join、其余反例/故障/兼容/完整 CI、RFC-0022 与 R1 继续开放。
+
+- 2026-10-19：[G1 已发布 scoped ChildJoin 恢复验收](qualification/experimental-scoped-child-join-resume-2026-10-19.zh-CN.md)绑定 `343b244`/实际 checkout `4a05c35` 同 tree；本机六门禁 2144 passed/6 原 ignored、48 doc、20 次双 PG 定向，以及 run39228803615 的 21/21 job 和两版 Store267/Runtime210 完整 Native 已核对。正向 child 为零 I/O failure 前置，同进程重连不称 OS-kill；父终点仍为 Active handoff。旧 C9dd 失败 CI 与原37 portable bundle 保留，G2 与未来文档提交不继承该准确 head 的资格，R1/R6/R7 不关闭。
+
+
+2026-10-19 G2 开发候选（未验收、未关闭 R1/R6/R7）：
+
+- [fresh scoped ChildJoin 采用与待验收记录](qualification/experimental-scoped-child-join-fresh-2026-10-19.zh-CN.md)说明稳定 slot/initial_state/descriptor/request/authority/budget 与新 candidate IDs 的边界、父 cold retry headroom，以及真实 child 用量只累计一次的父 Succeeded 路径。最终 complete-source-v1 为959/560，CI pin272/216，最终门禁/完整Native/发布与新CI仍待绑定。
+- 已有双版8次Store、2次partial、2次consumption和2次父Succeeded通过各保留原source；旧admission双失败及其25+1预算原因保留。同959/560基准的Store构建/完整库存272及新增并发双版各1次通过已绑定；v5仍待本文绑定，原Clippy101与后续style组合另验。不能把中间14个不同source的通过拼成最终资格。G1 head343/run39228803615原文与限定事实不变；后续文档overlay另行核对，不反授该旧CI。
+
+
+2026-10-20 G2 final-v1 实测与待验修复追加：
+
+- [fresh scoped ChildJoin 新诊断](qualification/experimental-scoped-child-join-fresh-2026-10-19.zh-CN.md)保留原959/560截点；另绑定旧冻结final-v1的962/560：六门禁v2全部exit0，workspace2155 passed/6原ignored、doc48。完整Native-v2 Store16/17各272通过，Runtime17=216通过，Runtime16=215通过/1个partial原90秒冷进程readiness超时；本轮稳定clock、无旧sleep干扰，不是完整双版Native通过。
+- 同保存Runtime binary955d35d2…的PG16单例47.081秒、1pass/215filtered不覆盖原全套失败。失败journal到seq22 Root节点succeeded与guardian续租，不足以区分首次cold drive末段和1316行重复drive。拟议仅同usage_at内复用已完整读取记录，保留每事件唯一匹配/settlement及全部原守卫；无跨call缓存、预算/90秒扩张、唯一根因或性能断言。包含新文档/修复的六门禁、完整双PG Native、发布与新CI仍待Root；不转授G1，不关闭RFC Draft或R1/R6/R7。
