@@ -7,8 +7,8 @@ use super::*;
 use sqlx_core::{connection::ConnectOptions, query_as::query_as, raw_sql::raw_sql};
 use sqlx_postgres::{PgConnectOptions, PgPool, PgPoolOptions, PgSslMode};
 use stateknot_core::{
-    AgentAdmission, AgentAdmissionIntent, GraphFrameEntryPlan, GraphSchemaValidator,
-    NodeAttemptStatus, NodeTerminalOutput, SchedulerReservationId,
+    AgentAdmission, AgentAdmissionIntent, GraphFrameEntryPlan, GraphSchemaValidator, JournalEvent,
+    JournalHead, NodeAttemptStatus, NodeTerminalOutput, SchedulerReservationId,
 };
 use stateknot_store_postgres::{
     AgentAdmissionCommitOutcome, GraphFrameBarrierCommitOutcome, GraphFrameEntryCommitOutcome,
@@ -448,16 +448,42 @@ enum RoleFrameCase {
     Return,
     Wait,
     Close,
+    PublishedJoinClose,
 }
 #[allow(clippy::too_many_lines)]
 async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, case: RoleFrameCase) {
     let wait_case = matches!(case, RoleFrameCase::Wait);
+    let published_case = matches!(case, RoleFrameCase::PublishedJoinClose);
+    let native = published_case.then(|| {
+        provider_native_fixture_with_budget(
+            store.clone(),
+            false,
+            false,
+            false,
+            None,
+            NativeBudgetMode::Durable,
+        )
+    });
     let wire: Value = serde_json::from_str(include_str!(
         "../../../stateknot-core/tests/fixtures/core-graph-frame-call-v1.json"
     ))
     .unwrap();
     let mut parent: CompiledGraph = serde_json::from_value(wire["compiled"].clone()).unwrap();
     let mut child: CompiledGraph = serde_json::from_value(wire["child"].clone()).unwrap();
+    if let Some(native) = &native {
+        let child_policy = stateknot_core::GraphChildRunPolicy::new(
+            stateknot_core::ChildRunTopologyLimits::new(2, 8, 4).unwrap(),
+            [stateknot_core::ChildRunDeclaration::new(
+                child.entry_nodes().iter().next().unwrap().clone(),
+                stateknot_core::ChildRunSlot::new("analysis").unwrap(),
+                native.definition.descriptor(),
+                native.definition.graph(),
+            )
+            .unwrap()],
+        )
+        .unwrap();
+        child = child.with_child_runs(child_policy).unwrap();
+    }
     if wait_case {
         let node = child.entry_nodes().iter().next().unwrap().clone();
         child = CompiledGraph::compile(
@@ -479,6 +505,8 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, case: Ro
             child.limits(),
         )
         .unwrap();
+    }
+    if wait_case || published_case {
         let policy = parent.frame_calls().unwrap();
         let call = &policy.calls()[0];
         let replacement = stateknot_core::GraphFrameCallPolicy::new(
@@ -495,14 +523,35 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, case: Ro
         .unwrap();
         parent = parent.with_frame_calls(replacement).unwrap();
     }
+    if let Some(native) = &native {
+        let root_policy = stateknot_core::GraphChildRunPolicy::new(
+            stateknot_core::ChildRunTopologyLimits::new(2, 8, 4).unwrap(),
+            [stateknot_core::ChildRunDeclaration::new(
+                NodeId::new("finish").unwrap(),
+                stateknot_core::ChildRunSlot::new("analysis").unwrap(),
+                native.definition.descriptor(),
+                native.definition.graph(),
+            )
+            .unwrap()],
+        )
+        .unwrap();
+        parent = parent.with_child_runs(root_policy).unwrap();
+    }
     let tenant_id = tenant(match case {
         RoleFrameCase::Return => "role-frame-entry",
         RoleFrameCase::Wait => "role-frame-wait",
         RoleFrameCase::Close => "role-frame-close",
+        RoleFrameCase::PublishedJoinClose => "role-frame-published-join-close",
     });
     for graph in [&parent, &child] {
         store
             .register_graph_definition(tenant_id.clone(), graph.clone())
+            .await
+            .unwrap();
+    }
+    if let Some(native) = &native {
+        store
+            .register_graph_definition(tenant_id.clone(), native.definition.graph().clone())
             .await
             .unwrap();
     }
@@ -642,7 +691,26 @@ async fn compound_frame_entry(fixture: &Fixture, store: &PostgresStore, case: Ro
         RoleFrameCase::Return => {
             Box::pin(scoped_node_completion(store, &entry, &child, lease.fence())).await;
         }
-        RoleFrameCase::Close => Box::pin(scoped_close(fixture, store, &entry, lease.fence())).await,
+        RoleFrameCase::Close => {
+            Box::pin(scoped_close(fixture, store, &entry, lease.fence(), None)).await;
+        }
+        RoleFrameCase::PublishedJoinClose => {
+            let saved = Box::pin(scoped_publish_join(
+                store,
+                &entry,
+                native.as_ref().unwrap(),
+                lease.fence(),
+            ))
+            .await;
+            Box::pin(scoped_close(
+                fixture,
+                store,
+                &entry,
+                lease.fence(),
+                Some(&saved),
+            ))
+            .await;
+        }
     }
     denied(
         &fixture.retention,
@@ -1028,6 +1096,12 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     .await;
     Box::pin(compound_frame_entry(&fixture, &store, RoleFrameCase::Wait)).await;
     Box::pin(compound_frame_entry(&fixture, &store, RoleFrameCase::Close)).await;
+    Box::pin(compound_frame_entry(
+        &fixture,
+        &store,
+        RoleFrameCase::PublishedJoinClose,
+    ))
+    .await;
     isolated_retention(&fixture, &store).await;
     let snapshot = "SELECT jsonb_agg(jsonb_build_array(tenant_id,run_id,journal_sequence,journal_digest) ORDER BY tenant_id,run_id) FROM stateknot.runs";
     let before: Value = query_scalar(snapshot)
@@ -1049,7 +1123,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 37);
+    assert_eq!(schema_version, 38);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -1072,6 +1146,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "graph_wait_elapsed_and_registered_real_runtime_login":true,
         "graph_wait_runtime_update_delete_and_retention_rejected":true,
         "whole_frame_closure_retry_reload_terminal":true,
+        "published_unconsumed_scoped_join_stop_v3_real_runtime_login":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"
@@ -1330,6 +1405,7 @@ async fn scoped_close(
     store: &PostgresStore,
     entry: &stateknot_store_postgres::StoredGraphFrameEntry,
     fence: &stateknot_core::RunFence,
+    published: Option<&RolePublishedJoin>,
 ) {
     let append = |head| {
         JournalAppend::new(
@@ -1348,6 +1424,17 @@ async fn scoped_close(
         .load_run(fence.tenant_id(), fence.run_id())
         .await
         .unwrap();
+    let request_append = if published.is_some() {
+        assert_eq!(run.lifecycle().status(), RunStatus::Active);
+        assert!(run.lease().is_none());
+        role_join_control(
+            fence,
+            run.journal_head().unwrap().clone(),
+            "role-published-join-cancellation-requested",
+        )
+    } else {
+        append(entry.event().head())
+    };
     let failure = Failure::new(
         FailureId::generate(),
         FailureCategory::Cancelled,
@@ -1359,10 +1446,20 @@ async fn scoped_close(
         RetryAdvice::Never,
     )
     .unwrap();
-    let request = RunCancellationRequest::new(failure, entry.event().recorded_at()).unwrap();
+    let failure = if published.is_some() {
+        failure.with_caused_by_event(request_append.intent().event_id())
+    } else {
+        failure
+    };
+    let requested_at = if published.is_some() {
+        store.observe_database_clock().await.unwrap()
+    } else {
+        entry.event().recorded_at()
+    };
+    let request = RunCancellationRequest::new(failure, requested_at).unwrap();
     store
         .append_control_plane(
-            append(entry.event().head()),
+            request_append,
             RunProjection::transition(
                 run.lifecycle().revision(),
                 RunTransition::RequestCancellation { request },
@@ -1374,6 +1471,36 @@ async fn scoped_close(
         .load_run(fence.tenant_id(), fence.run_id())
         .await
         .unwrap();
+    let direct = if published.is_some() {
+        assert_eq!(run.lifecycle().status(), RunStatus::Active);
+        assert!(run.lease().is_none());
+        let second = store
+            .claim_lease(fence.tenant_id(), fence.run_id(), AttemptId::generate())
+            .await
+            .unwrap();
+        assert!(second.lease().fence().epoch() > fence.epoch());
+        Box::pin(role_published_direct(
+            store,
+            entry,
+            &published.unwrap().owner,
+            requested.journal_head().unwrap(),
+        ))
+        .await
+    } else {
+        entry.direct_usage_after().unwrap()
+    };
+    let whole_usage = store
+        .include_child_usage(fence.tenant_id(), fence.run_id(), direct.clone())
+        .await
+        .unwrap();
+    if let Some(saved) = published {
+        assert_eq!(
+            whole_usage,
+            direct
+                .checked_accumulate(&saved.child_usage.cumulative_only())
+                .unwrap()
+        );
+    }
     let closed = store
         .close_graph_frames(
             fence.tenant_id(),
@@ -1381,11 +1508,31 @@ async fn scoped_close(
             EventId::generate(),
             requested.journal_head().unwrap().clone(),
             requested.lifecycle().revision(),
-            entry.direct_usage_after().unwrap(),
+            direct.clone(),
         )
         .await
         .unwrap();
     let record = closed.record();
+    if published.is_some() {
+        assert!(matches!(
+            &closed,
+            stateknot_store_postgres::GraphFrameClosureCommitOutcome::Committed(_)
+        ));
+        let (reference, document) =
+            PostgresStore::graph_frame_published_join_stop_event_schema().unwrap();
+        assert_eq!(record.event().payload().schema(), &reference);
+        assert_eq!(
+            record.event().payload().data().as_value()["version"],
+            json!(3)
+        );
+        let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
+        schemas.register(reference.clone(), document).unwrap();
+        schemas
+            .build()
+            .unwrap()
+            .validate_bounded(&reference, record.event().payload().data())
+            .unwrap();
+    }
     assert_eq!(
         record.completions()[0].start(),
         &entry.entry().start().head()
@@ -1426,7 +1573,7 @@ async fn scoped_close(
                 requested.lifecycle().revision(),
                 RunTransition::ConfirmCancellation {
                     completed_at: record.event().recorded_at(),
-                    usage: record.direct_usage().clone(),
+                    usage: whole_usage.clone(),
                 },
             ),
         )
@@ -1486,5 +1633,449 @@ async fn scoped_close(
         "SELECT * FROM stateknot.graph_frame_closures LIMIT 1",
     )
     .await;
+    if let Some(saved) = published {
+        Box::pin(role_verify_published_close(&fresh, saved, &direct)).await;
+        let final_run = fresh
+            .load_run(fence.tenant_id(), fence.run_id())
+            .await
+            .unwrap();
+        assert_eq!(final_run.lifecycle().terminal_usage(), Some(&whole_usage));
+        assert!(final_run.lease().is_none());
+    }
     fresh.close().await;
+}
+
+// Actual published/unconsumed owner-stop work under the standalone runtime LOGIN.
+// The child executes the real provider-native path; no terminal or Join row is fabricated.
+struct RolePublishedJoin {
+    owner: stateknot_core::NodeAttemptStartHead,
+    published: stateknot_store_postgres::ChildJoinRecord,
+    child: RunId,
+    child_usage: BudgetUsage,
+    account: stateknot_core::ChildRunBudgetAccount,
+}
+
+fn role_join_worker(fence: &RunFence, head: JournalHead, kind: &str) -> JournalAppend {
+    JournalAppend::new(
+        JournalExpectation::exact(head),
+        JournalEventIntent::worker(
+            fence.tenant_id().clone(),
+            fence.run_id(),
+            EventId::generate(),
+            fence.clone(),
+            payload(kind),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
+
+fn role_join_control(fence: &RunFence, head: JournalHead, kind: &str) -> JournalAppend {
+    JournalAppend::new(
+        JournalExpectation::exact(head),
+        JournalEventIntent::control_plane(
+            fence.tenant_id().clone(),
+            fence.run_id(),
+            EventId::generate(),
+            payload(kind),
+        )
+        .unwrap(),
+    )
+    .unwrap()
+}
+
+fn role_native_child_intent(
+    parent: &stateknot_store_postgres::StoredAgentAdmission,
+    native: &ProviderNativeFixture,
+) -> AgentAdmissionIntent {
+    let ids = AgentRunIds::generate();
+    let original = parent.admission().intent();
+    AgentAdmissionIntent::new(
+        AgentResultProvenance::for_agent(
+            original.provenance().tenant_id().clone(),
+            ids.run_id(),
+            ids.thread_id(),
+            ids.invocation_id(),
+            native.definition.descriptor(),
+        ),
+        native.definition.descriptor().clone(),
+        AgentRequest::new(
+            native.input_schema.clone(),
+            BoundedJson::try_from_value(
+                json!({"question":"Complete the actual child before parent cancellation."}),
+            )
+            .unwrap(),
+            BudgetLimits::empty()
+                .with_event_bytes(ByteCount::new(1_048_576))
+                .with_checkpoint_bytes(ByteCount::new(1_048_576))
+                .with_graph_steps(ExecutionCount::new(8))
+                .with_input_bytes(ByteCount::new(65_536))
+                .with_output_bytes(ByteCount::new(65_536)),
+        ),
+        original.budget_layers().iter().cloned(),
+        native.definition.graph().reference(),
+        original.authority().clone(),
+    )
+    .unwrap()
+}
+
+// Complete zero-provider parent work: retain the measured entry's committed
+// step, depth and checkpoints. Verify the ordinary Start without counting it as
+// another committed graph step, and measure actual Root input and event bytes.
+async fn role_published_direct(
+    store: &PostgresStore,
+    entry: &stateknot_store_postgres::StoredGraphFrameEntry,
+    owner: &stateknot_core::NodeAttemptStartHead,
+    head: &JournalHead,
+) -> BudgetUsage {
+    let kinds = [
+        "graph-node-attempt-started",
+        "child-run-admitted",
+        "child-join-registered",
+        "child-run-settled",
+        "child-join-published",
+        "role-published-join-cancellation-requested",
+    ];
+    let entry_head = entry.event().head();
+    let page = store
+        .load_journal_page(
+            entry_head.tenant_id(),
+            entry_head.run_id(),
+            Some(&entry_head),
+            JournalPageSize::new(16).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(!page.has_more());
+    // The only callers observe exactly the ordinary Start, or the complete
+    // six-event tail through cancellation. Reject every other prefix or suffix.
+    assert!(matches!(page.events().len(), 1 | 6));
+    assert_eq!(
+        page.events().last().map(JournalEvent::head).as_ref(),
+        Some(head)
+    );
+    assert_eq!(page.events()[0].head(), *owner.journal_head());
+    let history = store
+        .load_node_attempt_history_page(
+            owner.activation(),
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert!(!history.has_more());
+    assert_eq!(history.records().len(), 1);
+    assert_eq!(history.records()[0].start().head(), *owner);
+    assert_eq!(history.records()[0].status(), NodeAttemptStatus::Executing);
+    assert!(history.records()[0].completion().is_none());
+    let mut bytes = 0;
+    for (event, kind) in page.events().iter().zip(kinds) {
+        assert_eq!(event.payload().kind().as_str(), kind);
+        bytes += serde_json_canonicalizer::to_vec(event).unwrap().len() as u64;
+    }
+    let admission = store
+        .load_agent_admission(entry_head.tenant_id(), entry_head.run_id())
+        .await
+        .unwrap();
+    let input_bytes =
+        serde_json_canonicalizer::to_vec(admission.admission().intent().request().input())
+            .unwrap()
+            .len() as u64;
+    entry
+        .direct_usage_after()
+        .unwrap()
+        .checked_accumulate(
+            &BudgetUsage::builder()
+                .concurrent_branches(ExecutionCount::new(1))
+                .fan_out(ExecutionCount::new(1))
+                .input_bytes(ByteCount::new(input_bytes))
+                .event_bytes(ByteCount::new(bytes))
+                .build()
+                .unwrap(),
+        )
+        .unwrap()
+}
+
+async fn role_run_native_child(
+    store: &PostgresStore,
+    native: &ProviderNativeFixture,
+    tenant_id: &TenantId,
+    child: RunId,
+) -> BudgetUsage {
+    let fence = store
+        .claim_lease(tenant_id, child, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let child_loop = DurableAgentLoop::new(
+        store.clone(),
+        native.registry.clone(),
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            native.definition.clone(),
+            store.clone(),
+        )),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let result = child_loop
+        .run(fence, CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(matches!(
+        result.outcome(),
+        AgentLoopOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    drop(child_loop);
+    let finished = store.load_run(tenant_id, child).await.unwrap();
+    assert_eq!(finished.lifecycle().status(), RunStatus::Succeeded);
+    assert!(finished.lease().is_none());
+    let usage = finished.lifecycle().terminal_usage().unwrap().clone();
+    assert_eq!(usage.model_turns().get(), 2);
+    assert_eq!(usage.tool_calls().get(), 1);
+    assert_eq!(usage.unpriced_cost_events(), ExecutionCount::ZERO);
+    assert_eq!(native.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(native.tool_calls.load(Ordering::SeqCst), 1);
+    usage
+}
+
+async fn role_start_join_owner(
+    store: &PostgresStore,
+    entry: &stateknot_store_postgres::StoredGraphFrameEntry,
+    fence: &RunFence,
+) -> stateknot_core::NodeAttemptStartHead {
+    let plan = stateknot_core::ReadyNodeRecoveryPlanner::for_frame(
+        entry.entry().checkpoint().clone(),
+        fence.clone(),
+    )
+    .unwrap()
+    .finish(entry.event().head(), entry.event().recorded_at())
+    .unwrap();
+    let node = plan.nodes()[0].activation().node_id().clone();
+    let started = Box::pin(store.start_recovered_graph_frame_node_attempt(
+        role_join_worker(
+            fence,
+            plan.journal_head().clone(),
+            "graph-node-attempt-started",
+        ),
+        &plan,
+        &node,
+        AttemptId::generate(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        started,
+        NodeAttemptCommitOutcome::Committed { .. }
+    ));
+    started.attempt().start().head()
+}
+
+async fn role_admit_join_child(
+    store: &PostgresStore,
+    entry: &stateknot_store_postgres::StoredGraphFrameEntry,
+    native: &ProviderNativeFixture,
+    owner: &stateknot_core::NodeAttemptStartHead,
+) -> (RunId, stateknot_core::ChildRunKey, JournalHead) {
+    let fence = owner.fence();
+    let parent = store
+        .load_agent_admission(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let child = role_native_child_intent(&parent, native);
+    let child_run = child.provenance().run_id();
+    let key = stateknot_core::ChildRunKey::new(
+        owner.activation().clone(),
+        stateknot_core::ChildRunSlot::new("analysis").unwrap(),
+    )
+    .unwrap();
+    let intent = stateknot_core::ChildRunAdmissionIntent::for_frame(
+        parent.admission(),
+        entry.entry().checkpoint(),
+        key.clone(),
+        child,
+        native.definition.graph().clone(),
+        native.definition.initial_state().unwrap(),
+    )
+    .unwrap();
+    let (append, checkpoint) = child_write(&intent);
+    let direct = Box::pin(role_published_direct(
+        store,
+        entry,
+        owner,
+        owner.journal_head(),
+    ))
+    .await;
+    let spawned = Box::pin(store.admit_child_run(
+        intent,
+        owner,
+        role_join_worker(fence, owner.journal_head().clone(), "child-run-admitted"),
+        append,
+        checkpoint,
+        direct,
+        &RoleFrameSchemas,
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(spawned, ChildRunCommitOutcome::Committed(_)));
+    (child_run, key, spawned.record().spawn().head())
+}
+
+async fn role_settle_publish_join(
+    store: &PostgresStore,
+    request: &stateknot_core::ChildRunJoinRequest,
+    child_usage: &BudgetUsage,
+    fence: &RunFence,
+) -> stateknot_store_postgres::ChildJoinRecord {
+    let parent = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(parent.lifecycle().status(), RunStatus::Active);
+    assert!(parent.lease().is_none());
+    let settled = Box::pin(store.settle_child_run(
+        &request.keys()[0],
+        role_join_control(
+            fence,
+            parent.journal_head().unwrap().clone(),
+            "child-run-settled",
+        ),
+    ))
+    .await
+    .unwrap();
+    let ChildRunSettlementOutcome::Committed { record, .. } = settled else {
+        panic!("the real runtime LOGIN must commit its child settlement");
+    };
+    assert_eq!(record.settlement().unwrap().usage(), child_usage);
+    let current = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let publication = store
+        .publish_child_join(
+            request,
+            role_join_control(
+                fence,
+                current.journal_head().unwrap().clone(),
+                "child-join-published",
+            ),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        publication,
+        stateknot_store_postgres::ChildJoinCommitOutcome::Committed(_)
+    ));
+    publication.record().clone()
+}
+
+async fn scoped_publish_join(
+    store: &PostgresStore,
+    entry: &stateknot_store_postgres::StoredGraphFrameEntry,
+    native: &ProviderNativeFixture,
+    fence: &RunFence,
+) -> RolePublishedJoin {
+    let owner = Box::pin(role_start_join_owner(store, entry, fence)).await;
+    let (child, key, head) = Box::pin(role_admit_join_child(store, entry, native, &owner)).await;
+    let request = stateknot_core::ChildRunJoinRequest::new([key]).unwrap();
+    let registered = store
+        .register_child_join(
+            request.clone(),
+            &owner,
+            role_join_worker(fence, head, "child-join-registered"),
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        registered,
+        stateknot_store_postgres::ChildJoinCommitOutcome::Committed(_)
+    ));
+    let child_usage = Box::pin(role_run_native_child(
+        store,
+        native,
+        fence.tenant_id(),
+        child,
+    ))
+    .await;
+    let published = Box::pin(role_settle_publish_join(
+        store,
+        &request,
+        &child_usage,
+        fence,
+    ))
+    .await;
+    assert_eq!(published.registration(), registered.record().registration());
+    assert!(published.head().is_some() && published.consumed().is_none());
+    assert_eq!(published.binding().unwrap().terminals().len(), 1);
+    assert_eq!(
+        published.binding().unwrap().terminals()[0].usage(),
+        &child_usage
+    );
+    let account = store
+        .load_child_budget_account(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(account.children().len(), 1);
+    assert!(account.children()[0].settlement().is_some());
+    assert_eq!(
+        account.delegated_usage().unwrap(),
+        child_usage.cumulative_only()
+    );
+    RolePublishedJoin {
+        owner,
+        published,
+        child,
+        child_usage,
+        account,
+    }
+}
+
+async fn role_verify_published_close(
+    store: &PostgresStore,
+    saved: &RolePublishedJoin,
+    direct: &BudgetUsage,
+) {
+    let activation = saved.owner.activation();
+    let joined = store.load_child_join(activation).await.unwrap().unwrap();
+    assert_eq!(joined.request(), saved.published.request());
+    assert_eq!(joined.registration(), saved.published.registration());
+    assert_eq!(joined.head(), saved.published.head());
+    assert!(joined.consumed().is_none());
+    assert_eq!(joined.binding(), saved.published.binding());
+    let attempt = store
+        .load_node_attempt(
+            activation.tenant_id(),
+            &activation.run_id(),
+            saved.owner.attempt_id(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(attempt.start().head(), saved.owner);
+    assert_eq!(attempt.status(), NodeAttemptStatus::Executing);
+    assert!(attempt.completion().is_none());
+    assert!(matches!(
+        store.load_pending_node_result(activation).await,
+        Err(StoreError::PendingNodeResultNotFound)
+    ));
+    let account = store
+        .load_child_budget_account(activation.tenant_id(), activation.run_id())
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(account.children(), saved.account.children());
+    assert_eq!(account.direct_usage(), direct);
+    assert_eq!(
+        account.delegated_usage().unwrap(),
+        saved.child_usage.cumulative_only()
+    );
+    let child = store
+        .load_run(activation.tenant_id(), saved.child)
+        .await
+        .unwrap();
+    assert_eq!(child.lifecycle().status(), RunStatus::Succeeded);
+    assert_eq!(child.lifecycle().terminal_usage(), Some(&saved.child_usage));
+    assert!(child.lease().is_none());
 }

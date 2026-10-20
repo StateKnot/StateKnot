@@ -493,6 +493,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             )),
             false,
         ),
+        Migration::new(
+            38,
+            Cow::Borrowed("published scoped Join owner stops"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0038_published_join_owner_stops.sql"
+            )),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,

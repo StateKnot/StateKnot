@@ -1334,3 +1334,85 @@ The selected Store profile does not qualify Root ConfirmCancellation, scoped
 Driver Join, published-but-unconsumed cancellation, spawn-before-registration or
 later-resumed-owner cancellation. Complete negative/fault/compatibility/CI gates,
 RFC acceptance and R1 remain open; all three Driver guards remain unchanged.
+
+### Candidate Store v3 published/unconsumed Join stop and schema38 integration
+
+This increment defines the next separate cancellation profile. Root retained its
+actual public Loop RED: a complete priced child was published while the parent
+was Active, then RequestCancellation and F2 recovery reached the unpublished-only
+guard. This is a baseline observation, not GREEN or a later source qualification.
+The v1/v2 implementation and accepted historical qualification above keep their
+original meaning. At this authoring cut, new core, SQL, role, upgrade, fault,
+compatibility and CI validation remain pending actual Root execution. This section
+does not enable Supported scoped Driver or R1 operation.
+
+The private envelope and intent use version3. All common whole-close fields remain
+required; `stopped_join` contains exactly five fields:
+
+| Field | Complete owning evidence |
+| --- | --- |
+| `owner` | Original complete `NodeAttemptStartHead`, exact physical Start/fence/journal |
+| `request_digest` | Complete original registered request identity, never a subset of keys |
+| `registration` | Original full worker registration `JournalHead` and projection |
+| `binding` | Existing Core `ChildRunJoinBinding`: exactly `request`, ordered `terminals`, `digest` |
+| `publication` | Existing Core `ChildRunJoinHead`: `activation`, `request_digest`, `binding_digest`, original `journal_head` |
+
+The full stop object participates in JCS intent hashing under
+`stateknot-postgres-frame-closure-intent-v3\0`; compound hashing uses
+`stateknot-postgres-frame-closure-compound-v3\0`, the intent digest, actual event
+digest and ordered real framework completion digests. Existing no-stop v1 and
+registered-unpublished v2 retain their exact wire, schema, domains and canonical
+bytes. Absent publication is not encoded as null/empty v3 fields. Published but
+consumed, resumed/superseded owners and unregistered spawns remain outside this
+narrow exception.
+
+Fresh eligibility and owning recovery authenticate the same current leaf, unique
+latest ordinary owner, complete sealed membership in both directions, original
+registration and complete immutable published binding. Original head, binding
+bytes/checksum, ready projection, control-plane publication event and its existing
+`stateknot.child-join.v1` publication projection must agree. Registration precedes
+publication; publication and every settlement audit head are no later than the
+saved cancellation observation. Child terminal journal positions belong to their
+own Runs and are never compared to parent journal sequence numbers. A checksum or
+terminal subset cannot replace the complete owning evidence.
+
+The whole Root-bound lifetime account independently covers every admitted child,
+including other activations, with complete priced immutable settlements. Selected
+binding terminals do not replace that account. Complete durable parent DIRECT at
+the observed head excludes child subtrees; delegated cumulative usage is added
+once. Unknown Tool/Model work, unpriced/unsettled usage, fresh quarantine, another
+unfinished ordinary owner, pending ordinary result or consumption rejects. The
+parent lock, canonical terminal-child lock order, repeated owning reads, original
+full mutation ACK and deferred SQL guard remain. The original owner stays
+Executing; no ordinary completion/result, consumption or resume authority is
+fabricated. Framework caller completions retain their original fences and zero
+incremental application usage. Existing envelope, frame, physical-owner, member
+and lifetime-account bounds and business timeouts remain unchanged.
+
+`PostgresStore::graph_frame_published_join_stop_event_schema()` returns the exact
+JSON Schema 2020-12 document and reference at
+`https://stknot.com/schemas/store/graph-frame-closure-event/3.0.0`, version3.0.0.
+Its closed payload contains `version: 3`, `intent_digest` and `frame_count`.
+Consumers register actual v1/v2/v3 references/documents separately; no schema is
+fetched or substituted at runtime. Both prior public accessors and their accepted
+references remain unchanged.
+
+Migration38 replaces only `stateknot.guard_graph_frame_closure_complete()`. It
+adds no table, trigger, privilege or backfill. The strict 54-table role allowlist,
+column permissions, sole explicit runtime function privilege and denial of future
+grants remain. Deploy with old workers drained, verified backup, checksum-pinned
+SQLx migration, matching schema38 role apply/audit and matching reader/writer
+binary. Root must extract the new exact graph-frame catalog from a real migrated
+database before sealing it; authored SQL is not an observed catalog or receipt.
+
+The isolated source-reconstruction fixture first rejects retained v2/v3 proofs,
+restores the exact schema36 complete closure function, then removes ledger38/37
+and follows its unchanged schema36-to-35 and earlier reconstruction. No caller
+observes an intermediate schema37 state. It never
+relabels wire/digests and is not an operational downgrade, rolling upgrade or
+published N-1/N-2 compatibility claim. Historical qualification documents and
+frozen schema35 fixture bytes remain retained. True upgrade qualification must
+preserve existing v1/v2 facts/checksums and reject incomplete/corrupt v3 evidence.
+Role, upgrade, cold-read, COMMIT-loss/process replacement, full Native and CI
+results must identify their own actually executed source/artifacts before any
+later qualification.

@@ -1,8 +1,8 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
 
--- Schema37 only changes the closure guard. Restore its exact schema36 body
--- before the schema36 reconstruction below. Never relabel retained v2 proofs.
+-- Schema38 and schema37 change only the closure guard. Restore its exact schema36
+-- body before reconstructing schema35 or earlier. Never relabel retained v2/v3 proofs.
 SELECT 1 / CASE WHEN EXISTS (
  SELECT 1 FROM stateknot.graph_frame_closures
  WHERE (convert_from(closure_bytes,'UTF8')::jsonb->>'version') IS DISTINCT FROM '1'
@@ -91,7 +91,7 @@ BEGIN
  THEN RAISE EXCEPTION 'whole closure cannot erase open frames or unsettled work' USING ERRCODE='SKG02'; END IF;
  RETURN NULL;
 END $$;
-DELETE FROM _sqlx_migrations WHERE version=37;
+DELETE FROM _sqlx_migrations WHERE version IN (37,38);
 
 -- Isolated source reconstruction only. Refuse any retained original-condition
 -- graph fact, including a damaged V3 bundle whose condition rows are absent.

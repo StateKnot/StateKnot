@@ -43,6 +43,7 @@ fn maintenance_schemas() -> JsonSchemaRegistry {
     for (reference, document) in [
         PostgresStore::graph_frame_closure_event_schema().unwrap(),
         PostgresStore::graph_frame_join_stop_event_schema().unwrap(),
+        PostgresStore::graph_frame_published_join_stop_event_schema().unwrap(),
     ] {
         schemas.register(reference, document).unwrap();
     }

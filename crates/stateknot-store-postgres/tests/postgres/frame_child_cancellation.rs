@@ -980,3 +980,834 @@ async fn registered_scoped_join_close_requires_child_settlement_before_stopping_
     db.close().await;
     store.close().await;
 }
+
+async fn published_join_fixture(
+    store: &PostgresStore,
+    name: &str,
+) -> (Fixture, stateknot_store_postgres::ChildJoinRecord) {
+    let value = Box::pin(started(store, name)).await;
+    let spawned = Box::pin(spawn(store, &value)).await.unwrap();
+    let request = stateknot_core::ChildRunJoinRequest::new([value.intent.key().clone()]).unwrap();
+    Box::pin(store.register_child_join(
+        request.clone(),
+        &value.node,
+        join_append(&value, &spawned.record().spawn().head()),
+    ))
+    .await
+    .unwrap();
+    Box::pin(join::settle(store, &value, spawned.record().child())).await;
+    let parent = store
+        .load_run(value.fence.tenant_id(), value.fence.run_id())
+        .await
+        .unwrap();
+    assert_eq!(parent.lifecycle().status(), RunStatus::Active);
+    assert!(parent.lease().is_none());
+    let append = join::control_append(store, &value, "child-join-published").await;
+    let published = Box::pin(store.publish_child_join(&request, append))
+        .await
+        .unwrap();
+    assert!(matches!(
+        published,
+        stateknot_store_postgres::ChildJoinCommitOutcome::Committed(_)
+    ));
+    assert!(published.record().binding().is_some());
+    assert!(published.record().head().is_some());
+    assert!(published.record().consumed().is_none());
+    let owner = Box::pin(store.load_child_run(value.intent.key()))
+        .await
+        .unwrap();
+    assert!(owner.settlement().is_some());
+    assert_eq!(
+        owner.settlement().unwrap().usage().unpriced_cost_events(),
+        stateknot_core::ExecutionCount::ZERO
+    );
+    (value, published.record().clone())
+}
+
+async fn assert_published_join_owner(
+    store: &PostgresStore,
+    db: &PgPool,
+    value: &Fixture,
+    published: &stateknot_store_postgres::ChildJoinRecord,
+) {
+    let key = value.intent.key();
+    let history = Box::pin(store.load_node_attempt_history_page(
+        key.parent(),
+        None,
+        NodeAttemptHistoryPageSize::new(2).unwrap(),
+    ))
+    .await
+    .unwrap();
+    assert!(!history.has_more());
+    assert_eq!(history.records().len(), 1);
+    assert_eq!(history.records()[0].start().head(), value.node);
+    assert_eq!(history.records()[0].status(), NodeAttemptStatus::Executing);
+    assert!(history.records()[0].completion().is_none());
+    let retained = Box::pin(store.load_child_join(key.parent()))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(retained.request(), published.request());
+    assert_eq!(retained.registration(), published.registration());
+    assert_eq!(retained.binding(), published.binding());
+    assert_eq!(retained.head(), published.head());
+    assert!(retained.consumed().is_none());
+    let counts: (i64, i64, i64) = query_as(
+        "SELECT (SELECT count(*) FROM stateknot.node_attempt_completions WHERE tenant_id=$1 AND run_id=$2), (SELECT count(*) FROM stateknot.pending_node_results WHERE tenant_id=$1 AND run_id=$2), (SELECT count(*) FROM stateknot.child_run_join_consumptions WHERE tenant_id=$1 AND parent_run_id=$2)",
+    )
+    .bind(key.tenant_id().as_str())
+    .bind(*key.parent_run_id().as_uuid())
+    .fetch_one(db)
+    .await
+    .unwrap();
+    assert_eq!(counts, (0, 0, 0));
+    assert_eq!(
+        store
+            .load_current_checkpoint(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap()
+            .as_ref(),
+        Some(value.admission.checkpoint())
+    );
+}
+
+fn assert_same_published_close(
+    actual: &stateknot_store_postgres::StoredGraphFrameClosure,
+    original: &stateknot_store_postgres::StoredGraphFrameClosure,
+) {
+    assert_eq!(actual.digest(), original.digest());
+    assert_eq!(actual.event(), original.event());
+    assert_eq!(actual.root_checkpoint(), original.root_checkpoint());
+    assert_eq!(actual.direct_usage(), original.direct_usage());
+    assert_eq!(
+        serde_json_canonicalizer::to_vec(actual.failure()).unwrap(),
+        serde_json_canonicalizer::to_vec(original.failure()).unwrap()
+    );
+    assert_eq!(
+        serde_json_canonicalizer::to_vec(&actual.completions()).unwrap(),
+        serde_json_canonicalizer::to_vec(&original.completions()).unwrap()
+    );
+}
+
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn published_scoped_join_cancellation_preserves_the_whole_owner_and_original_ack() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let (value, published) = Box::pin(published_join_fixture(
+        &store,
+        "published-join-cancellation-ack",
+    ))
+    .await;
+    let key = value.intent.key();
+    let account = Box::pin(store.load_child_budget_account(key.tenant_id(), key.parent_run_id()))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(account.children().len(), 1);
+    let child = Box::pin(store.load_child_run(key)).await.unwrap();
+    let child_usage = child.settlement().unwrap().usage().cumulative_only();
+    assert_ne!(child_usage, BudgetUsage::zero());
+    assert_eq!(account.delegated_usage().unwrap(), child_usage);
+    let requested_head = Box::pin(cancel_parent(&store, &value)).await;
+    let requested = store
+        .load_run(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap();
+    assert_eq!(
+        requested.lifecycle().status(),
+        RunStatus::CancellationRequested
+    );
+    assert_eq!(requested.journal_head(), Some(&requested_head));
+    let direct = Box::pin(join::direct(&store, &value, 2, &BudgetUsage::zero())).await;
+    let expected_total = direct.checked_accumulate(&child_usage).unwrap();
+    let db = super::super::frame_barriers::pool().await;
+    Box::pin(assert_published_join_owner(&store, &db, &value, &published)).await;
+    let before = registered_join_tenant_facts(&db, key.tenant_id()).await;
+    let closed = Box::pin(store.close_graph_frames(
+        key.tenant_id(),
+        key.parent_run_id(),
+        EventId::generate(),
+        requested_head,
+        requested.lifecycle().revision(),
+        direct.clone(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        closed,
+        stateknot_store_postgres::GraphFrameClosureCommitOutcome::Committed(_)
+    ));
+    let original = closed.record();
+    assert_eq!(original.direct_usage(), &direct);
+    assert_eq!(original.completions().len(), 1);
+    assert_ne!(original.completions()[0].start(), &value.node);
+    let (schema, _) = PostgresStore::graph_frame_published_join_stop_event_schema().unwrap();
+    assert_eq!(original.event().payload().schema(), &schema);
+    assert_eq!(
+        original.event().payload().kind().as_str(),
+        "graph-frames-closed"
+    );
+    let (wire, intent_digest): (Vec<u8>, String) = query_as(
+        "SELECT closure_bytes, 'sha256:' || encode(intent_digest, 'hex') FROM stateknot.graph_frame_closures WHERE tenant_id=$1 AND run_id=$2",
+    )
+    .bind(key.tenant_id().as_str()).bind(*key.parent_run_id().as_uuid())
+    .fetch_one(&db).await.unwrap();
+    let wire: serde_json::Value = serde_json::from_slice(&wire).unwrap();
+    assert_eq!(wire["version"], json!(3));
+    assert_eq!(wire["intent"]["version"], json!(3));
+    assert_eq!(
+        wire["intent"]["stopped_join"],
+        json!({
+            "owner": value.node,
+            "request_digest": published.request().digest(),
+            "registration": published.registration().head(),
+            "binding": published.binding().unwrap(),
+            "publication": published.head().unwrap(),
+        })
+    );
+    let event_payload = serde_json::to_value(original.event().payload()).unwrap();
+    assert_eq!(
+        event_payload["data"],
+        json!({
+            "version": 3,
+            "intent_digest": intent_digest,
+            "frame_count": 1,
+        })
+    );
+    Box::pin(assert_published_join_owner(&store, &db, &value, &published)).await;
+    assert!(
+        Box::pin(store.load_active_graph_frame(key.tenant_id(), key.parent_run_id()))
+            .await
+            .unwrap()
+            .is_none()
+    );
+    let after = registered_join_tenant_facts(&db, key.tenant_id()).await;
+    assert_registered_join_original_facts(&before, &after);
+    assert_eq!(
+        Box::pin(store.load_child_budget_account(key.tenant_id(), key.parent_run_id()))
+            .await
+            .unwrap(),
+        Some(account.clone())
+    );
+    for _ in 0..2 {
+        assert_eq!(
+            Box::pin(store.include_child_usage(
+                key.tenant_id(),
+                key.parent_run_id(),
+                direct.clone(),
+            ))
+            .await
+            .unwrap(),
+            expected_total
+        );
+    }
+    let retained = registered_join_tenant_facts(&db, key.tenant_id()).await;
+    let recovered = Box::pin(store.close_graph_frames(
+        key.tenant_id(),
+        key.parent_run_id(),
+        EventId::generate(),
+        value.head.clone(),
+        value.admission.run().lifecycle().revision(),
+        BudgetUsage::zero(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        recovered,
+        stateknot_store_postgres::GraphFrameClosureCommitOutcome::Existing(_)
+    ));
+    assert_same_published_close(recovered.record(), original);
+    assert_eq!(
+        registered_join_tenant_facts(&db, key.tenant_id()).await,
+        retained
+    );
+    assert!(matches!(
+        Box::pin(store.append_worker(
+            worker_append(
+                key.tenant_id().clone(),
+                key.parent_run_id(),
+                EventId::generate(),
+                JournalExpectation::exact(original.event().head()),
+                value.fence.clone(),
+                42_200
+            ),
+            RunProjection::Unchanged,
+        ))
+        .await,
+        Err(StoreError::NoActiveLease)
+    ));
+    let dispatch = ReadyNodeRecoveryPlanner::for_frame(value.frame.clone(), value.fence.clone())
+        .unwrap()
+        .finish(
+            value.head.clone(),
+            store.observe_database_clock().await.unwrap(),
+        )
+        .unwrap();
+    assert!(matches!(
+        Box::pin(store.start_recovered_graph_frame_node_attempt(
+            worker_append(
+                key.tenant_id().clone(),
+                key.parent_run_id(),
+                EventId::generate(),
+                JournalExpectation::exact(original.event().head()),
+                value.fence.clone(),
+                42_201
+            ),
+            &dispatch,
+            key.parent().node_id(),
+            AttemptId::generate(),
+        ))
+        .await,
+        Err(StoreError::RunNotRunnable)
+    ));
+    let event = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Internal,
+        FailureCode::new("node.published_join_after_close").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("A stopped published Join owner cannot complete.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap()
+    .with_caused_by_event(event);
+    assert!(matches!(
+        Box::pin(store.fail_node_attempt(
+            worker_append(
+                key.tenant_id().clone(),
+                key.parent_run_id(),
+                event,
+                JournalExpectation::exact(original.event().head()),
+                value.fence.clone(),
+                42_202
+            ),
+            &value.node,
+            failure,
+            BudgetUsage::zero(),
+        ))
+        .await,
+        Err(StoreError::GraphFrameConflict)
+    ));
+    assert_eq!(
+        registered_join_tenant_facts(&db, key.tenant_id()).await,
+        retained
+    );
+    let parent = store
+        .load_run(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap();
+    let confirmed = store
+        .append_control_plane(
+            join::control_append(&store, &value, "test-cancellation-confirmed").await,
+            RunProjection::transition(
+                parent.lifecycle().revision(),
+                RunTransition::ConfirmCancellation {
+                    completed_at: store.observe_database_clock().await.unwrap(),
+                    usage: expected_total.clone(),
+                },
+            ),
+        )
+        .await
+        .unwrap();
+    let terminal = store
+        .load_run(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap();
+    assert_eq!(terminal.lifecycle().status(), RunStatus::Cancelled);
+    assert_eq!(terminal.lifecycle().terminal_usage(), Some(&expected_total));
+    let final_head = confirmed.event().head();
+    assert_eq!(terminal.journal_head(), Some(&final_head));
+    let terminal_account =
+        Box::pin(store.load_child_budget_account(key.tenant_id(), key.parent_run_id()))
+            .await
+            .unwrap()
+            .unwrap();
+    assert_eq!(terminal_account.children(), account.children());
+    assert_eq!(
+        terminal_account.delegated_usage().unwrap(),
+        account.delegated_usage().unwrap()
+    );
+    assert_eq!(terminal_account.direct_head(), &final_head);
+    assert_eq!(terminal_account.direct_usage(), &direct);
+    assert!(terminal_account.direct_head().sequence() > account.direct_head().sequence());
+    store
+        .quarantine_run(quarantine_request(
+            key.tenant_id().clone(),
+            key.parent_run_id(),
+            QuarantineId::generate(),
+            JournalExpectation::exact(final_head),
+            RunQuarantineCause::ProjectionMismatch,
+            "test.published_join_history",
+            b"explicit retained history quarantine",
+        ))
+        .await
+        .unwrap();
+    let url = std::env::var(DATABASE_URL_ENV).unwrap();
+    let fresh_store = PostgresStore::connect(&url, store.options().clone())
+        .await
+        .unwrap();
+    let quarantined = fresh_store
+        .load_run(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap();
+    assert!(quarantined.is_quarantined());
+    assert_eq!(quarantined.lifecycle().status(), RunStatus::Cancelled);
+    let historical =
+        Box::pin(fresh_store.load_graph_frame_closure(key.tenant_id(), key.parent_run_id()))
+            .await
+            .unwrap()
+            .unwrap();
+    assert_same_published_close(&historical, original);
+    Box::pin(assert_published_join_owner(
+        &fresh_store,
+        &db,
+        &value,
+        &published,
+    ))
+    .await;
+    assert_eq!(
+        Box::pin(fresh_store.load_child_budget_account(key.tenant_id(), key.parent_run_id()))
+            .await
+            .unwrap(),
+        Some(terminal_account)
+    );
+    let quarantined_facts = registered_join_tenant_facts(&db, key.tenant_id()).await;
+    let replay = Box::pin(fresh_store.close_graph_frames(
+        key.tenant_id(),
+        key.parent_run_id(),
+        EventId::generate(),
+        value.head.clone(),
+        value.admission.run().lifecycle().revision(),
+        BudgetUsage::zero(),
+    ))
+    .await
+    .unwrap();
+    assert!(matches!(
+        replay,
+        stateknot_store_postgres::GraphFrameClosureCommitOutcome::Existing(_)
+    ));
+    assert_same_published_close(replay.record(), original);
+    assert_eq!(
+        registered_join_tenant_facts(&db, key.tenant_id()).await,
+        quarantined_facts
+    );
+    fresh_store.close().await;
+    db.close().await;
+    store.close().await;
+}
+
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn published_join_stop_profile_rejects_quarantine_consumption_and_replacement_without_writes()
+{
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let db = super::super::frame_barriers::pool().await;
+    for mode in ["quarantine", "replacement", "consumed"] {
+        let (value, published) = Box::pin(published_join_fixture(
+            &store,
+            &format!("published-join-stop-{mode}"),
+        ))
+        .await;
+        let key = value.intent.key();
+        let fence = store
+            .claim_lease(key.tenant_id(), key.parent_run_id(), AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .fence()
+            .clone();
+        assert!(fence.epoch() > value.fence.epoch());
+        let mut output = BudgetUsage::zero();
+        let starts = if mode == "quarantine" {
+            2
+        } else {
+            let successor = Box::pin(join::resume(&store, &value, &fence)).await;
+            assert_ne!(successor.start().head(), value.node);
+            assert_eq!(successor.start().activation(), key.parent());
+            if mode == "consumed" {
+                let intent = PendingNodeResultIntent::new(
+                    successor.start().activation().clone(),
+                    NodeStateChange::Unchanged,
+                    super::super::frame_barriers::terminal(&value.graph),
+                    NodeInvocationBindings::empty(),
+                )
+                .unwrap()
+                .with_child_join(published.head().unwrap().clone())
+                .unwrap();
+                output = BudgetUsage::builder()
+                    .output_bytes(ByteCount::new(
+                        serde_json_canonicalizer::to_vec(&json!({"count":7,"source":"terminal"}))
+                            .unwrap()
+                            .len() as u64,
+                    ))
+                    .build()
+                    .unwrap();
+                let completed = Box::pin(store.succeed_node_attempt(
+                    worker_append(
+                        key.tenant_id().clone(),
+                        key.parent_run_id(),
+                        EventId::generate(),
+                        JournalExpectation::exact(successor.start().journal_head().clone()),
+                        fence.clone(),
+                        42_210,
+                    ),
+                    &successor.start().head(),
+                    intent,
+                    output.clone(),
+                ))
+                .await
+                .unwrap();
+                let consumed = Box::pin(store.load_child_join(key.parent()))
+                    .await
+                    .unwrap()
+                    .unwrap();
+                assert_eq!(consumed.head(), published.head());
+                assert_eq!(consumed.consumed(), Some(&completed.event().head()));
+                let pending = Box::pin(store.load_pending_node_result(key.parent()))
+                    .await
+                    .unwrap();
+                assert_eq!(pending.intent().activation(), key.parent());
+                assert_eq!(pending.fence(), &fence);
+                assert_eq!(pending.intent().child_join(), published.head());
+            }
+            3
+        };
+        let observed = Box::pin(cancel_parent(&store, &value)).await;
+        let run = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        assert_eq!(run.lifecycle().status(), RunStatus::CancellationRequested);
+        assert_eq!(run.journal_head(), Some(&observed));
+        let direct = Box::pin(join::direct(&store, &value, starts, &output)).await;
+        let context = CorruptionQuarantineContext::new(
+            key.tenant_id().clone(),
+            key.parent_run_id(),
+            QuarantineId::generate(),
+            JournalExpectation::exact(observed.clone()),
+            Digest::sha256(b"published Join stop profile observation"),
+        )
+        .unwrap();
+        let session = store
+            .begin_claimed_run_recovery(fence.clone(), context)
+            .await
+            .unwrap();
+        if mode == "quarantine" {
+            store
+                .quarantine_run(quarantine_request(
+                    key.tenant_id().clone(),
+                    key.parent_run_id(),
+                    QuarantineId::generate(),
+                    JournalExpectation::exact(observed.clone()),
+                    RunQuarantineCause::ProjectionMismatch,
+                    "test.published_join_fresh",
+                    b"explicit fresh stop quarantine",
+                ))
+                .await
+                .unwrap();
+        }
+        let before = registered_join_tenant_facts(&db, key.tenant_id()).await;
+        let refused =
+            Box::pin(session.validate_registered_join_frame_cancellation(&value.frame.head()))
+                .await;
+        if mode == "quarantine" {
+            assert!(matches!(refused, Err(StoreError::RunQuarantined)));
+        } else {
+            assert!(matches!(refused, Err(StoreError::InvalidRunFailureClose)));
+        }
+        assert_eq!(
+            registered_join_tenant_facts(&db, key.tenant_id()).await,
+            before,
+            "profile refusal must not write: {mode}"
+        );
+        if mode != "consumed" {
+            let closed = Box::pin(store.close_graph_frames(
+                key.tenant_id(),
+                key.parent_run_id(),
+                EventId::generate(),
+                observed,
+                run.lifecycle().revision(),
+                direct,
+            ))
+            .await;
+            if mode == "quarantine" {
+                assert!(matches!(closed, Err(StoreError::RunQuarantined)));
+            } else {
+                assert!(matches!(closed, Err(StoreError::InvalidRunFailureClose)));
+            }
+            assert_eq!(
+                registered_join_tenant_facts(&db, key.tenant_id()).await,
+                before,
+                "fresh close refusal must not write: {mode}"
+            );
+        }
+        // A consumed Join with a completed ordinary attempt is not this stop
+        // profile. The existing v1 no-unfinished-work closure remains legal;
+        // this test deliberately does not reject that separate public path.
+        drop(session);
+        let after = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        if after.lease().is_some_and(|lease| lease.fence() == &fence) {
+            store.release_lease(&fence).await.unwrap();
+        }
+    }
+    db.close().await;
+    store.close().await;
+}
+
+#[tokio::test]
+#[allow(clippy::too_many_lines)]
+async fn published_join_stop_sql_proof_and_late_faults_roll_back_the_whole_compound() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let (value, _) = Box::pin(published_join_fixture(
+        &store,
+        "published-join-stop-sql-rollback",
+    ))
+    .await;
+    let key = value.intent.key();
+    let observed = Box::pin(cancel_parent(&store, &value)).await;
+    let run = store
+        .load_run(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap();
+    let direct = Box::pin(join::direct(&store, &value, 2, &BudgetUsage::zero())).await;
+    let db = super::super::frame_barriers::pool().await;
+    let before = registered_join_tenant_facts(&db, key.tenant_id()).await;
+    // This BEFORE fault changes only a well-shaped private proof. Every original
+    // production trigger remains enabled. The writer subsequently inserts all
+    // caller components, closes the stack, clears the lease and updates the Run
+    // head before SET CONSTRAINTS reaches the actual v3 complete-proof guard.
+    let mut proof_observations = Vec::new();
+    // SKG02 is normally mapped to GraphFrameCompoundRequired. A two-column
+    // relay in a dedicated test schema invokes the unchanged real guard and
+    // preserves its original code/message/detail through a diagnostic P0001.
+    for path in [
+        "{intent,stopped_join,publication,binding_digest}",
+        "{intent,stopped_join,binding,digest}",
+    ] {
+        query("CREATE SCHEMA stateknot_test_published_join_stop")
+            .execute(&db)
+            .await
+            .unwrap();
+        query("CREATE TABLE stateknot_test_published_join_stop.guard_probe (tenant_id text NOT NULL, run_id uuid NOT NULL)")
+            .execute(&db).await.unwrap();
+        query("CREATE TRIGGER test_published_join_stop_guard_probe AFTER INSERT ON stateknot_test_published_join_stop.guard_probe FOR EACH ROW EXECUTE FUNCTION stateknot.guard_graph_frame_closure_complete()")
+            .execute(&db).await.unwrap();
+        query(r"
+CREATE FUNCTION stateknot_test_published_join_stop.observe_original_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE whole stateknot.graph_frame_closures%ROWTYPE; original_code text; original_message text; original_detail text;
+BEGIN
+ SELECT * INTO whole FROM stateknot.graph_frame_closures WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id;
+ IF (SELECT count(*) FROM stateknot.graph_frame_closed_callers WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id)<>whole.frame_count
+  OR NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_stacks WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id AND active_namespace='' AND active_frame_identity_digest IS NULL)
+  OR NOT EXISTS (SELECT 1 FROM stateknot.runs WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id AND lease_attempt_id IS NULL AND journal_sequence=whole.journal_sequence AND journal_digest=whole.journal_digest)
+ THEN RAISE EXCEPTION 'fixture did not reach the complete v3 transaction' USING ERRCODE='P0001'; END IF;
+ BEGIN
+  INSERT INTO stateknot_test_published_join_stop.guard_probe VALUES (NEW.tenant_id,NEW.run_id);
+ EXCEPTION WHEN SQLSTATE 'SKG02' THEN
+  GET STACKED DIAGNOSTICS original_code=RETURNED_SQLSTATE, original_message=MESSAGE_TEXT, original_detail=PG_EXCEPTION_DETAIL;
+  RAISE EXCEPTION 'actual v3 complete guard [%]: %',original_code,original_message USING ERRCODE='P0001',DETAIL=original_detail;
+ END;
+ RAISE EXCEPTION 'fixture wrong proof was not rejected by the actual complete guard' USING ERRCODE='P0001';
+END $$
+").execute(&db).await.unwrap();
+        query("CREATE CONSTRAINT TRIGGER aa_test_published_join_stop_guard_observer AFTER INSERT ON stateknot.graph_frame_closures DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot_test_published_join_stop.observe_original_guard()")
+            .execute(&db).await.unwrap();
+        let guard_order: Vec<String> = query_scalar(
+            "SELECT tgname::text FROM pg_trigger WHERE tgrelid='stateknot.graph_frame_closures'::regclass AND tgname IN ('aa_test_published_join_stop_guard_observer','frame_closures_complete') AND tgenabled='O' ORDER BY tgname COLLATE \"C\"",
+        ).fetch_all(&db).await.unwrap();
+        query(&format!(r"
+CREATE FUNCTION stateknot_test_published_join_stop.mutate_proof() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE wire jsonb; previous text;
+BEGIN
+ wire:=convert_from(NEW.closure_bytes,'UTF8')::jsonb;
+ IF wire->>'version' IS DISTINCT FROM '3' OR wire->'intent'->>'version' IS DISTINCT FROM '3'
+ THEN RAISE EXCEPTION 'fixture requires a real v3 writer' USING ERRCODE='P0001'; END IF;
+ previous:=wire#>>'{path}';
+ IF previous IS NULL OR previous='sha256:'||repeat('0',64)
+ THEN RAISE EXCEPTION 'fixture requires a distinct complete digest' USING ERRCODE='P0001'; END IF;
+ NEW.closure_bytes:=convert_to(jsonb_set(wire,'{path}',to_jsonb('sha256:'||repeat('0',64)),false)::text,'UTF8');
+ RETURN NEW;
+END $$
+")).execute(&db).await.unwrap();
+        query("CREATE TRIGGER test_published_join_stop_proof_fault BEFORE INSERT ON stateknot.graph_frame_closures FOR EACH ROW EXECUTE FUNCTION stateknot_test_published_join_stop.mutate_proof()")
+            .execute(&db).await.unwrap();
+        let outcome = Box::pin(store.close_graph_frames(
+            key.tenant_id(),
+            key.parent_run_id(),
+            EventId::generate(),
+            observed.clone(),
+            run.lifecycle().revision(),
+            direct.clone(),
+        ))
+        .await;
+        // Restore the test-only catalog before inspecting any verdict.
+        query(
+            "DROP TRIGGER test_published_join_stop_proof_fault ON stateknot.graph_frame_closures",
+        )
+        .execute(&db)
+        .await
+        .unwrap();
+        query("DROP FUNCTION stateknot_test_published_join_stop.mutate_proof()")
+            .execute(&db)
+            .await
+            .unwrap();
+
+        query("DROP TRIGGER aa_test_published_join_stop_guard_observer ON stateknot.graph_frame_closures")
+            .execute(&db).await.unwrap();
+        query("DROP FUNCTION stateknot_test_published_join_stop.observe_original_guard()")
+            .execute(&db)
+            .await
+            .unwrap();
+        query("DROP TABLE stateknot_test_published_join_stop.guard_probe")
+            .execute(&db)
+            .await
+            .unwrap();
+        query("DROP SCHEMA stateknot_test_published_join_stop")
+            .execute(&db)
+            .await
+            .unwrap();
+        let retained = registered_join_tenant_facts(&db, key.tenant_id()).await;
+        let active =
+            Box::pin(store.load_active_graph_frame(key.tenant_id(), key.parent_run_id())).await;
+        let saved =
+            Box::pin(store.load_graph_frame_closure(key.tenant_id(), key.parent_run_id())).await;
+        proof_observations.push((path, guard_order, outcome, retained, active, saved));
+    }
+    // Same-table deferred triggers execute in name order. This final fault is
+    // after the real frame_closures_complete trigger, and checks all components
+    // exist before aborting. It cannot turn an early shape failure into success.
+    query("CREATE SCHEMA stateknot_test_published_join_stop")
+        .execute(&db)
+        .await
+        .unwrap();
+    query(r"
+CREATE FUNCTION stateknot_test_published_join_stop.final_fault() RETURNS trigger LANGUAGE plpgsql AS $$
+DECLARE whole stateknot.graph_frame_closures%ROWTYPE; wire jsonb;
+BEGIN
+ SELECT * INTO whole FROM stateknot.graph_frame_closures WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id;
+ wire:=convert_from(whole.closure_bytes,'UTF8')::jsonb;
+ IF wire->>'version' IS DISTINCT FROM '3'
+  OR (SELECT count(*) FROM stateknot.graph_frame_closed_callers WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id)<>whole.frame_count
+  OR NOT EXISTS (SELECT 1 FROM stateknot.graph_frame_stacks WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id AND active_namespace='' AND active_frame_identity_digest IS NULL)
+  OR NOT EXISTS (SELECT 1 FROM stateknot.runs WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id AND lease_attempt_id IS NULL AND journal_sequence=whole.journal_sequence AND journal_digest=whole.journal_digest)
+  OR NOT EXISTS (SELECT 1 FROM stateknot.run_events WHERE tenant_id=NEW.tenant_id AND run_id=NEW.run_id AND sequence=whole.journal_sequence AND event_kind='graph-frames-closed' AND projection_digest=whole.compound_digest)
+ THEN RAISE EXCEPTION 'fixture did not reach all v3 components' USING ERRCODE='P0001'; END IF;
+ RAISE EXCEPTION 'injected after complete published Join closure' USING ERRCODE='P0001';
+END $$
+").execute(&db).await.unwrap();
+    query("CREATE CONSTRAINT TRIGGER zz_test_published_join_stop_final_fault AFTER INSERT ON stateknot.graph_frame_closures DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot_test_published_join_stop.final_fault()")
+        .execute(&db).await.unwrap();
+    let enabled: Vec<String> = query_scalar(
+        "SELECT tgname::text FROM pg_trigger WHERE tgrelid='stateknot.graph_frame_closures'::regclass AND tgname IN ('frame_closures_complete','zz_test_published_join_stop_final_fault') AND tgenabled='O' ORDER BY tgname COLLATE \"C\"",
+    ).fetch_all(&db).await.unwrap();
+    let outcome = Box::pin(store.close_graph_frames(
+        key.tenant_id(),
+        key.parent_run_id(),
+        EventId::generate(),
+        observed.clone(),
+        run.lifecycle().revision(),
+        direct.clone(),
+    ))
+    .await;
+    query("DROP TRIGGER zz_test_published_join_stop_final_fault ON stateknot.graph_frame_closures")
+        .execute(&db)
+        .await
+        .unwrap();
+    query("DROP FUNCTION stateknot_test_published_join_stop.final_fault()")
+        .execute(&db)
+        .await
+        .unwrap();
+    query("DROP SCHEMA stateknot_test_published_join_stop")
+        .execute(&db)
+        .await
+        .unwrap();
+    let late_facts = registered_join_tenant_facts(&db, key.tenant_id()).await;
+    let closed = Box::pin(store.close_graph_frames(
+        key.tenant_id(),
+        key.parent_run_id(),
+        EventId::generate(),
+        observed,
+        run.lifecycle().revision(),
+        direct,
+    ))
+    .await;
+    let schema_result = PostgresStore::graph_frame_published_join_stop_event_schema();
+    let catalog_result = store.verify_schema().await;
+    db.close().await;
+    store.close().await;
+    // All test DDL and connections are retired before the negative verdicts.
+    for (path, guard_order, rejected, retained, active, saved) in proof_observations {
+        assert_eq!(
+            guard_order,
+            [
+                "aa_test_published_join_stop_guard_observer",
+                "frame_closures_complete"
+            ]
+        );
+        let Err(StoreError::Database { operation, source }) = rejected else {
+            panic!("wrong published proof must reach the SQL guard: {rejected:?}");
+        };
+        assert_eq!(operation, "whole frame closure deferred components");
+        let failure = source
+            .as_database_error()
+            .expect("actual PostgreSQL proof guard");
+        assert_eq!(failure.code().as_deref(), Some("P0001"));
+        assert_eq!(
+            failure.message(),
+            "actual v3 complete guard [SKG02]: published Join stop publication or binding mismatch"
+        );
+        let postgres = failure
+            .try_downcast_ref::<sqlx_postgres::PgDatabaseError>()
+            .expect("the original guard diagnostic must remain PostgreSQL");
+        assert_eq!(postgres.detail().unwrap_or_default(), "");
+        assert_eq!(
+            retained, before,
+            "the actual deferred v3 guard must undo all components: {path}"
+        );
+        assert!(saved.unwrap().is_none());
+        assert_eq!(active.unwrap().unwrap().checkpoint(), &value.frame);
+    }
+    assert_eq!(
+        enabled,
+        [
+            "frame_closures_complete",
+            "zz_test_published_join_stop_final_fault"
+        ]
+    );
+    let Err(StoreError::Database { operation, source }) = outcome else {
+        panic!("late v3 fault must abort the Store transaction: {outcome:?}");
+    };
+    assert_eq!(operation, "whole frame closure deferred components");
+    let failure = source
+        .as_database_error()
+        .expect("actual PostgreSQL deferred fault");
+    assert_eq!(failure.code().as_deref(), Some("P0001"));
+    assert_eq!(
+        failure.message(),
+        "injected after complete published Join closure"
+    );
+    assert_eq!(
+        late_facts, before,
+        "the late fault must undo the entire event/caller/stack/lease compound"
+    );
+    let closed = closed.unwrap();
+    assert!(matches!(
+        closed,
+        stateknot_store_postgres::GraphFrameClosureCommitOutcome::Committed(_)
+    ));
+    let (schema, _) = schema_result.unwrap();
+    assert_eq!(closed.record().event().payload().schema(), &schema);
+    catalog_result.unwrap();
+}

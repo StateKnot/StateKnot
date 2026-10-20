@@ -393,7 +393,7 @@ def inventory(directory, role, receipt, module):
     names = [line[:-6] for line in lines if line.endswith(': test')]
     count = module.ROLES[role][1]
     require(len(names) == len(set(names)) == count and len(lines) == count + 2
-            and lines[-1] == str(count) + ' tests, 0 benchmarks', 'full 272/224 Native inventory')
+            and lines[-1] == str(count) + ' tests, 0 benchmarks', 'full 275/227 Native inventory')
 
 
 def export():
@@ -441,7 +441,7 @@ def export():
     require(contract['schema'] == 'stateknot-postgres-native-shared-build-ci-contract-v1'
             and contract['expected_jobs'] == 22 and contract['expected_checkouts'] == 20
             and contract['current_candidate_workflow_sha256'] == sha(ROOT / '.github/workflows/ci.yml')
-            and contract['full_inventory'] == {'store': 272, 'runtime': 224}, 'explicit successor CI contract')
+            and contract['full_inventory'] == {'store': 275, 'runtime': 227}, 'explicit successor CI contract')
     save(BUNDLE / 'manifest.json', {'schema': SCHEMA, 'identity': identity_row, 'host': host_row,
          'profile': module.PROFILE, 'scripts': script_binding(), 'source': source,
          'producer_cold_target': (OUT / 'cold-target.txt').read_text().strip(),

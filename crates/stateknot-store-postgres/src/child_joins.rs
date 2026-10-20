@@ -119,6 +119,90 @@ pub(super) async fn registered_join_stop(
     })
 }
 
+// A published stop retains the original complete immutable publication. It is
+// neither result consumption nor an execution or ordinary-completion permit.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct PublishedJoinStop {
+    pub(super) owner: NodeAttemptStartHead,
+    pub(super) request_digest: Digest,
+    pub(super) registration: JournalHead,
+    pub(super) binding: ChildRunJoinBinding,
+    pub(super) publication: ChildRunJoinHead,
+}
+
+pub(super) async fn published_join_stop(
+    tx: &mut Transaction<'_, Postgres>,
+    owner: &NodeAttemptStartHead,
+    leaf: &stateknot_core::GraphFrameCheckpointHead,
+    observed: &JournalHead,
+) -> Result<PublishedJoinStop, StoreError> {
+    let activation = owner.activation();
+    if activation.graph_namespace().is_root()
+        || activation.tenant_id() != observed.tenant_id()
+        || activation.run_id() != observed.run_id()
+        || activation.graph_namespace() != leaf.frame().namespace()
+        || activation.base_checkpoint() != leaf.checkpoint()
+    {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    verify_stopped_owner_history(tx, owner).await?;
+    // The owning loader reconstructs every terminal and the binding, then
+    // authenticates the original publication event, projection and head bytes.
+    let record = load(tx, activation, false)
+        .await?
+        .ok_or(StoreError::InvalidRunFailureClose)?;
+    let binding = record
+        .binding()
+        .cloned()
+        .ok_or(StoreError::InvalidRunFailureClose)?;
+    let publication = record
+        .head()
+        .cloned()
+        .ok_or(StoreError::InvalidRunFailureClose)?;
+    let id = query_scalar::<_, Uuid>("SELECT node_attempt_id FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3")
+        .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid())
+        .bind(record.request().activation_digest().as_bytes()).fetch_one(&mut **tx).await
+        .map_err(|source| StoreError::database("published stopped Join physical owner", source))?;
+    if id != *owner.attempt_id().as_uuid()
+        || record.consumed().is_some()
+        || record.registration().source().worker_fence() != Some(owner.fence())
+        || record.registration().sequence() > observed.sequence()
+        || record.registration().recorded_at() > observed.recorded_at()
+        || binding.request() != record.request()
+        || publication.activation() != activation
+        || publication.request_digest() != record.request().digest()
+        || publication.binding_digest() != binding.digest()
+        || publication.journal_head().sequence() > observed.sequence()
+        || publication.journal_head().recorded_at() > observed.recorded_at()
+        || load_pending_node_result_row(tx, activation)
+            .await?
+            .is_some()
+    {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    if verify_members(tx, record.request(), false).await?.is_none() {
+        return Err(StoreError::ChildRunSettlementUnavailable);
+    }
+    let late_settlement: bool = query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.child_run_ownership o JOIN stateknot.child_run_settlements s USING(tenant_id,parent_run_id,key_digest) WHERE o.tenant_id=$1 AND o.parent_run_id=$2 AND o.activation_digest=$3 AND (s.journal_sequence>=$4 OR s.journal_recorded_at>$5))")
+        .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid())
+        .bind(record.request().activation_digest().as_bytes())
+        .bind(sequence(publication.journal_head())?)
+        .bind(to_database_time(publication.journal_head().recorded_at())?)
+        .fetch_one(&mut **tx).await
+        .map_err(|source| StoreError::database("published stopped Join settlement order", source))?;
+    if late_settlement {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    Ok(PublishedJoinStop {
+        owner: owner.clone(),
+        request_digest: record.request().digest(),
+        registration: record.registration().head(),
+        binding,
+        publication,
+    })
+}
+
 async fn verify_stopped_owner_history(
     tx: &mut Transaction<'_, Postgres>,
     owner: &NodeAttemptStartHead,

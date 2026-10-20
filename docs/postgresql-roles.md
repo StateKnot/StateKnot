@@ -5,10 +5,12 @@
 [简体中文](postgresql-roles.zh-CN.md)
 
 `trusted-server-roles-v1` is an executable least-privilege deployment profile for
-the **trusted server-side** PostgreSQL 16/17 provider at schema37. It separates
+the **trusted server-side** PostgreSQL 16/17 provider at schema38. It separates
 migration, application runtime and fairness-reservation retention credentials.
-Migration37 replaces one complete frame-closure guard; the schema36 54-table
-inventory and ACLs are unchanged.
+Migration38 extends the complete frame-closure guard with the separately versioned
+published, unconsumed Join stop proof. Schema37 and schema38 retain the same
+54-table inventory and exact ACL allowlist. The schema37 evidence below remains
+historical; current schema38 role and upgrade qualification must be run separately.
 For effect-free remote computation, the separate
 [MCP compute Worker profile](mcp-compute-worker.md) transmits no database
 credentials and retains the Driver in the trusted host.
@@ -106,7 +108,7 @@ timeout: investigate contention and retry the whole deployment step if it fails.
   on existing tables inherit table-level SELECT/INSERT, but never UPDATE. New
   migrations require a reviewed version-specific allowlist, migration, apply,
   audit and functional smoke tests before the new application starts. Schema
-  37 is checked here; migration checksums are checked by the pinned provider.
+  38 is checked here; migration checksums are checked by the pinned provider.
 - Reapplication is idempotent and is tested against populated durable histories.
   A read-only audit detects drift without silently fixing it; apply is a
   deliberate administrative change. Unrelated schema privilege drift is rejected
@@ -139,6 +141,14 @@ The [selected schema37 Store record](qualification/experimental-scoped-join-owne
 identifies its own executed source/cases and remaining gates. A successful Store
 owner-stop case or unchanged allowlist does not substitute for an actual current
 LOGIN/ACL run or confer complete role/fault/CI/R1 qualification.
+
+The schema38 test definition additionally creates an actual scoped Join owner and
+runs a provider-native child through its public AgentLoop using the standalone
+runtime LOGIN. It settles and publishes before requesting cancellation, then
+checks the v3 closure, original unconsumed publication/owner, complete once-only
+usage, terminal confirmation and a fresh owning read under the same credential.
+Its current-source role execution is required; the historical schema37 record
+does not qualify this new path.
 
 With an isolated loopback administrator URL in `STATEKNOT_TEST_DATABASE_URL`:
 

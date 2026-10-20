@@ -28,7 +28,7 @@ pub(super) async fn control_append(
     .unwrap()
 }
 
-async fn settle(store: &PostgresStore, value: &Fixture, child: &StoredAgentAdmission) {
+pub(super) async fn settle(store: &PostgresStore, value: &Fixture, child: &StoredAgentAdmission) {
     let provenance = child.admission().intent().provenance();
     let run = store
         .load_run(provenance.tenant_id(), provenance.run_id())
@@ -82,7 +82,7 @@ async fn settle(store: &PostgresStore, value: &Fixture, child: &StoredAgentAdmis
     ));
 }
 
-async fn resume(
+pub(super) async fn resume(
     store: &PostgresStore,
     value: &Fixture,
     fence: &RunFence,
@@ -141,7 +141,7 @@ async fn resume(
 // This fixture has one unchanged frame checkpoint, no provider/tool work and
 // no other Run work. Count every actual parent journal event; child Run bytes
 // and input are delegated charges, never added to DIRECT a second time.
-async fn direct(
+pub(super) async fn direct(
     store: &PostgresStore,
     value: &Fixture,
     starts: u64,

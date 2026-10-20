@@ -603,10 +603,10 @@ jobs:
               require(sum(line.startswith("test " + CASE + " ...") for line in lines) == 1,
                       "exact controller start line missing or repeated")
               summaries = re.findall(
-                  r"^test result: ok[.] 1 passed; 0 failed; 0 ignored; 0 measured; 223 filtered out; finished in [0-9.]+s$",
+                  r"^test result: ok[.] 1 passed; 0 failed; 0 ignored; 0 measured; 226 filtered out; finished in [0-9.]+s$",
                   text, re.MULTILINE,
               )
-              require(len(summaries) == 1, "complete 1/223 harness summary missing or repeated")
+              require(len(summaries) == 1, "complete 1/226 harness summary missing or repeated")
               marker_lines = [line[len(PREFIX):] for line in lines if line.startswith(PREFIX)]
               require(len(marker_lines) == 2, "exactly two Return cut markers required")
               seen = {}
@@ -647,8 +647,8 @@ jobs:
               rows = validate_bytes(raw, major, "linux", platform.machine())
               result = {
                   "profile": "frame-return-commit-loss-v1", "status": "passed",
-                  "exact_case": CASE, "full_runtime_inventory": 224,
-                  "selected_passed": 1, "filtered_out": 223, "marker_count": 2,
+                  "exact_case": CASE, "full_runtime_inventory": 227,
+                  "selected_passed": 1, "filtered_out": 226, "marker_count": 2,
                   "log_sha256": hashlib.sha256(raw).hexdigest(),
                   "postgres_major": major, "runner_os": "linux", "runner_arch": platform.machine(),
                   "cuts": rows,
@@ -955,6 +955,46 @@ jobs:
             --exact child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work \
             --nocapture --test-threads=1 | tee trusted-role-profile-qualification.log
           test "$(grep -c '^STATEKNOT_ROLE_PROFILE_EVIDENCE=' trusted-role-profile-qualification.log)" = 1
+          python3 - "${{ matrix.version }}" <<'PY'
+          import json
+          from pathlib import Path
+          import re
+          import sys
+
+          def require(condition, message):
+              if not condition:
+                  raise SystemExit(message)
+
+          def unique_object(pairs):
+              row = {}
+              for key, value in pairs:
+                  require(key not in row, "duplicate role marker key")
+                  row[key] = value
+              return row
+
+          def reject_constant(_):
+              raise ValueError("nonstandard role marker JSON constant")
+
+          prefix = "STATEKNOT_ROLE_PROFILE_EVIDENCE="
+          lines = Path("trusted-role-profile-qualification.log").read_text(encoding="utf-8").splitlines()
+          encoded = [line[len(prefix):] for line in lines if line.startswith(prefix)]
+          require(len(encoded) == 1, "exactly one role profile marker required")
+          marker = json.loads(encoded[0], object_pairs_hook=unique_object, parse_constant=reject_constant)
+          require(type(marker) is dict, "role marker must be an object")
+          expected = {
+              "profile": "trusted-server-roles-v1", "schema": 38,
+              "published_unconsumed_scoped_join_stop_v3_real_runtime_login": True,
+              "invariants": "passed", "fixture_cleaned": True,
+          }
+          for key, value in expected.items():
+              require(key in marker and type(marker[key]) is type(value) and marker[key] == value,
+                      "invalid role profile marker field: " + key)
+          require(sys.argv[1] in ("16", "17"), "unexpected PostgreSQL role matrix major")
+          require(type(marker.get("postgres")) is str and re.fullmatch(
+              re.escape(sys.argv[1]) + r"[.][0-9]+(?:[ .(].*)?", marker["postgres"]),
+              "role profile PostgreSQL version differs from matrix major")
+          print("Schema38 published Join runtime LOGIN marker passed the required guards.")
+          PY
 
       - name: Upload trusted SQL role evidence
         if: always()

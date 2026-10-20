@@ -14,6 +14,8 @@ const INTENT_DOMAIN: &[u8] = b"stateknot-postgres-frame-closure-intent-v1\0";
 const COMPOUND_DOMAIN: &[u8] = b"stateknot-postgres-frame-closure-compound-v1\0";
 const INTENT_DOMAIN_V2: &[u8] = b"stateknot-postgres-frame-closure-intent-v2\0";
 const COMPOUND_DOMAIN_V2: &[u8] = b"stateknot-postgres-frame-closure-compound-v2\0";
+const INTENT_DOMAIN_V3: &[u8] = b"stateknot-postgres-frame-closure-intent-v3\0";
+const COMPOUND_DOMAIN_V3: &[u8] = b"stateknot-postgres-frame-closure-compound-v3\0";
 
 #[derive(Clone, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
@@ -130,6 +132,99 @@ struct WireV2 {
 
 #[derive(Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
+struct IntentV3 {
+    version: u8,
+    admission_digest: Digest,
+    root: CheckpointHead,
+    observed_head: JournalHead,
+    lifecycle: RunLifecycle,
+    failure: Failure,
+    failure_close: Option<JournalHead>,
+    caller_failure: Failure,
+    lifetime_starts: u16,
+    #[serde(deserialize_with = "bounded_seven")]
+    frames: Vec<Frame>,
+    direct_usage: BudgetUsage,
+    delegated_usage: BudgetUsage,
+    child_account: Option<AccountObservation>,
+    stopped_join: child_joins::PublishedJoinStop,
+}
+
+impl IntentV3 {
+    fn new(intent: &Intent, stopped_join: child_joins::PublishedJoinStop) -> Self {
+        Self {
+            version: intent.version,
+            admission_digest: intent.admission_digest,
+            root: intent.root.clone(),
+            observed_head: intent.observed_head.clone(),
+            lifecycle: intent.lifecycle.clone(),
+            failure: intent.failure.clone(),
+            failure_close: intent.failure_close.clone(),
+            caller_failure: intent.caller_failure.clone(),
+            lifetime_starts: intent.lifetime_starts,
+            frames: intent.frames.clone(),
+            direct_usage: intent.direct_usage.clone(),
+            delegated_usage: intent.delegated_usage.clone(),
+            child_account: intent.child_account.clone(),
+            stopped_join,
+        }
+    }
+
+    fn into_parts(self) -> (Intent, child_joins::PublishedJoinStop) {
+        (
+            Intent {
+                version: self.version,
+                admission_digest: self.admission_digest,
+                root: self.root,
+                observed_head: self.observed_head,
+                lifecycle: self.lifecycle,
+                failure: self.failure,
+                failure_close: self.failure_close,
+                caller_failure: self.caller_failure,
+                lifetime_starts: self.lifetime_starts,
+                frames: self.frames,
+                direct_usage: self.direct_usage,
+                delegated_usage: self.delegated_usage,
+                child_account: self.child_account,
+            },
+            self.stopped_join,
+        )
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+struct WireV3 {
+    version: u8,
+    intent: IntentV3,
+    event: JournalEvent,
+    #[serde(deserialize_with = "bounded_seven")]
+    completions: Vec<NodeAttemptCompletion>,
+}
+
+#[derive(Clone, Eq, PartialEq)]
+enum StoppedJoin {
+    Registered(Box<child_joins::RegisteredJoinStop>),
+    Published(Box<child_joins::PublishedJoinStop>),
+}
+impl StoppedJoin {
+    const fn version(&self) -> u8 {
+        match self {
+            Self::Registered(_) => 2,
+            Self::Published(_) => 3,
+        }
+    }
+
+    fn owner(&self) -> &NodeAttemptStartHead {
+        match self {
+            Self::Registered(stop) => &stop.owner,
+            Self::Published(stop) => &stop.owner,
+        }
+    }
+}
+
+#[derive(Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
 struct Wire {
     version: u8,
     intent: Intent,
@@ -182,7 +277,7 @@ pub struct StoredGraphFrameClosure {
     event: JournalEvent,
     completions: Vec<NodeAttemptCompletion>,
     digest: Digest,
-    stopped_join: Option<child_joins::RegisteredJoinStop>,
+    stopped_join: Option<StoppedJoin>,
 }
 impl fmt::Debug for StoredGraphFrameClosure {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -259,13 +354,17 @@ impl GraphFrameClosureCommitOutcome {
 }
 fn intent_digest(
     intent: &Intent,
-    stopped_join: Option<&child_joins::RegisteredJoinStop>,
+    stopped_join: Option<&StoppedJoin>,
 ) -> Result<Digest, StoreError> {
     let (domain, canonical) = match (intent.version, stopped_join) {
         (1, None) => (INTENT_DOMAIN, serde_json_canonicalizer::to_vec(intent)),
-        (2, Some(stop)) => (
+        (2, Some(StoppedJoin::Registered(stop))) => (
             INTENT_DOMAIN_V2,
-            serde_json_canonicalizer::to_vec(&IntentV2::new(intent, stop.clone())),
+            serde_json_canonicalizer::to_vec(&IntentV2::new(intent, stop.as_ref().clone())),
+        ),
+        (3, Some(StoppedJoin::Published(stop))) => (
+            INTENT_DOMAIN_V3,
+            serde_json_canonicalizer::to_vec(&IntentV3::new(intent, stop.as_ref().clone())),
         ),
         _ => return Err(StoreError::corrupt("frame closure version or stop shape")),
     };
@@ -277,11 +376,12 @@ fn compound(
     intent: &Intent,
     event: &JournalEvent,
     completions: &[NodeAttemptCompletion],
-    stopped_join: Option<&child_joins::RegisteredJoinStop>,
+    stopped_join: Option<&StoppedJoin>,
 ) -> Result<Digest, StoreError> {
     let mut bytes = match intent.version {
         1 => COMPOUND_DOMAIN.to_vec(),
         2 => COMPOUND_DOMAIN_V2.to_vec(),
+        3 => COMPOUND_DOMAIN_V3.to_vec(),
         _ => return Err(StoreError::corrupt("frame closure version")),
     };
     bytes.extend_from_slice(intent_digest(intent, stopped_join)?.as_bytes());
@@ -299,9 +399,15 @@ fn encode(record: &StoredGraphFrameClosure) -> Result<Vec<u8>, StoreError> {
             event: record.event.clone(),
             completions: record.completions.clone(),
         }),
-        (2, Some(stop)) => serde_json_canonicalizer::to_vec(&WireV2 {
+        (2, Some(StoppedJoin::Registered(stop))) => serde_json_canonicalizer::to_vec(&WireV2 {
             version: 2,
-            intent: IntentV2::new(&record.intent, stop.clone()),
+            intent: IntentV2::new(&record.intent, stop.as_ref().clone()),
+            event: record.event.clone(),
+            completions: record.completions.clone(),
+        }),
+        (3, Some(StoppedJoin::Published(stop))) => serde_json_canonicalizer::to_vec(&WireV3 {
+            version: 3,
+            intent: IntentV3::new(&record.intent, stop.as_ref().clone()),
             event: record.event.clone(),
             completions: record.completions.clone(),
         }),
@@ -345,13 +451,30 @@ static EVENT_SCHEMA_V2: LazyLock<
         document,
     ))
 });
+static EVENT_SCHEMA_V3: LazyLock<
+    Result<(stateknot_core::SchemaReference, serde_json::Value), &'static str>,
+> = LazyLock::new(|| {
+    let document = serde_json::json!({"$schema":"https://json-schema.org/draft/2020-12/schema","$id":"https://stknot.com/schemas/store/graph-frame-closure-event/3.0.0","type":"object","additionalProperties":false,"properties":{"version":{"const":3},"intent_digest":{"type":"string","minLength":71,"maxLength":71,"pattern":"^sha256:[0-9a-f]{64}$"},"frame_count":{"type":"integer","minimum":1,"maximum":7}},"required":["version","intent_digest","frame_count"]});
+    let bytes = serde_json_canonicalizer::to_vec(&document).map_err(|_| "frame closure schema")?;
+    Ok((
+        stateknot_core::SchemaReference::new(
+            "https://stknot.com/schemas/store/graph-frame-closure-event/3.0.0"
+                .parse()
+                .map_err(|_| "frame closure schema ID")?,
+            stateknot_core::Version::new(3, 0, 0),
+            Digest::sha256(bytes),
+        ),
+        document,
+    ))
+});
 fn payload(
     intent: &Intent,
-    stopped_join: Option<&child_joins::RegisteredJoinStop>,
+    stopped_join: Option<&StoppedJoin>,
 ) -> Result<JournalPayload, StoreError> {
     let schema = match intent.version {
         1 => &*EVENT_SCHEMA,
         2 => &*EVENT_SCHEMA_V2,
+        3 => &*EVENT_SCHEMA_V3,
         _ => return Err(StoreError::corrupt("frame closure payload version")),
     };
     JournalPayload::new(
@@ -467,12 +590,33 @@ async fn unfinished_ordinary_ids(
         .map_err(|source| StoreError::database("closure unfinished ordinary inventory", source))
 }
 
+async fn load_stopped_join(
+    tx: &mut Transaction<'_, Postgres>,
+    owner: &NodeAttemptStartHead,
+    leaf: &GraphFrameCheckpointHead,
+    observed: &JournalHead,
+) -> Result<StoppedJoin, StoreError> {
+    // Presence selects only a verifier, never authority. Both branches reload
+    // and authenticate the complete Join under the already held parent lock.
+    let published: bool = query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.child_run_joins j JOIN stateknot.child_run_join_bindings b USING(tenant_id,parent_run_id,activation_digest) WHERE j.tenant_id=$1 AND j.parent_run_id=$2 AND j.node_attempt_id=$3)")
+        .bind(observed.tenant_id().as_str()).bind(*observed.run_id().as_uuid())
+        .bind(*owner.attempt_id().as_uuid()).fetch_one(&mut **tx).await
+        .map_err(|source| StoreError::database("stopped Join publication disposition", source))?;
+    if published {
+        let stop = Box::pin(child_joins::published_join_stop(tx, owner, leaf, observed)).await?;
+        Ok(StoppedJoin::Published(Box::new(stop)))
+    } else {
+        let stop = Box::pin(child_joins::registered_join_stop(tx, owner, leaf, observed)).await?;
+        Ok(StoppedJoin::Registered(Box::new(stop)))
+    }
+}
+
 async fn prepare_stopped_work(
     tx: &mut Transaction<'_, Postgres>,
     stored: &StoredRun,
     active: &StoredActiveGraphFrame,
     observed: &JournalHead,
-) -> Result<Option<child_joins::RegisteredJoinStop>, StoreError> {
+) -> Result<Option<StoppedJoin>, StoreError> {
     let tenant = observed.tenant_id();
     let run = observed.run_id();
     ensure_settled_provider_work(tx, tenant, run).await?;
@@ -489,7 +633,7 @@ async fn prepare_stopped_work(
     let attempt = Box::pin(load_node_attempt_record(tx, tenant, &run, attempt_id))
         .await?
         .ok_or(StoreError::NodeAttemptNotFound)?;
-    let stop = Box::pin(child_joins::registered_join_stop(
+    let stop = Box::pin(load_stopped_join(
         tx,
         &attempt.start().head(),
         &active.checkpoint().head(),
@@ -500,7 +644,7 @@ async fn prepare_stopped_work(
     // It grants no stop authority: lock the complete settled account, then
     // reconstruct the exact selected Join again while those locks are held.
     Box::pin(child_runs::lock_settled_account_children(tx, tenant, run)).await?;
-    let locked_stop = Box::pin(child_joins::registered_join_stop(
+    let locked_stop = Box::pin(load_stopped_join(
         tx,
         &attempt.start().head(),
         &active.checkpoint().head(),
@@ -520,8 +664,9 @@ async fn prepare_stopped_work(
 impl ClaimedRunRecovery<'_> {
     /// Authenticates a claimed scoped cancellation of one registered Join owner.
     ///
-    /// The complete active stack, unique latest unfinished owner, unpublished
-    /// Join, settled provider work and whole child account are reloaded under
+    /// The complete active stack, unique latest unfinished owner, unconsumed
+    /// registered Join (unpublished or its exact immutable publication), settled
+    /// provider work and whole child account are reloaded under
     /// parent-then-child locks. The exact session journal, lifecycle and live
     /// fence must still match. No business fact is written and all locks are
     /// released before returning; this observation grants no dispatch or close
@@ -614,11 +759,11 @@ impl ClaimedRunRecovery<'_> {
 async fn verify_stopped_work(
     tx: &mut Transaction<'_, Postgres>,
     intent: &Intent,
-    stop: &child_joins::RegisteredJoinStop,
+    stop: &StoppedJoin,
 ) -> Result<(), StoreError> {
     let tenant = intent.root.tenant_id();
     let run = intent.root.run_id();
-    if intent.version != 2
+    if intent.version != stop.version()
         || intent.failure_close.is_some()
         || intent.lifecycle.status() != RunStatus::CancellationRequested
         || intent.child_account.is_none()
@@ -627,20 +772,35 @@ async fn verify_stopped_work(
     }
     ensure_settled_provider_work(tx, tenant, run).await?;
     let ids = unfinished_ordinary_ids(tx, tenant, run).await?;
-    if ids.as_slice() != [*stop.owner.attempt_id().as_uuid()] {
+    if ids.as_slice() != [*stop.owner().attempt_id().as_uuid()] {
         return Err(StoreError::corrupt("stopped Join unfinished inventory"));
     }
     let leaf = intent
         .frames
         .last()
         .ok_or_else(|| StoreError::corrupt("stopped Join leaf"))?;
-    let actual = Box::pin(child_joins::registered_join_stop(
-        tx,
-        &stop.owner,
-        &leaf.checkpoint,
-        &intent.observed_head,
-    ))
-    .await?;
+    let actual = match stop {
+        StoppedJoin::Registered(_) => {
+            let actual = Box::pin(child_joins::registered_join_stop(
+                tx,
+                stop.owner(),
+                &leaf.checkpoint,
+                &intent.observed_head,
+            ))
+            .await?;
+            StoppedJoin::Registered(Box::new(actual))
+        }
+        StoppedJoin::Published(_) => {
+            let actual = Box::pin(child_joins::published_join_stop(
+                tx,
+                stop.owner(),
+                &leaf.checkpoint,
+                &intent.observed_head,
+            ))
+            .await?;
+            StoppedJoin::Published(Box::new(actual))
+        }
+    };
     if actual != *stop {
         return Err(StoreError::corrupt("stopped Join immutable evidence"));
     }
@@ -692,7 +852,26 @@ async fn anchored_record(
                 return Err(StoreError::corrupt("frame closure v2 version"));
             }
             let (intent, stop) = wire.intent.into_parts();
-            (intent, wire.event, wire.completions, Some(stop))
+            (
+                intent,
+                wire.event,
+                wire.completions,
+                Some(StoppedJoin::Registered(Box::new(stop))),
+            )
+        }
+        3 => {
+            let wire: WireV3 = serde_json::from_slice(&bytes)
+                .map_err(|_| StoreError::corrupt("frame closure v3 wire"))?;
+            if wire.version != 3 || wire.intent.version != 3 {
+                return Err(StoreError::corrupt("frame closure v3 version"));
+            }
+            let (intent, stop) = wire.intent.into_parts();
+            (
+                intent,
+                wire.event,
+                wire.completions,
+                Some(StoppedJoin::Published(Box::new(stop))),
+            )
         }
         _ => return Err(StoreError::corrupt("frame closure version")),
     };
@@ -1142,6 +1321,20 @@ impl PostgresStore {
             .cloned()
             .map_err(|_| StoreError::encoding("frame Join stop schema"))
     }
+    /// Exact v3 whole-close schema retaining an original published Join owner.
+    ///
+    /// Register this document alongside the unchanged v1/v2 documents before
+    /// accepting published-but-unconsumed scoped Join cancellation events.
+    ///
+    /// # Errors
+    /// Rejects local canonical schema encoding failure.
+    pub fn graph_frame_published_join_stop_event_schema()
+    -> Result<(stateknot_core::SchemaReference, serde_json::Value), StoreError> {
+        EVENT_SCHEMA_V3
+            .as_ref()
+            .cloned()
+            .map_err(|_| StoreError::encoding("frame published Join stop schema"))
+    }
     /// Authenticates an immutable whole closure without acquiring execution authority.
     ///
     /// # Errors
@@ -1178,9 +1371,10 @@ impl PostgresStore {
     ///
     /// Complete priced DIRECT usage and settled provider/child work are required.
     /// Ordinary work must be complete, except the unique latest scoped owner
-    /// of a registered, unpublished Join may stop under an exact cancellation
-    /// proof while retaining its original Executing history. No ordinary
-    /// completion, result, publication or consumption is created for that owner.
+    /// of an unconsumed registered Join may stop under an exact cancellation
+    /// proof while retaining its original Executing history. An existing complete
+    /// publication is retained in v3; an unpublished registration remains v2. No
+    /// ordinary completion, result, publication or consumption is created.
     /// This trusted control-plane maintenance API grants no execution
     /// lease, creates no parent result and does not require an unexpired deadline.
     /// Every actual current physical caller receives a non-retryable completion
@@ -1292,7 +1486,7 @@ impl PostgresStore {
         let admission_digest = active.entry().scope.admission_digest;
         drop(active);
         let intent = Intent {
-            version: if stopped_join.is_some() { 2 } else { 1 },
+            version: stopped_join.as_ref().map_or(1, StoppedJoin::version),
             admission_digest,
             root,
             observed_head: observed.clone(),
