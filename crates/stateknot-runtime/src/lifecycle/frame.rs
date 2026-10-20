@@ -181,8 +181,7 @@ impl DurableGraphLifecycle {
         Box::pin(async move {
             let validating = self.validate_frame_cancellation_handoff(handoff);
             let (stop, stopping) = tokio::sync::oneshot::channel();
-            let maintenance =
-                self.maintain_frame_cancellation_lease(handoff.lease().fence(), stopping);
+            let maintenance = self.maintain_cancellation_lease(handoff.lease().fence(), stopping);
             tokio::pin!(validating, maintenance);
             let active = tokio::select! {
                 biased;
@@ -368,7 +367,7 @@ impl DurableGraphLifecycle {
         })
     }
 
-    fn maintain_frame_cancellation_lease<'a>(
+    pub(super) fn maintain_cancellation_lease<'a>(
         &'a self,
         fence: &'a RunFence,
         mut stopping: tokio::sync::oneshot::Receiver<()>,

@@ -157,6 +157,29 @@ Lease 的 Transaction 同时提交 Public-safe Confirmation Event 与 `ConfirmCa
 如果精确 Evidence 不可用，Run 会保持 `cancellation_requested`，不会写入零 Usage 或虚构
 Terminal State。
 
+对于没有 scoped leaf 的 fresh Root handoff，实验性证据观察也遵循 Agent Loop
+传入的 shutdown 与既有 `node_execution_timeout`；独立
+`confirm_cancellation` 使用默认 Driver node timeout。成功响应 shutdown 并释放前，
+仍先校验原 Scope、Checkpoint、Revision、取消 Request 与 Live Fence。
+shutdown 在只读观察阶段生效时返回 `GraphBarrierLifecycleOutcome::Released`，
+Agent Loop 将其暴露为 `AgentLoopOutcome::RecoveryReleased`；Run 仍保持
+`cancellation_requested`。证据超时返回
+`GraphLifecycleError::Evidence`，内层为
+`GraphLifecycleEvidenceError::TemporarilyUnavailable`；provider 构造 future
+或 poll future 时 panic 则使用相同外层错误，内层为
+`GraphLifecycleEvidenceError::Unavailable`。
+Agent Loop 保留既有精确 Fence 清理及 Primary/Cleanup Error 合并报告。
+
+观察期间，共享取消监护仅使用配置的 Store 租约长度续租原 Fence。Runtime 先读完
+所有在途续租及重试的原 ACK，再完整核对 child 会计，并用最新数据库时钟检查同一个
+Live Fence。清理可在 Run admission deadline 之后完成，但不授予新的执行权限。
+终结 append 与完整 COMMIT ACK 不属于可取消观察。既有 child 结算、Unknown
+与未定价成本规则保持不变，证据不完整时绝不补零。
+
+已提交取消的精确重放恢复原 Event、Completion Time 和 Usage，不重新咨询证据
+provider、不启动监护，也不要求新的 Live Lease。本说明不声明任何执行或 CI
+资格，不改变 Supported 状态，也不关闭 R1。
+
 ## Lost ACK 与 Stale Handoff
 
 Lifecycle Handoff 是短生命周期、不可序列化的 Commit Input。Driver 在交出控制权之前只生成

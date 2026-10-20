@@ -7,8 +7,9 @@ mod direct;
 mod frame;
 pub use direct::{GraphDirectUsageEvidence, GraphDirectUsageEvidenceContext};
 
-use std::{fmt, sync::Arc, time::Duration};
+use std::{fmt, panic::AssertUnwindSafe, sync::Arc, time::Duration};
 
+use futures_util::FutureExt;
 use serde_json::{Value, json};
 use stateknot_core::{
     AgentArtifacts, AgentDescriptor, AgentRequest, AgentResult, AgentResultError,
@@ -499,6 +500,10 @@ pub trait GraphLifecycleEvidenceProvider: Send + Sync + 'static {
     ) -> BoxFuture<'_, Result<GraphFailureEvidence, GraphLifecycleEvidenceError>>;
 
     /// Recovers complete cumulative usage for an exact cancellation request.
+    ///
+    /// The runtime may drop this read-only observation on shutdown or its
+    /// existing evidence timeout. Dropping it does not erase durable work or
+    /// imply that incomplete usage is zero.
     fn cancellation_evidence(
         &self,
         context: GraphCancellationEvidenceContext,
@@ -603,10 +608,23 @@ impl DurableGraphLifecycle {
     /// terminal lifecycle, producing the same projection digest even after the
     /// original lease was atomically released.
     ///
-    /// Scoped DIRECT observation retains the same fence with the configured
+    /// Cancellation observation retains the same fence with the configured
     /// Store lease duration and uses the existing default Driver node timeout.
     /// Cleanup may finish after the admitted Run deadline; it grants no launch.
     /// The `DurableAgentLoop` instead supplies its own node timeout and shutdown signal.
+    ///
+    /// Fresh Root cancellation uses the same bounded read-only observation.
+    /// The Agent Loop may stop it with shutdown and returns a recovery release;
+    /// this standalone method supplies no shutdown and uses the default timeout.
+    /// Timeout maps to `GraphLifecycleEvidenceError::TemporarilyUnavailable`;
+    /// provider-future construction or polling panic maps to
+    /// `GraphLifecycleEvidenceError::Unavailable`.
+    ///
+    /// Renewal ACKs finish before complete child accounting and a fresh live
+    /// database-clock check. The terminal append and its complete ACK are never
+    /// dropped by this observation's control. An already committed cancellation
+    /// restores its original timestamp and usage without new evidence or a lease.
+    ///
     pub fn confirm_cancellation(
         &self,
         handoff: GraphCancellationHandoff,
@@ -672,16 +690,23 @@ impl DurableGraphLifecycle {
                 expected_revision,
                 cancellation_failure_id: failure_id,
             };
-            let evidence = self
-                .evidence
-                .cancellation_evidence(context)
-                .await
-                .map_err(GraphLifecycleError::Evidence)?;
+            let Some(direct_usage) = self
+                .observe_root_cancellation_usage(context, &shutdown, evidence_timeout)
+                .await?
+            else {
+                return Ok(GraphBarrierLifecycleOutcome::Released(
+                    self.release_with_retry(&fence).await?,
+                ));
+            };
             let usage = self
                 .store
-                .include_child_usage(fence.tenant_id(), fence.run_id(), evidence.into_usage())
+                .include_child_usage(fence.tenant_id(), fence.run_id(), direct_usage)
                 .await?;
-            (observation.observed_at(), usage)
+            let current = self.store.observe_live_lease(&fence).await?;
+            if current.lease().fence() != &fence {
+                return Err(GraphLifecycleError::StaleHandoff);
+            }
+            (current.observed_at(), usage)
         } else {
             let committed_revision = expected_revision.get().checked_add(1);
             let committed = committed_revision
@@ -717,6 +742,56 @@ impl DurableGraphLifecycle {
         );
         let outcome = self.commit_failure_with_retry(append, projection).await?;
         Ok(GraphBarrierLifecycleOutcome::Cancelled(outcome))
+    }
+
+    fn observe_root_cancellation_usage<'a>(
+        &'a self,
+        context: GraphCancellationEvidenceContext,
+        shutdown: &'a stateknot_core::CancellationSignal,
+        evidence_timeout: Duration,
+    ) -> BoxFuture<'a, Result<Option<BudgetUsage>, GraphLifecycleError>> {
+        Box::pin(async move {
+            let fence = context.fence().clone();
+            let (stop, stopping) = tokio::sync::oneshot::channel();
+            let maintenance = self.maintain_cancellation_lease(&fence, stopping);
+            tokio::pin!(maintenance);
+            let result = {
+                let observing =
+                    AssertUnwindSafe(async { self.evidence.cancellation_evidence(context).await })
+                        .catch_unwind();
+                tokio::pin!(observing);
+                tokio::select! {
+                    biased;
+                    () = shutdown.cancelled() => Ok(None),
+                    evidence = &mut observing => match evidence {
+                        Ok(Ok(evidence)) => Ok(Some(evidence.into_usage())),
+                        Ok(Err(error)) => Err(GraphLifecycleError::Evidence(error)),
+                        Err(_) => Err(GraphLifecycleError::Evidence(
+                            GraphLifecycleEvidenceError::Unavailable,
+                        )),
+                    },
+                    () = tokio::time::sleep(evidence_timeout) => {
+                        Err(GraphLifecycleError::Evidence(
+                            GraphLifecycleEvidenceError::TemporarilyUnavailable,
+                        ))
+                    },
+                    result = &mut maintenance => {
+                        result?;
+                        return Err(GraphLifecycleError::InvalidHandoff {
+                            operation: "maintain Root cancellation ownership",
+                        });
+                    },
+                }
+            };
+            // Only the read-only provider observation is cancellable. Once a
+            // renewal starts, its original SQL/retry ACK must finish before
+            // releasing ownership or beginning the terminal transaction.
+            let _ = stop.send(());
+            let maintained = maintenance.await;
+            let usage = result?;
+            maintained?;
+            Ok(usage)
+        })
     }
 
     /// Commits an exact Wait or successful-Terminal graph barrier.

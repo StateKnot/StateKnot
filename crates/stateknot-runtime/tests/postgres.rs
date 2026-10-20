@@ -12,6 +12,9 @@ mod nested_driver;
 #[path = "postgres/root_driver_recovery.rs"]
 mod root_driver_recovery;
 
+#[path = "postgres/root_cancellation_control.rs"]
+mod root_cancellation_control;
+
 #[path = "postgres/child_admission.rs"]
 mod child_admission;
 

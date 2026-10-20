@@ -180,6 +180,35 @@ with `ConfirmCancellation` in one transaction that clears the lease. If exact
 evidence is unavailable, the run remains `cancellation_requested`; no zero
 usage or fictitious terminal state is written.
 
+For a fresh Root handoff without a scoped leaf, the experimental evidence
+observation also obeys the Agent Loop's shutdown signal and existing
+`node_execution_timeout`. Standalone `confirm_cancellation` uses the default
+Driver node timeout. Fresh scope, checkpoint, revision, request and live-fence
+validation precede a successful shutdown release. Shutdown during this read-only
+observation returns `GraphBarrierLifecycleOutcome::Released`, exposed by the
+Agent Loop as `AgentLoopOutcome::RecoveryReleased`; the Run remains
+`cancellation_requested`. Evidence timeout returns
+`GraphLifecycleError::Evidence` carrying
+`GraphLifecycleEvidenceError::TemporarilyUnavailable`; a provider factory or
+future-poll panic returns the same wrapper carrying
+`GraphLifecycleEvidenceError::Unavailable`.
+The Agent Loop retains its existing exact-fence cleanup and combined cleanup
+error reporting.
+
+During observation, the shared cancellation guardian renews only the original
+fence with the configured Store lease duration. The runtime drains every
+in-flight renewal and retry ACK before applying complete child accounting and
+checking the same live fence against a fresh database clock. Cleanup may finish
+after the admitted Run deadline; it grants no new execution authority. The
+terminal append and its complete COMMIT ACK remain outside the cancellable
+observation. Existing child settlement, Unknown and unpriced-cost rules are
+unchanged; incomplete evidence is never replaced with zero usage.
+
+An already committed cancellation retry restores the original event, completion
+time and usage without consulting the evidence provider or starting a guardian
+or requiring a fresh live lease. This description asserts no execution or CI
+qualification and does not change Supported status or close R1.
+
 ## Lost acknowledgements and stale handoffs
 
 Lifecycle handoffs are short-lived, non-serializable commit inputs. The Driver

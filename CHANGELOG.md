@@ -12,6 +12,17 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Bound experimental fresh Root cancellation evidence observation by host
+  shutdown and the existing node timeout. Shutdown releases the original claim;
+  timeout and provider panic retain closed evidence-error categories. Reuse the
+  same-fence cancellation guardian, drain renewal ACKs, and obtain a fresh
+  database clock before the original terminal transaction. Preserve complete
+  child/Unknown accounting and exact committed cancellation replay without
+  consulting the provider again. See the [Agent Loop guide](docs/durable-agent-loop.md#confirmed-cancellation)
+  and [Chinese guide](docs/durable-agent-loop.zh-CN.md#已确认-cancellation).
+  This source behavior makes no execution/CI qualification claim and does not
+  change Supported status or close R1.
+
 - Add the experimental G2 source path for fresh scoped child Join suspension.
   Before frame entry, each reachable declared child owner requires typed Join
   support and Exclusive scheduling. An activation without a registered Join may
