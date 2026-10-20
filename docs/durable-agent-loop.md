@@ -133,6 +133,19 @@ artifacts, and cumulative usage relationships. Evidence failure causes the
 Agent Loop to perform a bounded best-effort exact-fence release; the run stays
 recoverable instead of being partially finalized.
 
+For a fresh generic blocked failure handoff, lifecycle contains a panic both
+while constructing the `failure_evidence` future and while polling it. Both map
+to `GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::Unavailable)`.
+The Agent Loop then follows its existing bounded exact-fence release before
+returning the error; cleanup failures retain the existing combined error report.
+The failed observation leaves the parent checkpoint, journal and recorded failed
+DIRECT usage intact. It neither registers a failure-close decision nor settles
+an admitted child: the child's stored terminal usage, including unpriced cost,
+remains complete. Unpriced child usage is accounting evidence; it does not imply
+`ToolInvocationState::Unknown` or establish an external-effect outcome. This
+experimental behavior changes no Supported status, implements no MCP stdio
+transport, and does not close R1 or confer complete Native/CI qualification.
+
 ## Atomic lifecycle edges
 
 ### Wait

@@ -911,3 +911,277 @@ async fn failure_close_graph_handoff_recovers_without_reconsulting_evidence() {
     );
     store.close().await;
 }
+
+struct PanickingFailureEvidence {
+    factory_panic: bool,
+    fence: RunFence,
+    stage: AtomicUsize,
+    blocked_context: AtomicBool,
+}
+
+impl GraphLifecycleEvidenceProvider for PanickingFailureEvidence {
+    fn terminal_evidence(
+        &self,
+        _: GraphTerminalEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphTerminalEvidence, GraphLifecycleEvidenceError>> {
+        Box::pin(async { Err(GraphLifecycleEvidenceError::Unavailable) })
+    }
+
+    fn failure_evidence(
+        &self,
+        context: GraphFailureEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphFailureEvidence, GraphLifecycleEvidenceError>> {
+        self.blocked_context.store(
+            context.fence() == &self.fence
+                && context.blockers().in_flight() == 0
+                && context.blockers().failed() == 1,
+            Ordering::SeqCst,
+        );
+        self.stage.store(1, Ordering::SeqCst);
+        assert!(
+            !self.factory_panic,
+            "controlled failure evidence factory panic"
+        );
+        Box::pin(async {
+            self.stage.store(2, Ordering::SeqCst);
+            panic!("controlled failure evidence poll panic");
+        })
+    }
+
+    fn cancellation_evidence(
+        &self,
+        _: GraphCancellationEvidenceContext,
+    ) -> BoxFuture<'_, Result<GraphCancellationEvidence, GraphLifecycleEvidenceError>> {
+        Box::pin(async { Err(GraphLifecycleEvidenceError::Unavailable) })
+    }
+}
+
+#[derive(Debug)]
+struct FailurePanicObservation {
+    exit: String,
+    stage: usize,
+    blocked_context: bool,
+    loop_released: bool,
+    before: Value,
+    after: Value,
+    replacement_fenced: bool,
+    dispatches: (usize, usize),
+}
+
+fn failure_panic_child_usage() -> BudgetUsage {
+    BudgetUsage::builder()
+        .unpriced_cost_events(ExecutionCount::new(1))
+        .build()
+        .unwrap()
+}
+
+async fn failure_panic_snapshot(store: &PostgresStore, value: &Started) -> Value {
+    let key = value.intent.key();
+    let parent = store
+        .load_run(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap();
+    let child = store.load_child_run(key).await.unwrap();
+    let child_run = store
+        .load_run(
+            key.tenant_id(),
+            child.child().admission().intent().provenance().run_id(),
+        )
+        .await
+        .unwrap();
+    let attempts = store
+        .load_node_attempt_history_page(
+            key.parent(),
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    let original_direct = attempts.records().len() == 1
+        && !attempts.has_more()
+        && attempts.records()[0]
+            .completion()
+            .is_some_and(|completion| {
+                completion.status() == stateknot_core::NodeAttemptStatus::Failed
+                    && completion.usage() == &direct_usage()
+            });
+    let checkpoint = store
+        .load_current_checkpoint(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap();
+    let no_failure_close = store
+        .load_run_failure_close(key.tenant_id(), key.parent_run_id())
+        .await
+        .unwrap()
+        .is_none();
+    json!({
+        "parent_lifecycle": parent.lifecycle(),
+        "parent_active": parent.lifecycle().status() == RunStatus::Active,
+        "parent_head": parent.journal_head(),
+        "checkpoint": checkpoint,
+        "node_attempts": attempts.records(),
+        "original_failed_direct": original_direct,
+        "child_lifecycle": child_run.lifecycle(),
+        "child_failed": child_run.lifecycle().status() == RunStatus::Failed,
+        "child_usage": child_run.lifecycle().terminal_usage(),
+        "child_settled": child.settlement().is_some(),
+        "no_failure_close": no_failure_close,
+    })
+}
+
+async fn failure_panic_exit(agent_loop: DurableAgentLoop, fence: RunFence) -> String {
+    let mut task =
+        tokio::spawn(async move { agent_loop.run(fence, CancellationSignal::never()).await });
+    match tokio::time::timeout(Duration::from_secs(10), &mut task).await {
+        Ok(Ok(Err(AgentLoopError::Lifecycle { source }))) => {
+            if let stateknot_runtime::GraphLifecycleError::Evidence(
+                GraphLifecycleEvidenceError::Unavailable,
+            ) = *source
+            {
+                "closed_unavailable".to_owned()
+            } else {
+                format!("other_lifecycle_error: {source:?}")
+            }
+        }
+        Ok(Err(error)) if error.is_panic() => "join_panic".to_owned(),
+        Ok(other) => format!("other_exit: {other:?}"),
+        Err(_) => {
+            task.abort();
+            let retired = task.await;
+            format!("host_timeout_after_abort_and_join: {retired:?}")
+        }
+    }
+}
+
+async fn retire_failure_panic_claim(store: &PostgresStore, fence: &RunFence) -> bool {
+    // This runs only after recording whether the public Loop itself released.
+    store.release_lease(fence).await.unwrap();
+    let replacement = store
+        .claim_lease(fence.tenant_id(), fence.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let stale_rejected = matches!(
+        store.release_lease(fence).await,
+        Err(StoreError::StaleFence)
+    );
+    let parent = store
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let replacement_preserved = parent
+        .lease()
+        .is_some_and(|lease| lease.fence() == &replacement);
+    store.release_lease(&replacement).await.unwrap();
+    replacement.epoch() > fence.epoch() && stale_rejected && replacement_preserved
+}
+
+async fn failure_panic_fixture(
+    store: &PostgresStore,
+    factory_panic: bool,
+) -> FailurePanicObservation {
+    let name = if factory_panic {
+        "failure-evidence-factory-panic"
+    } else {
+        "failure-evidence-poll-panic"
+    };
+    let mut value = Box::pin(started(store, name)).await;
+    let child = Box::pin(spawn(store, &value))
+        .await
+        .unwrap()
+        .record()
+        .child()
+        .admission()
+        .intent()
+        .provenance()
+        .run_id();
+    Box::pin(fail(
+        store,
+        value.fence.tenant_id(),
+        child,
+        failure_panic_child_usage(),
+    ))
+    .await
+    .unwrap();
+    Box::pin(finish_node(store, &mut value)).await;
+    let before = Box::pin(failure_panic_snapshot(store, &value)).await;
+    let evidence = Arc::new(PanickingFailureEvidence {
+        factory_panic,
+        fence: value.fence.clone(),
+        stage: AtomicUsize::new(0),
+        blocked_context: AtomicBool::new(false),
+    });
+    let agent_loop = DurableAgentLoop::new(
+        store.clone(),
+        value.fixture.driver.registry.clone(),
+        evidence.clone(),
+        DurableGraphDriverOptions::default(),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    let exit = Box::pin(failure_panic_exit(agent_loop, value.fence.clone())).await;
+    let parent = store
+        .load_run(value.fence.tenant_id(), value.fence.run_id())
+        .await
+        .unwrap();
+    let loop_released = parent.lease().is_none();
+    let after = Box::pin(failure_panic_snapshot(store, &value)).await;
+    let replacement_fenced = Box::pin(retire_failure_panic_claim(store, &value.fence)).await;
+    FailurePanicObservation {
+        exit,
+        stage: evidence.stage.load(Ordering::SeqCst),
+        blocked_context: evidence.blocked_context.load(Ordering::SeqCst),
+        loop_released,
+        before,
+        after,
+        replacement_fenced,
+        dispatches: (
+            value.fixture.driver.first_calls.load(Ordering::SeqCst),
+            value.fixture.driver.second_calls.load(Ordering::SeqCst),
+        ),
+    }
+}
+
+#[tokio::test]
+async fn failure_evidence_factory_and_poll_panic_are_closed_and_preserve_unpriced_child_usage() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    // Both independent fixtures finish and every task/lease is retired before verdict.
+    let observations = [
+        Box::pin(failure_panic_fixture(&store, true)).await,
+        Box::pin(failure_panic_fixture(&store, false)).await,
+    ];
+    store.close().await;
+    for (factory_panic, observation) in [true, false].into_iter().zip(&observations) {
+        eprintln!(
+            "factory_panic={factory_panic}: exit={}, stage={}, loop_released={}",
+            observation.exit, observation.stage, observation.loop_released,
+        );
+    }
+    for (factory_panic, observation) in [true, false].into_iter().zip(observations) {
+        assert_eq!(observation.stage, if factory_panic { 1 } else { 2 });
+        assert!(observation.blocked_context);
+        assert_eq!(observation.exit, "closed_unavailable", "{observation:?}");
+        assert!(observation.loop_released);
+        assert_eq!(observation.before, observation.after);
+        for field in [
+            "parent_active",
+            "original_failed_direct",
+            "child_failed",
+            "no_failure_close",
+        ] {
+            assert_eq!(observation.after[field], json!(true), "{field}");
+        }
+        assert_eq!(
+            observation.after["child_usage"],
+            json!(failure_panic_child_usage())
+        );
+        assert_eq!(observation.after["child_settled"], json!(false));
+        assert!(observation.replacement_fenced);
+        assert_eq!(observation.dispatches, (0, 0));
+    }
+}

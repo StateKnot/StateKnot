@@ -118,6 +118,16 @@ Terminal Output，构造 `AgentResult`，再验证 Provenance、Descriptor、Req
 Artifact 与累计 Usage 之间的全部关系。Evidence 失败时，Agent Loop 会有界地尝试释放精确
 Fence；Run 保持可恢复，而不会被部分 Finalize。
 
+对于 fresh generic Blocked Failure handoff，Lifecycle 会同时收口构造
+`failure_evidence` future 与 poll future 时的 panic，统一映射为
+`GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::Unavailable)`。
+Agent Loop 随后按既有有界精确 Fence 清理释放原 Lease，再返回错误；清理失败时仍合并报告
+原错误与 Cleanup Error。失败的观察保留父 Checkpoint、Journal 与已记录的失败 DIRECT
+Usage，不登记 Failure-close Decision，也不结算已 Admission 的 child；child 已持久化的
+完整终态 Usage（含未定价成本）保持原样。未定价 child Usage 是会计证据，不代表
+`ToolInvocationState::Unknown`，也不证明外部副作用结果。该实验性行为不改变 Supported
+状态、不实现 MCP stdio transport，不关闭 R1，也不授予完整 Native 或 CI 资格。
+
 ## 原子生命周期边
 
 ### Wait

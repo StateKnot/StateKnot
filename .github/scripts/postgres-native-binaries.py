@@ -13,7 +13,7 @@ import time
 
 ROOT = Path.cwd().resolve()
 OUT = ROOT / 'postgres-native-parallel'
-ROLES = {'store': ('stateknot-store-postgres', 272), 'runtime': ('stateknot-runtime', 223)}
+ROLES = {'store': ('stateknot-store-postgres', 272), 'runtime': ('stateknot-runtime', 224)}
 PROFILE = {'CARGO_INCREMENTAL': '0', 'CARGO_PROFILE_DEV_DEBUG': '0',
            'CARGO_PROFILE_TEST_DEBUG': '0', 'CARGO_PROFILE_TEST_OPT_LEVEL': '1',
            'CARGO_PROFILE_TEST_DEBUG_ASSERTIONS': 'true', 'CARGO_PROFILE_TEST_OVERFLOW_CHECKS': 'true'}

@@ -1039,11 +1039,14 @@ impl DurableGraphLifecycle {
                     expected_revision,
                     blockers,
                 };
-                let evidence = self
-                    .evidence
-                    .failure_evidence(context)
-                    .await
-                    .map_err(GraphLifecycleError::Evidence)?;
+                let evidence =
+                    AssertUnwindSafe(async { self.evidence.failure_evidence(context).await })
+                        .catch_unwind()
+                        .await
+                        .map_err(|_| {
+                            GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::Unavailable)
+                        })?
+                        .map_err(GraphLifecycleError::Evidence)?;
                 let (failure, usage) = evidence.into_parts();
                 let failure = if blockers.superstep_limit_reached() {
                     superstep_limit_failure()

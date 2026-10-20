@@ -12,6 +12,15 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Contain panics while constructing or polling fresh generic `failure_evidence`
+  as the existing `GraphLifecycleEvidenceError::Unavailable`. The Agent Loop
+  retains bounded exact-fence lease cleanup while preserving the parent
+  checkpoint/journal, failed DIRECT usage and unsettled child's complete unpriced
+  usage. This does not infer Tool Unknown or external effects, change Supported
+  status, implement MCP stdio, or close R1; complete Native/CI qualification remains
+  separate. See the [Agent Loop guide](docs/durable-agent-loop.md#trusted-lifecycle-evidence)
+  and [Chinese guide](docs/durable-agent-loop.zh-CN.md#可信-lifecycle-evidence).
+
 - Bound experimental fresh Root cancellation evidence observation by host
   shutdown and the existing node timeout. Shutdown releases the original claim;
   timeout and provider panic retain closed evidence-error categories. Reuse the
