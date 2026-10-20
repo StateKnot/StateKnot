@@ -5,7 +5,7 @@
 //! not an identity provider, durable task backend, or production subscription implementation.
 
 use futures_core::Stream;
-use futures_util::stream;
+use futures_util::{FutureExt, stream};
 use reqwest::{Client, Response};
 use serde_json::{Value, json};
 use stateknot_core::{BoxFuture, IssuerId, PrincipalIdentity, SubjectId, TenantId};
@@ -24,7 +24,7 @@ use stateknot_integrations::{
 use std::{
     pin::Pin,
     sync::{
-        Arc, Mutex,
+        Arc, Condvar, Mutex,
         atomic::{AtomicBool, AtomicUsize, Ordering},
     },
     task::{Context, Poll},
@@ -100,6 +100,9 @@ struct Probe {
     polls: AtomicUsize,
     yielded: AtomicUsize,
     dropped: AtomicUsize,
+    retirement_gate: Mutex<Option<Arc<RetirementGate>>>,
+    retirement_overloads: AtomicUsize,
+    retirement_overload_observed: Notify,
     pending_drops: AtomicUsize,
     pending_entered: AtomicUsize,
     changed: Notify,
@@ -294,6 +297,42 @@ fn task(id: &str, terminal: bool) -> A2aTask {
     .unwrap()
 }
 
+// Only the controlled regression installs this fixture gate. Its finite wait and
+// release-on-unwind guard cannot retain a runtime worker after the test exits.
+#[derive(Default)]
+struct RetirementGate {
+    released: Mutex<bool>,
+    wake: Condvar,
+    expired: AtomicBool,
+}
+
+impl RetirementGate {
+    fn hold(&self) {
+        let (released, timeout) = self
+            .wake
+            .wait_timeout_while(self.released.lock().unwrap(), HARNESS_WAIT, |released| {
+                !*released
+            })
+            .unwrap();
+        if timeout.timed_out() && !*released {
+            self.expired.store(true, Ordering::SeqCst);
+        }
+    }
+
+    fn release(&self) {
+        *self.released.lock().unwrap() = true;
+        self.wake.notify_all();
+    }
+}
+
+struct ReleaseRetirement(Arc<RetirementGate>);
+
+impl Drop for ReleaseRetirement {
+    fn drop(&mut self) {
+        self.0.release();
+    }
+}
+
 struct Backend {
     probe: Arc<Probe>,
     receiver: mpsc::Receiver<Result<A2aStreamEvent, A2aTaskServiceError>>,
@@ -316,6 +355,10 @@ impl Drop for Backend {
     fn drop(&mut self) {
         self.probe.dropped.fetch_add(1, Ordering::SeqCst);
         self.probe.changed.notify_one();
+        let gate = self.probe.retirement_gate.lock().unwrap().clone();
+        if let Some(gate) = gate {
+            tokio::task::block_in_place(|| gate.hold());
+        }
     }
 }
 
@@ -604,6 +647,9 @@ impl Server {
             polls: AtomicUsize::new(0),
             yielded: AtomicUsize::new(0),
             dropped: AtomicUsize::new(0),
+            retirement_gate: Mutex::new(None),
+            retirement_overloads: AtomicUsize::new(0),
+            retirement_overload_observed: Notify::new(),
             pending_drops: AtomicUsize::new(0),
             pending_entered: AtomicUsize::new(0),
             changed: Notify::new(),
@@ -835,11 +881,97 @@ impl Server {
         assert_eq!(payload(binding, &value)["task"]["id"], HEALTHY);
     }
 
+    async fn retired_and_healthy_after_disconnect(
+        &self,
+        binding: Binding,
+        deadline: tokio::time::Instant,
+    ) {
+        tokio::time::timeout_at(deadline, async {
+            self.retired().await;
+            loop {
+                assert!(tokio::time::Instant::now() < deadline, "disconnect budget expired");
+                let mut response = self.subscribe(binding, HEALTHY).await;
+                let is_event_stream = response
+                    .headers()
+                    .get("Content-Type")
+                    .and_then(|value| value.to_str().ok())
+                    .and_then(|value| value.split(';').next())
+                    == Some("text/event-stream");
+                if response.status() == 200 && is_event_stream {
+                    let value = next_event(&mut response, &mut Vec::new()).await.unwrap();
+                    assert_eq!(payload(binding, &value)["task"]["id"], HEALTHY);
+                    assert_eq!(
+                        payload(binding, &value)["task"]["status"]["state"],
+                        "TASK_STATE_COMPLETED",
+                    );
+                    assert!(tokio::time::Instant::now() < deadline, "disconnect budget expired");
+                    return;
+                }
+                assert_retirement_overload(binding, response).await;
+                self.probe.retirement_overloads.fetch_add(1, Ordering::SeqCst);
+                self.probe.retirement_overload_observed.notify_one();
+                tokio::task::yield_now().await;
+            }
+        })
+        .await
+        .expect("disconnect must release capacity and deliver its healthy event before the 5s policy/idle deadlines");
+    }
+
     async fn retired(&self) {
         self.probe
             .wait_for(|| self.probe.dropped.load(Ordering::SeqCst) == 1)
             .await;
         assert_eq!(self.probe.dropped.load(Ordering::SeqCst), 1);
+    }
+}
+
+// This is the exact pinned SDK overload response, not a general retry policy.
+async fn assert_retirement_overload(binding: Binding, mut response: Response) {
+    assert_eq!(
+        response.status().as_u16(),
+        match binding {
+            Binding::Rest => 500,
+            Binding::Rpc => 200,
+        },
+    );
+    assert_eq!(response.headers()["Content-Type"], "application/json");
+    let mut bytes = Vec::new();
+    while let Some(chunk) = response.chunk().await.unwrap() {
+        assert!(
+            chunk.len() <= 2048 - bytes.len(),
+            "unexpected overload body size"
+        );
+        bytes.extend_from_slice(&chunk);
+    }
+    let mut value: Value = serde_json::from_slice(&bytes).unwrap();
+    match binding {
+        Binding::Rest => {
+            let timestamp = value
+                .pointer_mut("/error/details/0/metadata/timestamp")
+                .unwrap();
+            let parsed = chrono::DateTime::parse_from_rfc3339(timestamp.as_str().unwrap()).unwrap();
+            assert_eq!(parsed.offset().local_minus_utc(), 0);
+            *timestamp = Value::String("validated-dynamic-UTC-timestamp".to_owned());
+            assert_eq!(
+                value,
+                json!({"error":{
+                    "code":500,
+                    "status":"INTERNAL",
+                    "message":"A2A service is overloaded",
+                    "details":[{
+                        "@type":"type.googleapis.com/google.rpc.ErrorInfo",
+                        "domain":"a2a-protocol.org",
+                        "reason":"INTERNAL_ERROR",
+                        "metadata":{"timestamp":"validated-dynamic-UTC-timestamp"}
+                    }]
+                }}),
+            );
+        }
+        Binding::Rpc => assert_error(
+            binding,
+            &value,
+            &a2a::A2AError::internal("A2A service is overloaded"),
+        ),
     }
 }
 
@@ -1179,13 +1311,12 @@ async fn pending_phase(binding: Binding, phase: usize, disconnect: bool) {
             started.elapsed() < Duration::from_secs(2),
             "disconnect control reached too late to exclude timeout cleanup"
         );
+        // One original 2s budget includes backend retirement, capacity and the
+        // healthy event; neither a retry nor a nested harness wait resets it.
+        let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
         drop(response);
-        // The HTTP server, not local Response Drop timing, determines cleanup.
-        tokio::time::timeout(Duration::from_secs(2), server.retired())
-            .await
-            .expect("disconnect must release before the5s policy/idle deadlines");
         server
-            .healthy(binding, &format!("tcp_disconnect phase={phase}"))
+            .retired_and_healthy_after_disconnect(binding, deadline)
             .await;
     } else {
         server.shutdown.cancel();
@@ -1493,6 +1624,77 @@ async fn real_server_subscription_authorization_matrix_covers_both_bindings() {
         admission_change(binding).await;
         refused(binding, true, false, true).await; // immutable_operation_context
     }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn tcp_disconnect_retirement_observes_capacity_after_backend_drop_notification() {
+    let mut rejected = Vec::new();
+    for binding in [Binding::Rest, Binding::Rpc] {
+        let mut server = Server::start(Setup {
+            pending_at: Some(4),
+            request_timeout: Duration::from_secs(5),
+            idle_timeout: Duration::from_secs(5),
+            ..Setup::default()
+        })
+        .await;
+        let gate = Arc::new(RetirementGate::default());
+        let release_on_unwind = ReleaseRetirement(gate.clone());
+        let completed = CancellationToken::new();
+        let observation = async {
+            let result = std::panic::AssertUnwindSafe(async {
+                let started = tokio::time::Instant::now();
+                let (response, _, _) = first(&server, binding, "SubscribeToTask").await;
+                server
+                    .probe
+                    .wait_for(|| server.probe.pending_entered.load(Ordering::SeqCst) == 1)
+                    .await;
+                assert!(
+                    started.elapsed() < Duration::from_secs(2),
+                    "disconnect control reached too late to exclude timeout cleanup"
+                );
+                *server.probe.retirement_gate.lock().unwrap() = Some(gate.clone());
+                let deadline = tokio::time::Instant::now() + Duration::from_secs(2);
+                drop(response);
+                server
+                    .retired_and_healthy_after_disconnect(binding, deadline)
+                    .await;
+            })
+            .catch_unwind()
+            .await;
+            completed.cancel();
+            result
+        };
+        let release = async {
+            tokio::select! {
+                () = server.probe.retirement_overload_observed.notified() => {}
+                () = completed.cancelled() => {}
+            }
+            gate.release();
+        };
+        let (result, ()) = tokio::join!(observation, release);
+        drop(release_on_unwind);
+        // Finish real HTTP retirement before any final regression assertion.
+        server.shutdown.cancel();
+        let drained = tokio::time::timeout(HARNESS_WAIT, &mut server.task).await;
+        if drained.is_err() {
+            server.task.abort();
+            let _ = (&mut server.task).await;
+        }
+        assert!(matches!(drained, Ok(Ok(()))), "HTTP fixture did not retire");
+        assert!(!gate.expired.load(Ordering::SeqCst), "fixture gate expired");
+        assert!(server.probe.retirement_overloads.load(Ordering::SeqCst) > 0);
+        assert_eq!(server.probe.created.load(Ordering::SeqCst), 1);
+        assert_eq!(server.probe.dropped.load(Ordering::SeqCst), 1);
+        assert_eq!(server.probe.pending_drops.load(Ordering::SeqCst), 1);
+        server.probe.fixed_facts();
+        if result.is_err() {
+            rejected.push(binding);
+        }
+    }
+    assert!(
+        rejected.is_empty(),
+        "backend retirement must also restore real HTTP subscription capacity: {rejected:?}",
+    );
 }
 
 #[path = "a2a_server_subscription/initial_authority.rs"]
