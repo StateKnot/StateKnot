@@ -1,0 +1,9 @@
+{
+  "source_tree": "341915b8591583df412cc7a5ec6ceb83b89e8dcdc8015c8f39aaabcab6ffed01",
+  "files": 928,
+  "archive": "first-clippy-source.tar.gz",
+  "bytes": 3474242,
+  "sha256": "8c06aa762492e2a80ab85c8dec1166d74935bc247e562b4c5066bb128623c0b7",
+  "original_strict_clippy_exit": 101,
+  "native_or_network_tests_executed": false
+}

@@ -1,0 +1,95 @@
+{
+  "head_sha": "1fccf1816a2549d8ca7296b635434b52b30140e9",
+  "run_id": 38700608003,
+  "url": "https://github.com/StateKnot/StateKnot/actions/runs/38700608003",
+  "status": "completed",
+  "conclusion": "cancelled",
+  "successful_other_jobs": [
+    {
+      "id": 116307599430,
+      "name": "Core bounded fuzz",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599699,
+      "name": "Test (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599746,
+      "name": "Release packages",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599829,
+      "name": "PostgreSQL PITR (16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599846,
+      "name": "PostgreSQL PITR (17)",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599848,
+      "name": "Website",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599862,
+      "name": "Test (macos-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599883,
+      "name": "Quality",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599886,
+      "name": "A2A 1.0 Conformance",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599901,
+      "name": "MCP Conformance",
+      "conclusion": "success"
+    },
+    {
+      "id": 116307599976,
+      "name": "Test (windows-latest)",
+      "conclusion": "success"
+    }
+  ],
+  "postgres_jobs": [
+    {
+      "id": 116307599904,
+      "name": "PostgreSQL (16)",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38700608003/job/116307599904",
+      "started_at": "2026-10-15T07:42:56Z",
+      "completed_at": "2026-10-15T08:13:20Z",
+      "postgres_major": 16,
+      "termination_reason": "original 30m job limit exceeded",
+      "store_native_passed": 251,
+      "runtime_native_complete": false,
+      "subsequent_qualification_complete": false
+    },
+    {
+      "id": 116307599772,
+      "name": "PostgreSQL (17)",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38700608003/job/116307599772",
+      "started_at": "2026-10-15T07:42:56Z",
+      "completed_at": "2026-10-15T08:13:21Z",
+      "postgres_major": 17,
+      "termination_reason": "original 30m job limit exceeded",
+      "store_native_passed": 251,
+      "runtime_native_complete": false,
+      "subsequent_qualification_complete": false
+    }
+  ],
+  "qualifies_new_candidate": false
+}

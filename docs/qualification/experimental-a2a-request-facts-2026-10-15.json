@@ -1,0 +1,270 @@
+{
+  "format": 1,
+  "status": "qualified_exact_a2a_request_facts_execution_record_only",
+  "date": "2026-10-15",
+  "exact_execution_record_passed": true,
+  "overall_production_qualification": false,
+  "source": {
+    "candidate_files": 923,
+    "tree_sha256": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+    "production_a2a_client_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+    "conservative_compiled_inputs": 531,
+    "compiler_emitted_workspace_source_entries": 215,
+    "compiler_emitted_artifacts": 6,
+    "full_compiler_or_registry_read_closure_claimed": false,
+    "source_archive_copies": 1,
+    "delta_from_schema36_files": 4,
+    "production_files_changed": 1,
+    "whole_main_Git_tree_equal923_claimed": false
+  },
+  "adoption": {
+    "base_commit": "0e8b4b544c444f42d6a7600070a6da6bc19b72b5",
+    "source_tree_origin": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+    "code_files_adopted": [
+      "crates/stateknot-integrations/src/a2a_client.rs",
+      "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "crates/stateknot-integrations/tests/a2a_client_contract/authorization_facts.rs",
+      "crates/stateknot-integrations/tests/mcp_durable.rs"
+    ],
+    "docs_adopted": [
+      "CHANGELOG.md",
+      "docs/a2a-client.md",
+      "docs/a2a-client.zh-CN.md",
+      "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md"
+    ],
+    "actual_main_compiled_inputs_exact": 531,
+    "production_file_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+    "original_schema36_runtime_store_core_SQL_unchanged": true,
+    "new_PITR_cleanup_candidate_included": false,
+    "full_Git_tree_equals923_claimed": false,
+    "six_strict_gates_network26_and_dualPG_mandatory6_passed": true,
+    "full_CI_or_full_identity_policy_qualification_claimed": false,
+    "staged_or_committed": false
+  },
+  "review": {
+    "production_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+    "production_standards": 0,
+    "production_spec": 0,
+    "production_scope": "exact single production file, static independent review; tests separately executed",
+    "adoption_docs": 5,
+    "docs_standards": 0,
+    "docs_spec": 0,
+    "prior_docs_P2_preserved_and_resolved": true
+  },
+  "static": {
+    "gates": 6,
+    "all_exit_zero": true,
+    "workspace_suites": 98,
+    "workspace_passed": 2073,
+    "original_ignored": 6,
+    "doctests_passed": 45,
+    "database_environment_cleared": true,
+    "native_qualification_inferred": false
+  },
+  "binaries": {
+    "a2a_client_contract": {
+      "sha256": "792acfb788c19a8d387771f1a13c511d06ec6567d795375b9f928b0fcc57d8c2",
+      "fresh": false,
+      "bytes": 31841408,
+      "test_count": 26,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "raw_dep_info_retained": true,
+      "binary_bytes_in_bundle": false
+    },
+    "mcp_durable": {
+      "sha256": "3b0b104b80456e70b1ebe3202cb608f49f648d764478e27a513525fb1d5be687",
+      "fresh": false,
+      "bytes": 63478608,
+      "test_count": 6,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "raw_dep_info_retained": true,
+      "binary_bytes_in_bundle": false
+    }
+  },
+  "network": {
+    "passed": 26,
+    "failed": 0,
+    "ignored": 0,
+    "new_cases": 7,
+    "matrix_bindings": 2,
+    "operations_per_binding": 11,
+    "matrix_is_22_independent_test_functions": false,
+    "replay_and_current_revoke_profile": "HTTP+JSON only",
+    "REST_RPC_unary_SSE_scope_detailed_in": "coverage.json",
+    "log_sha256": "25b9bf1ac8c385ff9ed65b67f1330f68c3791e1da95548cbd0357898d42303d2"
+  },
+  "durable": {
+    "passed_per_major": 6,
+    "failed": 0,
+    "ignored": 0,
+    "new_A2A_cases_per_major": 2,
+    "existing_cases_per_major": 4,
+    "A2A_binding": "HTTP+JSON only",
+    "postgres": [
+      {
+        "major": 16,
+        "server_version": "16.15 (Debian 16.15-1.pgdg13+2)",
+        "database": "stateknot_r1_a2a_auth_facts_20261015v1",
+        "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+        "markers": {
+          "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+            {
+              "case": "denial",
+              "durable_before_authorization": true,
+              "calls": 0,
+              "policy_calls": 1,
+              "duplicate_ledger_unchanged": true
+            },
+            {
+              "case": "lost_response",
+              "durable_before_authorization": true,
+              "calls": 1,
+              "policy_calls": 1,
+              "reconciliation_idempotent": true
+            }
+          ],
+          "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+            {
+              "case": "denial",
+              "durable_start_verified": true,
+              "payload_from_full_input": true,
+              "calls": 0,
+              "policy_calls": 1,
+              "duplicate_ledger_unchanged": true
+            },
+            {
+              "case": "lost_response",
+              "durable_start_verified": true,
+              "payload_from_full_input": true,
+              "calls": 1,
+              "policy_calls": 1,
+              "duplicate_ledger_unchanged": true
+            }
+          ]
+        }
+      },
+      {
+        "major": 17,
+        "server_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+        "database": "stateknot_r1_a2a_auth_facts_20261015v1",
+        "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+        "markers": {
+          "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+            {
+              "case": "denial",
+              "durable_before_authorization": true,
+              "calls": 0,
+              "policy_calls": 1,
+              "duplicate_ledger_unchanged": true
+            },
+            {
+              "case": "lost_response",
+              "durable_before_authorization": true,
+              "calls": 1,
+              "policy_calls": 1,
+              "reconciliation_idempotent": true
+            }
+          ],
+          "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+            {
+              "case": "denial",
+              "durable_start_verified": true,
+              "payload_from_full_input": true,
+              "calls": 0,
+              "policy_calls": 1,
+              "duplicate_ledger_unchanged": true
+            },
+            {
+              "case": "lost_response",
+              "durable_start_verified": true,
+              "payload_from_full_input": true,
+              "calls": 1,
+              "policy_calls": 1,
+              "duplicate_ledger_unchanged": true
+            }
+          ]
+        }
+      }
+    ],
+    "original_MCP_markers_and_resources_preserved": true
+  },
+  "semantics": {
+    "private_immutable_snapshot_shared_by_authorization_and_HTTP_builder": true,
+    "facts_are_host_policy_inputs_not_host_policy": true,
+    "Anonymous_and_legacy_providers_implicitly_strengthened": false,
+    "Debug_added_URL_body_redacted_prior_identity_fields_still_visible": true,
+    "Clone_can_retain_shared_body_and_URL_after_call": true,
+    "same_committed_Failed_Unknown_attempt_duplicate_no_resend_or_policy_repeat": true,
+    "fresh_probe_or_attested_replay_must_apply_current_policy": true,
+    "HTTP_method_alone_not_RPC_effect_classification": true,
+    "all_header_DNS_TLS_peer_proxy_attestation": false
+  },
+  "history": {
+    "unexecuted_snapshot": "755ffa939c9bf6650c8e55b9e6289cf68c6e1c26d8516581f9c68e6a339c7eb4",
+    "missing_import_was_compiler_executed_failure": false,
+    "explicit_DurationMillis_import_only_to59fd": true,
+    "prior59fd_sandbox_bind_failure_retained": true,
+    "prior59fd_real_loopback_fixture_red": "25 passed,1 failed: missing exact remote-tenant REST fixture route",
+    "final_fix": "two exact send/stream tenant fixture routes only; production46022 unchanged",
+    "compiler_depinfo_collector_assertion_failure_retained": "expected extra/mismatched Cargo artifact target names; no compile/test failure or source change"
+  },
+  "schema36_parent": {
+    "adoption_commit": "0e8b4b544c444f42d6a7600070a6da6bc19b72b5",
+    "source_files": 922,
+    "original_compiled_inputs": 530,
+    "full_916_Native_execution_transferred": false,
+    "old_offline_evidence_still_valid": true,
+    "old_all530_workspace_check_is_historical_and_expected_to_reject_extra_module": true,
+    "old_PITR_resource_cleanup_exception_closed": false,
+    "full_parent750_evidence_copied": false
+  },
+  "resources": {
+    "original_test_resources_flags_deadlines_leases_pool_and_default_stack_preserved": true,
+    "strict_incremental0_dev_test_debug0": true,
+    "task_caches_retained_inactive": true,
+    "new_resource_or_database_cleanup_performed_by_collector": false,
+    "no_database_dropped": true
+  },
+  "tracking_files": [
+    {
+      "path": "docs/r1-contract-gap-ledger.zh-CN.md",
+      "bytes": 24806,
+      "sha256": "11a56b52440c1eb49e31af58c7c277f1088826865fdadb1bc62951c23312b4a1",
+      "base0e8_sha256": "606600db7faa215e2b9701505b56a8cf92b0f5db29f012d8a2210d58af31a57f"
+    },
+    {
+      "path": "docs/production-milestones-2026-10-08.zh-CN.md",
+      "bytes": 48971,
+      "sha256": "6a5a393f194d63ef04e0900ffb54131aa92de06f9129e675619f43e274cdcef0",
+      "base0e8_sha256": "7edb978e70e9042c01cbf11a4249deb99314d1052ae5496ce13cc543abfe715c"
+    }
+  ],
+  "claim_limits": {
+    "independent_server_TCK_executed": false,
+    "CLI_profile_executed": false,
+    "release_profile_executed": false,
+    "full_CI_passed": false,
+    "full_Store_Runtime_Native_suite_on531_executed": false,
+    "independent_external_implementations_qualified": false,
+    "host_policy_backend_or_current_consent_implemented": false,
+    "MCP_principal_rebinding_qualified": false,
+    "persistent_A2A_server_backend_qualified": false,
+    "platform_owner_delivered": false,
+    "RFC25": "Draft",
+    "R1_complete": false,
+    "capacity_latency_security_certificate_claimed": false,
+    "PR_should_remain_Draft": true
+  },
+  "evidence": "evidence/experimental-a2a-request-facts-2026-10-15",
+  "verifier": "python3 docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py --require-execution-record --workspace",
+  "evidence_packaging": {
+    "revision": 2,
+    "parent_v1_preserved": true,
+    "reason": "Store original patch/context and whitespace-bearing text as deterministic gzip without changing raw bytes",
+    "source_or_execution_changed": false,
+    "whitespace_policy_changed": false
+  }
+}

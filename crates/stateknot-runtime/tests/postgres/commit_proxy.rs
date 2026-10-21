@@ -10,7 +10,7 @@ use std::{
     net::{IpAddr, Ipv4Addr, SocketAddr},
     sync::{
         Arc,
-        atomic::{AtomicBool, AtomicI32, Ordering},
+        atomic::{AtomicBool, AtomicI32, AtomicUsize, Ordering},
     },
     time::Duration,
 };
@@ -35,6 +35,14 @@ pub(super) enum TransactionTarget {
     ChildJoinPublication,
     ChildJoinConsumption,
     AgentDeadlineCancellation,
+    GraphNodeStart,
+    GraphFrameClosure,
+    GraphFrameReturn,
+    GraphFrameBarrier,
+    LeaseRenewal,
+    LeaseRelease,
+    RunQuarantine,
+    GraphFrameCancellationConfirmation,
 }
 
 impl TransactionTarget {
@@ -51,6 +59,25 @@ impl TransactionTarget {
             Self::ChildJoinPublication => b"INSERT INTO stateknot.child_run_join_bindings ",
             Self::ChildJoinConsumption => b"\nINSERT INTO stateknot.pending_node_results (",
             Self::AgentDeadlineCancellation => b"SELECT agent_deadline_at FROM stateknot.runs ",
+            Self::GraphNodeStart => b"\nINSERT INTO stateknot.node_attempts (",
+            Self::GraphFrameClosure => b"INSERT INTO stateknot.graph_frame_closures(",
+            Self::GraphFrameReturn => b"INSERT INTO stateknot.graph_frame_returns(",
+            Self::GraphFrameBarrier => b"INSERT INTO stateknot.graph_frame_barriers (",
+            Self::LeaseRenewal => b"\nUPDATE stateknot.runs\nSET lease_renewed_at = $5,",
+            Self::LeaseRelease => b"\nUPDATE stateknot.runs\nSET lease_attempt_id = NULL,",
+            Self::RunQuarantine => b"\nINSERT INTO stateknot.run_quarantines (",
+            Self::GraphFrameCancellationConfirmation => {
+                b"
+UPDATE stateknot.runs
+SET journal_sequence = $3,
+    journal_event_id = $4,
+    journal_recorded_at = $5,
+    journal_digest = $6,
+    lifecycle_bytes = $7,
+    lifecycle_revision = $8::numeric,
+    lifecycle_status = $9,
+"
+            }
         }
     }
 }
@@ -66,21 +93,58 @@ pub(super) struct CommitProxy {
     backend_pid: Arc<AtomicI32>,
     reached: mpsc::Receiver<Cut>,
     task: JoinHandle<io::Result<()>>,
+    resume: Option<tokio::sync::oneshot::Sender<()>>,
+    messages_while_ack_held: Arc<AtomicUsize>,
 }
 
 impl CommitProxy {
-    #[allow(clippy::too_many_lines)]
     pub(super) async fn start(
         options: &PgConnectOptions,
         cut: Cut,
         target: TransactionTarget,
+    ) -> Self {
+        Self::start_after_matching_commits(options, cut, target, 0).await
+    }
+
+    // Skipped targets require statement_cache_capacity(0) on the test-only
+    // connection so each target transaction has its own actual Parse message.
+    pub(super) async fn start_after_matching_commits(
+        options: &PgConnectOptions,
+        cut: Cut,
+        target: TransactionTarget,
+        skip: u8,
+    ) -> Self {
+        Self::start_cut(options, cut, target, skip, None).await
+    }
+
+    // A real executor call distinguishes execution maintenance from any
+    // startup/preparation renewal under the same original lease duration.
+    pub(super) async fn start_after_node_launch(
+        options: &PgConnectOptions,
+        cut: Cut,
+        target: TransactionTarget,
+        calls: Arc<AtomicUsize>,
+    ) -> Self {
+        Self::start_cut(options, cut, target, 0, Some(calls)).await
+    }
+
+    #[allow(clippy::too_many_lines)]
+    async fn start_cut(
+        options: &PgConnectOptions,
+        cut: Cut,
+        target: TransactionTarget,
+        mut skip: u8,
+        launched: Option<Arc<AtomicUsize>>,
     ) -> Self {
         let backend = loopback_target(options);
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
         let port = listener.local_addr().unwrap().port();
         let backend_pid = Arc::new(AtomicI32::new(0));
         let pid = backend_pid.clone();
+        let messages_while_ack_held = Arc::new(AtomicUsize::new(0));
+        let held_messages = messages_while_ack_held.clone();
         let (sender, reached) = mpsc::channel(1);
+        let (resume, resumed) = tokio::sync::oneshot::channel();
         let task = tokio::spawn(async move {
             let (mut client, _) = listener.accept().await?;
             drop(listener); // Exactly one session; the worker explicitly has a 1-connection pool.
@@ -103,35 +167,49 @@ impl CommitProxy {
             let (mut frontend_read, mut frontend_write) = client.into_split();
             let (mut backend_read, mut backend_write) = server.into_split();
             let hold_response = AtomicBool::new(false);
+            let cut_once = AtomicBool::new(false);
             // Separate directional futures preserve partial read_exact state. We
             // never cancel and resume a partially read frame inside a select loop.
             let frontend = async {
                 let mut armed = false;
                 loop {
                     let frame = read_frame(&mut frontend_read).await?;
+                    if hold_response.load(Ordering::SeqCst) {
+                        held_messages.fetch_add(1, Ordering::SeqCst);
+                    }
                     if frame.tag == b'P' {
                         let query = parse_query(&frame.body)?;
                         armed |= query.starts_with(target.parse_prefix());
                     }
                     if armed && frame.tag == b'Q' && frame.body == b"COMMIT\0" {
-                        if cut == Cut::BeforeCommit {
-                            sender
-                                .send(cut)
-                                .await
-                                .map_err(|_| invalid("controller gone"))?;
-                            return std::future::pending::<io::Result<()>>().await;
+                        armed = false;
+                        if skip > 0 {
+                            skip -= 1;
+                        } else if launched
+                            .as_ref()
+                            .is_none_or(|calls| calls.load(Ordering::SeqCst) > 0)
+                            && !cut_once.swap(true, Ordering::SeqCst)
+                        {
+                            if cut == Cut::BeforeCommit {
+                                sender
+                                    .send(cut)
+                                    .await
+                                    .map_err(|_| invalid("controller gone"))?;
+                                return std::future::pending::<io::Result<()>>().await;
+                            }
+                            hold_response.store(true, Ordering::SeqCst);
                         }
-                        hold_response.store(true, Ordering::SeqCst);
                     }
                     write_frame(&mut backend_write, &frame).await?;
                 }
             };
             let backend = async {
+                let mut resumed = Some(resumed);
                 loop {
                     let frame = read_frame(&mut backend_read).await?;
                     if frame.tag == b'K' {
                         if frame.body.len() != 8 {
-                            return Err(invalid("unexpected backend key shape"));
+                            return Err::<(), _>(invalid("unexpected backend key shape"));
                         }
                         pid.store(
                             i32::from_be_bytes(frame.body[..4].try_into().unwrap()),
@@ -152,7 +230,15 @@ impl CommitProxy {
                             .send(cut)
                             .await
                             .map_err(|_| invalid("controller gone"))?;
-                        return std::future::pending::<io::Result<()>>().await;
+                        resumed
+                            .take()
+                            .ok_or_else(|| invalid("ACK already resumed"))?
+                            .await
+                            .map_err(|_| invalid("controller gone before ACK"))?;
+                        hold_response.store(false, Ordering::SeqCst);
+                        write_frame(&mut frontend_write, &frame).await?;
+                        write_frame(&mut frontend_write, &ready).await?;
+                        continue;
                     }
                     write_frame(&mut frontend_write, &frame).await?;
                 }
@@ -165,6 +251,8 @@ impl CommitProxy {
             backend_pid,
             reached,
             task,
+            resume: Some(resume),
+            messages_while_ack_held,
         }
     }
 
@@ -187,6 +275,18 @@ impl CommitProxy {
         })
         .await
         .expect("exact commit cut was not reached");
+    }
+
+    pub(super) fn resume_ack(&mut self) {
+        self.resume
+            .take()
+            .expect("resume ACK once")
+            .send(())
+            .unwrap();
+    }
+
+    pub(super) fn messages_while_ack_held(&self) -> usize {
+        self.messages_while_ack_held.load(Ordering::SeqCst)
     }
 
     pub(super) async fn stop(&mut self) {
@@ -285,6 +385,7 @@ async fn commit_proxy_rejects_truncated_oversized_and_malformed_frames() {
         TransactionTarget::ChildJoinPublication,
         TransactionTarget::ChildJoinConsumption,
         TransactionTarget::AgentDeadlineCancellation,
+        TransactionTarget::GraphFrameCancellationConfirmation,
     ] {
         assert!(!target.parse_prefix().is_empty());
     }

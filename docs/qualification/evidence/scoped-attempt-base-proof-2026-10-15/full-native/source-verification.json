@@ -1,0 +1,10 @@
+{
+  "adoption_commit": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+  "adoption_tree": "781d3d550c5b45554dada9723707508d93dc8703",
+  "source_manifest_sha256": "5cc4e2cd0ab5824b87510dfaea6e95c08e3f1cf0cd20f6e8ebcad0da0b103645",
+  "all_frozen_files_matched_after_all_native": true,
+  "frozen_files": 899,
+  "adopted_crate_and_build_inputs_matched": 515,
+  "cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+  "qualifies_documentation_added_after_testing": false
+}

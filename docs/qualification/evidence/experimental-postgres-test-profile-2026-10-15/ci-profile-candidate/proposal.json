@@ -1,0 +1,14 @@
+{
+  "status": "prepared only; not adopted or executed",
+  "base_commit": "686c42739e9f128db9d90fcb4e9d1aefd36942d8",
+  "path": ".github/workflows/ci.yml",
+  "baseline_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004",
+  "candidate_sha256": "6bead2659391392d43076624c56473b5cfae366d63efc5d985559009ed76336a",
+  "only_changed_job": "postgres",
+  "original_timeout_minutes": 30,
+  "commands_features_resource_fixtures_unchanged": true,
+  "Cargo_manifest_dev_release_publish_profiles_unchanged": true,
+  "explicit_test_assertions_and_overflow": true,
+  "requires_before_adoption": "complete current opt1 matrix terminal, independent patch review, then actual original CI commands within unchanged budget",
+  "full_CI_qualification": false
+}

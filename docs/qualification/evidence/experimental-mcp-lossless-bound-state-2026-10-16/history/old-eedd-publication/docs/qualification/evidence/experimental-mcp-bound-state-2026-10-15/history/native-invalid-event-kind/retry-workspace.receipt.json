@@ -1,0 +1,22 @@
+{
+  "gate": "workspace",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ],
+  "runner_pid": 6473,
+  "pid": 6483,
+  "start_unix": 1792074196.811114,
+  "source_tree": "3216e2d3e495fd02a6946381a49dd6ec9f2f97df0911dac0de6f9466b61d616b",
+  "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+  "exit_code": 0,
+  "seconds": 88.6011528968811,
+  "log_sha256": "c5371d5390d765f858ca6e6ccf6f6558fea24ce39d1aa4432ac0d81db552ea8b",
+  "source_before_after_exact": true,
+  "native_database_execution": false
+}

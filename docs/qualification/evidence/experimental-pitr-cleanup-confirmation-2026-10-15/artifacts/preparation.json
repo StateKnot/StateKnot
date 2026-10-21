@@ -1,0 +1,23 @@
+{
+  "status": "uncompiled single-test candidate; no execution",
+  "baseline_path": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+  "baseline_sha256": "8dcaa48e644869544723cce7fb7f1ffa54b71fcaa16b812da67bb201015707fa",
+  "candidate_sha256": "d6b0037366d7fb4adb38c21f0a4602de10c595c0ce625b65aa7fac114250387d",
+  "patch_sha256": "0182c425552d8568bd3857e8d0a27c3f2eb015f47fe7230b4ffbdfa213ff0769",
+  "production_changes": false,
+  "main_modified_by_this_candidate": false,
+  "original_Drop_fallback_unchanged": true,
+  "original_business_PITR_assertions_unchanged": true,
+  "original_stop_grace_seconds": [
+    10,
+    2
+  ],
+  "original_stop_budgets_seconds": [
+    30,
+    10
+  ],
+  "original_volume_removal_budget_seconds": 10,
+  "budget_increased": false,
+  "existing_leaked_volume_removed": false,
+  "reason": "Observed final922 PG16 leaves one own WAL volume after original Drop ignored removal failure; candidate requires named resources absent before emitting success marker, without inferring exact lost stderr/cause"
+}

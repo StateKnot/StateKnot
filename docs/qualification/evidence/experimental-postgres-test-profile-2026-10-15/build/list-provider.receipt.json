@@ -1,0 +1,14 @@
+{
+  "step": "list-provider",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/provider",
+    "--list"
+  ],
+  "runner_pid": 68288,
+  "pid": 76297,
+  "started_unix": 1792070231.091254,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 0.5581960678100586,
+  "log_sha256": "bd25b46d99add2cd2fcb717608eaf9150b7b8ac51f6a0c2700a2e2e193d1afe0"
+}

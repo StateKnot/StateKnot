@@ -1,0 +1,30 @@
+{
+  "runner_exit_code": 0,
+  "mandatory_backup_restore": true,
+  "mandatory_postgres": true,
+  "container": "stateknot-r1-oct15-pg16",
+  "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+  "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+  "management_database": "stateknot_r1_a_backup_20261015v1",
+  "marker_count": 1,
+  "markers": [
+    {
+      "arch": "aarch64",
+      "archive_bytes": 497785,
+      "archive_sha256": "sha256:6576704a7d09463171bbf438eec4e66bbc0c93db8db78d4ccf8c0da524b1459d",
+      "cross_tenant_refusal_verified": true,
+      "exact_durable_snapshot_verified": true,
+      "invariants": "passed",
+      "noninitial_replay_verified": true,
+      "os": "macos",
+      "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+      "profile": "child-join-logical-restore-v1",
+      "restore_isolated": true,
+      "schema_verified": true,
+      "source_isolated": true
+    }
+  ],
+  "native_log_sha256": "d591bf2b9a6a0b010b1b112341ac3aa4c397c0f125349d3dfb24530500bff4e8",
+  "source_commit": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+  "runtime_native_receipt": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased-backup-restore-pg16-v1/receipt.json"
+}

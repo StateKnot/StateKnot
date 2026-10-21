@@ -1,0 +1,44 @@
+{
+  "files": [
+    {
+      "path": "CONTRACT.zh-CN.md",
+      "bytes": 7237,
+      "sha256": "f9d0586224e24640e00fde5e9da1db892436607f752d1c5e50ad25021ebcff30"
+    },
+    {
+      "path": "README.md",
+      "bytes": 368,
+      "sha256": "7aaeed7855bf0a1bdaaa13b636bbfa0c90274e2821baab692805b3ddbbaf767d"
+    },
+    {
+      "path": "acceptance-matrix.json",
+      "bytes": 9476,
+      "sha256": "67a8cbda8fc19fafcbef2d0a6cd3cc4a0bbb2d65a6730043c8f6335a28ba9b0a"
+    },
+    {
+      "path": "before-design-freeze.df",
+      "bytes": 190,
+      "sha256": "6be3ab275b09231f6139b7acc2ce41900459c29422036f9fc99e9801cafa5aff"
+    },
+    {
+      "path": "private-responsibilities.rs.txt",
+      "bytes": 1784,
+      "sha256": "24c67111cb0957b605dd2200916a7cb46f0882cb7c5eac33131c87c8d275cd0d"
+    },
+    {
+      "path": "public-interface.rs.txt",
+      "bytes": 1113,
+      "sha256": "ef60a0600ebfc03b48fa7dcf5b4b14842adc7b96a18adbb7cef16f356c5e64a2"
+    },
+    {
+      "path": "receipt.json",
+      "bytes": 967,
+      "sha256": "7700b8725ba9608a451e8eea1694faa5fcd03ad468c748ce3157fd1f0c797748"
+    },
+    {
+      "path": "source-read.json",
+      "bytes": 1838,
+      "sha256": "1d4292e51da76a628c7a42b21861d5eca4a6d4cd2544dbb035fa9ffca95f2b01"
+    }
+  ]
+}

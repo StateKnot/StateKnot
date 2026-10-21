@@ -1,0 +1,182 @@
+async fn scoped_interrupt_and_timer_resume_replay_original_wait_without_an_extra_transition() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let db = super::frame_barriers::pool().await;
+    let now: i64 = query_scalar("SELECT (extract(epoch FROM clock_timestamp())*1000000)::bigint")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    let due = Timestamp::from_unix_micros(now + 500_000).unwrap();
+    let interrupt_id = InterruptId::generate();
+    let timer_id = TimerId::generate();
+    let waits = NodeWaits::try_new([
+        super::frame_waits::interrupt(interrupt_id),
+        NodeWait::timer(timer_id, RunTimerKind::Sleep, due),
+    ])
+    .unwrap();
+    let (_, entry, child, old, plan, observed, revision) = Box::pin(super::frame_waits::prepared(
+        &store,
+        "application-replay-wait",
+        waits,
+    ))
+    .await;
+    let saved = Box::pin(super::frame_waits::suspend(
+        &store,
+        plan,
+        &old,
+        observed,
+        entry.direct_usage_after().unwrap(),
+        revision,
+        &child,
+    ))
+    .await;
+    assert!(
+        store
+            .claim_lease(old.tenant_id(), old.run_id(), AttemptId::generate())
+            .await
+            .is_err()
+    );
+    let waiting = store.load_run(old.tenant_id(), old.run_id()).await.unwrap();
+    let request = store
+        .load_interrupt_request(old.tenant_id(), old.run_id(), interrupt_id)
+        .await
+        .unwrap();
+    let event_id = EventId::generate();
+    let intent = InterruptResolutionIntent::new(
+        &request,
+        event_id,
+        payload(28_031),
+        InterruptResolver::new(
+            super::frame_waits::principal(),
+            super::frame_waits::scopes(),
+        ),
+    )
+    .unwrap();
+    let resolved = store
+        .resolve_interrupt(
+            control_append(
+                old.tenant_id().clone(),
+                old.run_id(),
+                event_id,
+                JournalExpectation::exact(saved.event().head()),
+                28_032,
+            ),
+            waiting.lifecycle().revision(),
+            intent,
+        )
+        .await
+        .unwrap();
+    let remaining = store.load_run(old.tenant_id(), old.run_id()).await.unwrap();
+    assert_eq!(remaining.unresolved_wait_count(), 1);
+    let timer = store
+        .load_durable_timer(old.tenant_id(), old.run_id(), timer_id)
+        .await
+        .unwrap();
+    let now: i64 = query_scalar("SELECT (extract(epoch FROM clock_timestamp())*1000000)::bigint")
+        .fetch_one(&db)
+        .await
+        .unwrap();
+    if now < due.unix_micros() {
+        tokio::time::sleep(Duration::from_micros(
+            u64::try_from(due.unix_micros() - now + 1000).unwrap(),
+        ))
+        .await;
+    }
+    let event_id = EventId::generate();
+    store
+        .fire_timer(
+            control_append(
+                old.tenant_id().clone(),
+                old.run_id(),
+                event_id,
+                JournalExpectation::exact(resolved.event().head()),
+                28_033,
+            ),
+            remaining.lifecycle().revision(),
+            TimerFiringIntent::new(&timer, event_id).unwrap(),
+        )
+        .await
+        .unwrap();
+    let newer = store
+        .claim_lease(old.tenant_id(), old.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let parent = super::frame_transactions::caller_graph("barrier-parent", &child, 4096);
+    let reducers = [
+        ObservedReducer::new(&child, 0),
+        ObservedReducer::new(&parent, 0),
+    ];
+    let session = recovery(&store, &newer).await;
+    let report = session
+        .validate_graph_replay(
+            Some(&saved.checkpoint().head()),
+            &AcceptGraphSchemas,
+            |reference| {
+                if *reference == child.reference() {
+                    Some(&reducers[0] as &dyn GraphReducer)
+                } else if *reference == parent.reference() {
+                    Some(&reducers[1] as &dyn GraphReducer)
+                } else {
+                    None
+                }
+            },
+            GraphReplayLimits::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.waits_validated(), 1);
+    assert_eq!(report.barriers_replayed(), 1);
+    assert_eq!(report.frame_checkpoints_validated(), 2);
+    assert_eq!(report.leaf(), Some(&saved.checkpoint().head()));
+    assert_eq!(saved.checkpoint().checkpoint().superstep().get(), 1);
+
+    // Resolved waits authenticate the saved step once; a later actual terminal
+    // transition must replay both edges under the successor fence.
+    drop(session);
+    let result = Box::pin(succeed_update(
+        &store,
+        saved.checkpoint(),
+        &newer,
+        super::frame_barriers::terminal(&child),
+    ))
+    .await;
+    let continued = Box::pin(commit(
+        &store,
+        super::frame_barriers::plan(&child, saved.checkpoint(), &result),
+        &newer,
+        saved.direct_usage_after().unwrap(),
+        &child,
+    ))
+    .await;
+    let report = recovery(&store, &newer)
+        .await
+        .validate_graph_replay(
+            Some(&continued.checkpoint().head()),
+            &AcceptGraphSchemas,
+            |reference| {
+                if *reference == child.reference() {
+                    Some(&reducers[0] as &dyn GraphReducer)
+                } else if *reference == parent.reference() {
+                    Some(&reducers[1] as &dyn GraphReducer)
+                } else {
+                    None
+                }
+            },
+            GraphReplayLimits::default(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(report.waits_validated(), 1);
+    assert_eq!(report.barriers_replayed(), 2);
+    assert_eq!(report.frame_checkpoints_validated(), 3);
+    assert_eq!(report.leaf(), Some(&continued.checkpoint().head()));
+    assert_eq!(reducers[0].calls.load(Ordering::SeqCst), 1);
+    db.close().await;
+    store.close().await;
+}
+

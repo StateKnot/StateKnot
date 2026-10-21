@@ -1,0 +1,22 @@
+{
+  "reviewer": "root; independent of Wait source/delivery authors",
+  "delivery_manifest_sha256": "4d7ea779988119c41fb0b037093aa2ed73f8ba3e1e3212081cf0ba20d2a40eb5",
+  "adopted_paths": 194,
+  "actual_command": [
+    "python3",
+    "-B",
+    "/Users/jiawy/Documents/RustAgentFramework/docs/qualification/evidence/experimental-scoped-wait-process-faults-2026-10-16/verify.py",
+    "--workspace-root",
+    "/Users/jiawy/Documents/RustAgentFramework"
+  ],
+  "actual_exit_code": 0,
+  "seconds": 0.29160118103027344,
+  "stdout_sha256": "9679c7d772513ea2101c0511d7505bdd090835c4f8b3c1c5b309d5403d366539",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source542_main_exact": true,
+  "reviewed_full_test_module": true,
+  "reviewed_bilingual_docs_and_verifier": true,
+  "blocking_findings": 0,
+  "production_Rust_SQL_API_migrations_budgets_changed": false,
+  "full_Native_CI_or_R1_qualification": false
+}

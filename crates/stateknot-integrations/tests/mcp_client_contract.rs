@@ -355,3 +355,359 @@ async fn bearer_challenge_is_bounded_and_replays_exactly_once() {
     assert_eq!(first_body["method"], second_body["method"]);
     assert_ne!(first_body["id"], second_body["id"]);
 }
+
+const DIAGNOSTIC_CANARY: &str = "DEBUG_CANARY_";
+
+fn diagnostic_private(field: &str) -> String {
+    format!("{DIAGNOSTIC_CANARY}{field}")
+}
+
+fn diagnostic_tool() -> Value {
+    json!({
+        "name": diagnostic_private("tool_name"),
+        "title": diagnostic_private("tool_title"),
+        "description": diagnostic_private("tool_description"),
+        "inputSchema": {"type":"object"}
+    })
+}
+
+fn diagnostic_complete(is_error: bool) -> Value {
+    let mut result = json!({
+        "resultType":"complete",
+        "content":[{"type":"text","text":diagnostic_private("result_text")}],
+        "isError":is_error,
+        (diagnostic_private("result_raw_key")):diagnostic_private("result_raw_value")
+    });
+    if !is_error {
+        result["structuredContent"] = json!({
+            (diagnostic_private("structured_key")):diagnostic_private("structured_value")
+        });
+    }
+    result
+}
+
+fn diagnostic_input_required() -> Value {
+    json!({
+        "resultType":"input_required",
+        "requestState":diagnostic_private("opaque_state"),
+        "inputRequests":{
+            (diagnostic_private("input_key")):{
+                "method":"roots/list",
+                "params":{(diagnostic_private("input_param_key")):diagnostic_private("input_param_value")}
+            }
+        }
+    })
+}
+
+fn diagnostic_notification(has_params: bool) -> Value {
+    let mut notification = json!({
+        "jsonrpc":"2.0",
+        "method":format!("notifications/{}", diagnostic_private("notification_method")),
+        (diagnostic_private("notification_raw_key")):diagnostic_private("notification_raw_value")
+    });
+    if has_params {
+        notification["params"] = json!({
+            (diagnostic_private("notification_param_key")):diagnostic_private("notification_param_value")
+        });
+    }
+    notification
+}
+
+#[derive(Clone, Copy)]
+enum DiagnosticOutcome {
+    Complete(bool),
+    InputRequired,
+    Remote,
+}
+
+fn diagnostic_rpc_response(
+    method: &str,
+    id: &Value,
+    outcome: DiagnosticOutcome,
+    index: usize,
+) -> Value {
+    match method {
+        "server/discover" => json!({
+            "jsonrpc":"2.0","id":id,
+            "result":{"resultType":"complete","supportedVersions":["2026-07-28"],
+                      "capabilities":{"tools":{}},"ttlMs":0,"cacheScope":"private"}
+        }),
+        "tools/list" => json!({
+            "jsonrpc":"2.0","id":id,
+            "result":{"resultType":"complete","tools":[diagnostic_tool()]}
+        }),
+        "tools/call" => match outcome {
+            DiagnosticOutcome::Remote => json!({
+                "jsonrpc":"2.0","id":id,
+                "error":{"code":-32041,"message":diagnostic_private("error_message"),
+                         "data":{(diagnostic_private("error_data_key")):diagnostic_private("error_data_value")}}
+            }),
+            DiagnosticOutcome::InputRequired if index == 2 => {
+                json!({"jsonrpc":"2.0","id":id,"result":diagnostic_input_required()})
+            }
+            DiagnosticOutcome::InputRequired => {
+                json!({"jsonrpc":"2.0","id":id,"result":diagnostic_complete(false)})
+            }
+            DiagnosticOutcome::Complete(is_error) => {
+                json!({"jsonrpc":"2.0","id":id,"result":diagnostic_complete(is_error)})
+            }
+        },
+        method => panic!("unexpected diagnostic fixture method {method}"),
+    }
+}
+
+async fn write_diagnostic_sse(socket: &mut tokio::net::TcpStream, response: &Value) {
+    socket
+        .write_all(
+            b"HTTP/1.1 200 OK\r\nContent-Type: text/event-stream\r\nConnection: close\r\n\r\n",
+        )
+        .await
+        .unwrap();
+    let payload = format!(
+        "data: {}\r\n\r\ndata: {}\r\n\r\ndata: {response}\r\n\r\n",
+        diagnostic_notification(true),
+        diagnostic_notification(false)
+    );
+    for chunk in payload.as_bytes().chunks(7) {
+        socket.write_all(chunk).await.unwrap();
+        tokio::task::yield_now().await;
+    }
+}
+
+struct DiagnosticServer {
+    endpoint: ProviderEndpoint,
+    task: tokio::task::JoinHandle<Vec<Vec<u8>>>,
+}
+
+impl Drop for DiagnosticServer {
+    fn drop(&mut self) {
+        self.task.abort();
+    }
+}
+
+impl DiagnosticServer {
+    async fn start(sse: bool, outcome: DiagnosticOutcome) -> Self {
+        let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
+        let address = listener.local_addr().unwrap();
+        let endpoint = ProviderEndpoint::loopback_http(&format!("http://{address}/mcp/")).unwrap();
+        let count = if matches!(outcome, DiagnosticOutcome::InputRequired) {
+            4
+        } else {
+            3
+        };
+        let task = tokio::spawn(async move {
+            let mut captured = Vec::new();
+            for index in 0..count {
+                let (mut socket, _) = listener.accept().await.unwrap();
+                let request = read_request(&mut socket).await;
+                let message: Value = serde_json::from_slice(request_body(&request)).unwrap();
+                let method = message["method"].as_str().unwrap();
+                let response = diagnostic_rpc_response(method, &message["id"], outcome, index);
+                if sse && method == "tools/call" {
+                    write_diagnostic_sse(&mut socket, &response).await;
+                } else {
+                    write_json(&mut socket, &response).await;
+                }
+                // Every response byte was accepted by write_all. The client may
+                // already have closed its completed request-scoped SSE stream;
+                // let this scope close the socket without an extra shutdown.
+                captured.push(request);
+            }
+            captured
+        });
+        Self { endpoint, task }
+    }
+
+    async fn finish(mut self) -> Vec<Vec<u8>> {
+        // Keep the handle in its owner across the timeout; Drop aborts on error.
+        tokio::time::timeout(std::time::Duration::from_secs(5), &mut self.task)
+            .await
+            .unwrap()
+            .unwrap()
+    }
+}
+
+fn assert_diagnostic_redacted<T: std::fmt::Debug + ?Sized>(value: &T) {
+    for rendered in [format!("{value:?}"), format!("{value:#?}")] {
+        assert!(!rendered.contains(DIAGNOSTIC_CANARY), "{rendered}");
+        assert!(!rendered.contains(SECRET), "{rendered}");
+    }
+}
+
+fn assert_diagnostic_notifications(
+    response: &stateknot_integrations::McpToolCallResponse,
+    sse: bool,
+) {
+    let notifications = response.notifications();
+    assert_eq!(notifications.len(), if sse { 2 } else { 0 });
+    for (notification, has_params) in notifications.iter().zip([true, false]) {
+        assert_diagnostic_redacted(notification);
+        let expected = diagnostic_notification(has_params);
+        assert_eq!(notification.method(), expected["method"].as_str().unwrap());
+        assert_eq!(notification.params(), expected.get("params"));
+        assert_eq!(notification.raw(), &expected);
+        assert_eq!(
+            serde_json::to_vec(notification.raw()).unwrap(),
+            serde_json::to_vec(&expected).unwrap()
+        );
+        assert_eq!(&notification.clone(), notification);
+    }
+}
+
+fn assert_diagnostic_complete(
+    response: &stateknot_integrations::McpToolCallResponse,
+    is_error: bool,
+    sse: bool,
+) {
+    assert_diagnostic_redacted(response);
+    assert_diagnostic_redacted(response.outcome());
+    assert_diagnostic_notifications(response, sse);
+    let McpToolCall::Complete(result) = response.outcome() else {
+        panic!("expected a diagnostic complete result");
+    };
+    assert_diagnostic_redacted(result);
+    let expected = diagnostic_complete(is_error);
+    assert_eq!(result.is_error(), is_error);
+    assert_eq!(
+        result.content(),
+        expected["content"].as_array().unwrap().as_slice()
+    );
+    assert_eq!(
+        result.structured_content(),
+        expected.get("structuredContent")
+    );
+    assert_eq!(result.raw(), &expected);
+    assert_eq!(
+        serde_json::to_vec(result.raw()).unwrap(),
+        serde_json::to_vec(&expected).unwrap()
+    );
+    assert_eq!(&result.clone(), result);
+}
+
+fn assert_diagnostic_remote(error: &stateknot_integrations::StatelessMcpClientError) {
+    assert_diagnostic_redacted(error);
+    let stateknot_integrations::StatelessMcpClientError::Remote(remote) = error else {
+        panic!("expected a diagnostic remote error");
+    };
+    assert_diagnostic_redacted(remote);
+    assert_eq!(remote.code(), -32041);
+    assert_eq!(remote.message(), diagnostic_private("error_message"));
+    let expected =
+        json!({(diagnostic_private("error_data_key")):diagnostic_private("error_data_value")});
+    assert_eq!(remote.data(), Some(&expected));
+    assert_eq!(
+        serde_json::to_vec(remote.data().unwrap()).unwrap(),
+        serde_json::to_vec(&expected).unwrap()
+    );
+    assert_eq!(&remote.clone(), remote);
+}
+
+fn assert_diagnostic_wire(captured: &[Vec<u8>], outcome: DiagnosticOutcome, arguments: &Value) {
+    let expected_count = if matches!(outcome, DiagnosticOutcome::InputRequired) {
+        4
+    } else {
+        3
+    };
+    assert_eq!(captured.len(), expected_count);
+    let mut ids = std::collections::HashSet::new();
+    for (index, request) in captured.iter().enumerate() {
+        let message: Value = serde_json::from_slice(request_body(request)).unwrap();
+        assert!(ids.insert(message["id"].as_u64().unwrap()));
+        assert_eq!(
+            message["method"],
+            if index == 0 {
+                "server/discover"
+            } else if index == 1 {
+                "tools/list"
+            } else {
+                "tools/call"
+            }
+        );
+        if index >= 2 {
+            assert_eq!(message["params"]["name"], diagnostic_private("tool_name"));
+            assert_eq!(&message["params"]["arguments"], arguments);
+            if index == 3 {
+                assert_eq!(
+                    message["params"]["requestState"],
+                    diagnostic_private("opaque_state")
+                );
+                assert_eq!(
+                    message["params"]["inputResponses"],
+                    json!({(diagnostic_private("input_key")):{"roots":[]}})
+                );
+            } else {
+                assert!(message["params"].get("requestState").is_none());
+                assert!(message["params"].get("inputResponses").is_none());
+            }
+        }
+    }
+}
+
+async fn diagnostic_http_case(sse: bool, outcome: DiagnosticOutcome) {
+    let server = DiagnosticServer::start(sse, outcome).await;
+    let client = McpClient::connect(
+        server.endpoint.clone(),
+        McpClientIdentity::new("diagnostic-contract-client", "1.0.0").unwrap(),
+        Arc::new(StaticMcpBearerAuthorization::new(
+            ApiKey::new(SECRET).unwrap(),
+        )),
+        McpClientOptions::default(),
+    )
+    .await
+    .unwrap();
+    let catalog = client.list_tools().await.unwrap();
+    let tool = catalog.find(&diagnostic_private("tool_name")).unwrap();
+    assert_eq!(tool.raw(), &diagnostic_tool());
+    assert_eq!(
+        tool.title(),
+        Some(diagnostic_private("tool_title").as_str())
+    );
+    assert_eq!(
+        tool.description(),
+        Some(diagnostic_private("tool_description").as_str())
+    );
+    let arguments = json!({"question":diagnostic_private("original_argument")});
+    let result = client.call_tool(tool, arguments.clone()).await;
+    match outcome {
+        DiagnosticOutcome::Remote => assert_diagnostic_remote(&result.unwrap_err()),
+        DiagnosticOutcome::Complete(is_error) => {
+            assert_diagnostic_complete(&result.unwrap(), is_error, sse);
+        }
+        DiagnosticOutcome::InputRequired => {
+            let response = result.unwrap();
+            assert_diagnostic_redacted(&response);
+            assert_diagnostic_notifications(&response, sse);
+            // The bare continuation's Debug is outside this scope. Its Tool
+            // name is still private metadata that the outer response must hide.
+            let McpToolCall::InputRequired(required) = response.into_outcome() else {
+                panic!("expected a diagnostic continuation");
+            };
+            assert!(required.has_request_state());
+            let expected = diagnostic_input_required();
+            assert_eq!(
+                required.input_requests(),
+                expected["inputRequests"].as_object().unwrap()
+            );
+            let mut responses = serde_json::Map::new();
+            responses.insert(diagnostic_private("input_key"), json!({"roots":[]}));
+            let complete = required.resume(responses).await.unwrap();
+            assert_diagnostic_complete(&complete, false, sse);
+        }
+    }
+    let captured = server.finish().await;
+    assert_diagnostic_wire(&captured, outcome, &arguments);
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn http_response_debug_hides_payloads_without_changing_raw_values_or_resume() {
+    for sse in [false, true] {
+        for outcome in [
+            DiagnosticOutcome::Complete(false),
+            DiagnosticOutcome::Complete(true),
+            DiagnosticOutcome::InputRequired,
+            DiagnosticOutcome::Remote,
+        ] {
+            diagnostic_http_case(sse, outcome).await;
+        }
+    }
+}

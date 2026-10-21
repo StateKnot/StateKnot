@@ -46,6 +46,13 @@ Facade，并已实现一个严格 MCP Remote Tool Profile；稳定 HTTP/gRPC/SSE
 
 ## 启动绑定
 
+未发布的[嵌套 Driver](durable-graph-runtime.zh-CN.md#实验性命名空间帧)
+要求同一 provider 实现 `direct_usage_evidence`，默认实现拒绝提供完整框架用量。
+Loop 把该 provider 同时绑定到 Driver 与 lifecycle coordinator。
+`AgentLoopOutcome::FrameWaiting` 转交已提交的 scoped Wait 与租约释放；
+授权 Wait resolution 和新 scheduler claim 负责恢复，不再创建第二个 Root Wait。
+这些增量仍受 RFC-0022 草案约束，不包含在 `0.1.0-alpha.1` 中。
+
 冻结 Executable Registry 前必须安装 Driver、Lifecycle 与 Cancellation 三份标准审计 Schema。数据库迁移完成后，再从同一个
 不可变 Release Artifact 注册全部应用 Schema、Graph、Reducer 与 Node Executor；只有这些
 步骤全部成功后才能构造 Scheduler。
@@ -111,6 +118,16 @@ Terminal Output，构造 `AgentResult`，再验证 Provenance、Descriptor、Req
 Artifact 与累计 Usage 之间的全部关系。Evidence 失败时，Agent Loop 会有界地尝试释放精确
 Fence；Run 保持可恢复，而不会被部分 Finalize。
 
+对于 fresh generic Blocked Failure handoff，Lifecycle 会同时收口构造
+`failure_evidence` future 与 poll future 时的 panic，统一映射为
+`GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::Unavailable)`。
+Agent Loop 随后按既有有界精确 Fence 清理释放原 Lease，再返回错误；清理失败时仍合并报告
+原错误与 Cleanup Error。失败的观察保留父 Checkpoint、Journal 与已记录的失败 DIRECT
+Usage，不登记 Failure-close Decision，也不结算已 Admission 的 child；child 已持久化的
+完整终态 Usage（含未定价成本）保持原样。未定价 child Usage 是会计证据，不代表
+`ToolInvocationState::Unknown`，也不证明外部副作用结果。该实验性行为不改变 Supported
+状态、不实现 MCP stdio transport，不关闭 R1，也不授予完整 Native 或 CI 资格。
+
 ## 原子生命周期边
 
 ### Wait
@@ -149,6 +166,29 @@ Fence，从可信 Ledger 恢复精确累计 Usage，使用数据库时钟取得 
 Lease 的 Transaction 同时提交 Public-safe Confirmation Event 与 `ConfirmCancellation`。
 如果精确 Evidence 不可用，Run 会保持 `cancellation_requested`，不会写入零 Usage 或虚构
 Terminal State。
+
+对于没有 scoped leaf 的 fresh Root handoff，实验性证据观察也遵循 Agent Loop
+传入的 shutdown 与既有 `node_execution_timeout`；独立
+`confirm_cancellation` 使用默认 Driver node timeout。成功响应 shutdown 并释放前，
+仍先校验原 Scope、Checkpoint、Revision、取消 Request 与 Live Fence。
+shutdown 在只读观察阶段生效时返回 `GraphBarrierLifecycleOutcome::Released`，
+Agent Loop 将其暴露为 `AgentLoopOutcome::RecoveryReleased`；Run 仍保持
+`cancellation_requested`。证据超时返回
+`GraphLifecycleError::Evidence`，内层为
+`GraphLifecycleEvidenceError::TemporarilyUnavailable`；provider 构造 future
+或 poll future 时 panic 则使用相同外层错误，内层为
+`GraphLifecycleEvidenceError::Unavailable`。
+Agent Loop 保留既有精确 Fence 清理及 Primary/Cleanup Error 合并报告。
+
+观察期间，共享取消监护仅使用配置的 Store 租约长度续租原 Fence。Runtime 先读完
+所有在途续租及重试的原 ACK，再完整核对 child 会计，并用最新数据库时钟检查同一个
+Live Fence。清理可在 Run admission deadline 之后完成，但不授予新的执行权限。
+终结 append 与完整 COMMIT ACK 不属于可取消观察。既有 child 结算、Unknown
+与未定价成本规则保持不变，证据不完整时绝不补零。
+
+已提交取消的精确重放恢复原 Event、Completion Time 和 Usage，不重新咨询证据
+provider、不启动监护，也不要求新的 Live Lease。本说明不声明任何执行或 CI
+资格，不改变 Supported 状态，也不关闭 R1。
 
 ## Lost ACK 与 Stale Handoff
 

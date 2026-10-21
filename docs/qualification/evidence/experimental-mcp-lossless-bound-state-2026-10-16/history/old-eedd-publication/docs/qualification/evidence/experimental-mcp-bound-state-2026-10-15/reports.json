@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.md",
+      "bytes": 9357,
+      "sha256": "2fddb7908c7438136aa707f2d9f64bd3e866b5702199d9a184c3ad0bfcb07440"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.zh-CN.md",
+      "bytes": 7806,
+      "sha256": "b131040f1c1062530ad36b530dc67fa9c6edcddf7b266483b6c7d4d15bcdcb77"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.json",
+      "bytes": 8629,
+      "sha256": "b70f22cff9a10c9dc64958fd57b0ad140c78d91c8f4cb686786239681a94c1db"
+    }
+  ]
+}

@@ -854,7 +854,7 @@ test("core contracts expose executable evidence and the draft boundary", async (
     }),
   ).toBeVisible();
   await expect(
-    page.getByText("all 44 committed Core", { exact: false }),
+    page.getByText("all 48 committed Core", { exact: false }),
   ).toBeVisible();
   await expect(
     page.getByText("Complete Tool authorization receipts", { exact: false }),
@@ -871,6 +871,9 @@ test("core contracts expose executable evidence and the draft boundary", async (
   await expect(
     page.getByText("Two graph and checkpoint models", { exact: false }),
   ).toBeVisible();
+  await expect(
+    page.getByText("RFC-0022 remains Draft", { exact: false }),
+  ).toBeVisible();
   await expect(page.locator("[data-copy-button]")).toHaveCount(1);
 
   await page.goto("/zh/docs/core-contracts/");
@@ -878,7 +881,7 @@ test("core contracts expose executable evidence and the draft boundary", async (
     page.getByRole("heading", { level: 2, name: "封闭兼容性证据语料库" }),
   ).toBeVisible();
   await expect(
-    page.getByText("全部 44 份 Core Fixture", { exact: false }),
+    page.getByText("全部 48 份 Core Fixture", { exact: false }),
   ).toBeVisible();
   await expect(
     page.getByText("完整的 Tool 授权 Receipt", { exact: false }),
@@ -887,6 +890,9 @@ test("core contracts expose executable evidence and the draft boundary", async (
     page.getByText("第 2 项仍保持开放", { exact: false }),
   ).toBeVisible();
   await expect(page.getByText("298 个规范", { exact: false })).toBeVisible();
+  await expect(
+    page.getByText("RFC-0022 保持草案", { exact: false }),
+  ).toBeVisible();
   await expect(
     page.getByText("七个复合预算模型", { exact: false }),
   ).toBeVisible();

@@ -1,0 +1,74 @@
+{
+  "source_directory": "a2a-initial-authority-source-v5",
+  "source_manifest": "abad21a3602dfb53c2ec89f61964d0d5d649db65d4ea21056dd790f7f444f7e7",
+  "source_tree": "9a98cd929c10698f8cb866b99b3fd00a9b0f69dd840a68da1d01f5b30817f49d",
+  "source_files": 931,
+  "compiled_files": 540,
+  "compiled_sha256": "c3c5ed5bb8f102d9b1b31bf1afbb21e75e1e05d4e2b37d523f4ba4ca2bc80edc",
+  "six_gates_passed": true,
+  "workspace": {
+    "suite_summaries": 100,
+    "passed": 2119,
+    "failed": 0,
+    "ignored": 6
+  },
+  "doctests": {
+    "suite_summaries": 10,
+    "passed": 48,
+    "failed": 0,
+    "ignored": 0
+  },
+  "new_private_unit_passed": [
+    "a2a_server::preparation_tests::early_push_bytes_rejections_equal_original_json_extractor_in_full",
+    "a2a_server::preparation_tests::original_rest_send_and_rpc_canonicalization_and_content_length_removal_remain",
+    "a2a_server::preparation_tests::push_handoff_keeps_original_parts_instance_headers_and_large_raw_bytes"
+  ],
+  "new_integration_family_passed": [
+    "initial_authority::truncated_tcp_push_compares_original_sdk_response_when_transport_exposes_one",
+    "initial_authority::original_rest_send_and_rpc_early_errors_keep_complete_wire_values",
+    "initial_authority::push_buffering_uses_configured_limit_and_original_sdk_rejections",
+    "initial_authority::direct_router_owns_body_and_callback_futures_and_checks_ready_clock",
+    "initial_authority::ignored_body_routes_and_capability_checks_keep_their_original_order",
+    "initial_authority::json_uploads_share_the_initial_policy_deadline_and_shutdown",
+    "initial_authority::initial_policy_deadline_shutdown_and_capacity_are_owned",
+    "initial_authority::initial_policy_all_eleven_operations_preserve_facts_errors_and_shared_timeout"
+  ],
+  "old_subscription_family_passed": true,
+  "gates": {
+    "fmt": {
+      "receipt_sha256": "acc7e555592a85956cb21c7d632412fa8bd7b9f530397fb404cab8e1118517d0",
+      "raw_log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "seconds": 1.3644447326660156
+    },
+    "clippy": {
+      "receipt_sha256": "f781a024b02de7aabe8609c8b64acd9ff5dd396f96bad17562f8570ddbc653ce",
+      "raw_log_sha256": "362904451fb182b9e2c249e1358f2fcfb5c98007b8f2c91a4fa4f21e63b30e5e",
+      "seconds": 21.47643232345581
+    },
+    "workspace": {
+      "receipt_sha256": "29d7dd30a43f05ac164e3156ee1c17a556d81e6c4aca730a66155016391dd5e9",
+      "raw_log_sha256": "53db7aee4cb36925b380c570ca6f3ca2f7293a5f485593f88b674e3a6595f902",
+      "seconds": 165.30227708816528
+    },
+    "doctests": {
+      "receipt_sha256": "3496b9c95f61965937ea63c28c2dc7a240f8955c97d2e8d21644f552a1131b98",
+      "raw_log_sha256": "4c01182ea23c9bb7d9af88e9234a8125151be6f39f62718f9d8898e2a47beca5",
+      "seconds": 6.613994121551514
+    },
+    "rustdoc": {
+      "receipt_sha256": "33d6054808de14e72c9df9a4b50990969fd6dae12ac748b8511bc5c9c88f1eae",
+      "raw_log_sha256": "348824396d4a0420a021da8cebcb9ebae6b47ffb9f2d028594185bbcad412731",
+      "seconds": 12.002684116363525
+    },
+    "nightly": {
+      "receipt_sha256": "f0371d08a8b180d4ad7a4d96d7c5bc753e6b44c2e61f5f07333df4efab79a796",
+      "raw_log_sha256": "6b9172e85cfe6ca3e6783e90342161870993cfa216df6973b87d3ebbf07f1c55",
+      "seconds": 17.8542320728302
+    }
+  },
+  "runner_sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658",
+  "driver_sha256": "5046cb472e94a176c499b461704663c1bedb948e59e3307915875f65c254cf1c",
+  "native_database_or_full_CI_qualification": false,
+  "whole_Git_or_compiler_read_closure": false,
+  "source_freshness_metadata_sha256": "d0112c745ce5ca9c2cdb7ce668e680d5e2396bfa440ffb610e6f9fe19566ffcb"
+}

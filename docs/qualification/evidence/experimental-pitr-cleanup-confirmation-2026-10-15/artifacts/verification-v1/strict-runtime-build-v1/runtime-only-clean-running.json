@@ -1,0 +1,14 @@
+{
+  "pid": 58993,
+  "command": [
+    "cargo",
+    "clean",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-pitr-cleanup-source/Cargo.toml",
+    "--target-dir",
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+    "-p",
+    "stateknot-runtime"
+  ],
+  "started_unix": 1792067286.983077
+}

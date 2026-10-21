@@ -1,0 +1,121 @@
+{
+  "role": "candidate",
+  "package": "store",
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3",
+  "source_manifest": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-qualification-v3/frozen-source-manifest.json",
+  "compiled_inputs": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-qualification-v3/compiled-inputs.json",
+  "source_tree": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "compiled_inputs_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "selected_artifacts_all_fresh_false": [
+    {
+      "reason": "compiler-artifact",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-core#0.1.0-alpha.1",
+      "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-core/Cargo.toml",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "stateknot_core",
+        "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-core/src/lib.rs",
+        "edition": "2024",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": false
+      },
+      "features": [],
+      "filenames": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/libstateknot_core-aa10d6d9895488e3.rlib",
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/libstateknot_core-aa10d6d9895488e3.rmeta"
+      ],
+      "executable": null,
+      "fresh": false
+    },
+    {
+      "reason": "compiler-artifact",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-store-postgres/Cargo.toml",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "stateknot_store_postgres",
+        "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-store-postgres/src/lib.rs",
+        "edition": "2024",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": false
+      },
+      "features": [],
+      "filenames": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/libstateknot_store_postgres-dbdd6d3835e2fddd.rlib",
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/libstateknot_store_postgres-dbdd6d3835e2fddd.rmeta"
+      ],
+      "executable": null,
+      "fresh": false
+    },
+    {
+      "reason": "compiler-artifact",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-store-postgres/Cargo.toml",
+      "target": {
+        "kind": [
+          "test"
+        ],
+        "crate_types": [
+          "bin"
+        ],
+        "name": "postgres",
+        "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3/crates/stateknot-store-postgres/tests/postgres.rs",
+        "edition": "2024",
+        "doc": false,
+        "doctest": false,
+        "test": true
+      },
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "features": [],
+      "filenames": [
+        "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/postgres-1846ebb55d7df7b4"
+      ],
+      "executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1/debug/deps/postgres-1846ebb55d7df7b4",
+      "fresh": false
+    }
+  ],
+  "all_compiler_artifacts_sha256": "104cf581be215067c7d440fe4e42522118cbe70463e3e205c81d44f867abe203",
+  "saved_executable": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-native-v3/build-candidate-store/binaries/store-postgres",
+  "binary_sha256": "43720b996435e8e40d46be2b460cb881ccaab1b8ac67728d2523ab3126286bc3",
+  "binary_bytes": 41776000,
+  "inventory_count": 264,
+  "exact_case": "frame_barriers::nested_entry_after_scoped_barrier_authenticates_parent_successor_and_usage_floor",
+  "expected_filtered": 263,
+  "inventory_exit_code": 0,
+  "inventory_sha256": "efbffe8ed06c4e2f17ca0d55e01bb6a25019f2142d78615a9c2b3669aa6ade05",
+  "build_receipt_sha256": "e32a86c522201b51e5fc2d02f50b7a586bcd3e7b58b2d407a76aef481b19a495",
+  "database_executions": 0,
+  "cold_or_fullCI_qualification": false
+}

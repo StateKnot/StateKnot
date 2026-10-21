@@ -1,0 +1,44 @@
+{
+  "fixed_metadata_scope": {
+    "new_full_Native_or_fullCI_conformance_or_stdio_qualification": false,
+    "new_targeted_Native_qualification": true
+  },
+  "input_bindings": [
+    {
+      "bytes": 2192,
+      "path": ".local-verification/2026-10-16/mcp-http-debug-adoption-docs-v3/manifest.json",
+      "sha256": "aef6ecd8f947bf410d4e97f721ea3d0fb7c01a1a5b23dce1bf4d2d07b54a1044"
+    },
+    {
+      "bytes": 312,
+      "path": ".local-verification/2026-10-16/mcp-http-debug-adoption-docs-v3/freeze.json",
+      "sha256": "b78c134739263f99a62ef8c7e65e95dd8ab916b75c6031d89d42383354cff281"
+    },
+    {
+      "bytes": 2454,
+      "path": ".local-verification/2026-10-16/mcp-http-debug-adoption-docs-v3/receipt.json",
+      "sha256": "add2713ee28d08b2942e4b4ad5e2fed4b5cd7c76e6c6e06d3d12448688137932"
+    },
+    {
+      "bytes": 12683,
+      "path": ".local-verification/2026-10-16/mcp-http-debug-adoption-docs-v3/candidate/docs/mcp-client.md",
+      "sha256": "6f12206ee74f30996ae616afa14f8bd035005fd3118c51d7b407ac657c47c24d"
+    },
+    {
+      "bytes": 11869,
+      "path": ".local-verification/2026-10-16/mcp-http-debug-adoption-docs-v3/candidate/docs/mcp-client.zh-CN.md",
+      "sha256": "37b84d49620ab9343405713a9b96e0fb9caa7b3df0b7d05a0e440b7d1fe336f3"
+    },
+    {
+      "bytes": 81276,
+      "path": ".local-verification/2026-10-16/mcp-http-debug-adoption-docs-v3/candidate/CHANGELOG.md",
+      "sha256": "a0f5ba8434c98891234507c1bad1238a3513443f406bb8c49fd5e53d3d4e31e0"
+    }
+  ],
+  "new_execution": false,
+  "package_verifier_exit_code": 0,
+  "remaining_findings": 0,
+  "v2_finding_preserved_sha256": "999434b98e20dd50000cfe29d20f7e3826ad6a3984a343d50ad1e2dbfd017baf",
+  "v3_receipt_only_old_combined_field_renamed": true,
+  "v3_three_docs_byte_equal_v2": true
+}

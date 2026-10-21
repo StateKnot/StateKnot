@@ -1,0 +1,20 @@
+// DECLARATIONS ONLY: proposed design input, not source or compilation evidence.
+// Existing exported Options type and all existing constructors/methods remain.
+// No new public trait/type/error, dependency, credential or timeout configuration.
+
+impl A2aServerHttpOptions {
+    /// Enables current decoded-policy rechecks for SubscribeToTask only.
+    ///
+    /// Existing authorizer must consult current host policy for the original
+    /// principal/task. This does not reauthenticate the bearer credential.
+    /// Defaults are unchanged unless explicitly enabled. Repeated enable is
+    /// idempotent; Clone and other consuming Options methods preserve it.
+    /// Does not advertise or enable the streaming capability itself.
+    #[must_use]
+    pub fn with_subscription_authorization_rechecks(self) -> Self;
+}
+
+// new()/Default: private subscription_authorization_rechecks=false.
+// The no-argument method sets it true. No disable/reset or additional limit.
+// A2aServer::new stores this policy for subscription dispatch only.
+// Streaming unsupported by card/service remains unsupported under old checks.

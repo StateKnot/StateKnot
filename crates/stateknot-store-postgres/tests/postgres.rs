@@ -5,6 +5,42 @@
 
 #[path = "postgres/child_upgrade.rs"]
 mod child_upgrade;
+#[path = "postgres/frame_application_replay.rs"]
+mod frame_application_replay;
+#[path = "postgres/frame_barriers.rs"]
+mod frame_barriers;
+#[path = "postgres/frame_callers.rs"]
+mod frame_callers;
+#[path = "postgres/frame_child_topology.rs"]
+mod frame_child_topology;
+#[path = "postgres/frame_children.rs"]
+mod frame_children;
+#[path = "postgres/frame_closures.rs"]
+mod frame_closures;
+#[path = "postgres/frame_dispatch.rs"]
+mod frame_dispatch;
+#[path = "postgres/frame_entries.rs"]
+mod frame_entries;
+#[path = "postgres/frame_recovery.rs"]
+mod frame_recovery;
+#[path = "postgres/frame_retry.rs"]
+mod frame_retry;
+#[path = "postgres/frame_returns.rs"]
+mod frame_returns;
+#[path = "postgres/frame_scope.rs"]
+mod frame_scope;
+#[path = "postgres/frame_transactions.rs"]
+mod frame_transactions;
+#[path = "postgres/frame_waits.rs"]
+mod frame_waits;
+#[path = "postgres/proof_base_reuse.rs"]
+mod proof_base_reuse;
+#[path = "postgres/result_namespace_corruption.rs"]
+mod result_namespace_corruption;
+#[path = "postgres/root_barrier_upgrade.rs"]
+mod root_barrier_upgrade;
+#[path = "postgres/root_graph_barriers.rs"]
+mod root_graph_barriers;
 
 use std::{
     borrow::Cow,
@@ -416,17 +452,20 @@ async fn remove_artifact_registry(pool: &PgPool) {
 
 async fn remove_child_run_cancellation(pool: &PgPool) {
     for sql in [
+        include_str!("fixtures/revert_elapsed_graph_waits.sql"),
+        include_str!("fixtures/revert_scoped_checkpoints.sql"),
         include_str!("fixtures/revert_skill_activation_windows.sql"),
         include_str!("fixtures/revert_tool_authorization_receipts.sql"),
         include_str!("fixtures/revert_run_failure_closes.sql"),
         include_str!("fixtures/revert_agent_deadlines.sql"),
         include_str!("fixtures/revert_child_joins.sql"),
-    ]
-    .into_iter()
-    .flat_map(|sql| sql.split(';'))
-    .filter(|sql| !sql.trim().is_empty())
-    {
-        query(sql).execute(pool).await.unwrap();
+    ] {
+        // Execute the complete fixture so dollar-quoted function bodies retain
+        // their internal semicolons and the batch keeps its SQL transaction.
+        sqlx_core::raw_sql::raw_sql(sql)
+            .execute(pool)
+            .await
+            .unwrap();
     }
     query("DROP TRIGGER runs_child_cancellation_claim_guard ON stateknot.runs")
         .execute(pool)
@@ -14170,13 +14209,17 @@ async fn recovery_wrapper_quarantines_only_corruption_and_rejects_stale_observat
             .await,
         Err(StoreError::StaleRunQuarantineObservation)
     ));
-    assert!(
-        !store
-            .load_run(&stale_tenant, stale_run)
-            .await
-            .unwrap()
-            .is_quarantined()
-    );
+    assert_corrupt_run_read_refused(&store, &stale_tenant, stale_run).await;
+    let quarantine_unchanged: bool = query_scalar(
+        "SELECT quarantined_at IS NULL AND quarantine_reason IS NULL \
+         FROM stateknot.runs WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(stale_tenant.as_str())
+    .bind(*stale_run.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert!(quarantine_unchanged);
 
     administration.close().await;
     store.close().await;
@@ -14372,9 +14415,19 @@ async fn claimed_recovery_quarantine_cannot_cross_a_successor_fence() {
         current_quarantine.request().expected_fence(),
         Some(&current_fence)
     );
-    let stopped = store.load_run(&current_tenant, current_run).await.unwrap();
-    assert!(stopped.is_quarantined());
-    assert!(stopped.lease().is_none());
+    assert_corrupt_run_read_refused(&store, &current_tenant, current_run).await;
+    let stopped: bool = query_scalar(
+        "SELECT quarantined_at IS NOT NULL AND quarantine_reason IS NOT NULL \
+         AND lease_attempt_id IS NULL AND lease_acquired_at IS NULL \
+         AND lease_renewed_at IS NULL AND lease_expires_at IS NULL \
+         FROM stateknot.runs WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(current_tenant.as_str())
+    .bind(*current_run.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert!(stopped);
     query(
         "UPDATE stateknot.runs SET fencing_epoch = fencing_epoch + 1 \
          WHERE tenant_id = $1 AND run_id = $2",
@@ -14434,15 +14487,26 @@ async fn claimed_recovery_quarantine_cannot_cross_a_successor_fence() {
             .await,
         Err(StoreError::StaleFence)
     ));
-    let still_owned = store.load_run(&stale_tenant, stale_run).await.unwrap();
-    assert!(!still_owned.is_quarantined());
-    assert_eq!(
-        still_owned
-            .lease()
-            .expect("successor lease must remain")
-            .fence(),
-        successor.lease().fence()
-    );
+    assert_corrupt_run_read_refused(&store, &stale_tenant, stale_run).await;
+    let still_owned: bool = query_scalar(
+        "SELECT quarantined_at IS NULL AND quarantine_reason IS NULL \
+         AND lease_attempt_id = $3 AND fencing_epoch = $4 \
+         AND (extract(epoch FROM lease_acquired_at) * 1000000)::bigint = $5 \
+         AND (extract(epoch FROM lease_renewed_at) * 1000000)::bigint = $6 \
+         AND (extract(epoch FROM lease_expires_at) * 1000000)::bigint = $7 \
+         FROM stateknot.runs WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(stale_tenant.as_str())
+    .bind(*stale_run.as_uuid())
+    .bind(*successor.lease().fence().attempt_id().as_uuid())
+    .bind(i64::try_from(successor.lease().fence().epoch().get()).unwrap())
+    .bind(successor.lease().acquired_at().unix_micros())
+    .bind(successor.lease().renewed_at().unix_micros())
+    .bind(successor.lease().expires_at().unix_micros())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert!(still_owned);
     assert!(matches!(
         store.load_run_quarantine(&stale_tenant, stale_run).await,
         Err(StoreError::RunQuarantineNotFound)
@@ -14456,16 +14520,31 @@ async fn claimed_recovery_quarantine_cannot_cross_a_successor_fence() {
         Digest::sha256(b"successor corruption evidence"),
     )
     .unwrap();
-    let successor_recovery = store
-        .begin_claimed_run_recovery(successor.lease().fence().clone(), successor_context)
+    // Beginning recovery now authenticates the complete owning Run. Its exact
+    // successor fence quarantines these retained bytes before a session exists.
+    for _ in 0..2 {
+        assert!(matches!(
+            store
+                .begin_claimed_run_recovery(
+                    successor.lease().fence().clone(),
+                    successor_context.clone(),
+                )
+                .await,
+            Err(StoreError::RunQuarantined)
+        ));
+    }
+    let successor_quarantine = store
+        .load_run_quarantine(&stale_tenant, stale_run)
         .await
-        .expect("successor may inspect the same corrupt durable state");
-    assert!(matches!(
-        successor_recovery
-            .load_checkpoint_lineage_page(None, CheckpointLineagePageSize::new(8).unwrap())
-            .await,
-        Err(StoreError::RunQuarantined)
-    ));
+        .unwrap();
+    assert_eq!(
+        successor_quarantine.request().expected_fence(),
+        Some(successor.lease().fence())
+    );
+    assert_eq!(
+        successor_quarantine.request().expectation(),
+        &JournalExpectation::exact(stale_checkpoint.event().head())
+    );
 
     let expired_tenant = tenant("claimed-recovery-expired-owner");
     let expired_run = RunId::generate();
@@ -14517,13 +14596,17 @@ async fn claimed_recovery_quarantine_cannot_cross_a_successor_fence() {
             .await,
         Err(StoreError::LeaseExpired)
     ));
-    assert!(
-        !store
-            .load_run(&expired_tenant, expired_run)
-            .await
-            .unwrap()
-            .is_quarantined()
-    );
+    assert_corrupt_run_read_refused(&store, &expired_tenant, expired_run).await;
+    let quarantine_unchanged: bool = query_scalar(
+        "SELECT quarantined_at IS NULL AND quarantine_reason IS NULL \
+         FROM stateknot.runs WHERE tenant_id = $1 AND run_id = $2",
+    )
+    .bind(expired_tenant.as_str())
+    .bind(*expired_run.as_uuid())
+    .fetch_one(&administration)
+    .await
+    .unwrap();
+    assert!(quarantine_unchanged);
     assert!(matches!(
         store
             .load_run_quarantine(&expired_tenant, expired_run)
@@ -17815,6 +17898,17 @@ async fn migration_nineteen_preserves_v18_runs_and_installs_terminal_model_bindi
         .await
         .unwrap();
     administration.close().await;
+}
+
+// Deliberately damaged owning bytes must remain unreadable even when the
+// independent administration connection inspects quarantine/lease projections.
+async fn assert_corrupt_run_read_refused(store: &PostgresStore, tenant: &TenantId, run: RunId) {
+    assert!(matches!(
+        store.load_run(tenant, run).await,
+        Err(StoreError::CorruptData {
+            record: "checkpoint canonical bytes"
+        })
+    ));
 }
 
 async fn corrupt_checkpoint_bytes(

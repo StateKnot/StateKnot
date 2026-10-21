@@ -7,7 +7,7 @@ use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::Value;
 use stateknot_core::{
     AgentArtifacts, AgentDescriptor, AgentRequest, AgentResult, AgentResultProvenance,
-    BudgetLimits, Timestamp,
+    AgentTerminalValidationInputs, BudgetLimits, Timestamp,
 };
 
 const FIXTURE_SCHEMA: &str =
@@ -55,6 +55,43 @@ enum Mutation {
 fn load_fixture() -> Fixture {
     serde_json::from_str(include_str!("fixtures/core-agent-runtime-v1.json"))
         .expect("canonical agent runtime fixture must be valid JSON")
+}
+
+#[test]
+fn terminal_validation_snapshot_matches_real_original_runtime_inputs() {
+    let fixture: Value = serde_json::from_str(include_str!(
+        "fixtures/core-agent-terminal-validation-inputs-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        fixture["schema"],
+        "https://stateknot.github.io/schema/test-fixture/core-agent-terminal-validation-inputs/1.0.0"
+    );
+    let inputs: AgentTerminalValidationInputs =
+        serde_json::from_value(fixture["inputs"]["valid"][0].clone()).unwrap();
+    let runtime = load_fixture();
+    let descriptor = descriptor();
+    let request: AgentRequest = serde_json::from_value(runtime.requests.valid[0].clone()).unwrap();
+    let budget = request
+        .resolve_for(
+            &descriptor,
+            &runtime.base_budget_layers,
+            ADMISSION_OBSERVED_AT.parse().unwrap(),
+        )
+        .unwrap();
+    assert_eq!(
+        inputs,
+        AgentTerminalValidationInputs::for_descriptor(&descriptor, request.clone(), budget.clone())
+    );
+    let expected: AgentResultProvenance =
+        serde_json::from_value(runtime.result_provenances.valid[0].clone()).unwrap();
+    let result: AgentResult = serde_json::from_value(runtime.results.valid[0].clone()).unwrap();
+    result
+        .validate_for(&expected, &request, &descriptor, &budget)
+        .unwrap();
+    result
+        .validate_for_terminal_inputs(&expected, &inputs)
+        .unwrap();
 }
 
 fn descriptor() -> AgentDescriptor {

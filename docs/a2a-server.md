@@ -47,6 +47,56 @@ public `Host` authorities and optional browser Origins are configured
 explicitly. Requests without `Origin` remain valid for server-to-server use.
 Malformed or duplicate Bearer credentials fail before the body is decoded.
 
+## Request preparation deadline
+
+`with_timeouts(request_timeout, stream_idle_timeout)` also bounds initial
+request preparation. After successful authentication, one server-clock deadline
+covers collecting the request body, normalization, decoded authorization and
+replica-wide admission. Authorization and admission share the remaining budget;
+neither callback receives a fresh request timeout. Authentication retains its
+own original budget, and backend execution or stream creation starts its
+separate original budget only after preparation succeeds.
+
+The deadline applies to all eleven decoded operations in both bindings. Body
+collection follows the actual SDK extractor paths: REST send/stream and
+JSON-RPC retain their existing normalization; REST push-config creation buffers
+its exact bytes under the configured body ceiling. Other routes acquire no new
+body read. Push requests preserve the original method, URI, HTTP version,
+headers (including Content-Length) and extension instances. A configured limit
+above Axum's default 2 MiB remains effective.
+
+Pending body collection returns plain HTTP 408 `request timed out`; observed
+shutdown returns plain HTTP 503 `service unavailable`. A preparation callback
+that times out returns the existing A2A internal error `A2A operation timed
+out`; shutdown returns `A2A service is shutting down`, using the binding's
+ordinary pre-stream error envelope. Timely policy refusals and unavailability
+keep their original mappings. REST push body-buffer failures keep the pinned
+SDK's complete plain 400/413 rejection and allowed-Origin response headers;
+REST send and JSON-RPC keep their existing early body-error mappings. Inputs
+with multiple simultaneous defects are rejected before backend dispatch, but
+the precedence of their errors is not a compatibility guarantee.
+
+The boundary checks actual clock and shutdown state after awaited work. A late
+authorization result cannot start admission, and a failed preparation cannot
+invoke the backend. Pending work is owned and dropped with its request; no
+policy task is detached. Policy waiting does not consume an operation permit.
+The final guard can briefly acquire an operation permit and immediately drop
+it if the deadline or shutdown was observed after acquisition. Request capacity
+is released before returning the preparation error response.
+
+Host authentication, policy and admission futures must remain bounded and
+nonblocking. Rust cannot preempt synchronous blocking callbacks or decoding;
+during preparation, late valid normalization, decoded authorization or
+admission results are refused after control returns. This does not
+promise a hard wall-clock response bound, external quota rollback, immediate
+client-disconnect detection or durable task cancellation. The opt-in
+subscription checks below still use their separate per-step idle budget.
+
+The [bounded execution record](qualification/experimental-a2a-preparation-deadline-2026-10-16.md)
+preserves the original cumulative-deadline failure, source/cache binding issue,
+fixture corrections and final local gates. These checks do not qualify a
+deployed identity provider, durable task backend, full CI or R1.
+
 ## Implemented operations
 
 | Capability | HTTP+JSON | JSON-RPC | Backend requirement |
@@ -157,6 +207,65 @@ TLS and trusted proxy termination belong outside this router. Configure the
 allowlist with the authority actually visible to the application; do not trust
 client-supplied forwarding headers unless an outer trusted layer has replaced
 the request authority.
+
+## Experimental current-policy checks for task subscriptions
+
+For read-only `SubscribeToTask` SSE, explicitly enable the existing Options
+before passing them to `A2aServer::new` in the assembly example:
+
+```rust,ignore
+let options = options.with_subscription_authorization_rechecks();
+```
+
+The default is disabled. The consuming method is idempotent; Clone and the
+other Options methods preserve it and all configured limits. It does not enable
+a missing streaming capability or change `SendStreamingMessage`, unary calls,
+original admission, retries or durable task cancellation.
+
+After the original authentication, decoded authorization, admission and backend
+subscription creation, every polled next-step checks the existing
+`A2aServerAuthorizer` before polling the backend and after obtaining a normal
+event. Both checks retain the original complete principal, canonical scopes,
+`SubscribeToTask`, original decoded task ID and no config ID. The host must
+consult authoritative current tenant/resource policy and reject stale bindings;
+an authorizer that always allows does not acquire revocation protection by
+opening this switch. The adapter retains no bearer for reauthentication and
+does not itself revalidate credential expiry or revocation.
+
+One absolute original stream-idle deadline covers pre-check, backend waiting
+and post-check. Each callback also uses the earlier of that idle deadline and
+its own stage-start plus the original request timeout. Actual clock/shutdown
+checks after awaits prevent late delivery. Host callbacks must be bounded,
+nonblocking futures: Rust timeouts cannot preempt synchronous blocking work,
+so the clock check does not make such callbacks a bounded-latency service.
+
+When a polled step observes rejection, unavailability, timeout, shutdown,
+backend error/EOF or an exhausted event cap, it drops its owned backend stream
+and operation permit before returning the terminating output. An allowed
+terminal event passes the post-check, then retires those resources before
+handoff. Once headers are committed, errors use the SDK's existing REST/RPC
+stream envelopes rather than changing the HTTP status. A pre-check denial
+occurs after original backend creation; it does not prove zero creation.
+
+The final successful post-check is the event's policy linearization point,
+not an atomic TCP revocation boundary. Bytes already handed to the SDK,
+transport or a proxy cannot be recalled. No background policy task, periodic
+recheck interval or expiry timer starts for an unpolled next-step. Actual
+connection cleanup depends on the HTTP stack observing closure and dropping
+the body; a Rust stream Drop does not cancel a durable Task or certify backend
+cleanup. The broader deployment gates below remain required.
+
+The frozen 930-file v5 source passes six local gates at the original opt0
+profile/default stack: 100 workspace suites (2,108 passed, 0 failed, 6 original
+ignored) and 48 doctests in 10 groups. This includes 8 direct ownership tests
+and one real TCP family exercising 17 matrix IDs through both REST and RPC;
+it is controlled policy/stream evidence, not 34 independent test families.
+Fmt/Clippy passed in the first v5 run; the remaining four gates passed with
+unchanged source after authorized loopback access. Earlier fixture/format
+failures and the original sandbox listener denial remain in the
+[bounded execution record](qualification/experimental-a2a-subscription-policy-2026-10-16.md).
+This supplies no new Native database, standalone server TCK, full CI, deployed
+identity/policy backend, durable A2A backend or R1 qualification.
 
 ## Deployment gates
 

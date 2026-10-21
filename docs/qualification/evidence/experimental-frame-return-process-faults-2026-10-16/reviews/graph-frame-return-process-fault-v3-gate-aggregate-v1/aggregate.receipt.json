@@ -1,0 +1,279 @@
+{
+  "kind": "offline aggregate of two original successful gates and four same-source successful continuation gates",
+  "aggregate_all_six_gate_receipts_zero": true,
+  "a_new_single_command_six_gate_success": false,
+  "original_six_driver_passed": false,
+  "continuation_four_driver_passed": true,
+  "source_tree": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "source_count": 932,
+  "supplied_compiled_count": 541,
+  "supplied_compiled_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "current_selected_source_paths_bytes_sha_equal": true,
+  "same_frozen_and_compiled_manifest_bytes_between_attempts": true,
+  "gates": [
+    {
+      "gate": "fmt",
+      "actual_exit_code": 0,
+      "receipt": {
+        "path": "graph-frame-return-process-fault-qualification-v3/fmt.receipt.json",
+        "bytes": 1478,
+        "sha256": "5157fb365b9876950b68e66bd5d0bb140ab7895b75c2ba0280e8fa267948942f"
+      },
+      "raw_log": {
+        "path": "graph-frame-return-process-fault-qualification-v3/fmt.log",
+        "bytes": 0,
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "runner": {
+        "path": "graph-frame-return-process-fault-qualification-v3/run-gate.py",
+        "bytes": 5848,
+        "sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658"
+      },
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--check"
+      ]
+    },
+    {
+      "gate": "clippy",
+      "actual_exit_code": 0,
+      "receipt": {
+        "path": "graph-frame-return-process-fault-qualification-v3/clippy.receipt.json",
+        "bytes": 1572,
+        "sha256": "e9c6ecc6752fec0af4b51d5332909ac68f142eb9d6c01658e1d23ddd973ef260"
+      },
+      "raw_log": {
+        "path": "graph-frame-return-process-fault-qualification-v3/clippy.log",
+        "bytes": 1400,
+        "sha256": "a9c00b46eab03b30aa43aa860ff55cb9272eb657da9b25e72429130e3f30cd05"
+      },
+      "runner": {
+        "path": "graph-frame-return-process-fault-qualification-v3/run-gate.py",
+        "bytes": 5848,
+        "sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658"
+      },
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ]
+    },
+    {
+      "gate": "workspace",
+      "actual_exit_code": 0,
+      "receipt": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/workspace.receipt.json",
+        "bytes": 1536,
+        "sha256": "dcd17f61e01a8be0c23bf4be563ef8467a641d72fb386f48f9b166c930dade78"
+      },
+      "raw_log": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/workspace.log",
+        "bytes": 186853,
+        "sha256": "f5f77dec26abe3947243c42393e5e3d25df1416e13cafff9637cb552d92d2649"
+      },
+      "runner": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/run-gate.py",
+        "bytes": 5848,
+        "sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658"
+      },
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ]
+    },
+    {
+      "gate": "doctests",
+      "actual_exit_code": 0,
+      "receipt": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/doctests.receipt.json",
+        "bytes": 1526,
+        "sha256": "225540a7489189f17f8871dfae21a4574edcec1a27e92245dc275e85707a3a6a"
+      },
+      "raw_log": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/doctests.log",
+        "bytes": 6234,
+        "sha256": "9e68259cf396df855427ee0f78d974b51392d0d9448f2a1a992b5065bdee88b9"
+      },
+      "runner": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/run-gate.py",
+        "bytes": 5848,
+        "sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658"
+      },
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked"
+      ]
+    },
+    {
+      "gate": "rustdoc",
+      "actual_exit_code": 0,
+      "receipt": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/rustdoc.receipt.json",
+        "bytes": 1529,
+        "sha256": "fd865d98a332b03be2fe30913bf77746448470f3847ebbad3b227f017d6c0d42"
+      },
+      "raw_log": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/rustdoc.log",
+        "bytes": 2502,
+        "sha256": "aba7e0f2fa7702c5d19319fbe5fa124796f0d9d391b410dc6b878b495cf30ff7"
+      },
+      "runner": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/run-gate.py",
+        "bytes": 5848,
+        "sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658"
+      },
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ]
+    },
+    {
+      "gate": "nightly",
+      "actual_exit_code": 0,
+      "receipt": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/nightly.receipt.json",
+        "bytes": 1555,
+        "sha256": "3ee5894071b03fe50e242323ed93dc202143b9af01522ee9a95d8d36e7a3f6bc"
+      },
+      "raw_log": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/nightly.log",
+        "bytes": 1400,
+        "sha256": "554a7c321300e517f310848de92a18f2a947c0699840b72a267a21d8b8a4ecef"
+      },
+      "runner": {
+        "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/run-gate.py",
+        "bytes": 5848,
+        "sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658"
+      },
+      "argv": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ]
+    }
+  ],
+  "workspace": {
+    "summary_count": 100,
+    "passed": 2121,
+    "failed": 0,
+    "ignored": 6,
+    "measured": 0,
+    "filtered_out": 0,
+    "all_summary_status_ok": true
+  },
+  "doctests": {
+    "summary_count": 10,
+    "passed": 48,
+    "failed": 0,
+    "ignored": 0,
+    "measured": 0,
+    "filtered_out": 0,
+    "all_summary_status_ok": true
+  },
+  "workspace_ignored_names": [
+    "sse::postgres_sse_restart_child",
+    "postgres_worker_child",
+    "postgres::compute_worker_child",
+    "store::graph_frames::application_replay::tests::complete_wait_transcript_is_independent_of_connection_render_settings",
+    "store::graph_frames::root_prefix::tests::complete_root_prefix_matches_original_on_real_corpus_and_corruption",
+    "store::graph_frames::root_prefix::tests::complete_root_prefix_preserves_real_legacy_generic_histories"
+  ],
+  "retained_original_workspace_failure": {
+    "gate": {
+      "gate": "workspace",
+      "actual_exit_code": 101,
+      "receipt": {
+        "path": "graph-frame-return-process-fault-qualification-v3/workspace.receipt.json",
+        "bytes": 1536,
+        "sha256": "390404deb5bbdd845167adfc8a506b6f83219724eb00e061b10d4de7aefe7cfa"
+      },
+      "raw_log": {
+        "path": "graph-frame-return-process-fault-qualification-v3/workspace.log",
+        "bytes": 7451,
+        "sha256": "15d2bfe1766896512eea5ed983d4506445e3cbca7acc75ff0b733ae6e6e6124c"
+      },
+      "runner": {
+        "path": "graph-frame-return-process-fault-qualification-v3/run-gate.py",
+        "bytes": 5848,
+        "sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658"
+      },
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ]
+    },
+    "counts": {
+      "summary_count": 1,
+      "passed": 29,
+      "failed": 5,
+      "ignored": 0,
+      "measured": 0,
+      "filtered_out": 0,
+      "all_summary_status_ok": false
+    },
+    "permission_denied_bind_failures": 5,
+    "classification": "default sandbox loopback TcpListener bind EPERM; not a production-change assertion red"
+  },
+  "original_driver": {
+    "path": "graph-frame-return-process-fault-qualification-v3/six-gates-driver.receipt.json",
+    "bytes": 481,
+    "sha256": "0a69e31bc1917e39801c5ec3ca5a9a5ac3dae1509444d80eac3a0d4b68b05c0f"
+  },
+  "continuation_driver": {
+    "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/remaining-gates.receipt.json",
+    "bytes": 490,
+    "sha256": "426bc3d98758ac66e8a8f06cea452ccb30d8688fa1e281b7b6b945ff7829984f"
+  },
+  "continuation_driver_tool": {
+    "path": "graph-frame-return-process-fault-qualification-v3-network-enabled/continue-gates.py",
+    "bytes": 786,
+    "sha256": "e3da8141db5d391c49e9d39c471cd64dbec58bceaefd872da60727ad5a1dbc86"
+  },
+  "original_driver_tool": {
+    "path": "graph-frame-return-process-fault-qualification-v3/run-six-gates.py",
+    "bytes": 1003,
+    "sha256": "5046cb472e94a176c499b461704663c1bedb948e59e3307915875f65c254cf1c"
+  },
+  "static_increment": {
+    "path": "evidence/graph-frame-return-process-fault-v3-gate-aggregate-v1/static-increment.receipt.json",
+    "bytes": 1550,
+    "sha256": "ffc96c8ee10304ff25c783c23fda7e9608fd577165a5481ded25a3701b7b30d9"
+  },
+  "aggregate_tool_sha256": "bdfce0a3e72e873986995eed233b0c5c31ac4bdbfc88067bddde5d833e029cb9",
+  "Native_database_CI_performance_or_R1_qualification": false,
+  "Rust_DB_CI_or_archived_scripts_executed_by_aggregator": false
+}

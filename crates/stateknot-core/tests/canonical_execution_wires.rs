@@ -294,9 +294,16 @@ fn compact_result_head_retains_its_context_bound_validation_contract() {
 }
 
 #[test]
-fn empty_variant_reader_fix_preserves_all_seven_generated_schema_pins() {
+fn empty_variant_schema_baseline_allows_only_reviewed_media_input_changes() {
     // These fingerprints were captured on a312b0c2 before changing readers.
-    // The private map visitor must not alter valid Rust or schema contracts.
+    // The map visitor preserved all seven pins. RFC-0023 later corrects three
+    // nested media input schemas; retain the actual old pins and require the
+    // reviewed before/after mapping, rather than rewriting this old fixture.
+    let media: Value = serde_json::from_str(include_str!(
+        "fixtures/core-media-type-input-schemas-v1.json"
+    ))
+    .unwrap();
+    let mut reviewed = 0;
     macro_rules! unchanged_schema {
         ($($ty:ty),+) => { $(
             let bounded = BoundedJson::try_from_value_with_limits(
@@ -304,9 +311,15 @@ fn empty_variant_reader_fix_preserves_all_seven_generated_schema_pins() {
                 JsonLimits::MAXIMUM,
             ).unwrap();
             let canonical = CanonicalJson::new(&bounded).unwrap();
+            let old = FIXTURE["schema_pins"][stringify!($ty)].as_str().unwrap();
+            let expected = if let Some(change) = media["changes"].get(stringify!($ty)) {
+                assert_eq!(change["before"].as_str().unwrap(), old);
+                reviewed += 1;
+                change["after"].as_str().unwrap()
+            } else { old };
             assert_eq!(
                 canonical.digest().to_string(),
-                FIXTURE["schema_pins"][stringify!($ty)].as_str().unwrap(),
+                expected,
                 "{} schema changed", stringify!($ty),
             );
         )+ };
@@ -320,4 +333,5 @@ fn empty_variant_reader_fix_preserves_all_seven_generated_schema_pins() {
         ModelInvocationState,
         ToolInvocationState
     );
+    assert_eq!(reviewed, 3);
 }

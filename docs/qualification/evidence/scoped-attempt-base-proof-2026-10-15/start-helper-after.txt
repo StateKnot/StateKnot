@@ -1,0 +1,34 @@
+fn verify_node_attempt_start_with_base<'a, 'start: 'a>(
+    transaction: &'a mut Transaction<'_, Postgres>,
+    start: &'start NodeAttemptStart,
+) -> stateknot_core::BoxFuture<
+    'a,
+    Result<
+        (
+            JournalEvent,
+            Option<VerifiedOrdinaryNodeAttemptBase<'start>>,
+        ),
+        StoreError,
+    >,
+> {
+    Box::pin(async move {
+        if let Some(event) = Box::pin(graph_frames::recognize_start(transaction, start)).await? {
+            return Ok((event, None));
+        }
+        verify_node_attempt_base_checkpoint(transaction, start).await?;
+        let event = verify_node_attempt_anchor(
+            transaction,
+            start.journal_head(),
+            start.fence(),
+            start.digest(),
+            "node attempt start anchor",
+        )
+        .await?;
+        let ordinary_base = (!start.activation().graph_namespace().is_root()).then_some(
+            VerifiedOrdinaryNodeAttemptBase {
+                activation: start.activation(),
+            },
+        );
+        Ok((event, ordinary_base))
+    })
+}

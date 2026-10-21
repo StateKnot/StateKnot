@@ -1,0 +1,11 @@
+{
+  "status": "sealed-independent-review-with-one-finding",
+  "candidate_five_docs_tree_sha256": "cfd7ac140debeb3c424437ee767b633dfd90b22b15f8bb97e801365f78a474fa",
+  "combined_patch_sha256": "5d631f13ba07c69384d23905efc945b58f130867e6eac35b84bbcb2dff4d80b0",
+  "manifest_sha256": "f8667a5652f97a3a0d59683d414cf29ae7709165702c23a25dba52e1c7687ab9",
+  "review_sha256": "37655bbbf24ba479e8b1d26d10fe3862e97a62ea496af21a8d50aeb599d1856e",
+  "standards_findings": 0,
+  "spec_findings": 1,
+  "main_modified": false,
+  "compilation_or_qualification_granted": false
+}

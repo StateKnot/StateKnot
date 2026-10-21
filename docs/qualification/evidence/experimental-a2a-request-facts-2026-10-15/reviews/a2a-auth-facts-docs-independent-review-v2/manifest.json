@@ -1,0 +1,75 @@
+{
+  "schema": "stateknot.read-only-review-evidence.v1",
+  "files": [
+    {
+      "path": "adoption-manifest.json",
+      "bytes": 1365,
+      "sha256": "0bf93239c0aac54bed268e45a6decdac0d26db3e87f82a9a1226a51028fe3be3"
+    },
+    {
+      "path": "candidate/CHANGELOG.md",
+      "bytes": 78331,
+      "sha256": "4c12588491d577ba89a8bb531a438bd23cb27316b9a96f13131483447196fd32"
+    },
+    {
+      "path": "candidate/docs/a2a-client.md",
+      "bytes": 19651,
+      "sha256": "de095c052caeb0019da8ca4e7b95f73e2ce39bfbb1551e2185b76ef3f1d750c6"
+    },
+    {
+      "path": "candidate/docs/a2a-client.zh-CN.md",
+      "bytes": 18623,
+      "sha256": "d59809752cd474ecde2d5c473b4b6c1c8f1020fd26f48047e950b00af2c4b938"
+    },
+    {
+      "path": "candidate/docs/rfcs/0025-protocol-identity-and-authority.md",
+      "bytes": 21266,
+      "sha256": "345d422fb869f347e8fef51689fcb712fbb17c030d60268f62315a0242a2784e"
+    },
+    {
+      "path": "candidate/docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "bytes": 17634,
+      "sha256": "d27169716d14f446e36fac5873a36044a2fdc3a29c173420ea2c69627e554d6b"
+    },
+    {
+      "path": "freeze.json",
+      "bytes": 2263,
+      "sha256": "2f2f1312658f5df557b43ea739d57bf03a7c83eb8e1d8d6e7628d20405ba1d4c"
+    },
+    {
+      "path": "incremental-diffs/docs/rfcs/0025-protocol-identity-and-authority.md.patch",
+      "bytes": 946,
+      "sha256": "b7e4897cba4c0565efad05e23ad6d51ac7e12b906de43c6d46bd0a2df8102b9f"
+    },
+    {
+      "path": "incremental-diffs/docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md.patch",
+      "bytes": 1997,
+      "sha256": "e6244472e4709ccb84a1334bbcffbe760c27cb45146e27accd0cfc3b14fdb1e0"
+    },
+    {
+      "path": "incremental.patch",
+      "bytes": 2943,
+      "sha256": "bf30fc11fdcdf42affb1468dd2cd1c86807d2225fa3b190c7a647b0f749c35b4"
+    },
+    {
+      "path": "link-check.json",
+      "bytes": 4786,
+      "sha256": "34cffb624757f811b5abec171c3b9f1ca8313c339cb251e7ad3bf792b03c99fd"
+    },
+    {
+      "path": "parent-review-seal.json",
+      "bytes": 561,
+      "sha256": "ebfafceb93b63cd18e11e725ed2f89e530d58e539bf0b57a514db8968daec8c0"
+    },
+    {
+      "path": "review.json",
+      "bytes": 1194,
+      "sha256": "e0380e82220dad4d8801c3b15dbd2eab33469fdd3351604bf742f817cb6b392b"
+    },
+    {
+      "path": "review.md",
+      "bytes": 2138,
+      "sha256": "2705c7afe821f2e7bf1265f5b611f4eb238cc9c7895670996e3a2bbab103ac38"
+    }
+  ]
+}

@@ -1,0 +1,154 @@
+{
+  "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+  "source_files": 922,
+  "binary_sha256": "994be9d00fe567660a847627c82b96a5e51c45e9ded56b0ba54e6760b75f0a32",
+  "both_exact_cases_and_cleanup_confirmations_passed": true,
+  "serial_PITR_execution": true,
+  "legacy_volume_preserved": true,
+  "original922_open_cleanup_history_rewritten": false,
+  "full_workspace_six_gates_or_full_Native_qualified": false,
+  "rows": [
+    {
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-pitr-cleanup-source",
+      "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+      "source_files": 922,
+      "binary_sha256": "994be9d00fe567660a847627c82b96a5e51c45e9ded56b0ba54e6760b75f0a32",
+      "image": "postgres@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54",
+      "image_id": "sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54",
+      "postgres_major": 16,
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/pitr-cleanup-confirmation-v1/verification-v1/strict-runtime-build-v1/stateknot-runtime-postgres",
+        "child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 8.688202857971191,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "markers": [
+        {
+          "arch": "aarch64",
+          "base_backup_verified": true,
+          "cross_tenant_refusal_verified": true,
+          "exact_durable_snapshot_verified": true,
+          "invariants": "passed",
+          "manifest_sha256": "1be70c98ef22ff91fdb0b77c77eab833ed714b39d09c19755d258825d2362923",
+          "named_restore_point": "stateknot_child_join_before_late_write",
+          "noninitial_replay_verified": true,
+          "os": "macos",
+          "post_target_write_excluded": true,
+          "postgres": "16.14 (Debian 16.14-1.pgdg13+1)",
+          "profile": "child-join-named-pitr-v1",
+          "resource_cleanup_verified": true,
+          "resource_identity": "01a13f89b1647070894c494a3a7f6099",
+          "wal_segment_archived": "000000010000000000000004"
+        }
+      ],
+      "exact_case_and_cleanup_confirmation_passed": true,
+      "resource_identity": "01a13f89b1647070894c494a3a7f6099",
+      "expected_owned_volumes": [
+        "stateknot-pitr-wal-01a13f89b1647070894c494a3a7f6099",
+        "stateknot-pitr-base-01a13f89b1647070894c494a3a7f6099",
+        "stateknot-pitr-target-data-01a13f89b1647070894c494a3a7f6099"
+      ],
+      "expected_owned_containers": [
+        "stateknot-pitr-source-01a13f89b1647070894c494a3a7f6099",
+        "stateknot-pitr-target-01a13f89b1647070894c494a3a7f6099"
+      ],
+      "owned_named_resources_absent_before_and_after": true,
+      "all_prior_container_IDs_and_volume_names_preserved": true,
+      "legacy_wal_volume_inspection_unchanged": true,
+      "extra_container_IDs": [],
+      "extra_volume_names": [],
+      "legacy_wal_volume_intentionally_retained": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1",
+      "only_profile_environment_set": [
+        "STATEKNOT_REQUIRE_PITR_TESTS",
+        "STATEKNOT_PITR_POSTGRES_IMAGE"
+      ],
+      "no_existing_DB_environment_or_access_by_runner": true,
+      "default_stack": true,
+      "original_profile_resources_and_business_assertions": true,
+      "log_sha256": "2590613fe921b4e0de8b6c3f5d886bdb86f2635d1f802b0d50ea4b5f6804ce50",
+      "manual_stop_rm_prune_or_historical_volume_cleanup": false
+    },
+    {
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-pitr-cleanup-source",
+      "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+      "source_files": 922,
+      "binary_sha256": "994be9d00fe567660a847627c82b96a5e51c45e9ded56b0ba54e6760b75f0a32",
+      "image": "postgres@sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+      "image_id": "sha256:67f41722b7a8cbdb868a44a4995c846eddfdc2973bccb291ce937dce88ad5675",
+      "postgres_major": 17,
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/pitr-cleanup-confirmation-v1/verification-v1/strict-runtime-build-v1/stateknot-runtime-postgres",
+        "child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 8.542115926742554,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "markers": [
+        {
+          "arch": "aarch64",
+          "base_backup_verified": true,
+          "cross_tenant_refusal_verified": true,
+          "exact_durable_snapshot_verified": true,
+          "invariants": "passed",
+          "manifest_sha256": "4dd54998f98516d0914f25d8056f87eca45d51c2621cd684be87caf9655fc13d",
+          "named_restore_point": "stateknot_child_join_before_late_write",
+          "noninitial_replay_verified": true,
+          "os": "macos",
+          "post_target_write_excluded": true,
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "child-join-named-pitr-v1",
+          "resource_cleanup_verified": true,
+          "resource_identity": "01a13f89d42073c089c09c09ad3b7c4e",
+          "wal_segment_archived": "000000010000000000000004"
+        }
+      ],
+      "exact_case_and_cleanup_confirmation_passed": true,
+      "resource_identity": "01a13f89d42073c089c09c09ad3b7c4e",
+      "expected_owned_volumes": [
+        "stateknot-pitr-wal-01a13f89d42073c089c09c09ad3b7c4e",
+        "stateknot-pitr-base-01a13f89d42073c089c09c09ad3b7c4e",
+        "stateknot-pitr-target-data-01a13f89d42073c089c09c09ad3b7c4e"
+      ],
+      "expected_owned_containers": [
+        "stateknot-pitr-source-01a13f89d42073c089c09c09ad3b7c4e",
+        "stateknot-pitr-target-01a13f89d42073c089c09c09ad3b7c4e"
+      ],
+      "owned_named_resources_absent_before_and_after": true,
+      "all_prior_container_IDs_and_volume_names_preserved": true,
+      "legacy_wal_volume_inspection_unchanged": true,
+      "extra_container_IDs": [],
+      "extra_volume_names": [],
+      "legacy_wal_volume_intentionally_retained": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1",
+      "only_profile_environment_set": [
+        "STATEKNOT_REQUIRE_PITR_TESTS",
+        "STATEKNOT_PITR_POSTGRES_IMAGE"
+      ],
+      "no_existing_DB_environment_or_access_by_runner": true,
+      "default_stack": true,
+      "original_profile_resources_and_business_assertions": true,
+      "log_sha256": "638b1f55340e22d0bd94d7d4124711fd190125c190cee46e06ea1ac2d9e98e2c",
+      "manual_stop_rm_prune_or_historical_volume_cleanup": false
+    }
+  ]
+}

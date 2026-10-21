@@ -1,0 +1,14 @@
+{
+  "previous_source": "d994771b87e580ef6b15e28dc101e35e52c2a97f9b9984ded83c060bc7968b56",
+  "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "compiled_relative_path_string_sorted_sha256": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "changed_paths": [
+    "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs"
+  ],
+  "production_and_other_928_files_unchanged": true,
+  "v3_Clippy_101_seven_fixture_diagnostics_retained": true,
+  "v4_fmt_1_retained": "root used rustfmt edition2021; repository cargo fmt uses2024; only same two fixtures reformatted by cargo fmt before v5 freeze",
+  "no_lint_allow_no_assertion_timeout_or_matrix_removal": true,
+  "patch_raw_sha256": "104fcbf52099c275490c132aa7b9e3f861b260337fcb5c7e3712137017790665"
+}

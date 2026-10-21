@@ -617,6 +617,15 @@ impl Serialize for BoundedJson {
     }
 }
 
+// Closed domain envelopes validate their own complete maximum-size preimage.
+// Their nested arbitrary JSON must round-trip the constructor's same ceiling.
+pub(crate) fn deserialize_maximum_json<'de, D>(deserializer: D) -> Result<BoundedJson, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    BoundedJson::deserialize_with_limits(deserializer, JsonLimits::MAXIMUM)
+}
+
 impl<'de> Deserialize<'de> for BoundedJson {
     fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
     where

@@ -1,0 +1,61 @@
+{
+  "parent_v1_seal_sha256": "a9e4d77ce476c462b9c2746bb385de3f0bdf64722a6bc0930fa07f5dffb1af52",
+  "raw_artifact_sha_unchanged": true,
+  "source_tar_manifest_and_execution_results_unchanged": true,
+  "changed_storage": [
+    {
+      "old_path": "execution/final-four-file.patch",
+      "new_path": "execution/final-four-file.patch.gz",
+      "raw_sha256": "4c0ba715eae5072b1aedc2e0d033fe2e9b901ee31fe84b058e977c1033b943c6",
+      "stored_sha256": "3c36e52bbb83f3a64b896fcb713515fd23b5de73d8824925e722343c225154f8"
+    },
+    {
+      "old_path": "execution/tenant-fixture-only.patch",
+      "new_path": "execution/tenant-fixture-only.patch.gz",
+      "raw_sha256": "b06b60c31d64ed5923a970bcbdef05c87acfc4db53078b152b3ebee653beb048",
+      "stored_sha256": "3f2d5c4ac89812f8f8155d735b790fd5ac8e40352daa799e50f237481795465d"
+    },
+    {
+      "old_path": "history/prior59fd/import-only.patch",
+      "new_path": "history/prior59fd/import-only.patch.gz",
+      "raw_sha256": "695cbb7d4d20a757b9f04bee10177b9e16bfbbf7a40bf4dbdda4b576969bb7ec",
+      "stored_sha256": "f5be86f5d175005de20e8352f6e61d8e5fecfec7503acfd41146894a07543865"
+    },
+    {
+      "old_path": "reviews/a2a-auth-facts-docs-independent-review-v2/incremental.patch",
+      "new_path": "reviews/a2a-auth-facts-docs-independent-review-v2/incremental.patch.gz",
+      "raw_sha256": "bf30fc11fdcdf42affb1468dd2cd1c86807d2225fa3b190c7a647b0f749c35b4",
+      "stored_sha256": "f04ff1c332941051ff490aeafef9549c4a8213ca4d203cbbb2459bdac2575a5e"
+    },
+    {
+      "old_path": "reviews/a2a-auth-facts-production-review-v1/candidate.patch",
+      "new_path": "reviews/a2a-auth-facts-production-review-v1/candidate.patch.gz",
+      "raw_sha256": "36788d82f646b4a2cc4759148d8c34d4b394f13467d42d65c4fe5b709f3c823e",
+      "stored_sha256": "4483f1b3e6badbc25e8adfe5eb28b38ead198d0f815551d635edd1bfae102713"
+    },
+    {
+      "old_path": "reviews/a2a-auth-facts-production-review-v2/candidate.patch",
+      "new_path": "reviews/a2a-auth-facts-production-review-v2/candidate.patch.gz",
+      "raw_sha256": "326059c0a90c9a469fa98ac93d65876a51d813f87c47737322a9829356d4367e",
+      "stored_sha256": "850887103bac7de7f17f2c16ec919995b9234b225220e39cf21909597dd68e61"
+    },
+    {
+      "old_path": "reviews/a2a-auth-facts-production-review-v2/rustdoc-only-delta.patch",
+      "new_path": "reviews/a2a-auth-facts-production-review-v2/rustdoc-only-delta.patch.gz",
+      "raw_sha256": "204f8fd86d29b75ce45083c9bce78c78b3e0c15c13b53294310e06fb47a6e471",
+      "stored_sha256": "795a9281a062f0d603a5e2f3c6afc7cd6181b53fcf09519a935c76dbb3d94528"
+    },
+    {
+      "old_path": "source/delta-from922.patch",
+      "new_path": "source/delta-from922.patch.gz",
+      "raw_sha256": "4c0ba715eae5072b1aedc2e0d033fe2e9b901ee31fe84b058e977c1033b943c6",
+      "stored_sha256": "3c36e52bbb83f3a64b896fcb713515fd23b5de73d8824925e722343c225154f8"
+    },
+    {
+      "old_path": "tracking/delta-from0e8.patch",
+      "new_path": "tracking/delta-from0e8.patch.gz",
+      "raw_sha256": "9fa16ad2a1d645b5714c7403c87df65533b7d8987c71f1c77c36c6d464563dd2",
+      "stored_sha256": "0049b34fa2e8b6815cc94ef0581fd612860ee97e8e4db694237c83cd31a3b882"
+    }
+  ]
+}

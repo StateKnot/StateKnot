@@ -25,6 +25,8 @@ const MAX_MUTATION_RETRY_DELAY: Duration = Duration::from_secs(1);
 #[derive(Clone, Debug)]
 #[non_exhaustive]
 pub enum AgentLoopOutcome {
+    /// The actual scoped leaf and complete durable wait batch were suspended.
+    FrameWaiting(Box<stateknot_store_postgres::GraphFrameBarrierCommitOutcome>),
     /// Original failure sealed and execution lease released; maintenance drains children.
     FailureClosing(Box<stateknot_store_postgres::RunFailureCloseOutcome>),
     /// Dedicated child Join registration released the parent lease. This is
@@ -34,6 +36,14 @@ pub enum AgentLoopOutcome {
     CancellationConfirmed(AppendOutcome),
     /// The graph suspended with a complete durable wait batch.
     Waiting(WaitCheckpointCommitOutcome),
+    /// Original conditions were already elapsed at their committed Root event.
+    /// Scheduler discovery and a fresh claim perform the next business quantum.
+    ReadyReleased {
+        /// Full authenticated original Root transaction.
+        receipt: Box<stateknot_store_postgres::RootGraphBarrierCommitOutcome>,
+        /// Exact original-fence normal release, or an already superseded fence.
+        release: Option<LeaseReleaseOutcome>,
+    },
     /// The graph and admitted agent invocation succeeded.
     Succeeded(BarrierCommitOutcome),
     /// Durable supervision committed terminal failure.
@@ -121,7 +131,8 @@ impl DurableAgentLoop {
         driver_options: DurableGraphDriverOptions,
         lifecycle_options: DurableGraphLifecycleOptions,
     ) -> Result<Self, DurableAgentLoopBuildError> {
-        let driver = DurableGraphDriver::new(store.clone(), registry.clone(), driver_options)?;
+        let driver = DurableGraphDriver::new(store.clone(), registry.clone(), driver_options)?
+            .with_direct_usage_evidence(Arc::clone(&evidence));
         let lifecycle =
             DurableGraphLifecycle::new(store.clone(), registry, evidence, lifecycle_options)?;
         Ok(Self {
@@ -152,14 +163,23 @@ impl DurableAgentLoop {
         fence: RunFence,
         shutdown: CancellationSignal,
     ) -> Result<AgentLoopResult, AgentLoopError> {
-        let driven = match self.driver.drive(fence.clone(), shutdown).await {
+        let driven = match self.driver.drive(fence.clone(), shutdown.clone()).await {
             Ok(driven) => driven,
             Err(source) => return Err(self.cleanup_driver_error(&fence, source).await),
         };
         let (outcome, report) = driven.into_parts();
         let outcome = match outcome {
+            GraphDriveOutcome::FrameWaiting(outcome) => AgentLoopOutcome::FrameWaiting(outcome),
             GraphDriveOutcome::CancellationRequested(handoff) => {
-                let lifecycle = match self.lifecycle.confirm_cancellation(*handoff).await {
+                let lifecycle = match self
+                    .lifecycle
+                    .confirm_cancellation_with_control(
+                        *handoff,
+                        shutdown.clone(),
+                        self.driver.options().node_execution_timeout(),
+                    )
+                    .await
+                {
                     Ok(outcome) => outcome,
                     Err(source) => {
                         return Err(self.cleanup_lifecycle_error(&fence, source).await);
@@ -280,6 +300,9 @@ fn lifecycle_outcome(outcome: GraphBarrierLifecycleOutcome) -> AgentLoopOutcome 
             AgentLoopOutcome::CancellationConfirmed(outcome)
         }
         GraphBarrierLifecycleOutcome::Waiting(outcome) => AgentLoopOutcome::Waiting(outcome),
+        GraphBarrierLifecycleOutcome::ReadyReleased { receipt, release } => {
+            AgentLoopOutcome::ReadyReleased { receipt, release }
+        }
         GraphBarrierLifecycleOutcome::Succeeded(outcome) => AgentLoopOutcome::Succeeded(outcome),
         GraphBarrierLifecycleOutcome::Failed(outcome) => AgentLoopOutcome::Failed(outcome),
         GraphBarrierLifecycleOutcome::Released(outcome) => {

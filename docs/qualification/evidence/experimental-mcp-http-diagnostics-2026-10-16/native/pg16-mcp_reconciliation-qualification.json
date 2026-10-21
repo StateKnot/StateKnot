@@ -1,0 +1,53 @@
+{
+  "binary_sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+  "database": "stateknot_r1_mcp_debug_20261016v3",
+  "failed": 0,
+  "filtered": 0,
+  "ignored": 0,
+  "major": 16,
+  "markers": {
+    "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": [
+      {
+        "atomic_audit": true,
+        "authorization_before_lookup": true,
+        "distinct_scopes": true,
+        "duplicate_receipts_per_effect": 24,
+        "effects": 2,
+        "fresh_service_recovery": true,
+        "invariants": "passed",
+        "lost_http_receipt": true,
+        "profile": "known-error-reconciliation-v1",
+        "retry_never": true,
+        "stale_fence_rejected": true
+      }
+    ],
+    "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": [
+      {
+        "error_first_submissions": 24,
+        "invariants": "passed",
+        "mixed_success_failure_submissions": 24,
+        "same_event_identity": true,
+        "single_revision": true,
+        "success_first_conflict": true
+      }
+    ],
+    "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": [
+      {
+        "atomic_audit": true,
+        "authenticated_http": true,
+        "authorization_before_lookup": true,
+        "concurrent_first_submissions": 24,
+        "duplicate_receipts": 24,
+        "fresh_service_recovery": true,
+        "invariants": "passed",
+        "lost_http_receipt": true,
+        "profile": "mcp-result-reconciliation-v1",
+        "schema": 24,
+        "stale_fence_rejected": true
+      }
+    ]
+  },
+  "measured": 0,
+  "passed": 10,
+  "target": "mcp_reconciliation"
+}

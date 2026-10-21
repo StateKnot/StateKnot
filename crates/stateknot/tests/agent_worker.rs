@@ -49,6 +49,7 @@ async fn postgres_worker_and_maintenance_have_independent_joined_lifecycles() {
     register_standard_child_reconciliation_event_schema(&mut schemas).unwrap();
     register_standard_child_join_event_schema(&mut schemas).unwrap();
     register_standard_run_failure_close_event_schema(&mut schemas).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
     let maintenance = AgentMaintenanceBinding::new(
         f.store.clone(),
         schemas.build().unwrap(),

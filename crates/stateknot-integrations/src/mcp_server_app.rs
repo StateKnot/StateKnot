@@ -19,6 +19,9 @@ use rmcp::{
 };
 use thiserror::Error;
 
+use crate::mcp_server_bound_state::check_context;
+use crate::{McpServerBoundStateProfile, McpServerCacheScope};
+
 use crate::{
     McpServerApplicationOptions, McpServerCompletionProvider, McpServerPromptAuthorization,
     McpServerPromptCatalog, McpServerPromptRenderer, McpServerPromptService,
@@ -37,6 +40,7 @@ pub struct McpServerApplicationBuilder {
     skills: Option<McpServerSkillService>,
     prompts: Option<McpServerPromptService>,
     completion: Option<Arc<dyn McpServerCompletionProvider>>,
+    bound_state: Option<McpServerBoundStateProfile>,
 }
 
 impl McpServerApplicationBuilder {
@@ -50,7 +54,27 @@ impl McpServerApplicationBuilder {
             skills: None,
             prompts: None,
             completion: None,
+            bound_state: None,
         }
+    }
+
+    /// Enables one immutable host-bound state profile for every mounted surface.
+    ///
+    /// Applied at final build regardless of configuration order. Private covers
+    /// catalog metadata and continuation identity, not application-selected
+    /// Public Resource contents. The host still owns current mapping checks.
+    pub fn with_bound_state(
+        mut self,
+        profile: McpServerBoundStateProfile,
+    ) -> Result<Self, McpServerApplicationBuildError> {
+        if self.bound_state.is_some() {
+            return Err(McpServerApplicationBuildError::DuplicateBoundState);
+        }
+        if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
+            return Err(McpServerApplicationBuildError::PublicCacheWithBoundState);
+        }
+        self.bound_state = Some(profile);
+        Ok(self)
     }
 
     /// Adds the immutable Tool registry and decoded authorization policy.
@@ -171,8 +195,35 @@ impl McpServerApplicationBuilder {
                 .ok_or(McpServerApplicationBuildError::CompletionRequiresPrompts)?;
             self.prompts = Some(prompts.with_shared_completion_provider(completion));
         }
+        if let Some(profile) = &self.bound_state {
+            self.tools = self
+                .tools
+                .take()
+                .map(|service| service.with_bound_state(profile.clone()))
+                .transpose()
+                .map_err(McpServerApplicationBuildError::ToolService)?;
+            self.resources = self
+                .resources
+                .take()
+                .map(|service| service.with_bound_state(profile.clone()))
+                .transpose()
+                .map_err(McpServerApplicationBuildError::ResourceService)?;
+            self.prompts = self
+                .prompts
+                .take()
+                .map(|service| service.with_bound_state(profile.clone()))
+                .transpose()
+                .map_err(McpServerApplicationBuildError::PromptService)?;
+            self.skills = self
+                .skills
+                .take()
+                .map(|service| service.with_bound_state(profile.clone()))
+                .transpose()
+                .map_err(McpServerApplicationBuildError::SkillService)?;
+        }
         Ok(McpServerApplication {
             options: self.options,
+            bound_state: self.bound_state,
             tools: self.tools,
             resources: self.resources,
             skills: self.skills,
@@ -199,6 +250,12 @@ impl fmt::Debug for McpServerApplicationBuilder {
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum McpServerApplicationBuildError {
+    /// Bound state was configured more than once.
+    #[error("MCP bound state is already configured")]
+    DuplicateBoundState,
+    /// An explicit strong profile requires Private catalog caching.
+    #[error("MCP bound state requires a private catalog cache")]
+    PublicCacheWithBoundState,
     /// At least one server capability must be configured.
     #[error("MCP server application has no capabilities")]
     Empty,
@@ -245,6 +302,7 @@ pub struct McpServerApplication {
     resources: Option<McpServerResourceService>,
     skills: Option<McpServerSkillService>,
     prompts: Option<McpServerPromptService>,
+    bound_state: Option<McpServerBoundStateProfile>,
 }
 
 impl McpServerApplication {
@@ -334,8 +392,9 @@ impl ServerHandler for McpServerApplication {
 
     async fn discover(
         &self,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<DiscoverResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         Ok(
             DiscoverResult::from_server_info(vec![ProtocolVersion::V_2026_07_28], self.get_info())
                 .with_ttl_ms(self.options.cache_ttl_ms)
@@ -354,6 +413,7 @@ impl ServerHandler for McpServerApplication {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let Some(service) = &self.tools else {
             return Err(method_not_found("tools/list"));
         };
@@ -365,6 +425,7 @@ impl ServerHandler for McpServerApplication {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let Some(service) = &self.tools else {
             return Err(method_not_found("tools/call"));
         };
@@ -376,6 +437,7 @@ impl ServerHandler for McpServerApplication {
         request: CustomRequest,
         context: RequestContext<RoleServer>,
     ) -> Result<CustomResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let Some(service) = &self.skills else {
             return Err(method_not_found_owned(request.method));
         };
@@ -387,6 +449,7 @@ impl ServerHandler for McpServerApplication {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         if let Some(service) = &self.resources {
             return ServerHandler::list_resources(service, request, context).await;
         }
@@ -401,6 +464,7 @@ impl ServerHandler for McpServerApplication {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         if let Some(service) = &self.resources {
             return ServerHandler::list_resource_templates(service, request, context).await;
         }
@@ -415,6 +479,7 @@ impl ServerHandler for McpServerApplication {
         request: ReadResourceRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         if let Some(service) = &self.skills
             && service.contains_resource(&request.uri)
         {
@@ -434,6 +499,7 @@ impl ServerHandler for McpServerApplication {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListPromptsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let Some(service) = &self.prompts else {
             return Err(method_not_found("prompts/list"));
         };
@@ -445,6 +511,7 @@ impl ServerHandler for McpServerApplication {
         request: GetPromptRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<GetPromptResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let Some(service) = &self.prompts else {
             return Err(method_not_found("prompts/get"));
         };
@@ -456,6 +523,7 @@ impl ServerHandler for McpServerApplication {
         request: CompleteRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CompleteResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let Some(service) = &self.prompts else {
             return Err(method_not_found("completion/complete"));
         };

@@ -1,0 +1,40 @@
+{
+  "status": "prepared only; Python AST parse passed; not executed",
+  "parent_helper_v2_hashes": {
+    "build.py": "8b95b0f74cf529c9be626ca09f4ccd8bbe672159addbd8eb0c3d27e9f21dea07",
+    "run-case.py": "a216af0b2a395f8d536490f7afbd7045f644068f02617e19f1120d0d4facb3e7",
+    "README.zh-CN.md": "88b0c2260f6f7b7288fd34852df74e56fed4454b06c54abd8fac9f7974aa1d66",
+    "authoring-receipt.json": "b36783691ac23437067a7506d40324fcf4398fc1086b957d2b597ab20c34291a"
+  },
+  "executable_changes": [
+    "build.py defaults to Qv3/scope.json",
+    "restore original Store264 middle-component exact case entry",
+    "run-case accepts store_exact or runtime_exact; candidate B only"
+  ],
+  "source_guard_count": 932,
+  "compilation_input_guard_count": 541,
+  "inventory_expected_guards": {
+    "store": 264,
+    "runtime": 191
+  },
+  "actual_inventory_measured": false,
+  "source_review_status": "read-only increment checked: only 2 Box::pin awaits plus exact frozen middle fixture; no execution qualification",
+  "resource_profile_features_SQL_or_business_budgets_changed": false,
+  "Rust_DB_Docker_or_helper_main_executed": false,
+  "files": [
+    {
+      "path": "build.py",
+      "sha256": "b1436d0d38e705c124c1bf16d2b25998f6288dd90c7b798bf4a29a8d6522ff4c"
+    },
+    {
+      "path": "run-case.py",
+      "sha256": "10d37cb3583def862427473c4bbdfd673bb48fe9dec208f6f5e260c8b08469fc"
+    },
+    {
+      "path": "README.zh-CN.md",
+      "sha256": "d292e5224309cb40cf759e933ce2e1cb980f13e4d774ea9507bab15eb526a057"
+    }
+  ],
+  "source_tree_expected_from_current_v3": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "compiled_inputs_expected_from_current_v3": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e"
+}

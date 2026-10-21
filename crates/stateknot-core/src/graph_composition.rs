@@ -48,6 +48,9 @@ impl SharedStateSubgraph {
         if graph.child_runs().is_some() {
             return Err(GraphCompositionError::ChildDelegationUnsupported);
         }
+        if graph.frame_calls().is_some() {
+            return Err(GraphCompositionError::FrameCallsUnsupported);
+        }
         let mut ports = BTreeSet::new();
         for node in graph.nodes() {
             if node.allows_terminal() {
@@ -271,6 +274,9 @@ impl GraphComposition {
         }
         if parent.child_runs().is_some() {
             return Err(GraphCompositionError::ChildDelegationUnsupported);
+        }
+        if parent.frame_calls().is_some() {
+            return Err(GraphCompositionError::FrameCallsUnsupported);
         }
 
         let mut sources = BTreeMap::new();
@@ -613,6 +619,9 @@ fn remap_node(
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum GraphCompositionError {
+    /// Static shared-state expansion cannot discard isolated frame declarations.
+    #[error("shared-state composition cannot expand a graph with isolated frame calls")]
+    FrameCallsUnsupported,
     /// Static expansion cannot silently discard or remap durable child ownership.
     #[error("static composition does not support child delegation declarations")]
     ChildDelegationUnsupported,

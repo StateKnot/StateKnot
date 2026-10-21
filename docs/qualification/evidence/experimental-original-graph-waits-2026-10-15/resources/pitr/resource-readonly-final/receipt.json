@@ -1,0 +1,66 @@
+{
+  "read_only": true,
+  "commands": [
+    {
+      "label": "wal-volume-inspect",
+      "command": [
+        "docker",
+        "volume",
+        "inspect",
+        "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1"
+      ],
+      "exit_code": 0
+    },
+    {
+      "label": "wal-container-references",
+      "command": [
+        "docker",
+        "ps",
+        "-a",
+        "--filter",
+        "volume=stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1",
+        "--format",
+        "{{.ID}}\t{{.Names}}\t{{.Status}}"
+      ],
+      "exit_code": 0
+    },
+    {
+      "label": "own-uuid-containers",
+      "command": [
+        "docker",
+        "ps",
+        "-a",
+        "--filter",
+        "name=01a13f6d5ad477909c16dcdd725a26b1",
+        "--format",
+        "{{.ID}}\t{{.Names}}\t{{.Status}}"
+      ],
+      "exit_code": 0
+    },
+    {
+      "label": "current-containers",
+      "command": [
+        "docker",
+        "ps",
+        "-a",
+        "--format",
+        "{{.ID}}\t{{.Names}}\t{{.Status}}\t{{.Image}}"
+      ],
+      "exit_code": 0
+    },
+    {
+      "label": "current-volumes",
+      "command": [
+        "docker",
+        "volume",
+        "ls",
+        "--format",
+        "{{.Name}}\t{{.Driver}}"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "no_stop_rm_prune_or_DB_operation": true,
+  "retained_volume": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1",
+  "reason": "One original PG16 PITR Drop residual WAL volume; preserve by root instruction. Not a durable-data invariant failure or captured stderr diagnosis."
+}

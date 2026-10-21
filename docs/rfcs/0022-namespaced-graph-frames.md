@@ -1,0 +1,1436 @@
+<!--
+Copyright 2026 StateKnot contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
+# RFC-0022: Namespaced same-Run graph frames
+
+- Status: Draft
+- Authors: StateKnot contributors
+- Created: 2026-10-09
+- Tracking: [Issue 149](https://github.com/StateKnot/StateKnot/issues/149), [R1 G3/G4/G5/G6 and child ownership](../r1-contract-gap-ledger.zh-CN.md)
+- Supersedes: None
+- Superseded by: None
+
+## Summary
+
+Execute a declared subgraph in an isolated durable frame of the same tenant and
+Run. The declared graph-call closure is acyclic and version-pinned. A frame
+pins its caller activation, child slot, graph implementation and schemas. Its own checkpoint position and node identities cannot alias the
+caller. Returning a verified child output publishes one ordinary parent node
+result; parent state changes only at the parent's subsequent barrier.
+
+The proposed first profile has one active frame stack. A graph that declares
+nested calls must have parallelism one. A leaf graph without nested calls may
+still use existing bounded parallel nodes. This rule is checked before admission;
+there is no implicit serial fallback for a parallel caller. Waiting in the leaf
+persists its exact scope, releases execution ownership and resumes that scope
+after process replacement. No suspended stack retains an application future.
+
+This document, its private constructor prototype and experimental Core frame
+data types do not add runtime support.
+The RFC remains Draft until the semantics and acceptance gates below are
+resolved and reviewed. Existing root graphs and static shared-state composition
+retain their current supported source contracts.
+
+## Motivation
+
+[RFC-0002](0002-deterministic-graph-and-scheduler.md) already specifies a
+same-Run namespace derived from a caller activation and child slot. The existing
+`GraphNamespace` scalar supports bounded non-root names, but the execution path
+is root-only: `NodeActivation::for_ready_root`, the ready-node recovery planner,
+barrier validation and PostgreSQL attempt/result checks derive root activations.
+`run_checkpoints` also has a unique `(tenant_id, run_id, superstep)` key and one
+Run checkpoint pointer. Interrupt/timer lifecycle is Run-wide.
+
+Removing a root check or changing only that unique key would leave checkpoint
+scope, wait restoration, parent continuation and terminal ownership unverified.
+Static shared-state composition expands ordinary root nodes and has a different
+visibility contract. An isolated child Run has another identity and ownership
+contract. Neither provides the proposed same-Run frame semantics.
+
+## Goals and non-goals
+
+- Pin a complete nested implementation closure before Run admission.
+- Preserve same-Run authority, accounting, cancellation and external-effect
+  ledgers without granting a child a wider policy or a fresh budget.
+- Isolate child state and local checkpoint positions; persist caller continuation.
+- Recover a waiting, running or returning frame under a newer fence without
+  repeating committed node, model or Tool work.
+- Commit frame admission and return atomically with their journal facts, and
+  reject namespace, registry, schema and continuation substitution.
+- Enforce finite nesting, frame starts, state, replay memory and execution work.
+
+This profile does not add parallel frame stacks, mutable shared parent state,
+model-selected executable graphs, recursive graph-call cycles, cross-owner calls, a workflow language,
+independent child Runs, time travel or new production capacity guarantees.
+Child-Run APIs used inside a frame still require their existing ownership/Join
+contract plus the explicit frame integration gates below.
+
+## User-facing design
+
+A trusted compiled graph declares each call site, a stable `NodeId` child slot,
+an exact child `GraphReference` and one explicit parent return route. A call site
+is framework-owned and has no application executor. Registering an executor for
+that call site is a conflict. The declaration and finite frame limits enter the
+parent definition digest; they cannot live in an unbound registry side table.
+
+For the isolated-snapshot profile, parent state, child input and child state
+schema references must be exactly equal. The child output schema must equal the
+parent update schema. The offline registry validates those values before frame
+admission and return. A child terminal output becomes a parent update followed
+by the declared route; a child failure follows Run-wide failure close. No
+implicit adapter, schema coercion, state reset or dynamic return route is used.
+
+The child graph owner must be the same exact principal as the caller graph
+owner. The Run's resolved scopes, provider/Tool bindings and deadlines continue
+to apply. The entire child implementation closure is part of the trusted caller
+implementation, not a grant inferred from an arbitrary graph reference.
+
+The current compilable identity prototype is
+[`nested_frame_identity_prototype.rs`](../../crates/stateknot-core/tests/nested_frame_identity_prototype.rs):
+
+```console
+cargo test -p stateknot-core --test nested_frame_identity_prototype --locked
+```
+
+Its private `FrameIdentity` constructor uses real bounded Core identities and
+checkpoint constructors. Five checks establish repeatable logical scope,
+distinct slots/parents, finite full-digest namespace segments, tenant/Run/graph
+binding, same-owner rejection and changed-pin conflict. These are constructor
+checks, not a public API, wire release, authorization decision or SQL qualification.
+The experimental Core implementation in
+[`graph_frame.rs`](../../crates/stateknot-core/src/graph_frame.rs) adds
+`GraphFrameIdentity`, `GraphFrameCheckpoint` and `GraphFrameCheckpointHead`.
+Constructors and map-only readers validate the exact owner/state-schema pins,
+full-digest ancestor path, tenant/Run/graph scope, journal order and reconstructed
+checksums. `GraphFrameCheckpoint::activation` derives ready-node identity from
+the full scoped checkpoint using the existing activation digest domain;
+`verify_successor` requires the same frame and exact predecessor. Compact heads,
+like existing checkpoint heads, cannot independently prove omitted state or
+journal authenticity. Admission must additionally validate the declared call,
+caller readiness and active lease inside the store transaction.
+
+[`graph_frame_contracts.rs`](../../crates/stateknot-core/tests/graph_frame_contracts.rs)
+provides nine deterministic checks and two independent 256-case checksum/chain
+models, including seven levels of actual scoped ready-node derivation. The three
+new readers have current-source fixtures, separate input/output schema pins and
+the same closed inventory/fuzz oracles as existing readers. Existing root data
+and input/output pins remain exact. These types are experimental while this RFC
+is Draft; they do not expose a supported nested execution path. `GraphFrameCall` and `GraphFrameCallPolicy` now declare the exact target, fixed
+return route, seven-level depth ceiling and at-most-4,096 lifetime frame starts.
+`CompiledGraph::with_frame_calls` validates serial callers, owner/schema pins
+and call-site controls, then binds those declarations into a new definition
+digest. Static shared-state expansion refuses to discard isolated frame calls.
+Both generated schema profiles for `CompiledGraph` and
+`ChildRunAdmissionIntent` explicitly change; old graphs without calls retain
+their exact canonical wires and definition digests. Registry checks validate
+actual target pins, acyclic relative depth, finite closure bytes and application
+executor conflicts. The complete registry/driver execution path still requires
+transactional frame integration before acceptance.
+
+The scoped pure recovery and barrier path is implemented experimentally.
+`ReadyNodeRecoveryPlanner::for_frame` derives exact ready activations and retains
+the frame in its plan; results from a sibling or root scope cannot be reused.
+`GraphFrameBarrier` is a separate bounded, map-only intent with exact scoped
+activation/input identity, ready-set coverage, local predecessor and its own
+checksum. `CompiledGraph::plan_frame_barrier` reuses the existing pinned
+schema/reducer/control checks. The legacy root barrier still rejects nested
+results. Four recovery checks, five barrier checks and a 256-case independent
+sum/canonical-preimage model cover these pure paths. Actual entry, return, waits,
+SQL authority and fault qualification are still required.
+
+`GraphFrameCall::prepare_root_entry` and `prepare_frame_entry` now check the
+exact pinned declaration, target, parent graph/local position and serial ready
+caller, then derive the logical frame and copy its state into a separate initial
+checkpoint intent. Repeating preparation with another candidate checkpoint ID
+preserves the logical frame. Root/scoped return preparation requires the exact
+caller/frame and child barrier base plus a validated terminal plan; the child
+output becomes a parent update with only the declared return route. Parent state
+does not change during preparation. Eleven real-constructor call checks include
+these boundaries, rejected substitutions and continued-child rejection. These
+methods return existing data types and add no wire/schema profile or dispatch
+authority; the complete compound store transaction remains required.
+
+Migration 27 implements scoped relational keys without rewriting old root
+canonical checkpoint bytes. Same-scope predecessor FKs additionally bind frame
+identity, activation/result/invocation/ownership/Join references include their
+namespace, and generated empty-namespace columns fix Run and Agent root
+pointers. Existing root queries explicitly select the empty namespace and root
+decoding rejects non-null frame columns. Exact catalog verification covers all
+21 new constraints, eight columns and seven unique indexes; existing Join
+catalog evidence changes only for its two added FKs. PostgreSQL 16/17 tests use
+real constructor bytes and journal anchors to check nonempty source-schema
+26→27 preservation, separate local position zero, crossed parent/attempt/root
+references and catalog drift. Their manually inserted scoped rows establish
+relational guards, not frame admission, compound journal authority, nested
+execution or true historical N-1/N-2 compatibility.
+
+The Rust-only `GraphFrameEntryPlan` and `GraphFrameEntry` now define a closed
+compound entry binding. The pre-event intent hashes
+`stateknot-graph-frame-entry-intent-v1\0 || JCS({ version, parent_graph, frame,
+checkpoint_intent_digest, caller_attempt_id, fence })`. The version-1
+`graph-frame-entered` payload adds this intent digest and uses the generated
+output schema at `https://stknot.com/schemas/core/graph-frame-entry-event/1.0.0`,
+pinned from RFC 8785 schema bytes. It carries no copied state. Materialization
+requires the exact next event and predecessor digest for the observed Run head,
+matching tenant/Run, worker source, schema and complete payload. The record
+hashes `stateknot-graph-frame-entry-record-v1\0 || JCS({ intent_digest, event,
+caller_start_digest, checkpoint })`, where `checkpoint` is the full scoped head.
+Both components share the event anchor; neither legacy component digest is an
+acceptable compound projection. Reload verification recomputes the complete
+record and checks the exact start and scoped checkpoint independently.
+
+Nine Core constructor checks cover independent intent/record preimages,
+physical identity/fence changes, crossed/replaced observations, closed event
+profiles, event predecessor substitution, independently valid changed components
+and actual scoped entry. The generated event producer is additionally checked
+against the production offline schema registry. These Rust-only types add no
+public Serde reader or changes to existing public type schema pins. The store
+must still reload admitted closure/active leaf/inherited bounds and repeat the
+live fence in its complete atomic admission transaction; these constructors do
+not persist an entry or grant launch authority.
+
+Ordinary PostgreSQL append, checkpoint and node-start APIs reserve this event
+kind and reject it instead of storing a legacy component projection. A native
+database check covers both control-plane and worker initial-checkpoint paths,
+ordinary appends and node starts, including rollback of every partial fact.
+Migration 28 adds an experimental dedicated Store admission transaction. It
+locks the admitted Run and reloads the actual pinned acyclic call closure,
+caller checkpoint, active leaf, inherited absolute-depth/start ceilings and
+settled child-account usage. It commits the event, framework claim/start,
+isolated initial checkpoint, immutable entry, scoped head, lifetime counter and
+Run journal head together. Root checkpoint bytes and its pointer remain exact.
+The final write repeats the live fence and admission deadline with PostgreSQL's
+clock. It rejects unresolved Run effects and undischarged child ownership.
+
+The Store projection additionally authenticates the admitted Root digest,
+Run-wide ordinal, inherited ceilings, parent namespace, observed journal head,
+trusted complete DIRECT observation, settled delegated usage and child-account
+digest. Its intent domain is `stateknot-postgres-frame-entry-scope-v1\0` over
+`JCS({ core_intent_digest, scope, budget })`; its compound domain is
+`stateknot-postgres-frame-entry-compound-v1\0` over
+`JCS({ scope_intent_digest, core_record_digest })`. The existing closed Core
+entry-event profile remains exact; the event's Store projection binds this
+complete context rather than a legacy component or the Core record alone.
+Private entry bytes are capped at 65,536 bytes and must be strict canonical
+objects. Reload checks the whole event/start/scoped checkpoint, registered
+closure and at most seven authenticated ancestor entries. It rejects damage
+before recovery can report an idempotent commit.
+
+`direct_usage` is a trusted, complete Run-wide DIRECT-only observation at the
+exact observed head, including previous frame charges and excluding child-Run
+subtrees. The transaction loads actual settled delegated charges and enforces
+at least the real Root admission's event/checkpoint/depth usage plus every
+active ancestor's entry charges. It charges one graph step per entry, actual
+canonical event bytes, scoped checkpoint/head bytes, and the absolute depth
+high-water mark. These are inherited Run charges; entry does not allocate a
+fresh budget. Deriving all provider usage and unknown costs from durable
+ledgers remains an independent R1 child-accounting gate.
+
+Lost-acknowledgment recovery authenticates the existing immutable bundle before
+fresh schema callbacks, candidate IDs, readiness or lease checks. It verifies
+the same logical frame, target and initial state, returns the original evidence
+and never grants another launch. An expired lease or unavailable schema
+callback cannot turn that recovery into a new admission.
+
+Deferred SQL guards require all admission components and reject incomplete
+scoped checkpoint advances, substituted frame heads, legacy wait writes during
+an active child, suspended-parent dispatch and Root continuation/terminal
+projection. The schema-30 trusted-server role profile gives the runtime only
+SELECT/INSERT on immutable entries/barriers/caller bindings and enumerated mutable head/stack columns.
+Exact catalog checks cover installed columns, constraints, indexes, functions
+and enabled triggers. Root-only source fixtures explicitly remove migration
+30/29/28 before reconstructing older schemas and refuse retained actual frame data.
+They do not establish historical-binary downgrade or compatibility.
+
+The experimental Store also starts ordinary ready nodes within an authenticated
+active frame checkpoint and atomically commits their success/result or
+failure. It reuses bounded physical histories, safe-retry rules and fencing.
+A fresh committed start grants launch authority; an idempotent start remains
+in flight. Historical scoped starts/results authenticate their complete entry
+and checkpoint without requiring the old frame to remain the active leaf.
+Ordinary execution and completion APIs reject framework-owned call nodes.
+The SQL completion guard protects the active namespace and suspended caller.
+Deferred component guards run before the final database-clock lease/deadline
+check, so a slow deferred constraint cannot grant launch after lease expiry.
+The stack CHECK expression retains the same bounds in the exact catalog after
+logical dump/restore.
+
+Scoped continuation/terminal barriers commit the full result set and
+consumptions, one worker event, successor, bounded immutable barrier witness
+and active frame head atomically. Schema/reducer callbacks finish against the
+actual admitted graph and full results before mutation locks; the locked commit
+repeats active leaf, base, observed journal, unresolved effects, shared DIRECT
+floor, settled children and live fence/budget. Deferred guards execute before
+the last database-clock lease/deadline check. No Root pointer or Run terminal
+transition is granted. Scoped waits still require a whole suspension record.
+
+Recovery walks forward from the whole entry, authenticates every exact frame
+successor, complete result owner/binding/consumption and journal predecessor,
+and releases previous state/result buffers per edge. The admitted graph,
+original Run graph-step budget, existing 64 MiB replay-result ceiling and 4 MiB
+barrier witness bound cap this path. Ordinary scoped starts/results can now
+bind to those authenticated successors; new nested calls retain the actual
+parent successor and shared usage floor. Schema 29 pins the whole barrier
+catalog and trusted runtime ACL inventory. Source-28 migration fixtures retain
+nonempty actual scoped history but do not execute a historical binary.
+
+Framework caller rebinding now atomically commits a reserved worker event,
+a whole immutable binding, a new physical node start/claim and the Run journal
+head. The existing frame identity, activation and current child checkpoint
+stay exact. Recovery authenticates the original entry and every physical
+binding, actual starts/claims and journal predecessors; compact checkpoint
+heads receive independent full lineage verification without recursive result
+ownership replay. Original and rebound framework callers cannot complete
+through ordinary APIs. A committed epoch is recovered before new observation,
+usage or lease checks and grants no application dispatch permission.
+
+A fresh binding requires the actual active leaf, admitted graph closure,
+monotonic complete DIRECT usage, settled child accounting, live database fence
+and original deadline/budget. It charges one graph step, retry and the complete
+canonical event bytes. The existing 64-attempt hard ceiling and 64 MiB aggregate
+binding replay ceiling remain bounded. Later barriers and nested entries retain
+the binding usage floor. Schema 30 pins the additional immutable table, reserved
+event and suspended-caller guards, catalog and exact 49-table runtime ACL.
+Source-29 upgrade fixtures retain a real noninitial terminal barrier and its
+consumptions; they do not qualify historical binaries.
+
+Schema 31 adds experimental whole returns. A terminal barrier/checkpoint first
+commits as an immutable child proof, leaving the child active and the caller
+suspended. The dedicated return transaction authenticates that proof and the
+current physical framework caller, then atomically commits settlement, exact
+declared-route parent result, caller completion, stack pop and one reserved
+journal fact. The parent checkpoint stays immutable until its own barrier
+consumes the returned result. A newer fence requires caller rebinding first;
+ordinary completion still cannot finish framework calls.
+
+Return recovery validates closed canonical bytes, all SQL projections, the
+admitted graph closure, actual entry/terminal/caller histories, result owner,
+completion, event predecessor and original shared budget. It precedes fresh
+callbacks, observations and lease checks. Fresh planning runs the actual pinned
+schema/reducer before locking; commit repeats active leaf, exact parent/child
+heads, current physical start, settled child accounting, live database fence
+and original deadline. Return charges one graph step and its canonical event;
+its framework completion has zero application usage. Later mutations retain the
+Run-wide DIRECT floor.
+
+Replay reuses only compact proofs owned by its database transaction, at most
+4,096 scope/return entries, with no process-global or full-state cache. Earlier
+returns are authenticated in journal order before result ownership traversal.
+Seven-level cascade tests run with the normal thread stack and the real lease
+renewal API. Exact Schema 31 catalog and 50-table trusted-server ACLs retain
+immutable facts and require whole proofs for stack transitions and framework
+completion. Nonempty source-30 fixtures preserve terminal and rebound-caller
+facts and migration checksums; they do not qualify historical binaries.
+
+Schema 32 adds whole leaf suspension through `commit_graph_frame_wait`.
+A version-2 Store barrier binds the original Run lifecycle revision and every
+complete node wait condition; version-1 non-wait bytes and Core pins remain
+unchanged. One transaction consumes results, saves the scoped successor and
+whole witness, advances the leaf, registers all waits and projects Run waiting
+while releasing its lease. It verifies the original locked lease/deadline after
+all deferred guards, even though the resulting waiting projection has no lease.
+Existing resolver/timer APIs authenticate the whole scoped witness and complete
+terminal records. The last condition makes the saved leaf schedulable under a
+new fence; historical retry/reads retain their exact scope after final return.
+SQL guards reject incomplete suspensions and active projection with outstanding
+conditions. Corruption can still be quarantined with its immutable audit without
+parsing the damaged suspension. The 50-table ACL inventory is unchanged.
+Development tests cover 24-way once-only registration, restart, authorization,
+two-condition discharge, caller takeover/whole return, seven component rollbacks,
+policy substitution, complete terminal substitution rejected before actual node
+start, idempotent fail-stop isolation of malformed suspension bytes and slow
+deferred lease expiry. A populated source-31 reconstruction preserves actual
+entry/result and version-1 terminal facts plus all older migration checksums,
+then commits the new whole wait; downgrade refuses retained version-2 facts.
+It does not qualify retained historical executables. A separate runtime LOGIN
+exercises the actual wait/resolve/retry/resume path. Final immutable-source
+qualification, two-version backup/restore and all-frame closure remain required.
+
+The Store also provides `load_active_graph_frame`, a heap-backed, bounded
+repeatable-read recovery snapshot. It authenticates the exact lifetime inventory,
+all open root-to-leaf namespaces, suspended parent heads, whole entry/checkpoint
+history and latest physical callers, returning at most seven compact head/entry/
+caller bindings alongside the whole leaf. Returned history is authenticated in journal
+order before ancestor reads, with compact proofs owned only by that transaction.
+Missing stacks and forged Root aliases cannot hide open frames. Waiting and
+cancellation snapshots verify complete resolution/firing/abandonment records;
+terminal Runs cannot retain a runnable frame. The returned DIRECT value is a
+structural floor, not complete ordinary node/provider accounting. This read
+confers no authority; scoped mutations still require their exact live fence,
+heads and complete accounting. No schema migration, Core pin or existing wire
+changes. It is an experimental recovery primitive while nested Driver and
+all-frame closure integration and final qualification remain required.
+
+Claimed leaf planning now uses `plan_graph_frame_ready_nodes` with the original
+journal/quarantine context. Bounded scoped result pages authenticate the whole
+active stack in their consistent snapshot, reject unexpected namespaces under
+an exact checkpoint identity, and reuse completed work with complete physical
+attempt history. The planner rechecks the leaf and live database-time fence;
+terminal leaves may contain no ready nodes. The plan grants no dispatch, and
+the dedicated scoped durable start remains required. Whole-history application
+validation is exposed separately by `validate_graph_replay`; its
+[bilingual contract](../scoped-graph-application-replay.md) covers all lifetime
+scopes with exact deployed schemas/reducers, direct bounded reads, callbacks
+outside transactions and complete original lifecycle/scheduler/wait/journal
+rechecks. Its Copy Root report derives from that same Root pass; returned
+siblings, noninitial suspended parents and resumed waits with later transitions
+are independently replayed. Complete legacy Root
+Wait/Terminal disposition authentication requires a durable bundle; missing
+historical proof is operational, never an invented revision or quarantine of a
+valid legacy record. Actual Driver integration and qualification remain open.
+Private whole-return intents are decoded on the heap to bound
+Serde stack use without changing canonical bytes or weakening owning proofs.
+
+Claimed session creation retains full canonical checkpoint authentication.
+Actual durable corruption may quarantine the exact current live owner before
+returning a session; stale observations cannot quarantine a successor. Valid
+legacy disposition unavailability remains operational, without quarantine.
+Compatibility with the earlier session-creation timing is not claimed.
+Schema-34 Root owning proofs can revisit checkpoint ancestors. Instrumented
+replay counters do not establish total linear work; complete transaction-owned
+prefix equivalence and traversal qualification remain separate gates.
+
+The experimental delayed-retry operation is
+`PostgresStore::schedule_graph_frame_delayed_retry_wakeup(&ReadyNodeRecoveryPlan)`.
+Fresh scheduling holds the Run lock across whole current active-stack/head proof,
+actual live-worker verification and complete bounded physical-history replay.
+The existing Core policy must independently reproduce every Completed/Deferred
+decision at the original plan observation, including the earliest SafeAfter
+boundary. The final database clock, exact original journal, actual worker
+attempt/epoch/expiry, frozen Root projection and scoped active/head predicates
+must still match. No Root column, immutable component, queue age, shared budget
+or deadline is replaced by a leaf value.
+
+Root `schedule_delayed_retry_wakeup` also uses the complete fresh-history
+validator. Public pure-planner metadata cannot substitute a stored Root failure
+or invent a Completed sibling to suppress the queue. Dedicated Start alone
+would protect launch after a forged gate elapsed, not scheduler availability.
+The existing gate releases the lease atomically; it grants no launch. Root and
+scoped scheduling share final-clock handling. Update-trigger delay past lease
+expiry rolls back the transaction; delay past the inclusive retry boundary
+rolls back the gate savepoint, rechecks the retained original lease/Root/leaf/
+journal/queue age and returns Due. A subsequent claimed plan and dedicated
+scoped Start are required. Deadline cancellation remains independently indexed,
+clears a far-future gate and makes cleanup runnable.
+
+Released-gate ACK retry has the minimum observation contract: whole current
+scope/head/journal, last fencing epoch and exact gate still match. It is read
+only and proves neither the erased original worker attempt nor the complete
+original plan. It does not persist a wakeup intent or add a schema/plan digest.
+Malformed caller metadata, availability, stale ownership and expired leases
+must not become quarantine; actual corruption uses the original exact fenced
+context and cannot quarantine a successor. This remains experimental Store
+behavior, without declaring nested Driver or R1/G3 qualification complete.
+
+
+Schema 33 adds experimental `close_graph_frames` after the actual original
+cancellation request or sealed Run failure, and `load_graph_frame_closure` for
+whole historical recovery. A bounded version-1 wire binds the original Run
+lifecycle/decision, admission, Root checkpoint, predecessor, complete priced
+DIRECT usage, settled delegated account and one-to-seven exact entry/head/latest
+caller bindings. The intent hashes `stateknot-postgres-frame-closure-intent-v1\0`
+followed by JCS; the compound hashes `stateknot-postgres-frame-closure-compound-v1\0`,
+the intent digest, actual event digest and ordered completion digests.
+The reserved control-plane event `graph-frames-closed` has its own closed,
+offline-pinned Store schema; no Core schema pin or old wire changes.
+
+One Run-locked transaction saves the event, immutable whole closure and every
+caller completion, pops the stack to Root without resetting lifetime starts,
+releases the lease and updates the journal. Completions retain the callers'
+actual original physical fences and have zero application usage plus a fixed
+Cancelled/Never failure caused by that closure event. They live in separate
+immutable tables; ordinary node-completion worker-event FKs are unchanged.
+No parent result or state is invented. Deferred guards reject incomplete sets,
+returned/duplicate callers, hidden open frames, outstanding ordinary/provider
+work and unsettled child ownership. Root terminal writes require the completed
+stack and exact frozen DIRECT plus settled delegated usage.
+
+Closing grants no execution authority and performs no application work. Its
+bounded audit is not a new execution charge: expired leases/deadlines and an
+exhausted execution budget do not prevent cleanup. Unknown provider effects or
+unpriced DIRECT usage still reject it. Existing closure recovery authenticates
+all original facts before evaluating a new candidate, including after Root
+termination. Direction-only private anchors avoid recursive caller/closure
+verification; public reads still verify the entire owning closure. Canonical
+wire bytes are capped at 4 MiB and array readers reject an eighth component
+before materializing it. Exact schema verification covers 145 columns, 21
+indexes, 70 constraints, 35 triggers and 23 functions; the trusted runtime
+profile advances to 52 tables with no mutable closure evidence privileges.
+
+Runtime cancellation observation uses the existing node timeout and AgentLoop
+shutdown. The guardian retains the same original fence with the configured lease
+duration. Validation/quarantine, renewal and Closure retain their complete
+COMMIT acknowledgements even when the guardian fails. Only the separately
+bounded read-only DIRECT provider observation is cancellable; the final live
+fence and whole Closure commit keep their original database-clock checks.
+
+The outer Driver recovery guardian likewise stops cooperatively and drains the
+original complete owning recovery/Start/quarantine acknowledgements. A finished
+drive interrupts only the next pure maintenance wait and drains any in-flight
+lease observation/renewal before returning its original result. Full owning
+readers and final live-fence checks retain launch authority; the guardian's
+internal stop signal grants none. Node execution likewise drains in-flight
+renewals across completion, cancellation and errors. Its original monotonic
+deadline stops application tasks before a delayed ACK; that ACK grants no new
+launch authority. Original errors retain precedence and a failed guard prevents
+fresh result commits. The final combined fault matrix still requires its
+separate qualification.
+
+Scoped Tool/Model preparation, transitions and history now derive activations
+from the authenticated whole frame checkpoint. Fresh mutation predicates bind
+the actual leaf head and identity; suspended/closed frames and framework call
+sites cannot launch ordinary provider work. Deferred guards run before the
+last live-fence observation. New preparation/physical starts also require the
+original execution deadline; bounded recording of an already in-flight outcome
+grants no new launch authority. Current-source tests cover mixed old/new caller
+fences, seven-level cleanup, once-only races, each component/deferred rollback,
+wait abandonment, frozen Root terminal accounting, corrupted closure facts,
+expired/exhausted cleanup, actual scoped unknown/settled provider work and
+nonempty source-32 reconstruction. They do not qualify retained historical
+executables. Immutable-source full gates remain required for this increment.
+
+Admission, node, barrier, caller-binding, return, wait, active recovery and closure
+transactions are parts of the Draft. Actual registry/driver dispatch,
+complete process-loss/commit-loss fault qualification and production capacity
+remain pending. These Store primitives do not enable
+nested execution or make RFC-0022 Supported.
+
+### Root disposition recovery increment (in development)
+
+Full application replay must also recover historical Root barriers after the
+last child returns. The existing generic Root barrier records authenticate the
+checkpoint, ordered result consumption and journal projection, but do not
+uniformly retain the original lifecycle revision and complete
+`GraphBarrierDisposition`. Deriving a fresh Wait or Terminal from current
+application code cannot supply missing historical inputs. This increment is in
+development; the frozen `8285f25` qualification does not qualify its migration,
+writer, reader or application replay.
+
+The selected persistence design is a new immutable Root barrier record and a
+Store-owned compound journal projection. It uses migration 34 without changing
+migrations 1 through 33 or backfilling a guessed disposition. An exact legacy
+Continue can be proved by reconstructing its original Unchanged projection
+preimage. A legal legacy edge whose original disposition cannot be proved
+returns `GraphReplayHistoricalDispositionUnavailable`, preserves the Run and
+grants no dispatch. A recognized new-format event with a missing or contradictory
+whole record is durable corruption. A missing migration, catalog object or ACL
+is a deployment error; it does not justify quarantining the Run.
+
+The immutable record binds the exact Root base and successor heads, pinned
+graph, ordered result count/digest, full Core barrier intent, closed
+Continue/Wait/Terminal disposition, original projection digest, original and
+committed lifecycle, and the actual journal anchor. Redundant owner, namespace,
+revision and digest columns must agree with the canonical record. The new
+event's fixed payload contains a precommit intent digest. A separate compound
+digest binds that intent to the actual event, successor and committed lifecycle.
+It is stored in the event projection and record. An event payload must not
+contain the digest of a record that itself includes the full event digest;
+that would create a circular dependency.
+
+Existing Root limits remain unchanged: the complete JournalPayload envelope is
+bounded at 2 MiB, each complete wait registration at 4 MiB, each checkpoint at
+2,621,440 bytes, and a barrier at 1,024 results and 64 waits. The journal contains
+compact intent references. Wait records contain ordered kind/identity/intent
+references and a digest of the complete semantic batch; recovery authenticates
+the complete original registrations and their terminal records. Copying 64
+legal large wait requests into a small bundle would narrow the existing
+contract. Terminal stores the complete original AgentResult once in the
+committed lifecycle and derives its output from that source. It must retain
+artifacts, actual usage, admitted provenance and completion metadata. A graph
+output alone cannot manufacture an accountable AgentResult. Fix the new Wire
+bound only after deriving its maximum from accepted Core envelopes and testing
+the largest legal terminal and wait cases.
+
+The existing Core constructors accept maximum-profile JSON in journal data
+and terminal results. Their nested readers use that same explicit profile,
+then repeat complete envelope or result validation. This repairs previously
+accepted large values that failed recovery under the standalone default reader
+profile; it does not raise a hard ceiling, change canonical wires or schema
+pins, or widen the default `BoundedJson` profile. Large legal round-trips,
+complete-envelope rejection and early streaming string rejection are required
+regressions alongside maximum legal Root disposition records.
+
+The graph-specific writer accepts the real complete plan and original append,
+lifecycle expectation and terminal result where required. Existing ACK-loss
+recovery authenticates the entire committed event, successor, result
+consumptions, waits, disposition and lifecycle before invoking new application
+callbacks. It compares original canonical retry inputs and grants no new node
+launch. It cannot attach a missing record to an old event. Fresh preflight
+authenticates the base and all complete results, then closes SQL before schema,
+reducer or planner callbacks. It independently replans and compares the whole
+plan before taking the mutation lock.
+
+Under the Run lock, the fresh writer rechecks the exact journal, Root base,
+original lifecycle, active Root stack, complete result set, settled invocation
+and child ownership, and the live database-time fence. It atomically commits
+the fixed event, successor, all consumptions, original plan's waits if any,
+immutable record and Run lifecycle/pointers. Continue preserves the lifecycle;
+Wait and Terminal apply their original revision exactly once and release the
+lease according to existing lifecycle rules. Per-statement and final
+database-time checks retain the original owner and detect slow-trigger expiry.
+Deferred guards must enforce both directions of event/record/successor/
+consumption/wait completeness and the actual before/after lifecycle source.
+Generic legacy append paths reject the reserved new event kind. No generic
+failure or cancellation can be relabeled as a graph disposition.
+
+The complete reader reconstructs the barrier from the authenticated base,
+successor write and ordered complete result heads. It recomputes the intent,
+original projection, full disposition and pure lifecycle transition from the
+original source records, then verifies the compound and event payload reference.
+Wait reconstruction uses the actual original registration sequence and every
+resolved/fired/abandoned component; current status alone is insufficient.
+Terminal reconstruction compares the whole NodeTerminalOutput, admitted
+AgentResult and terminal node control. Public readers retain their full owning
+proofs. Private application replay may reuse authenticated direct component
+proofs within its one consistent observation, and includes disposition,
+projection, lifecycle, wait and event bindings in capture/materialization/final
+transcripts. Root edges are replayed after returned child histories. A changed
+record between passes is detected even when the journal head stays unchanged.
+Unavailable executable/schema/reducer, callback panic, replay resource bound
+and lost authority remain operational errors. Authenticated contradictions may
+quarantine only under the original current claimed context.
+
+Schema 34 must update exact migration and normalized catalog verification,
+restore inventories and dedicated non-superuser role profiles. Runtime gets
+SELECT/INSERT on the new immutable evidence table; it cannot UPDATE, DELETE,
+TRUNCATE, disable its triggers or execute its guard functions directly.
+Retention receives no independent evidence mutation or access grant. Rollout
+applies the reviewed migration and ACLs before the new runtime. The old exact
+schema-33 binary rejects schema 34; this design makes no mixed-version rolling
+compatibility promise. New readers preserve old bytes and explicitly classify
+unprovable legacy history. Upgrade, restore and downgrade tests must use
+nonempty real histories; current-source reconstructions do not replace actual
+N-1/N-2 artifact qualification.
+
+Required evidence includes PostgreSQL 16/17 real Continue/Wait/Terminal writes;
+wait discharge and takeover without applying the reducer again; complete
+ACK-loss retry and changed-input rejection; every component rollback and slow
+fence expiry; reserved-event and partial-row rejection under the runtime LOGIN;
+dedicated owner/retention/default ACL and catalog tamper checks; raw canonical
+and complete semantic substitutions; unchanged legacy unavailable outcomes;
+maximum legal payloads; callback lock/pool probes; actual 8/16/32-edge linear
+coverage and seven-level replay on the default Linux thread stack. All final
+source gates, actual Driver dispatch and scoped child-Join/Unknown handling are
+still required before this increments any Supported or milestone status.
+
+### Ordinary trusted Root graph source (in development)
+
+The public graph driver also accepts a real trusted `admit_run` followed by
+Start and an initial Root checkpoint. Static shared-state composition expands
+into these Root nodes; it does not create an Agent admission or a scoped frame.
+This contract remains supported by the design. Agent-only schema-34 barriers
+cannot serve these Runs: absence of an admission is neither proof of ordinary
+creation nor authority to waive an Agent deadline.
+
+The ordinary increment uses an explicit `trusted_graph` V2 source, separately
+from the unchanged Agent V1 wire, schema, digest preimages and admission checks.
+The Store derives the source from positive original facts. Its immutable profile
+binds the actual first event, exact Pending revision ZERO to Active revision ONE
+Start projection and original Start time, admitted provenance/time, initial Root
+checkpoint and that checkpoint's owning event. Start and checkpoint may share
+an event or use separate existing commits. Every journal, graph pin, checkpoint,
+result and fence retains its complete owning proof. Later V2 barriers reuse and
+authenticate the same journal-bound profile after Wait/resume, rather than
+guessing the original Start time from the current lifecycle. Agent admission,
+submission, deadline, frame or child-ownership witnesses cannot be relabeled as
+this source. A missing or crossed genuine Agent witness remains corruption.
+
+Legacy ordinary creation is accepted only when its actual Start projection
+preimage can be proved. An authenticated legacy history with unavailable
+original inputs returns `GraphReplayHistoricalDispositionUnavailable`, grants
+no dispatch and is not quarantined. There is no source fallback based solely on
+missing Agent rows, no caller boolean that grants ordinary authority, and no
+metadata or checkpoint verification bypass. Before any fresh Root dispatch,
+`ClaimedRunRecovery::validate_graph_creating_source` checks the exact original
+session checkpoint and journal observation through one read-only, repeatable-read
+Store operation. It authenticates the canonical Run, checkpoint, complete owning
+history, graph pin and positive Agent or trusted creation source, and checks the
+original live fence and database clock again before returning unit. A later
+journal cannot replace the session's observation. The Driver calls this after
+its cancellation handoff branch and before node starts, frame operations or
+external work; only an inactive scoped stack enters this Root check. It produces
+no business write, callback, dispatch counter, portable proof or cached authority.
+All subsequent transactional starts and commits retain their original guards.
+
+Ordinary Terminal records retain the complete original `AgentResult` and the
+exact validation inputs obtained from the real trusted descriptor, complete
+request and resolved budget. Core's `AgentTerminalValidationInputs` contains the
+descriptor identity/input/output schemas, request and budget used by the
+original `AgentResult::validate_for` predicate; `validate_for_terminal_inputs`
+uses that same predicate and error order. This snapshot is neither an Agent
+admission nor an executable descriptor. The expected provenance comes from the
+authenticated original Run. Fresh schema callbacks and actual whole GraphPlan
+comparison still execute against deployed pinned implementations outside SQL
+locks. All original artifacts, completed time, finite budget dimensions and
+known/unpriced cost checks remain required. ACK recovery authenticates the
+whole committed record and original inputs before invoking fresh callbacks.
+
+The snapshot preserves existing component ceilings, including maximum-profile
+request input, and reserves 32 KiB for its bounded identity, schema and finite
+budget fields above the 2 MiB input ceiling. Its reader rejects unknown fields,
+positional arrays and over-limit nested input before materializing an unread
+tail. The ordinary bundle's separate byte ceiling must be derived from these
+complete inputs and origin anchors and exercised with maximum legal payloads;
+it must not reduce V1, checkpoint, wait, request or terminal result limits.
+
+Migration 35 deploys V2 recognition and source-aware guards without changing
+migration 34's checksum or backfilling guessed origins. Existing immutable
+evidence keys and the event/intent/compound binding remain indivisible. V1 keeps
+its real Agent admission and deadline predicates at every statement and final
+check. A positively authenticated ordinary source has no Agent deadline and
+retains the original live lease, epoch and final database-clock checks; a NULL
+deadline alone is insufficient. Deferred guards, final durable whole reread,
+current-wait-set verification, exact Run projection and original-fence checks
+remain mandatory for both sources. Reader catalog verification and dedicated
+runtime/owner/retention ACL profiles must match the actual schema-35 catalog.
+
+Deployment drains and closes schema-34 runtime pools before enabling V2 writes.
+An already connected V1-only reader cannot interpret V2 history safely. Exact
+schema verification rejects old new connections operationally; it is not a
+mixed-version rolling upgrade or a permission to quarantine V2 Runs. The new
+reader preserves V1 bytes and semantics. Downgrade cannot send V2 history to a
+V1-only runtime. No Supported status or prior qualification is inherited by
+this increment.
+
+Required evidence retains the original ordinary Root Continue/Wait/Terminal
+driver and flattened composition cases. It adds Continue through quantum/drain
+and a fresh drive; Wait partial resolution, fire/resume, cancellation/abandonment
+and old ACK recovery; complete Terminal lost-ACK validation; Agent/deadline
+masquerade rejection; origin and whole-bundle substitutions, missing rows and
+atomic rollback; PostgreSQL 16/17 nonempty 34-to-35 SQLx upgrades, exact catalog
+and non-superuser ACL drift; maximum payloads and early reader rejection; and
+all final-source default-stack, static and complete native gates. Terminal
+reader qualification does not imply a successful claimed application replay of
+an already Succeeded Run.
+
+## Detailed semantics
+
+### Scoped isolated ChildRun integration (in development)
+
+An isolated ChildRun owned by an ordinary leaf node keeps its separate Run
+identity and existing cancel-and-join policy. Its ownership key binds the exact
+frame namespace, checkpoint, ready-node input and declared slot. A Root
+constructor or validator never accepts a scoped checkpoint. Dedicated frame
+preparation validates the restored full frame checkpoint; storage additionally
+authenticates the active leaf, original journal and live physical Start. The
+framework caller itself cannot own a child slot.
+
+The admitted Root graph must retain its explicit ChildRun topology policy.
+That policy and the admitted Run budget remain the global limits: frames do
+not create another account, reset lifetime child counts or grant another depth
+allowance. The leaf's exact declaration pins the child Agent/graph/schema and
+may only narrow the Root topology caps. One account remains bound to the Root
+admission and includes both Root and scoped ownership keys. Complete priced
+DIRECT observations exclude child subtrees; reservation and settlement use the
+existing shared account and charge every subtree once. Descendant admission
+also retains the topology policy of an original scoped ownership edge when
+checking its ancestor path. New scoped keys use their existing namespace-bound
+digests; old Root keys and account bytes retain their canonical encoding.
+
+Fresh admission authenticates the full actual leaf before callbacks, invokes
+schemas outside transactions, then repeats the scope, original journal, Start,
+fence, account and declarations under the existing tree-coordinator and
+root-to-parent lock order. Historical ownership restoration authenticates the
+original frame checkpoint and entry lineage even after Return or closure. It
+cannot require that old frame to remain the current leaf. Lost acknowledgements
+recover the complete original ownership before fresh readiness/deadline checks.
+
+Join registration seals all children of that exact scoped activation and
+releases the parent Run lease atomically. Exclusive execution excludes only
+whole-proof authenticated suspended framework callers, including their actual
+old fences; every unfinished ordinary sibling still blocks registration.
+Publication, higher-fence logical recovery, pending-result consumption and
+once-only child accounting keep the original scoped owner and active-leaf wake
+gate. Cancellation/failure must drain every owned child across all scopes
+before Return or whole-stack closure. No Root readiness shortcut or timer wait
+may stand in for this contract.
+
+This is an implementation contract, not a Supported claim. Required native
+evidence includes scoped spawn/ACK, wrong leaf/namespace/declaration rejection,
+shared Root/frame capacity and topology, suspended-caller exclusivity, real
+child settlement and publication, higher-fence Join completion, returned-frame
+historical reads, cancellation/failure, Unknown-cost blocking and final-source
+PostgreSQL 16/17 qualification. These gates remain distinct from the source
+increment below.
+
+Each experimental Driver iteration binds the actual claimed Run, fence,
+journal, Root/leaf checkpoint and recovery plan. G1 admits higher-fence (F2)
+recovery of an already published, unconsumed scoped child Join. Before caller
+rebind or a fresh Start, that recovery requires its complete owning Join,
+original publication and binding, an Exclusive executor with typed ChildJoin
+support, and all sealed child terminal/output proofs validated through the
+existing `GraphChildJoin` reader. The normal
+callback returns Completed; the existing transaction commits the result and
+consumes that exact publication once. Scoped barriers, frame Return, Root
+continuation and repeated terminal handoff retain their original paths. Root
+terminal handoff leaves the Agent lifecycle Active until a separate terminal
+commit; it is not itself a committed Succeeded lifecycle.
+
+The G2 source path permits fresh frame entry only after every declared child
+owner in the target and reachable nested frames has an Exclusive executor with
+typed ChildJoin support. An unfinished scoped activation with no registered
+Join may enter its callback or re-enter under a higher fence after partial
+admission. The callback must reconstruct stable slots, requests, authority,
+resolved budgets and initial state; the same key/spawn digest recovers the
+original child and reservation despite fresh candidate IDs. This does not make
+arbitrary callback side effects exactly once. External effects retain their
+durable invocation and reconciliation protocol.
+
+An existing registration without publication is a real wait, never permission
+for another callback. Normal lease claims remain blocked until the existing reconciler has settled
+every sealed member and the existing publisher has published the complete
+binding. A callback
+given `context.child_join()` must read the publication and complete, rather
+than spawn or rejoin. Registration uses the existing complete Store transaction
+and immediately returns its ChildJoin handoff after releasing the parent lease;
+the released fence grants no subsequent dispatch. An already consumed Join
+cannot authorize an unfinished activation. Completed recovery nodes reuse the
+original result, and subsequent barrier, Return and Root handoff are not
+rejected merely because their graph contains a scoped ChildRun declaration.
+
+The fresh path retains the existing full Store ownership, current-leaf,
+declaration, fence, deadline, membership and shared budget checks. It adds no
+SQL migration, alternate coordinator or public frame getter. Final-source
+native evidence must separately exercise real child application execution,
+partial-spawn OS process loss and scoped admission/registration/consumption ACK
+faults; the earlier G1 CI does not qualify G2. General scoped cancellation
+remains outside this path; the cancellation-only F2 profile retains its
+separate bounded contract.
+
+For published-Join recovery, a sealed child already quarantined before drive
+is rejected during owning preflight, before caller rebind or any fresh Start. This is a preflight guarantee, not a
+promise to revoke in-flight I/O if quarantine is committed after the gate. Final
+result/Join consumption retains the existing atomic fresh publication and child
+quarantine guards; a reader handle grants no write authority. This source increment
+does not change the RFC's Draft or Supported status, qualify the full integration,
+or close R1. Actual native and CI evidence must be recorded separately.
+
+### Logical identity and scope
+
+The child namespace segment is the full 64-character lowercase SHA-256 encoding
+of `stateknot-graph-frame-namespace-v1\0 || JCS({ origin, slot })`, where `origin`
+is the complete caller `NodeActivation`. Append it to the caller namespace with
+one `/`, omitting the separator for the root. No process ID, wall clock, physical
+attempt or new random identifier enters that derivation. The same committed
+caller facts derive the same scope after takeover. A later parent checkpoint
+or a different slot derives a different scope.
+
+Namespace is data, never a path. Keep the existing 512-byte scalar ceiling and
+segment validation. Seven full-digest levels occupy 454 bytes; the eighth would
+require 519 bytes and is rejected before dispatch. Persist a Run-wide frame-start
+counter with an explicit admitted limit of at most 4,096. Intersect any more
+restrictive declaration limits; descendants cannot widen them. Physical retries
+of one existing frame do not allocate another frame or reset the counter.
+
+The immutable frame identity additionally binds the target graph reference.
+Changing that pin at the same namespace produces an identity conflict, not a
+new frame. Namespace alone does not authorize entry. The store verifies the
+call declaration, exact caller checkpoint/ready node, registry closure, policy,
+resolved bounds and current fence before committing admission.
+
+### Frame stack and state
+
+Only the current leaf may execute application nodes. Every suspended ancestor
+retains an immutable caller checkpoint and continuation. Nested-call graphs
+have parallelism one; ordinary parallelism inside a leaf remains limited by its
+graph, Run policy and existing driver limits. The active stack is root plus at
+most seven nested frames. Recovery loads compact ancestor heads and only the
+state needed for the active barrier/return within explicit replay limits.
+
+A frame copies the validated caller state once at admission. Child barriers
+change only child state. A verified child terminal output creates a parent
+pending result with the declared update schema and route. The parent reducer
+then applies that update at its own ordinary barrier. It never observes partial
+child updates through shared mutation.
+
+Local supersteps are scoped by namespace. All frames still share one ordered
+Run journal, one lease/fence, one accounting boundary and one lifecycle. Frame
+entry/return and node work consume a finite driver quantum; nested dispatch
+cannot bypass the caller's superstep/deadline/resource gates. Frame starts have
+a separate finite counter; ordinary node/model/Tool usage remains Run-wide and
+unknown costs retain their existing fail-closed treatment.
+
+### Admission, return and retries
+
+Frame admission atomically commits the caller framework-attempt proof, immutable
+frame identity, initial child checkpoint, active-leaf projection, counter update
+and the exact journal fact. An acknowledgment loss reloads that full fact. A
+repeated namespace with another identity, initial state, caller, target or intent
+is a conflict. A takeover reuses the existing frame instead of re-admitting it.
+
+A parent physical attempt from an expired fence cannot complete under a new
+fence. Recovery commits a new framework-only parent start when required by the
+existing attempt history, without re-executing application code or allocating
+a child. Its completion must follow that start in journal order.
+
+A child terminal barrier/checkpoint commits as an immutable proof while the
+caller remains suspended. Return atomically settles that exact proof with the
+parent framework-attempt completion and immutable parent pending result, and
+moves the active-leaf projection to the caller. A crash between these stages
+leaves a recoverable terminal child and grants no parent dispatch; recovery
+authenticates the saved terminal proof and commits or reloads the whole return. It verifies every output/schema,
+caller activation, declared route, parent base checkpoint, current frame head,
+physical start and fence. Required invocation/child-Join ownership must already
+be discharged. An acknowledgment loss returns the exact committed outcome;
+reconciliation cannot invent another output or replay a completed child.
+
+### Waiting, cancellation and terminal ownership
+
+A leaf wait commits its exact scoped checkpoint, frame wait state, bounded
+interrupt/timer bindings, Run wait projection and journal fact atomically.
+Resolution/firing requires existing resolver authorization and an exact persisted
+frame binding. Restart resumes the saved leaf and continuation; it cannot derive
+root activations for a child checkpoint. No sleeping task owns the suspended Run.
+
+### Recovering original absolute Wait conditions
+
+The experimental schema-36 implementation follows the contract below. See
+[original Wait recovery](../elapsed-graph-waits.md) for the Interface, migration
+and qualification scope. Existing Root V1/V2 and scoped V1/V2 facts retain their
+complete owning readers. The RFC remains Draft: source-level requirements and
+individual passing scenarios do not close combined CI, scoped child Join,
+complete fault/compatibility, capacity or production acceptance.
+
+`NodeWait::Timer` is an immutable absolute condition selected by the successful
+node, not a requirement that its due instant remain in the future until an
+unknown later barrier transaction. A legal Pending result can survive a process
+loss or ordinary work past that instant. Recovery must reuse that exact result
+and its schema-pinned Wait disposition under the new live fence; it must not
+execute the successful node again, rewrite its original `due_at`, backdate a
+registration, or repeatedly retry an impossible future-only registration.
+
+The shared Store module `graph_waits` owns complete original-condition
+inventory, transaction-clock classification, durable evidence and the actual
+Wait projection for both Root and scoped barriers. Its internal inputs come
+from the existing full owning preflight and locked result recheck, not from a
+caller-created clock, status flag or compact owner hint. Application callbacks
+remain outside transactions. For each original condition it authenticates the
+exact Pending result head/control, namespace and base checkpoint, original
+NodeWait bytes, source journal and candidate whole-barrier event. The complete
+inventory must equal the original Wait disposition and consume each original
+result once. Retaining an inventory grants no dispatch authority.
+
+At the actual candidate event's database `recorded_at = T`, every condition has
+exactly one outcome:
+
+- A Timer with `due_at > T` becomes the existing future-only DurableTimer,
+  preserving its original ID, kind and due instant. Its registration time is T.
+- A Timer with `due_at <= T`, including equality, becomes a distinct immutable
+  elapsed-condition fact. It proves that the original Timer was already due at
+  this actual whole-barrier event, with the complete original owner/spec/source
+  binding. It is neither a backdated DurableTimer nor a synthetic TimerFiring.
+- A still-valid Interrupt uses its original authenticated registration and
+  resolver policy. An expired Interrupt cannot be approved by the elapsed
+  Timer branch; it remains an explicit operational/business-policy rejection
+  with no quarantine or partial commit.
+
+The original complete Wait disposition, result intents and successor remain
+unchanged. If any registered condition still blocks, the transaction applies
+the existing Run Wait transition to those remaining markers, saves every
+original condition and elapsed proof, and releases the lease. The authenticated
+receipt reports **Waiting**. Partial authorized resolution or true firing uses
+the existing bound conditions; the last condition resumes the saved successor.
+
+If all original Timer conditions were already due, the same transaction saves
+the original Wait successor and result consumptions together with all elapsed
+proofs, keeps Active lifecycle/revision and the exact live lease, and reports
+**Ready**. There is no fabricated Waiting-to-firing transition and no replacement
+Continue disposition. Runtime must use the authenticated receipt, obtain a
+fresh claimed observation/plan before any next durable Start, and retain normal
+quantum/yield behavior. Ready itself is not a scheduling or lease-renewal grant.
+
+Classification is fixed by the committed event T. A Timer registered while
+future at T may become due during deferred constraint work; its original valid
+registration remains intact and the existing indexed Timer path observes it.
+After all component/deferred guards, the writer must recheck the original
+worker/epoch, saved expiry, deadline, complete accounting, journal and head
+under the same Run lock. Elapsed or Ready cannot rescue an expired authority.
+Any rejected component rolls back the event, checkpoint, inventory,
+consumptions, registrations and projection together.
+
+An exact lost-ACK retry authenticates the original whole receipt and inventory
+before taking a fresh clock or invoking callbacks. It returns that original
+Waiting/Ready outcome even after a higher fence, resolution or Return; it must
+not reclassify conditions against current time, repeat result consumption,
+reset queue/lifecycle, regress a returned scope or authorize another launch.
+
+New inventory storage and Root/scoped whole formats must be coordinated after
+the ordinary Root disposition owner freezes its actual migration and format.
+This RFC assigns no migration number or wire version in advance. New formats
+bind the original full plan/intention, condition inventory and actual lifecycle
+effect in the whole event/checksum/projection. Missing new-format inventory is
+corruption; valid old formats retain their complete owning readers and cannot
+be supplied with invented elapsed facts. Existing NodeWait/Pending-result and
+RunTimer/DurableTimer canonical bytes, pins and future-only guards are unchanged.
+Ordinary Timer lookup/firing cannot fabricate a registered Timer for an elapsed
+condition; a typed whole-condition reader authenticates its separate evidence.
+
+Inventory is bounded by the existing 64-condition ceiling and preserves the
+existing tenant-wide `(tenant, wait ID)` unique ownership rule across old
+registrations and new facts, with the exact Run retained in each binding. Same-origin future registration plus its inventory reference is the
+only valid paired representation. Duplicate, extra, crossed or replaced
+owners/specs/anchors must fail the bidirectional deferred component guards.
+Compact references avoid duplicating large Interrupt payloads; every owning
+reader still authenticates their complete original fields. Whole application
+capture/materialization/final transcripts, historical public readers, ACKs,
+roles/catalog, upgrades and restore consumers include the new evidence without
+raising existing JSON/transcript/stack bounds or replacing full owning proofs.
+
+Qualification requires real Agent-admitted Root and scoped public Store/Driver
+cases with the original 500ms due, a real 600ms delay and higher-fence recovery
+without reexecution. Both PostgreSQL versions must prove original canonical
+results/due, exact successor/consumption/accounting, journal/lifecycle and no
+quarantine; also qualify mixed future/elapsed/authorized Interrupt conditions,
+partial resolution then true Timer firing, equality, faults/deferred expiry,
+ID conflicts/corruption, lost ACK after higher fence/Return, actual Role
+consumers, nonempty old-schema upgrade and logical restore, full Native gates
+and default-stack nested recovery. The current reproducible operational
+registration failure is open until these durable writers/readers and Runtime
+outcomes pass; a longer fixture window or a documented limitation does not
+close it.
+
+Run cancellation and deadline failure apply to the entire stack and its owned
+invocations/child Runs. Failure/unknown-effect close keeps committed evidence,
+respects cancellation races and settles every frame before terminal projection.
+Run success requires root scope and no open frame or undischarged ownership.
+No legacy control-plane or Worker mutation may bypass these predicates.
+
+## Persistence and migration
+
+Use scoped checkpoint storage with an exact `(tenant, Run, namespace, local
+superstep)` uniqueness key. Same-namespace parent foreign keys must include the
+namespace. Activation-bearing node/model/Tool/result/Join rows must bind it to
+their exact base checkpoint. The legacy root pointer uses an explicit empty
+namespace foreign key and cannot point to a child row. Root and child queries
+must be distinct scoped operations; tenant/Run filtering alone is insufficient.
+
+Persist immutable frame identity/entry and settlement records, scoped checkpoint
+bindings, current frame heads, the active-leaf projection, finite start count
+and wait ownership. A child checkpoint binding hashes the complete frame
+identity and checkpoint head with `stateknot-graph-frame-checkpoint-v1\0`.
+Restore checks canonical bytes, redundant columns, every identity/digest,
+same-scope parent chain and exact journal anchor. A database namespace column
+without its authenticated frame binding is insufficient.
+
+Admission and return contain multiple durable facts. Their journal projection
+digest binds one closed compound intent, not whichever component was inserted
+last. Existing checkpoint, node-attempt and pending-result anchor verifiers must
+validate the complete recognized compound binding, exact event payload/schema,
+actor fence and every referenced component. Do not admit a second arbitrary
+projection digest or skip verification to reuse a legacy append API. Historical
+root events continue to require their original exact legacy binding.
+
+The migration must add scoped keys/foreign keys and Run frame projections
+without rewriting valid old canonical records. Old root fixtures retain their
+exact bytes and digests where their existing contract remains supported.
+Nested declarations change the compiled definition and generated schema:
+review and update affected input/output pins explicitly. A preserved old graph
+pin with new call behavior is an integrity failure.
+
+Rollout first validates the new schema and complete immutable registry closure,
+then admits nested Runs. Mixed executables must not execute or rewrite an
+unsupported nested descriptor or frame. Downgrade is refused while a nested Run
+or retained nested history requires the new reader; migration checks must prove
+that refusal on a nonempty database. Backup/restore includes frame projections,
+all bindings and the shared journal in the same consistent recovery point.
+Retention keeps reachable ancestors and ownership evidence until the ordinary
+Run retention policy permits removal. No independent frame deletion or repair
+of a damaged chain is authorized.
+
+These requirements do not manufacture historical releases. True N-1/N-2
+migration and rollback qualification remain tied to actual supported artifacts
+and the R6/R7 gates. The constructor prototype has no SQL migration and provides
+no database or compatibility qualification by itself.
+
+## Security and privacy
+
+The caller implementation is trusted and its nested closure is frozen by exact
+owner/name/version, definition and schema pins before dispatch. It cannot widen
+Run authority by selecting another owner, replacing a descriptor or changing
+child state/output schemas. Frame identity is data, not an authorization receipt.
+The same exact-tenant, grant, provider/Tool, audience and recovery authorization
+checks continue at every external operation.
+
+Every mutation checks the current unexpired Run fence and exact active leaf.
+Only a framework-owned declared call/return may touch its suspended parent
+attempt; application executors cannot submit that privileged transition.
+Checkpoint, result, invocation and wait bindings reject crossed tenant, Run,
+namespace, caller and target. Registry or chain drift is quarantined before
+application dispatch; it is not converted into a retry.
+
+Keep namespace/input/descriptor text bounded and closed. Raw duplicate and
+unknown-field rejection, map-only object readers, schema validation and
+canonical integrity checks apply to new records. Do not serialize live context,
+credential, execution or cancellation handles. Journals retain the existing
+secret-free payload policy; diagnostics report identities/digests and public
+failure categories rather than child state, input or credentials. A child frame
+inherits existing external-effect uncertainty rules and cannot blind-retry an
+unknown write.
+
+Run success, failure and cancellation predicates are checked inside the same
+transaction as their frame/ownership changes. A same-Run frame must not create a
+path around required child-Run cancellation/Join, unresolved model/Tool outcomes
+or direct-usage settlement. Trusted-server SQL credentials remain a separate
+existing deployment assumption; this RFC does not establish Worker-only SQL
+isolation or substitute for independent R7 security review.
+
+## Observability and operations
+
+Emit bounded admission, leaf-wait/resume, return, abort, pin-conflict and
+quarantine activity anchored to the authoritative journal. Protected inspection
+may report the active scope, compact stack heads, frame count/limit, wait kinds
+and blocking ownership. It must use existing tenant/resource authorization and
+finite response limits. Namespace/Run/node identities are not metric labels;
+use finite frame-depth and outcome classes.
+
+Graceful drain persists any committed result and releases ownership without
+resident suspended tasks. Process replacement reloads the exact leaf, registry
+closure and owned invocation/Join evidence before dispatch. Alert on repeated
+scope conflicts, unsupported pins, exhausted bounds, unresolved effects and
+failed settlement; operators may use existing separately authorized recovery
+procedures, never manual namespace edits or fabricated returns.
+
+RPO/RTO remain properties of the configured journal/database deployment. This
+RFC adds no measured capacity, synchronous-standby RPO or failover claim.
+Qualification must measure replay memory with bounded ancestor heads and an
+active leaf, and demonstrate process loss/restore of nonempty frame stacks.
+The real reference deployment and independent security/pilot gates remain open.
+
+## Compatibility
+
+The implementation must preserve the current Rust/MSRV and runtime-neutral Core
+boundary unless an explicit reviewed change is necessary. Prefer existing
+bounded types, SHA-256/JCS, transactional store and owned driver primitives.
+No new workspace crate, model SDK, generic workflow interpreter or in-memory
+production store is proposed.
+
+New declaration/frame types and modified generated graph schemas require the
+closed public inventory, complete enum alternatives, canonical fixtures and
+both serialization profiles to be reviewed. Existing valid root wires remain
+regression controls. New vectors are current-source evidence and receive their
+own versioned catalog entries; they do not replace history. No crate, tag or
+stable public API is published by merging a Draft or constructor prototype.
+
+## Alternatives considered
+
+- Remove root checks: namespace/checkpoint ownership and wait continuation would
+  remain unauthenticated, so execution could alias another logical node.
+- Flatten templates: useful for existing shared-state composition, but it changes
+  partial-update visibility and has no independent child checkpoint identity.
+- Use an isolated child Run: useful under RFC-0004, but it changes identity,
+  policy/accounting and Join semantics rather than implementing this contract.
+- Keep a child future in the parent executor: loses durable continuation and
+  retains process state for waits; takeover cannot prove completed work.
+- Put nested declarations only in the runtime registry: preserves the old graph
+  digest while changing execution, violating the immutable closure contract.
+- Recursive digest-pinned call cycles: require a separate template/recursion
+  contract rather than mutually dependent definition hashes. Reject them;
+  bounded loops and repeated calls to the same pinned child remain available.
+- Parallel frame stacks in this first profile: require a different Run readiness
+  and wait aggregation contract. Reject such callers explicitly; bounded
+  parallel work inside a leaf remains available.
+
+## Validation and rollout
+
+Before acceptance, collect source design/security/operations/compatibility review
+and an executable compiler/runtime/store prototype with these mandatory gates:
+
+1. Closed constructors/readers and independent models for scope, pins, exact
+   checkpoint/intent/record bytes, parent continuation and finite bounds. Reject
+   crossed tenants/Runs/owners, changed pins, raw duplicates/unknown fields,
+   positional objects, excessive state/depth/count and forged waits/returns.
+2. Compile/freeze a complete nested graph closure. Reject unregistered or changed
+   targets, cycles, conflicting owner/name/version pins, excessive closure depth/
+   snapshot bytes, wrong schemas, parallel callers, call-site executors, invalid routes
+   and any widening of resolved policy/limits before application calls.
+3. PostgreSQL 16/17: identical node IDs and local supersteps in multiple namespaces
+   never alias. Exact-scope foreign keys and root-pointer guards reject every
+   crossed row. Test complete idempotent admission/return and conflicting intents.
+4. Lost acknowledgment and process kill before/after each frame/attempt/journal/
+   checkpoint/projection/wait/settlement write. Recover under a newer fence with
+   zero accepted stale writes and zero repeated committed model/Tool/node effects.
+5. Wait in a nested leaf, replace the process, authorize resolution, restore the
+   exact saved leaf and return once to the original parent. Cover nested loops,
+   terminal output, cancellation/deadline races and unknown-effect failure close.
+6. Actual child-Run admission/Join/cancellation inside a frame: owning activation
+   remains exact, parent/frame return cannot escape live ownership, committed
+   Join publication is reused and every direct/unknown usage path stays charged
+   to the original Run accounting boundary.
+7. Nonempty migration, downgrade refusal, backup/restore, corruption and registry
+   drift quarantine. Prove old root canonical bytes remain exact and explicitly
+   qualify changed schema pins; retain real historical qualification separately.
+8. All required local workspace checks, immutable bounded ASan and 14 final-head
+   CI jobs, exact merge tree, bilingual reproducible adoption and release evidence.
+   Reduced fault/memory runs do not replace R6 reference-load measurements.
+
+The five current private constructor checks are the first evidence increment.
+They do not close G3, G4, child ownership, SQL recovery, publication or the overall
+R1–R7 milestones. Implementation and qualified support remain separate from RFC
+acceptance.
+
+## Unresolved questions
+
+- Fix the complete public declaration/driver surface using the executable
+  compiler/runtime/store prototype; do not expose speculative placeholder APIs.
+- Validate the single-leaf Run lifecycle, parent physical-attempt replacement and
+  compound journal binding against every legacy mutation and child-Join path.
+- Produce and review the concrete nonempty migration and rollback constraints.
+
+These questions materially affect the supported contract. This RFC cannot be
+accepted until they are resolved with actual code and evidence.
+
+## Registered Join handoff during whole-frame cancellation
+
+Draft implementation contract, 2026-10-18. This section extends the cancellation
+proposal; it does not enable scoped child Join in the Driver or qualify R1.
+
+After a child-owning ordinary node registers its exact Join, its worker lease is
+released. Its original physical start remains historical Executing evidence:
+registration is neither node completion nor successful Join consumption. If
+cancellation is requested after that handoff and every owned child is terminal
+and settled, whole-frame cancellation must be able to close the stack without
+re-executing the owner or inventing a successful result.
+
+The selected disposition preserves that original attempt and binds its stop to
+the immutable whole-frame cancellation proof. It does not insert an ordinary
+completion under a different worker's fence. Framework caller completions retain
+their existing separate meaning and exact original fences.
+
+A fresh close may select this disposition only when it authenticates all of the
+following within the owning transaction:
+
+1. The actual cancellation decision and revision, observed journal, admitted
+   Root, complete open-frame lineage and exact current leaf.
+2. The registered Join's immutable request, registration event, owning activation,
+   namespace, original physical attempt and original fence. That physical attempt
+   must still be the latest start for the activation, with no later start, ordinary
+   completion, logical success or Join consumption.
+3. The Join's exact complete ownership-key set and every corresponding terminal
+   and settlement fact, including the existing Root-bound account observation.
+   An unrelated Join, superseded physical owner, pending child or partial key set provides
+   no exception for unfinished ordinary work.
+4. Complete, priced DIRECT usage at the observed head, including work before the
+   handoff; the structural floor and account DIRECT observation remain lower
+   bounds. Settled delegated usage is added once. Unresolved Tool/Model outcomes,
+   unpriced usage and quarantine continue to reject closure.
+
+The disposition must be covered by the same atomic compound proof as the closure
+event, caller changes and stack return to Root. Cold owning readers must rebuild
+these bindings from persisted evidence. Merely excluding all Join owners from an
+unfinished-work query does not establish a disposition. No launch grant, output,
+node success or Join consumption is created by cancellation.
+
+The close remains trusted control-plane maintenance: an expired execution deadline
+or exhausted execution budget does not erase incurred usage or grant new work.
+Authentication and tenant/resource authorization remain external preconditions;
+digests and namespaces do not supply them. Any required persisted-format extension
+must be versioned explicitly, preserve existing v1 canonical bytes, and update the
+owning reader, SQL deferred guards, migration and exact catalog together. This
+contract does not prescribe an additional table.
+
+Recovery authenticates a complete committed original decision before evaluating a
+new candidate event, time, fence or DIRECT report. A rejected fresh decision leaves
+all business facts unchanged. A successful stop permits zero accepted subsequent
+ordinary worker writes under either the released original fence or a later fence.
+
+The first executable tracer uses the public Store admission, Join registration,
+child cancellation and settlement, whole-frame close and owning-read interfaces.
+It requires legal closure with nonzero measured fixture DIRECT while preserving
+the original ordinary attempt and exact accounting. Its scope ends at whole-frame
+closure and child-usage aggregation; Root ConfirmCancellation and Driver recovery
+require separate qualification. The pre-change implementation at
+`e372184fb1c80ffb9903ac0d9feb8380db51253e` rejected this immutable tracer as
+`InvalidRunFailureClose`; that original red and no-write evidence is retained.
+The implemented schema37 Store profile and its separately bounded qualification
+are described below; the red source does not gain the later source's results.
+
+Subsequent qualification must cover unrelated ordinary siblings, stale physical
+owners, crossed scope/request/keys, unsettled or unknown effects, late deferred
+guard rollback, committed-ACK loss and process replacement with cold owning reads.
+Spawn-before-registration and a new physical start after Join publication are
+separate cancellation cases; this narrow disposition gives them no qualification.
+The three scoped Driver guards stay until the complete supported Driver profile,
+these cancellation cases and the original R1 gates are independently satisfied.
+
+The initial Store increment accepts only registered, unpublished Joins.
+Published-but-unconsumed cancellation remains a separate required case
+before scoped Driver enablement.
+
+### Implemented Store v2 proof and schema37 adoption
+
+The selected experimental Store implementation keeps `close_graph_frames` and
+the existing whole owning-read interface. A fresh cancellation may retain exactly
+one unique latest ordinary owner of the actual current leaf, bound to its exact
+registered, unpublished Join. Every child in the complete Root-bound lifetime
+account must be terminal and settled, and the caller supplies complete priced Run-wide DIRECT
+at the observed head. Account DIRECT and the active structural floor remain lower
+bounds; settled delegated usage is added once. Unknown Tool/Model effects,
+unpriced or unsettled work, another unfinished ordinary owner, a superseded owner
+or a published Join still reject this disposition. Sealed failure close keeps
+the original strict unfinished-work checks.
+
+The private closure envelope and intent use version2 and retain all v1 common
+fields, adding one required `stopped_join` object with exactly three fields:
+
+| Field | Persisted binding |
+| --- | --- |
+| `owner` | The full original `NodeAttemptStartHead`, including activation/base/namespace, physical attempt, original fence and start journal/digest |
+| `request_digest` | The immutable complete `ChildRunJoinRequest` digest; owning reads restore its full exact key set |
+| `registration` | The full original `JournalHead`, authenticated against the worker registration event, its original fence and projection |
+
+The full stop object participates in JCS intent hashing under
+`stateknot-postgres-frame-closure-intent-v2\0`; compound hashing uses
+`stateknot-postgres-frame-closure-compound-v2\0`, the intent digest, actual event
+digest and ordered real framework completion digests. A no-stop close still
+writes the original v1 wire, canonical bytes, domains and schema without adding
+null/empty stop fields. The 4 MiB envelope, seven frames, 64 physical attempts,
+64 Join members and 256 lifetime account entries remain bounded as before.
+
+Fresh eligibility checks and writes share the original parent-locked transaction.
+After complete Join eligibility preflight, it reads the whole account and proves
+all entries settled, locks its terminal children in canonical account key order,
+then re-reads their owning records and the exact selected Join. It rejects fresh
+quarantine and does not acquire a tree lock after the parent. Registration and
+every parent settlement audit head must be no later than the saved observation.
+Cold reads use full historical Root/frame/owner/Join/account/terminal evidence;
+later operator quarantine does not invalidate an already committed original ACK.
+The ordinary owner remains Executing. No ordinary completion/result, Join
+publication/consumption or new lease/execution authority is created. Real
+framework caller completions keep their original fences and zero incremental
+application usage. Deferred guards and complete post-guard owning verification
+remain inside the same atomic event/closure/caller/stack/Run transaction.
+
+The new public interface
+`PostgresStore::graph_frame_join_stop_event_schema()` returns the exact v2
+`SchemaReference` and JSON Schema 2020-12 document. Its ID is
+`https://stknot.com/schemas/store/graph-frame-closure-event/2.0.0`, version2.0.0,
+and JCS document digest
+`sha256:aec9b96de74a4185f288e1425a59a7fb8d8eb4363378bbd5522b2500a261ea5f`.
+Its closed payload contains `version: 2`, `intent_digest` and `frame_count`.
+`PostgresStore::graph_frame_closure_event_schema()` retains its original v1
+reference/document and digest
+`sha256:453045e205133eb10d3cd58f0242ee2ebbd26dd78051b0888cd6a95f8a53e520`.
+Consumers of both histories register both documents through
+`JsonSchemaRegistryBuilder` and validate the actual payload using its exact
+persisted schema reference. They must not validate v2 under the v1 document or
+fetch a substitute schema at runtime.
+
+Migration37 replaces the complete closure guard and extends only its exact
+authenticated-owner exception. It adds no table, backfill or ACL privilege;
+schema36's 54-table inventory remains unchanged. Deploy with old workers drained,
+a verified pre-upgrade backup, normal checksum-pinned SQLx migration through37,
+the matching role profile and exact catalog, then matching reader/writer binaries.
+The test-only revert fixture refuses retained v2 and is not a downgrade path.
+Retained-v1 source-fixture migration/cold-read evidence is distinct from published
+N−1/N−2 compatibility, rolling upgrades and complete restore qualification.
+
+The [English qualification record](../qualification/experimental-scoped-join-owner-stop-2026-10-18.md),
+[Chinese record](../qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)
+and [machine-readable manifest](../qualification/experimental-scoped-join-owner-stop-2026-10-18.json)
+identify exact source/binary inputs, actual executed cases and remaining gates.
+The selected Store profile does not qualify Root ConfirmCancellation, scoped
+Driver Join, published-but-unconsumed cancellation, spawn-before-registration or
+later-resumed-owner cancellation. Complete negative/fault/compatibility/CI gates,
+RFC acceptance and R1 remain open; all three Driver guards remain unchanged.
+
+### Candidate Store v3 published/unconsumed Join stop and schema38 integration
+
+This increment defines the next separate cancellation profile. Root retained its
+actual public Loop RED: a complete priced child was published while the parent
+was Active, then RequestCancellation and F2 recovery reached the unpublished-only
+guard. This is a baseline observation, not GREEN or a later source qualification.
+The v1/v2 implementation and accepted historical qualification above keep their
+original meaning. At this authoring cut, new core, SQL, role, upgrade, fault,
+compatibility and CI validation remain pending actual Root execution. This section
+does not enable Supported scoped Driver or R1 operation.
+
+The private envelope and intent use version3. All common whole-close fields remain
+required; `stopped_join` contains exactly five fields:
+
+| Field | Complete owning evidence |
+| --- | --- |
+| `owner` | Original complete `NodeAttemptStartHead`, exact physical Start/fence/journal |
+| `request_digest` | Complete original registered request identity, never a subset of keys |
+| `registration` | Original full worker registration `JournalHead` and projection |
+| `binding` | Existing Core `ChildRunJoinBinding`: exactly `request`, ordered `terminals`, `digest` |
+| `publication` | Existing Core `ChildRunJoinHead`: `activation`, `request_digest`, `binding_digest`, original `journal_head` |
+
+The full stop object participates in JCS intent hashing under
+`stateknot-postgres-frame-closure-intent-v3\0`; compound hashing uses
+`stateknot-postgres-frame-closure-compound-v3\0`, the intent digest, actual event
+digest and ordered real framework completion digests. Existing no-stop v1 and
+registered-unpublished v2 retain their exact wire, schema, domains and canonical
+bytes. Absent publication is not encoded as null/empty v3 fields. Published but
+consumed, resumed/superseded owners and unregistered spawns remain outside this
+narrow exception.
+
+Fresh eligibility and owning recovery authenticate the same current leaf, unique
+latest ordinary owner, complete sealed membership in both directions, original
+registration and complete immutable published binding. Original head, binding
+bytes/checksum, ready projection, control-plane publication event and its existing
+`stateknot.child-join.v1` publication projection must agree. Registration precedes
+publication; publication and every settlement audit head are no later than the
+saved cancellation observation. Child terminal journal positions belong to their
+own Runs and are never compared to parent journal sequence numbers. A checksum or
+terminal subset cannot replace the complete owning evidence.
+
+The whole Root-bound lifetime account independently covers every admitted child,
+including other activations, with complete priced immutable settlements. Selected
+binding terminals do not replace that account. Complete durable parent DIRECT at
+the observed head excludes child subtrees; delegated cumulative usage is added
+once. Unknown Tool/Model work, unpriced/unsettled usage, fresh quarantine, another
+unfinished ordinary owner, pending ordinary result or consumption rejects. The
+parent lock, canonical terminal-child lock order, repeated owning reads, original
+full mutation ACK and deferred SQL guard remain. The original owner stays
+Executing; no ordinary completion/result, consumption or resume authority is
+fabricated. Framework caller completions retain their original fences and zero
+incremental application usage. Existing envelope, frame, physical-owner, member
+and lifetime-account bounds and business timeouts remain unchanged.
+
+`PostgresStore::graph_frame_published_join_stop_event_schema()` returns the exact
+JSON Schema 2020-12 document and reference at
+`https://stknot.com/schemas/store/graph-frame-closure-event/3.0.0`, version3.0.0.
+Its closed payload contains `version: 3`, `intent_digest` and `frame_count`.
+Consumers register actual v1/v2/v3 references/documents separately; no schema is
+fetched or substituted at runtime. Both prior public accessors and their accepted
+references remain unchanged.
+
+Migration38 replaces only `stateknot.guard_graph_frame_closure_complete()`. It
+adds no table, trigger, privilege or backfill. The strict 54-table role allowlist,
+column permissions, sole explicit runtime function privilege and denial of future
+grants remain. Deploy with old workers drained, verified backup, checksum-pinned
+SQLx migration, matching schema38 role apply/audit and matching reader/writer
+binary. Root must extract the new exact graph-frame catalog from a real migrated
+database before sealing it; authored SQL is not an observed catalog or receipt.
+
+The isolated source-reconstruction fixture first rejects retained v2/v3 proofs,
+restores the exact schema36 complete closure function, then removes ledger38/37
+and follows its unchanged schema36-to-35 and earlier reconstruction. No caller
+observes an intermediate schema37 state. It never
+relabels wire/digests and is not an operational downgrade, rolling upgrade or
+published N-1/N-2 compatibility claim. Historical qualification documents and
+frozen schema35 fixture bytes remain retained. True upgrade qualification must
+preserve existing v1/v2 facts/checksums and reject incomplete/corrupt v3 evidence.
+Role, upgrade, cold-read, COMMIT-loss/process replacement, full Native and CI
+results must identify their own actually executed source/artifacts before any
+later qualification.
+
+
+## 2026-10-21 D3 generic failure-close frozen DIRECT (local directed evidence)
+
+The [experimental record](../qualification/experimental-failure-close-real-tool-unknown-2026-10-21.md) binds a genuine generic RunFailureClose false rejection: original frozen DIRECT costs[] plus a settled childUSD11 produces a correct terminal total, but cumulative subtraction retainsUSD0 and fails exact equality with the original frozen representation. Actual paired RED420a34aa… plus owning DB observations and the unchanged Core unit establish this mechanism; the initial static-oracle and compile101 cuts are retained separately, not relabeled functional RED.
+
+Only the two private Store paths failure_closes.rs and child_runs.rs change. A verified existing failure-close record supplies its complete original DIRECT; the resolver authenticates full total==frozenDIRECT.checked_accumulate(actualsettleddelegated), rejects mismatch, then passes the original representation through existing frame validation and terminal account.observe_direct. Without a verified failure record, existing subtraction is retained. Core explicitzero semantics, public API, wire/SQL and migrations are unchanged. Ordinary frame/noFailure and Root-barrier instances remain open; this is not a general replacement of the rules above.
+
+The complete original Runtime test2730 is byte-identical RED-to-GREEN. Actual fixed972source dcf0a544…/563compiled88e00f75…/preparation6dc564b3… and Root523ca62e… bind PostgreSQL16/17 each1passed/228filtered, fourA/B profiles and116true checks. A first settles a knownchild beforeparentUnknown; B first persists parentfailure-close/childRequestCancellation beforebaseline. Current explicitconsent binds original invocation/schema/operation; denied requests/probes and complete original ACK replay preserve wholetenant/account, with no repeat businesssend. Complete parent DIRECT excludes childsubtrees; full childsettlement retains topology peaks while delegated cumulative_only usage is added once. Terminal DIRECT head may advance to the original ACK; complete expected observe_direct account, childentries/settlements/delegated and subsequent post-terminal no-write replay remain authenticated.
+
+This is localmacOSaarch64 withPGcontainers and same-process Store/Runtime reconstruction after explicitrelease/normalclaim, notOS-kill, independentcoldprocess, natural-expiry or arbitrary external-networkexactly-once. Detailedmarker evidence is separateexact--nocapture; fullNative defaultcapture proves execution through actualinventory/case exactlyonce/fullassertions and does not independently collect successmarkers. The sameGREEN source still has strictClippy101 for two new testhelpers101/105lines; extraction/CI6/docs combination must establish its own actualsource/compiled hashes, sixgates, full275/229 dualPG Native and publication/CI. Originaldefaultfeatures/stack, lease30/READY90/pair1800/Native30min remain. BroaderUnknown/effect/fault matrices, ordinaryframe/rootfallback, standaloneDriver interruption, R1/R6/R7/RFCacceptance, MCPstdio, Supported and release stayopen; previoushistoricalqualification is unchanged.
+
+
+## 2026-10-21 closed-frame frozen DIRECT (local directed evidence)
+
+The [D4 experimental record](../qualification/experimental-closed-frame-direct-costs-2026-10-21.md) adds the authenticated cancellation-closure/noFailureClose boundary: original DIRECT costs[] plus a real settled childUSD11 must preserve the original DIRECT representation. Three private Store paths now authenticate either frozen source, require full agreement when both exist, and verify complete total==originalDIRECT+actualdelegated; prior arithmetic priority, SQL/locks, owning checks and originalACK replay remain. Core's explicit-zero behavior, public API, schema/wire/migrations and original budgets do not change.
+
+Actual974source16863bd8…/563compiled48eccc16… has two D4 exact passes, two D3 regression passes (fourprofiles/116true) and ten existing-guard exact passes on PostgreSQL16.15/17.11: seven selected cases×two majors, not fullNative. Same-source strictClippy exited101 for three testhelpers; the wrong-total draft is unexecuted. The older D3source6baea426… retains four1800s watchdog full-suite failures without complete summaries. Final combined source/gates/fullNative/publicationCI remain pending; Root-barrier/wider fault matrices, RFC/R1/R6/R7, stdio and release stay open. Earlier text retains its historical source-specific scope.

@@ -1,0 +1,16 @@
+{
+  "runner_pid": 65314,
+  "pid": 66048,
+  "gate": "nightly",
+  "command": [
+    "cargo",
+    "+nightly-2026-10-07",
+    "check",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ],
+  "started_unix": 1792068848.874102,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base-nightly"
+}

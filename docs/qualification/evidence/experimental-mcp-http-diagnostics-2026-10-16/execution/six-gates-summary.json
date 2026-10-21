@@ -1,0 +1,159 @@
+{
+  "state": "passed",
+  "gate_count": 6,
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "receipts": [
+    {
+      "gate": "fmt",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "runner_pid": 55745,
+      "pid": 55755,
+      "start_unix": 1792119987.5449548,
+      "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+      "exit_code": 0,
+      "seconds": 2.7810401916503906,
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_before_after_exact": true,
+      "native_database_execution": false
+    },
+    {
+      "gate": "clippy",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "runner_pid": 55802,
+      "pid": 55812,
+      "start_unix": 1792119991.41268,
+      "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+      "exit_code": 0,
+      "seconds": 6.380017280578613,
+      "log_sha256": "14c5d1b425cbe5c4d530bb9daeff9bdf19b71d341c49356eef64e4e8a0b1e512",
+      "source_before_after_exact": true,
+      "native_database_execution": false
+    },
+    {
+      "gate": "workspace",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "runner_pid": 55875,
+      "pid": 55886,
+      "start_unix": 1792119998.869941,
+      "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+      "exit_code": 0,
+      "seconds": 326.44601917266846,
+      "log_sha256": "6619ef63088b3e0b3ed841fee47abcf91a85eb6877cdbe5b3a5ba3d10307fa20",
+      "source_before_after_exact": true,
+      "native_database_execution": false
+    },
+    {
+      "gate": "doctests",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked"
+      ],
+      "runner_pid": 58429,
+      "pid": 58441,
+      "start_unix": 1792120326.891179,
+      "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+      "exit_code": 0,
+      "seconds": 13.012295961380005,
+      "log_sha256": "43418d1c39e7dedd61b1c9748213b99c8c7cb51f4236a2753915aed7d1022fb2",
+      "source_before_after_exact": true,
+      "native_database_execution": false
+    },
+    {
+      "gate": "rustdoc",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ],
+      "runner_pid": 58581,
+      "pid": 58594,
+      "start_unix": 1792120341.342738,
+      "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+      "exit_code": 0,
+      "seconds": 40.97745203971863,
+      "log_sha256": "c5f85b0762b69c898b6c955380c03711f60256bc5292db8ca5e3a505e0c7f2d5",
+      "source_before_after_exact": true,
+      "native_database_execution": false
+    },
+    {
+      "gate": "nightly",
+      "command": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "runner_pid": 58806,
+      "pid": 58819,
+      "start_unix": 1792120383.908489,
+      "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+      "exit_code": 0,
+      "seconds": 50.256274938583374,
+      "log_sha256": "c803efea0b36f996f5747469167afdbd7d3223b99790439859a18024bf03ccd3",
+      "source_before_after_exact": true,
+      "native_database_execution": false
+    }
+  ],
+  "totals": {
+    "workspace": {
+      "suites": 99,
+      "passed": 2099,
+      "failed": 0,
+      "ignored": 6,
+      "filtered": 0
+    },
+    "doctests": {
+      "suites": 10,
+      "passed": 48,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0
+    }
+  },
+  "seconds": 448.0860710144043,
+  "original_profile_opt0_default_stack": true,
+  "database_conditionals_not_native_qualification": true
+}

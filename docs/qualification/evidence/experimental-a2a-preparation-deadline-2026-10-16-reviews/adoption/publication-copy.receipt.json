@@ -1,0 +1,15 @@
+{
+  "actual_copy_unix": 1792130729.613316,
+  "publication_plan_sha256": "2e093c0b46ced1cfdf9165eee505e8f5b21a98e1cdbb2aa5eeaac896131694cb",
+  "candidate_manifest_sha256": "a840127abc483db26f3f1af3fd653a7023b837545f1bae9c68fe8601a38cf8ff",
+  "paths": 186,
+  "main_compiled540_exact": true,
+  "public_evidence_paths_exact": true,
+  "source_docs_already_adopted_paths": 9,
+  "publication_Spec_receipt_sha256": "637edc2bb55d996fd46b0f7cbd8c1f8e05f220ec186041ad5dd2ddb031385b28",
+  "publication_Standards_receipt_sha256": "353d4385a5191e9d3f58feaaaa5a5f4b29a6fb55395cf8b48b5d8c3e9f224c06",
+  "docs_v3_Spec_receipt_sha256": "70567f6e46bde28de8deaeaceae2103b4aaac38244902a2e9d8534123b98c450",
+  "new_Rust_DB_CI_execution": false,
+  "whole_Git_or_compiler_read_closure": false,
+  "staged_or_committed": false
+}

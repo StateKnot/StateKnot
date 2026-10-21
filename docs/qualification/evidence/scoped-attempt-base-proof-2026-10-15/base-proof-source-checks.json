@@ -1,0 +1,17 @@
+{
+  "all_sql_literals_unchanged_in_original_order": true,
+  "sql_literal_count": 139,
+  "unchanged_whole_functions": [
+    "async fn verify_node_attempt_base_checkpoint(",
+    "async fn verify_pending_node_result_base_checkpoint(",
+    "async fn verify_pending_node_result_bindings(",
+    "async fn verify_node_attempt_anchor(",
+    "async fn load_node_attempt_record("
+  ],
+  "only_public_read_supplies_proof": true,
+  "old_mutation_postguard_pagination_and_root_take_none": true,
+  "private_nonclone_single_constructor_nonroot_after_full_base_and_anchor": true,
+  "current_source_matches_frozen_manifest": true,
+  "production_instrumentation_absent": true,
+  "note": "Source checks support auditability; they do not substitute for native acceptance or independent review."
+}

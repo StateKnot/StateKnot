@@ -1,0 +1,13 @@
+{
+  "v1_tcp": "exit101,5pass4fail; no compile in Cargo log,0.27s Cargo,old rlib marker absent",
+  "v2_tcp": "actual current source recompiles core/store/integrations/runtime16.23s;7pass2fixturefail",
+  "v3_tcp": "actual current source recompiles same4crates15.37s;9pass0fail",
+  "source_metadata_refresh": "only task-owned supplied source mtimes updated after older artifacts; byte manifests unchanged; no cache files copied/touched/deleted",
+  "cause": "shared target relative dep-info and source replicas prepared before old-red compilation allowed a fresh test invocation to reuse an old ordinary library; cfg(test) library independently rebuilt for new private unit file",
+  "not_claimed": [
+    "full compiler read closure",
+    "v1 product regression",
+    "all earlier qualification caches invalid",
+    "final v5 six gates green while running"
+  ]
+}

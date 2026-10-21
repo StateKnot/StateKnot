@@ -12,7 +12,514 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ## [Unreleased]
 
+- Contain panics while constructing or polling fresh generic `failure_evidence`
+  as the existing `GraphLifecycleEvidenceError::Unavailable`. The Agent Loop
+  retains bounded exact-fence lease cleanup while preserving the parent
+  checkpoint/journal, failed DIRECT usage and unsettled child's complete unpriced
+  usage. This does not infer Tool Unknown or external effects, change Supported
+  status, implement MCP stdio, or close R1; complete Native/CI qualification remains
+  separate. See the [Agent Loop guide](docs/durable-agent-loop.md#trusted-lifecycle-evidence)
+  and [Chinese guide](docs/durable-agent-loop.zh-CN.md#可信-lifecycle-evidence).
+
+- Bound experimental fresh Root cancellation evidence observation by host
+  shutdown and the existing node timeout. Shutdown releases the original claim;
+  timeout and provider panic retain closed evidence-error categories. Reuse the
+  same-fence cancellation guardian, drain renewal ACKs, and obtain a fresh
+  database clock before the original terminal transaction. Preserve complete
+  child/Unknown accounting and exact committed cancellation replay without
+  consulting the provider again. See the [Agent Loop guide](docs/durable-agent-loop.md#confirmed-cancellation)
+  and [Chinese guide](docs/durable-agent-loop.zh-CN.md#已确认-cancellation).
+  This source behavior makes no execution/CI qualification claim and does not
+  change Supported status or close R1.
+
+- Add the experimental G2 source path for fresh scoped child Join suspension.
+  Before frame entry, each reachable declared child owner requires typed Join
+  support and Exclusive scheduling. An activation without a registered Join may
+  enter or replay its stable admission sequence; existing slots recover their
+  original child identities and reservations. Registration retains the original
+  atomic membership/lease-release transaction and immediately hands off the
+  parent. Unpublished Joins stay blocked; published results use G1's guarded
+  consumption and Return. Document the executor's stable replay contract and
+  retain rejection before entry/rebind for unsupported bindings. Fresh child
+  execution, partial-spawn process loss and scoped ACK faults require their own
+  final-source PostgreSQL16/17 qualification; G1's earlier CI does not qualify
+  this increment. General scoped cancellation, R1 and Supported remain open.
+
+- Add experimental G1 higher-fence (F2) recovery of an already published,
+  unconsumed scoped child Join after complete owning preflight. The existing
+  callback completion, atomic result/Join consumption, scoped barriers and frame
+  Return continue to Root terminal handoff; the Agent lifecycle remains Active
+  until a separate terminal commit. Fresh scoped Join suspension, partial-spawn
+  recovery and general scoped cancellation remain outside this profile. A child
+  quarantined before drive is rejected before a fresh Start. This preflight does
+  not promise to revoke in-flight I/O if quarantine is committed after its gate;
+  final consumption retains the existing atomic fresh guards. See
+  [Draft RFC-0022](docs/rfcs/0022-namespaced-graph-frames.md#scoped-isolated-childrun-integration-in-development).
+  This increment does not change Supported status or close R1; qualification
+  remains separate.
+
+- Add an experimental cancellation-only F2 Driver handoff after complete owning
+  preflight of the actual current-leaf registered, unpublished Join. The cold
+  `DurableFrameCancellationFinalizer` then continues an original cancellation
+  from its durable whole-frame closure and authenticates the actual committed
+  ACK, preserving the original Root, failure and complete usage. Public Rust
+  `GraphFrameClosureCursor`/`GraphFrameClosurePage` provide bounded raw 16+1
+  discovery; `StoredGraphFrameClosure::root_checkpoint()` and
+  `original_cancellation_lifecycle()` borrow the already verified full record.
+  These readers grant no execution authority, add no wire format or SQL migration,
+  and do not themselves enable ordinary scoped Join dispatch.
+
+- Extend experimental owned Agent maintenance with the fifth `FrameCancellation`
+  job. `AgentMaintenanceBinding::new` now requires the existing exact standard
+  Agent cancellation schema alongside the original four schemas, and each
+  tenant/job receives a turn within 5N admitted quanta. Register the fifth schema
+  before construction and deploy the continuation with closed-frame scheduler
+  exclusion. See the [guide](docs/agent-maintenance.md) and
+  [Draft RFC-0014](docs/rfcs/0014-owned-agent-maintenance.md). Stable release,
+  complete qualification and measured production capacity remain separate;
+  this source increment does not close R1 or R6 or claim pending test/CI results.
+
+- Add an experimental Store cancellation proof for the unique latest current-leaf
+  ordinary owner of a registered, unpublished child Join, preserving its Executing
+  attempt and settled accounting without ordinary completion/result or Join
+  consumption. Migration37 installs the v2 closure guard without new tables or ACL
+  privileges; v1 bytes/domains and its schema getter remain unchanged. The new
+  `PostgresStore::graph_frame_join_stop_event_schema()` exposes the exact v2 schema.
+  See the [bounded Store record](docs/qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+  and [RFC-0022](docs/rfcs/0022-namespaced-graph-frames.md#registered-join-handoff-during-whole-frame-cancellation).
+  This Store-only record provides no Root confirmation or scoped Driver
+  qualification; complete CI and R1 remain gated.
+
 ### Added
+
+- Exercise scoped Wait COMMIT request/response loss with real writer termination,
+  authorized two-condition resolution and cold Driver continuation on PostgreSQL
+  16/17, preserving the original Wait facts after Return. See the bounded
+  [qualification record](docs/qualification/experimental-scoped-wait-process-faults-2026-10-16.md).
+
+- Exercise experimental frame Return COMMIT request/response loss through real
+  writer termination and cold higher-fence Driver recovery, and reject corrupted
+  suspended middle-frame components. Four targeted PostgreSQL16/17 runs pass;
+  the complete fault matrix and R1 remain open. See the
+  [qualification record](docs/qualification/experimental-frame-return-process-faults-2026-10-16.md).
+
+- Bound A2A initial body preparation, decoded authorization and shared
+  admission with one post-authentication request deadline across all eleven
+  operations. Preserve independent authentication/backend budgets, SDK push
+  body rejection compatibility and configured limits; release owned pending
+  work and request capacity on observed timeout or shutdown. See the
+  [server contract](docs/a2a-server.md#request-preparation-deadline).
+
+- Add experimental opt-in current decoded-policy rechecks before backend
+  polling and event handoff for A2A task subscriptions through
+  `A2aServerHttpOptions::with_subscription_authorization_rechecks()`. Preserve
+  the original principal, limits and default/non-subscription behavior; host
+  policy remains responsible for current authority. See the
+  [server guide](docs/a2a-server.md#experimental-current-policy-checks-for-task-subscriptions).
+
+- Add the numeric-corrected experimental explicit MCP host-bound state
+  profile for private cursors and real MRTR consumers on composite/direct services.
+  Bind parsed argument values with sorted serde_json encoding and strict operation
+  ADv3; cursorv2/envelope1 and unconfigured legacy semantics remain. Preserve host
+  authority, independent Public Resource contents and all original limits.
+  Fixed928-file source passes six local gates (2,098 workspace tests/6 original
+  ignored,48doctests); both PostgreSQL majors pass all15 serial ingress cases with one marker each. See the
+  [bounded record](docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.md).
+  Historical14-case greens are retained with the actual numeric counterexample,
+  which prevents adopting the old exact-argument candidate. Ubuntu/test-opt1 MCP,
+  complete CI, deployment/backend, stdio and RFC-0025/R1 remain open.
+
+- Expose immutable actual HTTP method, URL/query and bounded request body to
+  A2A bearer-token providers before authenticated unary, streaming and recovery
+  dispatch. Policy inspects the prepared request that is subsequently sent;
+  new URL/body Debug fields are redacted. Existing providers and Anonymous keep
+  their explicit behavior: request facts do not automatically authorize input.
+
+- Authenticate experimental ordinary Root Continue/Wait/Terminal dispositions
+  with the positive original Start and INITIAL checkpoint source. Schema 35
+  preserves Agent V1 facts and complete owning verification while journal-binding
+  trusted V2 creation and original terminal validation inputs. Fresh Root work
+  verifies the original recovery observation before dispatch; deployment drains
+  schema-34 pools before the reviewed migration and matching role profile.
+  Final composed Native, compatibility and production gates remain open.
+
+- Preserve complete trusted terminal validation inputs in the experimental
+  `AgentTerminalValidationInputs` snapshot. Restored results use the same
+  predicate and error order as `AgentResult::validate_for`, with provenance
+  authenticated by the original Run. Closed readers, schema pins and the shared
+  fuzz corpus cover the new snapshot. Ordinary Root persistence and final
+  combined qualification remain under Draft RFC-0022.
+
+- Drive authenticated nested graph frames with complete Entry/Rebind/barrier/
+  Return transactions and one shared durable-event quantum. Trusted providers
+  must supply exact-context complete DIRECT usage; the default is unavailable.
+  `FrameWaiting` releases ownership with the scoped Wait and resumes through
+  authorized resolution and a fresh claim. Draft RFC-0022, scoped child Join and
+  full combined fault, compatibility and production qualification remain open;
+  these APIs are not included in `0.1.0-alpha.1`.
+
+- Prepare frame-owned isolated children with the complete scoped checkpoint and
+  reserve them in the existing Root-bound Run account. Store admission and Join
+  authenticate the actual leaf, original ownership namespace and declared
+  policy under existing locks; scoped limits only narrow Root topology. Join
+  excludes only authenticated suspended framework callers and still rejects
+  unfinished ordinary siblings. Nested Driver and full fault qualification
+  remain gated by Draft RFC-0022.
+
+- Record Draft RFC-0024 for complete owned MCP stdio sessions: bounded catalog
+  admission and correlation, per-call send phases, cancellation and process-tree
+  cleanup, credential scope and durable uncertain effects. Platform owners,
+  final limits, compilable public types and external-consumer qualification
+  remain acceptance requirements; stdio is not implemented by this proposal.
+
+- Record Draft RFC-0025 for separate MCP/A2A external identity, local tenant
+  authority, destination-scoped credentials, input release and authorized
+  recovery. It records actual restricted Interfaces and effect mappings,
+  including missing A2A payload facts and MCP principal rebinding requirements;
+  it adds no verifier, durable task backend or production qualification.
+
+### Fixed
+
+- Preserve frozen DIRECT usage when completing a sealed failure-close or ordinary
+  whole-frame cancellation with priced settled children. A parent with no DIRECT
+  cost entries keeps that representation while charging a child's `USD` cost of
+  11 micro-units once; inconsistent terminal totals remain rejected. No public API
+  or database schema changes. Full Native/CI qualification, R1 closure and Supported
+  status remain separate.
+  修复已封存 failure-close 与普通 whole-frame cancellation 在子任务已结算计价时的
+  终态记账：父任务保留原 DIRECT 空成本集合，子任务的 `USD` 11 微单位成本仅累计一次，
+  继续拒绝不一致的终态总量。公共 API 与数据库 schema 不变；不授予完整 Native/CI
+  资格，不关闭 R1，也不改变 Supported 状态。
+
+- Make zero-delay A2A subscription test policies ready on their first poll,
+  preserving every configured delay and request budget. Add bounded failure
+  diagnostics and a regression control using real decoded HTTP requests.
+  See the [local qualification record](docs/qualification/experimental-a2a-subscription-zero-delay-fixture-2026-10-16.md);
+  cross-platform CI remains required.
+
+- Redact Debug/pretty Debug for the four unreleased MCP HTTP response types:
+  notifications, complete Tool results, remote errors and the outer call response.
+  Retain fixed kind/count/presence fields and the allowed error code; the outer
+  response never recursively formats continuation Tool metadata. Raw getters,
+  existing Clone/PartialEq, wire, MRTR resume, resource limits and effect/retry
+  mappings remain unchanged. Bare InputRequired values keep their existing
+  Debug scope. Fixed source passes six local gates (2,099 workspace tests,
+  6 original ignored, 48 doctests) and the eight real-TCP JSON/SSE branches;
+  see the [bounded record](docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.md).
+  Prior canary/lint failures stay recorded. Separately, this tree passes both
+  complete targeted Native suites (6 and 10 tests) on each PostgreSQL 16.15/17.11,
+  using freshly built default-feature binaries, serial/default-stack opt0 with
+  assertions and overflow checks. This does not transfer older PostgreSQL
+  evidence or qualify full Store/Runtime Native, full CI, deployment, stdio or R1.
+
+- Confirm test-owned container and volume removal before PITR drill success markers, retaining original budgets and best-effort failure cleanup. Subsequent composed-main original-opt0 local gates pass; see the [bounded record](docs/qualification/experimental-composed-request-facts-pitr-2026-10-15.md).
+
+- Recover experimental original absolute Graph Timer Waits after their due
+  instant without reexecuting successful nodes or inventing registrations or
+  firings. Schema 36 binds the complete original condition inventory and
+  `GraphWaitEffect::{Waiting, Ready}` to the whole Root/scoped transaction.
+  Root lifecycle/Agent Loop exposes `ReadyReleased` with its original receipt
+  and fence-release result; scoped Ready retains fresh planning and the shared
+  quantum. Existing wire formats and complete owning/post-guard authentication
+  remain intact. Final CI, full fault/compatibility and production acceptance
+  remain open under Draft RFC-0022.
+
+- Reuse a complete ordinary scoped base authentication within one experimental
+  public attempt read, retaining all physical completion, result and binding
+  checks. Mutations and post-guards keep the original full path. Erase the
+  complete private Start verifier Future to resolve full-workspace Runtime
+  trait recursion without raising compiler or resource limits. All static
+  gates and the four original local Native suites pass on each PostgreSQL
+  version: Store 252, Runtime 185, integrations 2 and example 1. Original
+  higher-fence, actual seven-level, serial and shared-quantum regressions pass
+  with default resources. Conditional worker/resource entries are distinguished
+  from actual scenarios; forced local backup/restore and same-tree Linux CI
+  PITR pass separately. Linux deep recovery, remaining CI/composition, capacity
+  and production qualification remain open. Same-head CI has 11 successful
+  jobs and two ordinary PostgreSQL jobs cancelled at the original 30-minute
+  limit: Store passes 252/252; Runtime has no terminal summary.
+
+- Keep complete experimental Driver startup, iteration, barrier and node phases,
+  Root admissions and checkpoints behind private heap boundaries. The original
+  two-level higher-fence and SQL-role regressions now pass on PostgreSQL 16/17
+  with default stacks and unchanged owning verification and resource limits.
+  That earlier layout-only candidate's seven-level recovery failed with lease
+  expiry; its evidence remains separate from the later base-proof candidate.
+  Full qualification remains open under Draft RFC-0022.
+
+- Retain experimental Driver recovery and node-execution mutation
+  acknowledgements across guardian failure, completion and cancellation.
+  Cooperative stop keeps committed quarantine, Start and renewal ACKs alive;
+  the original execution deadline stops application work while the Driver
+  drains an in-flight renewal. Full owning/live-fence checks remain required
+  before dispatch and result commits. Final combined qualification remains open.
+
+- Preserve an experimental Driver's original acknowledged Join, Wait, retry
+  or ownership-release outcome when its guardian subsequently fails. External
+  shutdown is distinguished from guardian cleanup, so guardian-only cancellation
+  still fails closed. Real executor calls select execution-renewal fault cuts;
+  the original lease durations and complete owning checks remain unchanged.
+
+- Bound experimental scoped DIRECT observation by the original admitted
+  deadline and node timeout, forwarding AgentLoop shutdown without treating
+  incomplete costs as zero. Scoped cancellation retains the original fence
+  while observing, then waits for complete validation/quarantine, renewal and
+  Closure acknowledgements. Guardian failure cannot discard a committed
+  mutation ACK. Cleanup may outlive admission without granting launch.
+
+- Keep complete child admission intents and ownership records on the heap during
+  Join and account recovery. Original role-profile recovery now fits the default
+  thread stack while retaining canonical bytes, complete ownership/terminal
+  checks, lock ordering and the existing public record interfaces.
+
+- Erase complete private MCP success and known-error reconciliation Futures at
+  concrete heap boundaries for strict pinned-nightly compilation, preserving
+  authorization, complete durable evidence, non-retryable effects, cancellation
+  and timeout.
+
+- Stop allocating MCP activation/request and A2A request IDs at their original
+  exclusive ceilings without overflow or ID reuse. Use an MSRV-compatible
+  checked compare-and-exchange loop in place of the deprecated atomic update API,
+  preserving each allocator's original memory ordering and wire range.
+
+- Attribute reused priced model/tool terminal evidence to its original physical
+  attempt, retaining exact bindings and cumulative lifecycle charges. Later
+  attempts do not charge that I/O again; unknown outcomes, reconciliation after
+  the current Start and unpriced evidence preserve their original usage rules.
+
+- Flush deferred Join-registration guards before rechecking the released
+  original worker epoch, lease expiry and Agent deadline. Expiry rolls back
+  registration, journal advancement and lease release together.
+
+- Flush deferred child-admission guards before the final original-worker,
+  parent/child deadline and reservation checks. A lease expiring during those
+  guards now rolls back fresh child admission and its complete parent/account
+  projections. Existing logical-key ACK recovery still precedes fresh checks.
+
+- Replay schema-34 complete Root graph dispositions with the deployed schemas
+  and reducer, binding the original lifecycle, projection, source journal and
+  full Wait facts across all three reads. Canonical Wait transcript rendering
+  is independent of connection time-zone, date-style and bytea output settings. Legacy
+  unprovable dispositions remain operational errors without quarantine.
+  A bounded Root-prefix proof is additive during qualification; all original
+  owning verifiers remain and total SQL complexity is still unqualified.
+
+- Decode `JournalPayload.data` and `AgentResult.output` with their constructors'
+  existing maximum JSON profile. Constructor-accepted large values now survive
+  recovery; complete journal envelopes, streaming bounds, result provenance and
+  accounting remain validated. The default standalone JSON profile is unchanged.
+
+- Freeze framework call sites without requiring an application node executor.
+  Conflicting caller executors and missing ordinary executors remain errors;
+  exact target pins, serial sibling calls and seven-level limits are preserved.
+
+- Erase complete private claimed-read, executor and delayed-retry Future types
+  at concrete heap boundaries. Strict pinned-nightly compilation retains full
+  owning proofs and the original execution, cancellation and deadline behavior.
+
+- Independently rederive Root delayed-retry decisions from complete actual
+  result and physical-attempt history under the Run lock, sharing the scoped
+  validator. Public pure-planner metadata can no longer fabricate a completed
+  sibling or replace a stored SafeAfter boundary to starve scheduler claims.
+  Released-gate ACK remains a read-only observation without launch authority or
+  proof of the erased original worker attempt and complete original plan.
+
+- Recheck the original live worker and database clock after delayed-retry Run
+  updates. A slow trigger past lease expiry rolls back; an inclusive due retry
+  restores the original lease, Root/leaf heads, journal and queue age before Due.
+
+- Type-erase the private claimed history observer, child reconciliation retry,
+  provider model execution and read-only tool wave futures. This removes the
+  pinned nightly Send autosolver overflow without changing public signatures,
+  retry/cancellation policy, durable effect ordering or compiler recursion limits.
+
+- Reject unexpected result namespaces at an exact checkpoint in the same paging
+  snapshot. Root and scoped reads report durable corruption; claimed recovery
+  uses the original live worker context to quarantine the Run.
+
+- Keep the immutable whole-return Wire intent on the heap during authenticated
+  scoped result paging. This preserves canonical JSON, digests and all proof
+  checks while avoiding a Serde visitor stack overflow after multiple returns.
+
+- Keep complete return/closure caller-anchor verification and ordinary node
+  completion restoration behind heap-backed Future boundaries. This prevents
+  closure completion witnesses from enlarging every ancestor replay Future
+  while retaining double-completion rejection and full seven-level recovery
+  checks on the default Linux thread stack.
+
+- Reject a Root checkpoint relabeled as a scoped model/tool activation before
+  frame lookup, preserving existing invalid-activation errors for new requests
+  and treating the same alias in stored invocation facts as corruption.
+
+- Keep complete scoped wait authentication in a separate heap-backed Future,
+  preserving whole terminal checks without inflating non-wait barrier replay
+  or overflowing the default thread stack in seven-level return recovery.
+
+- Require actual libFuzzer execution and RSS statistics before marking the
+  bounded ASan mutation profile complete; report the actual count and whether
+  the execution cap was reached, preserving the original execution/time ceilings.
+
+
+- Retain stable request identities while retrying conservatively classified
+  PostgreSQL transaction contention in the 24-way whole-frame return test;
+  production lock deadlines and once-only settlement assertions are preserved.
+
+
+- Execute source-schema downgrade fixtures as complete SQL batches, preserving
+  dollar-quoted PostgreSQL function bodies introduced by whole frame returns.
+  Store and Runtime upgrade regressions retain their actual nonempty facts and
+  exact migration checksums.
+
+- Draft RFC-0023 corrects `MediaType` input/default schemas to accept the
+  case-insensitive names already supported and normalized by the reader.
+  Nested input schema pins explicitly change; all output pins and canonical
+  wires stay exact. Immutable registries require new input schema/Tool versions
+  and matching retained executables. The real CI reproducer remains a permanent
+  regression. Source `41bf0b8c` passed all fourteen CI/dependency checks and
+  local/CI bounded ASan; RFC acceptance remains pending.
+
+### Added
+
+- Add the experimental active-frame delayed retry gate with whole current scope
+  proof and complete bounded physical-history replay under the Run lock. Reuse
+  the existing Root outcome/schema and original Core retry policy. Released-gate
+  ACK observes only epoch/head/journal/gate and grants no launch or proof of the
+  erased original worker attempt or complete original plan. Native PostgreSQL
+  seams cover concurrent ACK, exact corruption isolation, slow update clocks,
+  64 physical attempts, deadline cleanup and seven-level noninitial leaves.
+
+- Add experimental claimed Root/lifetime-frame application replay against exact
+  deployed graph schemas/reducers, complete scoped successors/dispositions and
+  returns, transaction-free callbacks, bounded direct-edge transcripts and
+  original journal/lifecycle/scheduler/wait/head/database-time fence revalidation.
+  A Copy Root report is measured in the same pass, without repeating callbacks.
+  Unprovable legacy Root
+  dispositions fail operationally without quarantine or a report. Nested Driver
+  integration and RFC-0022/R1 qualification remain required; see the bilingual
+  scoped graph application replay contract.
+
+- Add experimental claimed active-frame ready planning and bounded scoped result
+  pages. Whole leaf/ancestor proofs and exact namespace/head/journal observations
+  reuse completed work and complete physical history, then revalidate the current
+  leaf and database-time fence. Root reads keep their existing interface; actual
+  application replay and dedicated durable scoped starts remain required.
+
+- Add experimental whole-stack closure after an original cancellation or sealed
+  failure. Schema 33 atomically preserves every physical caller's old fence in
+  separate immutable control-plane completion facts, freezes complete priced
+  DIRECT usage, clears the stack/lease and retains the exact Root checkpoint.
+  Whole reads and lost acknowledgements authenticate the original decision;
+  terminal Run writes cannot bypass open frames or replace frozen usage.
+  Scoped Tool/Model mutations and history now authenticate their actual frame
+  activation and head, with a final live-fence check after deferred guards.
+  Unknown effects, in-flight ordinary/provider work and unsettled children
+  block cleanup. Exact catalog and the 52-table trusted-role profile advance
+  together. Nested Driver dispatch, the full fault matrix, immutable-source
+  qualification and RFC-0022 acceptance remain required.
+
+- Add an experimental, bounded Store snapshot of the complete active frame
+  ancestry, current leaf and physical caller; authenticate returned history and
+  whole wait terminal facts in the same transaction before Driver recovery.
+  Structural DIRECT floors grant no dispatch authority or complete accounting.
+
+- Experimental whole scoped waits atomically bind the leaf successor, complete
+  registrations and original lifecycle revision while releasing the Run lease.
+  Recovery authenticates complete resolution/firing/abandonment facts and resumes
+  the saved scope under a new fence. Schema 32 guards preserve exact prior
+  non-wait bytes, the 50-table ACL and fail-stop quarantine. Final qualification,
+  all-frame closure and nested Driver dispatch remain RFC-0022 gates.
+
+
+- Experimental whole frame returns authenticate an existing terminal proof and
+  atomically settle the current framework caller, exact parent result, stack
+  pop and reserved journal fact. Recovery precedes fresh callbacks/authority;
+  newer fences require an actual rebound caller. Shared DIRECT floors survive
+  returns and later mutations. Transaction-owned compact replay proofs avoid
+  repeated nested history traversal; default-stack seven-level cascades, races,
+  component rollback, expired leases, corruption and nonempty source upgrades
+  have native regressions. Schema 31 pins exact guards and 50-table ACLs.
+  Scoped waits, closure, actual nested driver and RFC-0022 acceptance remain
+  pending.
+
+- Add experimental atomic framework caller rebinding for RFC-0022. A newer
+  worker records a bounded physical attempt and whole immutable binding to the
+  existing child, preserving its activation/checkpoint and shared Run budget.
+  Schema 30 pins exact caller guards and runtime ACLs; ordinary framework
+  completion remains rejected pending whole return. RFC-0022 remains Draft.
+
+- Experimental scoped Store barriers atomically bind the exact complete result
+  set and consumptions, worker event, isolated successor, immutable witness and
+  active frame head. Planning uses actual pinned schema/reducer dependencies
+  outside the mutation transaction; locked commit repeats scope, fence, shared
+  usage and settled child accounting. Whole historical recovery authenticates
+  bounded forward lineage; acknowledgment loss grants no new launch. Schema 29
+  adds exact deferred guards and a 48-table trusted-server ACL profile. Scoped
+  continuation/terminal barriers are prerequisites for framework return;
+  scoped waits, rebinding, all-frame closure and actual driver remain pending.
+
+- Experimental Store transactions durably start ordinary nodes in an
+  authenticated active initial frame and commit their success/result or failure
+  atomically. Scoped historical reads verify the whole entry and checkpoint;
+  bounded attempt histories, same-fence in-flight recovery and takeover rules
+  are reused. SQL guards prevent suspended-scope completion or independent
+  framework-caller completion. Deferred guards execute before the final live
+  lease/deadline check. The stack CHECK catalog stays exact after logical
+  dump/restore. Framework rebinding/return, scoped waits, closure and
+  actual nested driver dispatch remain pending in Draft RFC-0022.
+
+- Experimental Rust-only compound frame-entry planning binds the complete event,
+  framework start and isolated checkpoint with one domain-separated projection.
+  Its versioned local event schema carries identity/digest data without copied
+  state. Ordinary append/checkpoint/node-start APIs reject the reserved compound
+  kind without partial facts. Migration 28 adds an experimental atomic Store
+  admission under the original Root admission, inherited ceilings, shared usage,
+  exact journal head and live fence. Authenticated reload precedes fresh schema
+  callbacks or lease checks; SQL guards reject incomplete scoped checkpoints,
+  substituted heads and legacy waits during a child. Scoped execution, return,
+  waits, process-loss qualification and nested dispatch remain pending in RFC-0022.
+
+- Draft RFC-0022 for same-Run namespaced graph frames, with five executable
+  private identity checks. It specifies isolated state, bounded scope, durable
+  parent continuation and compound journal bindings; runtime/persistence
+  implementation and acceptance remain pending. No execution support is added
+  by the Draft or constructor prototype.
+
+- Experimental Core frame identity, scoped checkpoint and compact head data for
+  RFC-0022. Strict readers reconstruct scope/checksums and reject owner/schema,
+  ancestry, tenant/Run/graph, journal-order and predecessor substitution. Scoped
+  ready activations use the existing digest domain; root wires and schema pins
+  remain exact. Three new reader/schema entries, current-source vectors and
+  independent checksum/chain models extend the inventory. Compiler, runtime and
+  SQL integration remain pending; these data types do not enable nested execution.
+
+- Experimental same-Run call declarations bind exact targets, return routes and
+  finite depth/frame-start limits into compiled graph definitions. Compiler and
+  startup closure checks reject incompatible schemas/owners, parallel callers,
+  stale or missing target pins, excessive closure depth/bytes and application
+  executors installed at framework call sites. Static composition cannot drop
+  isolated frame declarations. The `CompiledGraph` and `ChildRunAdmissionIntent`
+  input/output schema pins explicitly change; old root wires and definition pins
+  remain exact. Transactional runtime/SQL execution and acceptance remain pending.
+
+- Experimental scoped recovery and frame barrier planning preserve frame identity,
+  exact ready activations, canonical bounded result order and local lineage.
+  Existing attempt-history/fence classification and pinned schema/reducer/control
+  validation are reused. The legacy root barrier remains root-only. A separate
+  frame intent wire/schema, current-source constructors and independent checksum
+  model cover the new data boundary; transactional execution remains pending.
+
+- Experimental graph call entry/return preparation verifies exact declared
+  callers, target pins and checkpoint positions, copies isolated state, and
+  converts only a matching terminal child plan into the fixed-route parent
+  update. Existing data/wire/schema types are reused; no persistence or dispatch
+  authority is inferred from preparation.
+
+- PostgreSQL migration 27 scopes checkpoint positions and parent/activation/
+  ownership/Join references, fixes root pointers with generated empty namespaces,
+  and makes root queries/decoding explicit. Exact installed catalog checks cover
+  columns, constraints and indexes. Nonempty source-schema 26→27 and typed scope
+  FK checks run on PostgreSQL 16/17; compound frame transactions and nested
+  execution remain Draft. The trusted-server role profile now requires schema 28 and its exact 47-table allowlist.
 
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
@@ -85,6 +592,14 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   are rejected until atomic capacity reservation is available.
 
 ### Changed
+
+- Configure only the PostgreSQL CI test job for basic optimization while retaining
+  debug assertions, overflow checks, original fixtures and the 30-minute budget.
+  Record the bounded local experiment: six gates and both PostgreSQL versions'
+  original four Native suites plus separate authorization facts exit zero, while
+  the runner's final missing-cache-tag guard remains a preserved failure. The
+  original full CI default-feature profile remains pending; no production
+  capacity or Supported claim follows. See the [execution record](docs/qualification/experimental-postgres-test-profile-2026-10-15.md).
 
 - `InProcessAgent::run` now performs its post-admission and polling reads through
   the caller-retained submission key, with an exact Run-ID consistency check.

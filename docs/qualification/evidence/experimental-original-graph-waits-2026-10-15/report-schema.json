@@ -1,0 +1,85 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "type": "object",
+  "required": [
+    "format",
+    "status",
+    "date",
+    "source",
+    "static",
+    "build",
+    "native",
+    "history",
+    "released_alpha1",
+    "CI",
+    "whitespace",
+    "claim_limits",
+    "evidence",
+    "verifier",
+    "resource_cleanup",
+    "native_execution_gates_passed",
+    "resource_cleanup_qualified",
+    "full_resource_lifecycle_qualified",
+    "overall_qualification"
+  ],
+  "properties": {
+    "format": {
+      "const": 1
+    },
+    "status": {
+      "const": "exact_execution_passed_resource_cleanup_open"
+    },
+    "date": {
+      "type": "string"
+    },
+    "source": {
+      "type": "object"
+    },
+    "static": {
+      "type": "object"
+    },
+    "build": {
+      "type": "object"
+    },
+    "native": {
+      "type": "object"
+    },
+    "history": {
+      "type": "object"
+    },
+    "released_alpha1": {
+      "type": "object"
+    },
+    "CI": {
+      "type": "object"
+    },
+    "whitespace": {
+      "type": "object"
+    },
+    "claim_limits": {
+      "type": "object"
+    },
+    "evidence": {
+      "type": "string"
+    },
+    "verifier": {
+      "type": "string"
+    },
+    "resource_cleanup": {
+      "type": "object"
+    },
+    "native_execution_gates_passed": {
+      "type": "boolean"
+    },
+    "resource_cleanup_qualified": {
+      "type": "boolean"
+    },
+    "full_resource_lifecycle_qualified": {
+      "type": "boolean"
+    },
+    "overall_qualification": {
+      "type": "boolean"
+    }
+  },
+  "additionalProperties": false
+}

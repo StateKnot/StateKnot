@@ -11,10 +11,7 @@
 use std::{
     collections::HashSet,
     fmt,
-    sync::{
-        Arc,
-        atomic::{AtomicU64, Ordering},
-    },
+    sync::{Arc, atomic::AtomicU64},
     time::Duration,
 };
 
@@ -25,6 +22,13 @@ use reqwest::{StatusCode, header};
 use serde_json::{Map, Value, json};
 use stateknot_core::BoxFuture;
 use thiserror::Error;
+
+mod protocol;
+
+use protocol::{
+    ParsedMessage, allocate_client_binding_id, allocate_monotonic_id, classify_rpc_message,
+    parse_cache_policy, parse_discovery, request_metadata, validate_complete_result_type,
+};
 
 use crate::{
     McpAuthorization, McpAuthorizationError, ProviderEndpoint, ProviderEndpointError,
@@ -43,25 +47,17 @@ const MCP_HEADER_PROTOCOL_VERSION: &str = "mcp-protocol-version";
 const MCP_HEADER_METHOD: &str = "mcp-method";
 const MCP_HEADER_NAME: &str = "mcp-name";
 const MCP_HEADER_PARAMETER_PREFIX: &str = "mcp-param-";
-const MCP_META_PROTOCOL_VERSION: &str = "io.modelcontextprotocol/protocolVersion";
-const MCP_META_CLIENT_INFO: &str = "io.modelcontextprotocol/clientInfo";
-const MCP_META_CLIENT_CAPABILITIES: &str = "io.modelcontextprotocol/clientCapabilities";
 const MCP_META_SERVER_INFO: &str = "io.modelcontextprotocol/serverInfo";
 const BASE64_PREFIX: &str = "=?base64?";
 const BASE64_SUFFIX: &str = "?=";
 const MAX_IDENTITY_COMPONENT_BYTES: usize = 256;
-const MAX_PROTOCOL_VERSIONS: usize = 64;
-const MAX_PROTOCOL_VERSION_BYTES: usize = 128;
 const MAX_TOOL_NAME_BYTES: usize = 1024;
 const MAX_CURSOR_BYTES: usize = 4096;
-const MAX_REMOTE_ERROR_MESSAGE_BYTES: usize = 4096;
 const MAX_WWW_AUTHENTICATE_VALUES: usize = 16;
 const MAX_WWW_AUTHENTICATE_VALUE_BYTES: usize = 16 * 1024;
 const MAX_WWW_AUTHENTICATE_TOTAL_BYTES: usize = 64 * 1024;
 const MEBIBYTE: usize = 1024 * 1024;
 const MCP_SKILL_WIRE_RESPONSE_BYTES: usize = 104 * MEBIBYTE;
-
-static NEXT_CLIENT_BINDING_ID: AtomicU64 = AtomicU64::new(1);
 
 /// Validated identity sent in every stateless MCP request.
 #[derive(Clone, Eq, PartialEq)]
@@ -740,7 +736,9 @@ impl McpToolCatalog {
 }
 
 /// One request-scoped server notification received before an SSE final response.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// `Debug` reports parameter presence without the untrusted method or payload.
+#[derive(Clone, PartialEq)]
 pub struct McpNotification {
     method: Box<str>,
     params: Option<Value>,
@@ -767,9 +765,21 @@ impl McpNotification {
     }
 }
 
+impl fmt::Debug for McpNotification {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpNotification")
+            .field("has_params", &self.params.is_some())
+            .finish_non_exhaustive()
+    }
+}
+
 /// A complete Tool result. Tool-level failures remain results through
 /// [`Self::is_error`] so an Agent can inspect and recover from them.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// `Debug` reports only content count, structured-output presence and `is_error`;
+/// no content or raw result values are formatted.
+#[derive(Clone, PartialEq)]
 pub struct McpCompleteToolResult {
     content: Vec<Value>,
     structured_content: Option<Value>,
@@ -800,6 +810,17 @@ impl McpCompleteToolResult {
     #[must_use]
     pub const fn raw(&self) -> &Value {
         &self.raw
+    }
+}
+
+impl fmt::Debug for McpCompleteToolResult {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpCompleteToolResult")
+            .field("content_count", &self.content.len())
+            .field("has_structured_content", &self.structured_content.is_some())
+            .field("is_error", &self.is_error)
+            .finish_non_exhaustive()
     }
 }
 
@@ -872,7 +893,10 @@ pub enum McpToolCall {
 }
 
 /// One Tool-call round plus any request-scoped SSE notifications.
-#[derive(Debug)]
+///
+/// `Debug` reports only the outcome kind and notification count, without
+/// formatting the nested result, continuation, Tool metadata or notifications.
+/// This does not change the separate `Debug` contract of `McpInputRequired`.
 pub struct McpToolCallResponse {
     outcome: McpToolCall,
     notifications: Vec<McpNotification>,
@@ -898,8 +922,25 @@ impl McpToolCallResponse {
     }
 }
 
+impl fmt::Debug for McpToolCallResponse {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let outcome = match &self.outcome {
+            McpToolCall::Complete(_) => "complete",
+            McpToolCall::InputRequired(_) => "input_required",
+        };
+        formatter
+            .debug_struct("McpToolCallResponse")
+            .field("outcome", &outcome)
+            .field("notification_count", &self.notifications.len())
+            .finish_non_exhaustive()
+    }
+}
+
 /// A bounded JSON-RPC error returned by the MCP server.
-#[derive(Clone, Debug, PartialEq)]
+///
+/// `Debug` retains only its code and data presence; message and data remain
+/// available through explicit untrusted accessors.
+#[derive(Clone, PartialEq)]
 pub struct McpRemoteError {
     code: i32,
     message: Box<str>,
@@ -923,6 +964,16 @@ impl McpRemoteError {
     #[must_use]
     pub const fn data(&self) -> Option<&Value> {
         self.data.as_ref()
+    }
+}
+
+impl fmt::Debug for McpRemoteError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpRemoteError")
+            .field("code", &self.code)
+            .field("has_data", &self.data.is_some())
+            .finish_non_exhaustive()
     }
 }
 
@@ -1075,7 +1126,7 @@ impl McpClient {
         let endpoint = endpoint.join("")?;
         let http =
             build_client(options.transport()).map_err(|_| StatelessMcpClientError::HttpClient)?;
-        let binding_id = allocate_monotonic_id(&NEXT_CLIENT_BINDING_ID)
+        let binding_id = allocate_client_binding_id()
             .ok_or(StatelessMcpClientError::ClientBindingIdExhausted)?;
         let client = Self {
             inner: Arc::new(McpClientInner {
@@ -1343,7 +1394,13 @@ impl McpClient {
         let name = authorization_request.name();
         let id = allocate_monotonic_id(&self.inner.next_request_id)
             .ok_or(StatelessMcpClientError::RequestIdExhausted)?;
-        params.insert("_meta".to_owned(), Value::Object(self.request_metadata()));
+        params.insert(
+            "_meta".to_owned(),
+            Value::Object(request_metadata(
+                &self.inner.identity,
+                self.inner.options.skills_enabled(),
+            )),
+        );
         let body = serde_json::to_vec(&json!({
             "jsonrpc": "2.0",
             "id": id,
@@ -1399,32 +1456,6 @@ impl McpClient {
         };
         drop(permit);
         output
-    }
-
-    fn request_metadata(&self) -> Map<String, Value> {
-        let mut metadata = Map::new();
-        metadata.insert(
-            MCP_META_PROTOCOL_VERSION.to_owned(),
-            Value::String(MCP_PROTOCOL_VERSION_2026_07_28.to_owned()),
-        );
-        metadata.insert(
-            MCP_META_CLIENT_INFO.to_owned(),
-            json!({
-                "name": self.inner.identity.name(),
-                "version": self.inner.identity.version(),
-            }),
-        );
-        let client_capabilities = if self.inner.options.skills_enabled() {
-            json!({
-                "extensions": {
-                    (crate::MCP_SKILLS_EXTENSION_ID): {}
-                }
-            })
-        } else {
-            Value::Object(Map::new())
-        };
-        metadata.insert(MCP_META_CLIENT_CAPABILITIES.to_owned(), client_capabilities);
-        metadata
     }
 
     pub(crate) async fn send_extension_rpc(
@@ -1613,20 +1644,6 @@ fn authentication_scheme(value: &str) -> Option<&str> {
     }
 }
 
-enum ParsedMessage {
-    Result(Value),
-    Remote(McpRemoteError),
-    Notification(McpNotification),
-}
-
-fn allocate_monotonic_id(counter: &AtomicU64) -> Option<u64> {
-    counter
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-            value.checked_add(1)
-        })
-        .ok()
-}
-
 async fn wait_until<T, F>(
     deadline: tokio::time::Instant,
     future: F,
@@ -1701,58 +1718,6 @@ fn consume_sse_events(
     Ok(None)
 }
 
-fn classify_rpc_message(
-    value: Value,
-    expected_id: u64,
-) -> Result<ParsedMessage, StatelessMcpClientError> {
-    let object = value.as_object().ok_or(StatelessMcpClientError::Protocol)?;
-    if object.get("jsonrpc").and_then(Value::as_str) != Some("2.0") {
-        return Err(StatelessMcpClientError::Protocol);
-    }
-    if let Some(method) = object.get("method").and_then(Value::as_str) {
-        if object.contains_key("id")
-            || object.contains_key("result")
-            || object.contains_key("error")
-        {
-            return Err(StatelessMcpClientError::Protocol);
-        }
-        return Ok(ParsedMessage::Notification(McpNotification {
-            method: method.to_owned().into_boxed_str(),
-            params: object.get("params").cloned(),
-            raw: value,
-        }));
-    }
-    if object.get("id") != Some(&Value::from(expected_id)) {
-        return Err(StatelessMcpClientError::Protocol);
-    }
-    match (object.get("result"), object.get("error")) {
-        (Some(result), None) => Ok(ParsedMessage::Result(result.clone())),
-        (None, Some(error)) => Ok(ParsedMessage::Remote(parse_remote_error(error)?)),
-        _ => Err(StatelessMcpClientError::Protocol),
-    }
-}
-
-fn parse_remote_error(value: &Value) -> Result<McpRemoteError, StatelessMcpClientError> {
-    let object = value.as_object().ok_or(StatelessMcpClientError::Protocol)?;
-    let code = object
-        .get("code")
-        .and_then(Value::as_i64)
-        .and_then(|value| i32::try_from(value).ok())
-        .ok_or(StatelessMcpClientError::Protocol)?;
-    let message = object
-        .get("message")
-        .and_then(Value::as_str)
-        .ok_or(StatelessMcpClientError::Protocol)?;
-    if message.len() > MAX_REMOTE_ERROR_MESSAGE_BYTES {
-        return Err(StatelessMcpClientError::Protocol);
-    }
-    Ok(McpRemoteError {
-        code,
-        message: message.to_owned().into_boxed_str(),
-        data: object.get("data").cloned(),
-    })
-}
-
 fn remote_supports_current_version(error: &McpRemoteError) -> bool {
     error
         .data()
@@ -1764,108 +1729,6 @@ fn remote_supports_current_version(error: &McpRemoteError) -> bool {
                 .iter()
                 .any(|version| version.as_str() == Some(MCP_PROTOCOL_VERSION_2026_07_28))
         })
-}
-
-fn parse_discovery(value: &Value) -> Result<McpClientServer, StatelessMcpClientError> {
-    let object = value
-        .as_object()
-        .ok_or(StatelessMcpClientError::InvalidDiscovery)?;
-    validate_complete_result_type(object, StatelessMcpClientError::InvalidDiscovery)?;
-    let versions = object
-        .get("supportedVersions")
-        .and_then(Value::as_array)
-        .ok_or(StatelessMcpClientError::InvalidDiscovery)?;
-    if versions.is_empty() || versions.len() > MAX_PROTOCOL_VERSIONS {
-        return Err(StatelessMcpClientError::InvalidDiscovery);
-    }
-    let mut supported_versions = Vec::with_capacity(versions.len());
-    let mut unique_versions = HashSet::new();
-    for version in versions {
-        let version = version
-            .as_str()
-            .filter(|value| !value.is_empty() && value.len() <= MAX_PROTOCOL_VERSION_BYTES)
-            .ok_or(StatelessMcpClientError::InvalidDiscovery)?;
-        if !unique_versions.insert(version) {
-            return Err(StatelessMcpClientError::InvalidDiscovery);
-        }
-        supported_versions.push(version.to_owned().into_boxed_str());
-    }
-    let capabilities = object
-        .get("capabilities")
-        .and_then(Value::as_object)
-        .cloned()
-        .ok_or(StatelessMcpClientError::InvalidDiscovery)?;
-    let server_info = object
-        .get("_meta")
-        .and_then(Value::as_object)
-        .and_then(|metadata| metadata.get(MCP_META_SERVER_INFO))
-        .or_else(|| object.get("serverInfo"));
-    let (name, version) = match server_info {
-        Some(value) => {
-            let implementation = value
-                .as_object()
-                .ok_or(StatelessMcpClientError::InvalidDiscovery)?;
-            let name =
-                bounded_optional_string(implementation.get("name"), MAX_IDENTITY_COMPONENT_BYTES)
-                    .map_err(|_| StatelessMcpClientError::InvalidDiscovery)?;
-            let version = bounded_optional_string(
-                implementation.get("version"),
-                MAX_IDENTITY_COMPONENT_BYTES,
-            )
-            .map_err(|_| StatelessMcpClientError::InvalidDiscovery)?;
-            (name, version)
-        }
-        None => (None, None),
-    };
-    let instructions = bounded_optional_string(object.get("instructions"), 64 * 1024)
-        .map_err(|_| StatelessMcpClientError::InvalidDiscovery)?;
-    Ok(McpClientServer {
-        supported_versions: supported_versions.into(),
-        capabilities: Arc::new(capabilities),
-        name,
-        version,
-        instructions,
-        cache: parse_cache_policy(object).map_err(|_| StatelessMcpClientError::InvalidDiscovery)?,
-    })
-}
-
-fn bounded_optional_string(
-    value: Option<&Value>,
-    maximum_bytes: usize,
-) -> Result<Option<Box<str>>, StatelessMcpClientError> {
-    let Some(value) = value else {
-        return Ok(None);
-    };
-    let value = value
-        .as_str()
-        .filter(|text| text.len() <= maximum_bytes)
-        .ok_or(StatelessMcpClientError::Protocol)?;
-    Ok(Some(value.to_owned().into_boxed_str()))
-}
-
-fn parse_cache_policy(
-    object: &Map<String, Value>,
-) -> Result<McpCachePolicy, StatelessMcpClientError> {
-    let ttl_ms = match object.get("ttlMs") {
-        Some(value) => Some(value.as_u64().ok_or(StatelessMcpClientError::Protocol)?),
-        None => None,
-    };
-    let scope = bounded_optional_string(object.get("cacheScope"), 64)?;
-    Ok(McpCachePolicy { ttl_ms, scope })
-}
-
-fn validate_complete_result_type(
-    object: &Map<String, Value>,
-    error: StatelessMcpClientError,
-) -> Result<(), StatelessMcpClientError> {
-    if object
-        .get("resultType")
-        .is_some_and(|value| value.as_str() != Some("complete"))
-    {
-        Err(error)
-    } else {
-        Ok(())
-    }
 }
 
 fn parse_tool_page(value: &Value, binding_id: u64) -> Result<McpToolPage, StatelessMcpClientError> {
@@ -2221,9 +2084,17 @@ fn parse_tool_result(
 
 #[cfg(test)]
 mod tests {
-    use std::collections::HashMap;
+    use std::{collections::HashMap, sync::atomic::Ordering};
 
     use super::*;
+
+    #[test]
+    fn request_id_exhaustion_fails_closed_without_wrapping() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+        assert_eq!(allocate_monotonic_id(&counter), Some(u64::MAX - 1));
+        assert_eq!(allocate_monotonic_id(&counter), None);
+        assert_eq!(counter.load(Ordering::Relaxed), u64::MAX);
+    }
 
     #[test]
     fn identity_and_options_are_bounded() {

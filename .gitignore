@@ -30,3 +30,6 @@ coverage/
 /fuzz/corpus/
 /fuzz/artifacts/
 /fuzz/results/
+
+# Local source snapshots, build logs, and validation receipts.
+/.local-verification/

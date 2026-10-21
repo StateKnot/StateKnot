@@ -1,0 +1,14 @@
+{
+  "source_paths": [
+    "crates/stateknot-integrations/src/a2a_server.rs",
+    "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs"
+  ],
+  "total_paths": 186,
+  "compiled538_exact": true,
+  "other535_before_and_after_exact": true,
+  "ordinary_CI_637d8c_unchanged": true,
+  "measurement_ref_not_moved": true,
+  "working_tree_adopted": true,
+  "commit_push_fullCI_claimed": false
+}

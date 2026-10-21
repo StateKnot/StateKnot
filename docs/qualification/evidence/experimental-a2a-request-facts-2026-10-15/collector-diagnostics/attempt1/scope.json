@@ -1,0 +1,6 @@
+{
+  "kind": "offline collector assertion; not compile or test failure",
+  "cause": "Source tar members carry source/ prefix; first verifier assumed bare paths",
+  "source_or_raw_execution_changed": false,
+  "seal_existed": false
+}

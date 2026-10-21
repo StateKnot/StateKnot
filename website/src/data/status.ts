@@ -153,9 +153,9 @@ const statusEntries = [
     status: "implemented",
     title: { en: "Core domain contracts", "zh-CN": "Core 领域合约" },
     body: {
-      en: "Bounded canonical types, four MSRV-compiled public contract examples with a locked runtime-neutral dependency boundary, root-graph validation, and deterministic route/reducer/successor barrier planning. RFC-0001 remains Draft.",
+      en: "Bounded canonical types, four MSRV-compiled public contract examples with a locked runtime-neutral dependency boundary, root-graph validation, and deterministic route/reducer/successor barrier planning. RFC-0022 adds experimental scoped data, recovery/barrier and call preparation plus schema-27 relational guards; complete frame transactions and nested execution remain pending. RFC-0001 and RFC-0022 remain Draft.",
       "zh-CN":
-        "有界 Canonical 类型、四个通过 MSRV 编译并锁定 Runtime-neutral 依赖边界的公共合约示例，以及 Root Graph 编译校验和确定性 Route/Reducer/Successor Barrier Planning。RFC-0001 仍为 Draft。",
+        "有界 Canonical 类型、四个通过 MSRV 编译并锁定 Runtime-neutral 依赖边界的公共合约示例，以及 Root Graph 编译校验和确定性 Route/Reducer/Successor Barrier Planning。RFC-0022 增加实验性 scoped 数据、恢复/屏障和调用准备，以及 Schema 27 关系约束；完整帧事务与嵌套执行仍待完成。RFC-0001、RFC-0022 保持草案。",
     },
   },
   {

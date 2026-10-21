@@ -1,0 +1,1600 @@
+{
+  "claim": "Direct literal includes only; concat-generated fixture include sites are not expanded by this lexical check",
+  "sites": [
+    {
+      "file": "crates/stateknot/examples/deepseek_agent.rs",
+      "line": 449,
+      "included": "crates/stateknot/examples/deepseek_agent.config.json"
+    },
+    {
+      "file": "crates/stateknot/tests/agent_http/fixture.rs",
+      "line": 246,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot/tests/agent_http/fixture.rs",
+      "line": 356,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot/tests/mcp_reconciliation.rs",
+      "line": 196,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/examples/child_run_contracts.rs",
+      "line": 50,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/examples/child_run_declarations.rs",
+      "line": 42,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_admission.rs",
+      "line": 829,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_admission.rs",
+      "line": 830,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_admission.rs",
+      "line": 831,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_admission.rs",
+      "line": 832,
+      "included": "crates/stateknot-core/tests/fixtures/core-journal-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_admission.rs",
+      "line": 958,
+      "included": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_runtime.rs",
+      "line": 1280,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_runtime.rs",
+      "line": 1299,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_runtime.rs",
+      "line": 1385,
+      "included": "crates/stateknot-core/tests/fixtures/core-artifact-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/agent_runtime.rs",
+      "line": 1449,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/barrier.rs",
+      "line": 544,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/budget_reservation_tests.rs",
+      "line": 302,
+      "included": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_admission_tests.rs",
+      "line": 37,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_admission_tests.rs",
+      "line": 39,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_admission_tests.rs",
+      "line": 41,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_admission_tests.rs",
+      "line": 43,
+      "included": "crates/stateknot-core/tests/fixtures/core-journal-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_admission_tests.rs",
+      "line": 474,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_budget_tests.rs",
+      "line": 92,
+      "included": "crates/stateknot-core/tests/fixtures/core-failure-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_budget_tests.rs",
+      "line": 680,
+      "included": "crates/stateknot-core/tests/fixtures/core-failure-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_budget_tests.rs",
+      "line": 835,
+      "included": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_policy_tests.rs",
+      "line": 14,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/child_run_tests.rs",
+      "line": 13,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/graph_composition_tests.rs",
+      "line": 115,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/graph_composition_tests.rs",
+      "line": 705,
+      "included": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_event.rs",
+      "line": 1632,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_event.rs",
+      "line": 1638,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-capability-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_event.rs",
+      "line": 1647,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_event.rs",
+      "line": 1657,
+      "included": "crates/stateknot-core/tests/fixtures/core-message-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_event.rs",
+      "line": 1665,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_invocation.rs",
+      "line": 1680,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_invocation.rs",
+      "line": 1688,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_invocation.rs",
+      "line": 1696,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_invocation.rs",
+      "line": 1765,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-response-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_request.rs",
+      "line": 1636,
+      "included": "crates/stateknot-core/tests/fixtures/core-message-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_request.rs",
+      "line": 1644,
+      "included": "crates/stateknot-core/tests/fixtures/core-message-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_request.rs",
+      "line": 1652,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_request.rs",
+      "line": 1670,
+      "included": "crates/stateknot-core/tests/fixtures/core-artifact-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_response.rs",
+      "line": 1770,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_response.rs",
+      "line": 1780,
+      "included": "crates/stateknot-core/tests/fixtures/core-message-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_response.rs",
+      "line": 1788,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_response.rs",
+      "line": 1798,
+      "included": "crates/stateknot-core/tests/fixtures/core-artifact-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_runtime.rs",
+      "line": 776,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_runtime.rs",
+      "line": 785,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_runtime.rs",
+      "line": 797,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_transcript.rs",
+      "line": 1055,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-response-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_transcript.rs",
+      "line": 1060,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/model_transcript.rs",
+      "line": 1115,
+      "included": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/node_attempt.rs",
+      "line": 1082,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/node_result.rs",
+      "line": 2110,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/recovery.rs",
+      "line": 825,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/run.rs",
+      "line": 1792,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_invocation.rs",
+      "line": 2444,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_invocation.rs",
+      "line": 2452,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_invocation.rs",
+      "line": 2460,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_invocation.rs",
+      "line": 2468,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_invocation.rs",
+      "line": 2476,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_runtime.rs",
+      "line": 3939,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_runtime.rs",
+      "line": 3945,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_runtime.rs",
+      "line": 3953,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/src/tool_runtime.rs",
+      "line": 4152,
+      "included": "crates/stateknot-core/tests/fixtures/core-artifact-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_accounting.rs",
+      "line": 44,
+      "included": "crates/stateknot-core/tests/fixtures/core-accounting-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_agent.rs",
+      "line": 50,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_agent_runtime.rs",
+      "line": 56,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_agent_runtime.rs",
+      "line": 62,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-terminal-validation-inputs-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_agent_runtime.rs",
+      "line": 98,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_artifact.rs",
+      "line": 74,
+      "included": "crates/stateknot-core/tests/fixtures/core-artifact-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_artifact.rs",
+      "line": 118,
+      "included": "crates/stateknot-core/tests/fixtures/core-media-type-input-schemas-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_artifact.rs",
+      "line": 131,
+      "included": "crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_authorization.rs",
+      "line": 37,
+      "included": "crates/stateknot-core/tests/fixtures/core-authorization-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_barrier.rs",
+      "line": 33,
+      "included": "crates/stateknot-core/tests/fixtures/core-barrier-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_barrier.rs",
+      "line": 39,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_barrier.rs",
+      "line": 160,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_budget.rs",
+      "line": 41,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_capability.rs",
+      "line": 44,
+      "included": "crates/stateknot-core/tests/fixtures/core-capability-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_checkpoint.rs",
+      "line": 33,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_content.rs",
+      "line": 52,
+      "included": "crates/stateknot-core/tests/fixtures/core-content-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_durable_wait.rs",
+      "line": 46,
+      "included": "crates/stateknot-core/tests/fixtures/core-durable-wait-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_durable_wait.rs",
+      "line": 345,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_execution_wires.rs",
+      "line": 16,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_execution_wires.rs",
+      "line": 255,
+      "included": "crates/stateknot-core/tests/fixtures/core-run-lifecycle-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_execution_wires.rs",
+      "line": 302,
+      "included": "crates/stateknot-core/tests/fixtures/core-media-type-input-schemas-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_extension.rs",
+      "line": 52,
+      "included": "crates/stateknot-core/tests/fixtures/core-extension-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_failure.rs",
+      "line": 43,
+      "included": "crates/stateknot-core/tests/fixtures/core-failure-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_graph.rs",
+      "line": 33,
+      "included": "crates/stateknot-core/tests/fixtures/core-graph-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_graph.rs",
+      "line": 164,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_identity.rs",
+      "line": 36,
+      "included": "crates/stateknot-core/tests/fixtures/core-identity-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_journal.rs",
+      "line": 52,
+      "included": "crates/stateknot-core/tests/fixtures/core-journal-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_json.rs",
+      "line": 52,
+      "included": "crates/stateknot-core/tests/fixtures/core-json-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_message.rs",
+      "line": 36,
+      "included": "crates/stateknot-core/tests/fixtures/core-message-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model.rs",
+      "line": 51,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-capability-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_descriptor.rs",
+      "line": 29,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_event.rs",
+      "line": 36,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-event-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_event.rs",
+      "line": 77,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_event.rs",
+      "line": 80,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-capability-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_event.rs",
+      "line": 86,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_event.rs",
+      "line": 105,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-response-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_invocation.rs",
+      "line": 59,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-invocation-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_invocation.rs",
+      "line": 77,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_invocation.rs",
+      "line": 85,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_invocation.rs",
+      "line": 93,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_invocation.rs",
+      "line": 150,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-response-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_invocation.rs",
+      "line": 345,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_request.rs",
+      "line": 35,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_response.rs",
+      "line": 48,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-response-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_response.rs",
+      "line": 98,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_response.rs",
+      "line": 103,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_model_runtime.rs",
+      "line": 39,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_node_attempt.rs",
+      "line": 40,
+      "included": "crates/stateknot-core/tests/fixtures/core-node-attempt-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_node_attempt.rs",
+      "line": 46,
+      "included": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_node_attempt.rs",
+      "line": 273,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_node_result.rs",
+      "line": 44,
+      "included": "crates/stateknot-core/tests/fixtures/core-node-result-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_node_result.rs",
+      "line": 66,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-invocation-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_node_result.rs",
+      "line": 201,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_outbox.rs",
+      "line": 41,
+      "included": "crates/stateknot-core/tests/fixtures/core-outbox-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_outbox.rs",
+      "line": 269,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_run_lifecycle.rs",
+      "line": 47,
+      "included": "crates/stateknot-core/tests/fixtures/core-run-lifecycle-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_run_lifecycle.rs",
+      "line": 52,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_run_lifecycle.rs",
+      "line": 254,
+      "included": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_scalars.rs",
+      "line": 50,
+      "included": "crates/stateknot-core/tests/fixtures/core-scalars-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_schema.rs",
+      "line": 35,
+      "included": "crates/stateknot-core/tests/fixtures/core-schema-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_skill_authorization.rs",
+      "line": 59,
+      "included": "crates/stateknot-core/tests/fixtures/core-skill-authorization-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_time.rs",
+      "line": 51,
+      "included": "crates/stateknot-core/tests/fixtures/core-time-v2.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_time.rs",
+      "line": 162,
+      "included": "crates/stateknot-core/tests/fixtures/core-time-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_tool.rs",
+      "line": 47,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_tool_authorization.rs",
+      "line": 49,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-authorization-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_tool_invocation.rs",
+      "line": 34,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-invocation-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_tool_invocation.rs",
+      "line": 152,
+      "included": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_tool_runtime.rs",
+      "line": 42,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_values.rs",
+      "line": 112,
+      "included": "crates/stateknot-core/tests/fixtures/core-identifiers-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/canonical_values.rs",
+      "line": 176,
+      "included": "crates/stateknot-core/src/ids.rs"
+    },
+    {
+      "file": "crates/stateknot-core/tests/graph_frame_barriers.rs",
+      "line": 78,
+      "included": "crates/stateknot-core/tests/fixtures/core-graph-frame-barrier-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/graph_frame_calls.rs",
+      "line": 13,
+      "included": "crates/stateknot-core/tests/fixtures/core-graph-frame-call-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/graph_frame_contracts.rs",
+      "line": 213,
+      "included": "crates/stateknot-core/tests/fixtures/core-graph-frame-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/object_wire_shapes.rs",
+      "line": 16,
+      "included": "crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/public_enum_variants.rs",
+      "line": 15,
+      "included": "crates/stateknot-core/tests/fixtures/core-public-enum-variants-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/public_enum_variants.rs",
+      "line": 196,
+      "included": "crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/public_enum_variants.rs",
+      "line": 437,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/public_type_inventory.rs",
+      "line": 79,
+      "included": "crates/stateknot-core/tests/fixtures/core-public-output-schema-inventory-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/public_type_inventory.rs",
+      "line": 88,
+      "included": "crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json"
+    },
+    {
+      "file": "crates/stateknot-core/tests/public_type_inventory.rs",
+      "line": 263,
+      "included": "crates/stateknot-core/tests/support/public_readers.rs"
+    },
+    {
+      "file": "crates/stateknot-core/tests/public_type_inventory.rs",
+      "line": 631,
+      "included": "crates/stateknot-core/src/lib.rs"
+    },
+    {
+      "file": "crates/stateknot-core/tests/public_type_inventory.rs",
+      "line": 713,
+      "included": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "line": 797,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "line": 843,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/mcp_contract.rs",
+      "line": 265,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/mcp_contract.rs",
+      "line": 318,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "line": 840,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "line": 924,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/mcp_skills_host.rs",
+      "line": 574,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/mcp_skills_host.rs",
+      "line": 584,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/provider_contract.rs",
+      "line": 177,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/provider_contract.rs",
+      "line": 192,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/provider_contract.rs",
+      "line": 216,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/provider_contract.rs",
+      "line": 313,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/provider_native_postgres.rs",
+      "line": 169,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-integrations/tests/provider_native_postgres.rs",
+      "line": 312,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/admission_schema.rs",
+      "line": 16,
+      "included": "crates/stateknot-runtime/schemas/agent-admission-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/agent_deadlines.rs",
+      "line": 28,
+      "included": "crates/stateknot-runtime/schemas/agent-deadline-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/agent_service/policy/schema.rs",
+      "line": 14,
+      "included": "crates/stateknot-runtime/schemas/agent-policy-evidence-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/cancellation_schema.rs",
+      "line": 16,
+      "included": "crates/stateknot-runtime/schemas/agent-cancellation-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/child_join.rs",
+      "line": 32,
+      "included": "crates/stateknot-runtime/schemas/child-join-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/child_reconciler.rs",
+      "line": 28,
+      "included": "crates/stateknot-runtime/schemas/child-reconciliation-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/driver_schema.rs",
+      "line": 16,
+      "included": "crates/stateknot-runtime/schemas/graph-driver-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/failure_close.rs",
+      "line": 29,
+      "included": "crates/stateknot-runtime/schemas/run-failure-close-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/invocation_schema.rs",
+      "line": 16,
+      "included": "crates/stateknot-runtime/schemas/invocation-execution-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/lifecycle_schema.rs",
+      "line": 16,
+      "included": "crates/stateknot-runtime/schemas/graph-lifecycle-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/provider_native_agent.rs",
+      "line": 3835,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/provider_native_agent.rs",
+      "line": 3995,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/provider_native_agent.rs",
+      "line": 4092,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/provider_native_agent.rs",
+      "line": 4124,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/provider_registry.rs",
+      "line": 380,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/provider_registry.rs",
+      "line": 391,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/registry_child_tests.rs",
+      "line": 63,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/src/service_schema.rs",
+      "line": 16,
+      "included": "crates/stateknot-runtime/schemas/agent-service-control-event-1.0.0.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/frame_entry_schema.rs",
+      "line": 15,
+      "included": "crates/stateknot-core/tests/fixtures/core-graph-frame-call-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "line": 55,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "line": 58,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "line": 61,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "line": 64,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "line": 67,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "line": 70,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "line": 80,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "line": 83,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "line": 86,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "line": 89,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "line": 92,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "line": 95,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "line": 96,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_child_joins.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "line": 470,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "line": 473,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "line": 476,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "line": 479,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "line": 482,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "line": 485,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "line": 486,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_child_joins.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "line": 181,
+      "included": "crates/stateknot-core/tests/fixtures/core-failure-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs",
+      "line": 54,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs",
+      "line": 57,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs",
+      "line": 60,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs",
+      "line": 63,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs",
+      "line": 66,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/role_profile.rs",
+      "line": 20,
+      "included": "crates/stateknot-store-postgres/ops/trusted-role-profile.sql"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres/role_profile.rs",
+      "line": 455,
+      "included": "crates/stateknot-core/tests/fixtures/core-graph-frame-call-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 1413,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 1632,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 1786,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2376,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2399,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2418,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2447,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2455,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2490,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-response-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2503,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-event-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2526,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2584,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 2659,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/postgres.rs",
+      "line": 3331,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 86,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 146,
+      "included": "crates/stateknot-core/tests/fixtures/core-budget-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 267,
+      "included": "crates/stateknot-core/tests/fixtures/core-public-output-schema-inventory-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 311,
+      "included": "crates/stateknot-core/tests/fixtures/core-failure-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 326,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 334,
+      "included": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 354,
+      "included": "crates/stateknot-core/tests/fixtures/core-capability-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 527,
+      "included": "crates/stateknot-core/tests/fixtures/core-artifact-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "line": 547,
+      "included": "crates/stateknot-core/tests/fixtures/core-media-type-input-schemas-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/typed_agent.rs",
+      "line": 23,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-runtime/tests/typed_agent.rs",
+      "line": 25,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/agent_deadlines.rs",
+      "line": 268,
+      "included": "crates/stateknot-store-postgres/src/agent_deadline_catalog.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/agent_deadlines.rs",
+      "line": 276,
+      "included": "crates/stateknot-store-postgres/migrations/0023_agent_deadlines.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/child_cancellation.rs",
+      "line": 628,
+      "included": "crates/stateknot-store-postgres/migrations/0021_child_run_cancellation.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/child_joins.rs",
+      "line": 676,
+      "included": "crates/stateknot-store-postgres/src/child_join_catalog.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/child_joins.rs",
+      "line": 684,
+      "included": "crates/stateknot-store-postgres/migrations/0022_child_run_joins.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/child_runs.rs",
+      "line": 1494,
+      "included": "crates/stateknot-store-postgres/migrations/0020_child_run_ownership.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/failure_closes.rs",
+      "line": 446,
+      "included": "crates/stateknot-store-postgres/src/failure_close_catalog.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/failure_closes.rs",
+      "line": 454,
+      "included": "crates/stateknot-store-postgres/migrations/0024_run_failure_closes.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/graph_frames.rs",
+      "line": 1347,
+      "included": "crates/stateknot-store-postgres/src/graph_frame_catalog.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/graph_frames.rs",
+      "line": 1352,
+      "included": "crates/stateknot-store-postgres/src/graph_frame_catalog.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/graph_waits.rs",
+      "line": 569,
+      "included": "crates/stateknot-store-postgres/src/graph_wait_catalog.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/graph_waits.rs",
+      "line": 573,
+      "included": "crates/stateknot-store-postgres/src/graph_wait_catalog.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/root_graph_barriers.rs",
+      "line": 2168,
+      "included": "crates/stateknot-store-postgres/src/root_graph_barrier_catalog.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/root_graph_barriers.rs",
+      "line": 2173,
+      "included": "crates/stateknot-store-postgres/src/root_graph_barrier_catalog.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/scoped_checkpoints.rs",
+      "line": 16,
+      "included": "crates/stateknot-store-postgres/src/scoped_checkpoint_catalog.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 223,
+      "included": "crates/stateknot-store-postgres/migrations/0001_initial.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 230,
+      "included": "crates/stateknot-store-postgres/migrations/0002_checkpoints.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 237,
+      "included": "crates/stateknot-store-postgres/migrations/0003_tool_invocations.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 244,
+      "included": "crates/stateknot-store-postgres/migrations/0004_model_invocations.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 251,
+      "included": "crates/stateknot-store-postgres/migrations/0005_pending_node_results.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 258,
+      "included": "crates/stateknot-store-postgres/migrations/0006_node_attempts.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 265,
+      "included": "crates/stateknot-store-postgres/migrations/0007_scheduler_readiness.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 272,
+      "included": "crates/stateknot-store-postgres/migrations/0008_transactional_outbox.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 279,
+      "included": "crates/stateknot-store-postgres/migrations/0009_durable_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 286,
+      "included": "crates/stateknot-store-postgres/migrations/0010_run_quarantines.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 293,
+      "included": "crates/stateknot-store-postgres/migrations/0011_fenced_recovery_quarantines.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 302,
+      "included": "crates/stateknot-store-postgres/migrations/0012_delayed_retry_wakeup.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 309,
+      "included": "crates/stateknot-store-postgres/migrations/0013_graph_registry.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 316,
+      "included": "crates/stateknot-store-postgres/migrations/0014_scheduler_fairness.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 323,
+      "included": "crates/stateknot-store-postgres/migrations/0015_agent_admissions.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 330,
+      "included": "crates/stateknot-store-postgres/migrations/0016_agent_submission_keys.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 337,
+      "included": "crates/stateknot-store-postgres/migrations/0017_terminal_tool_result_bindings.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 346,
+      "included": "crates/stateknot-store-postgres/migrations/0018_artifact_registry.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 353,
+      "included": "crates/stateknot-store-postgres/migrations/0019_terminal_model_failure_bindings.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 362,
+      "included": "crates/stateknot-store-postgres/migrations/0020_child_run_ownership.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 369,
+      "included": "crates/stateknot-store-postgres/migrations/0021_child_run_cancellation.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 378,
+      "included": "crates/stateknot-store-postgres/migrations/0022_child_run_joins.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 385,
+      "included": "crates/stateknot-store-postgres/migrations/0023_agent_deadlines.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 392,
+      "included": "crates/stateknot-store-postgres/migrations/0024_run_failure_closes.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 399,
+      "included": "crates/stateknot-store-postgres/migrations/0025_tool_authorization_receipts.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 408,
+      "included": "crates/stateknot-store-postgres/migrations/0026_skill_activation_windows.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 417,
+      "included": "crates/stateknot-store-postgres/migrations/0027_scoped_checkpoints.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 424,
+      "included": "crates/stateknot-store-postgres/migrations/0028_graph_frame_entries.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 431,
+      "included": "crates/stateknot-store-postgres/migrations/0029_graph_frame_barriers.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 438,
+      "included": "crates/stateknot-store-postgres/migrations/0030_graph_frame_caller_bindings.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 447,
+      "included": "crates/stateknot-store-postgres/migrations/0031_graph_frame_returns.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 454,
+      "included": "crates/stateknot-store-postgres/migrations/0032_graph_frame_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 461,
+      "included": "crates/stateknot-store-postgres/migrations/0033_graph_frame_closures.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 468,
+      "included": "crates/stateknot-store-postgres/migrations/0034_root_graph_barriers.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 475,
+      "included": "crates/stateknot-store-postgres/migrations/0035_trusted_root_graph_barriers.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/src/store.rs",
+      "line": 484,
+      "included": "crates/stateknot-store-postgres/migrations/0036_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs",
+      "line": 1081,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs",
+      "line": 1082,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_barriers.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_callers.rs",
+      "line": 723,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_callers.rs",
+      "line": 724,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_caller_bindings.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs",
+      "line": 1151,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs",
+      "line": 1152,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_closures.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs",
+      "line": 1182,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs",
+      "line": 1205,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs",
+      "line": 1323,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs",
+      "line": 1324,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_closures.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_returns.rs",
+      "line": 1146,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_returns.rs",
+      "line": 1147,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_returns.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_scope.rs",
+      "line": 108,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_scope.rs",
+      "line": 109,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_transactions.rs",
+      "line": 21,
+      "included": "crates/stateknot-core/tests/fixtures/core-graph-frame-call-v1.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_waits.rs",
+      "line": 1063,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/frame_waits.rs",
+      "line": 1064,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/root_barrier_upgrade.rs",
+      "line": 254,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/trusted_upgrade.rs",
+      "line": 9,
+      "included": "crates/stateknot-store-postgres/migrations/0034_root_graph_barriers.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/trusted_upgrade.rs",
+      "line": 65,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/trusted_upgrade.rs",
+      "line": 504,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 455,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 456,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 457,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 458,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 459,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 460,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 461,
+      "included": "crates/stateknot-store-postgres/tests/fixtures/revert_child_joins.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 1454,
+      "included": "crates/stateknot-store-postgres/migrations/0001_initial.sql"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 3380,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 3388,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 3696,
+      "included": "crates/stateknot-core/tests/fixtures/core-tool-v1.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 3777,
+      "included": "crates/stateknot-core/tests/fixtures/core-agent-v1.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 3785,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "line": 3813,
+      "included": "crates/stateknot-core/tests/fixtures/core-model-response-v1.json"
+    }
+  ]
+}

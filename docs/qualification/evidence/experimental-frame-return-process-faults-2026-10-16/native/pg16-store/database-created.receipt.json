@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "docker",
+    "exec",
+    "stateknot-r1-oct15-pg16",
+    "psql",
+    "-X",
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-U",
+    "postgres",
+    "-d",
+    "stateknot_r1_returnfault_20261016_pg16_store_b",
+    "-At",
+    "-c",
+    "SELECT current_database();"
+  ],
+  "start_unix": 1792139013.392287,
+  "seconds": 0.09650397300720215,
+  "exit_code": 0,
+  "stdout_sha256": "7c7a0f1980f9820f2f258b66abddbdd5588b612a6c0331b1708fa22534aa2e3d",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

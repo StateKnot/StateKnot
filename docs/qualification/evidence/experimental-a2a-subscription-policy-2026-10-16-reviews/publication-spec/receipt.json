@@ -1,0 +1,17 @@
+{
+  "schema": "stateknot.a2a-subscription.publication-spec-review.v1",
+  "created_at": "2026-10-16T04:50:34.829928+00:00",
+  "actionable_Spec_findings": 0,
+  "findings": [],
+  "candidate_manifest_sha256": "739688ef10fe7f01579d1cb4ba0174ea3e257a0fc6782f82dc5a64f3cb90939c",
+  "evidence_manifest_sha256": "af5c515f06572f89f930b03d00d88abc52c927d963f382bfb8a4cc0a6c7e7e17",
+  "evidence_seal_sha256": "0f5a3d13d5554dedd178ca7c8e7f3ce4712bf7406bfe320e58302fd5b118c37d",
+  "reviewer_authored_publication": false,
+  "reviewer_authored_production_or_tests": false,
+  "reviewer_authored_interface_contract": true,
+  "independent_design_review_of_own_contract_claimed": false,
+  "actual_gate_helpers_or_Rust_TCP_Native_CI_executed_by_reviewer": false,
+  "only_writes": ".local-verification/2026-10-16/evidence/a2a-subscription-publication-spec-review-v1",
+  "manifest_sha256": "5916d4c1134be39e5015cbaa3eabe64b75bda84412e4fb703355357cb5a0ae28",
+  "report_sha256": "429c9a34531fdad8cf9c9e537850077167f2351d583c8ba1988c74a154bcdfad"
+}
