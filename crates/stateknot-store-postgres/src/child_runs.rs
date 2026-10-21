@@ -665,19 +665,50 @@ pub(super) fn validate_terminal_accounting<'a>(
             .terminal_usage()
             .ok_or(StoreError::IncompleteChildAccounting)?;
         let Some(account) = load_account(tx, event.tenant_id(), event.run_id()).await? else {
-            graph_frames::validate_closed_direct_usage(tx, event, total).await?;
-            return failure_closes::validate_direct_usage(tx, event, total).await;
+            let delegated = BudgetUsage::zero();
+            let closed_direct =
+                graph_frames::validate_closed_direct_usage(tx, event, total, &delegated, None)
+                    .await?;
+            let failure_direct =
+                failure_closes::resolve_terminal_direct_usage(tx, event, total, &delegated).await?;
+            if failure_direct.is_none() {
+                total
+                    .checked_subtract_cumulative(&delegated)
+                    .map_err(|_| StoreError::IncompleteChildAccounting)?;
+            }
+            if closed_direct
+                .as_ref()
+                .zip(failure_direct.as_ref())
+                .is_some_and(|(closed, failure)| closed != failure)
+            {
+                return Err(StoreError::IncompleteChildAccounting);
+            }
+            return Ok(());
         };
         ensure_settled(&account)?;
-        let direct = total
-            .checked_subtract_cumulative(
-                &account
-                    .delegated_usage()
-                    .map_err(|_| StoreError::IncompleteChildAccounting)?,
-            )
+        let delegated = account
+            .delegated_usage()
             .map_err(|_| StoreError::IncompleteChildAccounting)?;
-        failure_closes::validate_direct_usage(tx, event, &direct).await?;
-        graph_frames::validate_closed_direct_usage(tx, event, &direct).await?;
+        let failure_direct =
+            failure_closes::resolve_terminal_direct_usage(tx, event, total, &delegated).await?;
+        // Keep legacy arithmetic failures before the frame boundary check.
+        let derived = failure_direct.as_ref().map_or_else(
+            || {
+                total
+                    .checked_subtract_cumulative(&delegated)
+                    .map_err(|_| StoreError::IncompleteChildAccounting)
+            },
+            |direct| Ok(direct.clone()),
+        )?;
+        let closed_direct = graph_frames::validate_closed_direct_usage(
+            tx,
+            event,
+            total,
+            &delegated,
+            failure_direct.as_ref(),
+        )
+        .await?;
+        let direct = closed_direct.unwrap_or(derived);
         let account = account
             .observe_direct(event.head(), direct)
             .map_err(|_| StoreError::IncompleteChildAccounting)?;

@@ -423,18 +423,28 @@ pub(super) async fn load(
     }))
 }
 
-pub(super) async fn validate_direct_usage(
+/// Returns the original DIRECT of a verified failure-close record, if present.
+/// The terminal writer retains legacy subtraction when no sealed decision exists.
+pub(super) async fn resolve_terminal_direct_usage(
     tx: &mut Transaction<'_, Postgres>,
     event: &JournalEvent,
-    direct: &BudgetUsage,
-) -> Result<(), StoreError> {
+    total: &BudgetUsage,
+    delegated: &BudgetUsage,
+) -> Result<Option<BudgetUsage>, StoreError> {
     let run = decode_run(fetch_locked_run_row(tx, event.tenant_id(), event.run_id()).await?)?;
+    // Known-cost subtraction retains zero currency entries; verify the total from the
+    // original frozen DIRECT so a child-only currency cannot change its representation.
     if let Some(record) = load(tx, &run).await? {
-        if direct != record.direct_usage() {
+        let direct = record.direct_usage();
+        let expected_total = direct
+            .checked_accumulate(delegated)
+            .map_err(|_| StoreError::IncompleteChildAccounting)?;
+        if expected_total != *total {
             return Err(StoreError::IncompleteChildAccounting);
         }
+        return Ok(Some(direct.clone()));
     }
-    Ok(())
+    Ok(None)
 }
 
 pub(super) async fn verify_schema(pool: &PgPool) -> Result<(), StoreError> {

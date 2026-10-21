@@ -1811,3 +1811,657 @@ END $$
     assert_eq!(closed.record().event().payload().schema(), &schema);
     catalog_result.unwrap();
 }
+
+mod frozen_direct_costs {
+    use super::*;
+
+    async fn priced_response(
+        store: &PostgresStore,
+        fence: &RunFence,
+        start: &stateknot_core::NodeAttemptStartHead,
+        head: &JournalHead,
+    ) -> (JournalHead, BudgetUsage) {
+        let intent = model_invocation_intent_for_activation(
+            start.activation().clone(),
+            InvocationId::generate(),
+        );
+        let prepared = store
+            .prepare_model_invocation(
+                worker_append(
+                    fence.tenant_id().clone(),
+                    fence.run_id(),
+                    EventId::generate(),
+                    JournalExpectation::exact(head.clone()),
+                    fence.clone(),
+                    42_300,
+                ),
+                intent.clone(),
+            )
+            .await
+            .unwrap();
+        let physical = AttemptId::generate();
+        let executing = store
+            .advance_model_invocation(
+                worker_append(
+                    fence.tenant_id().clone(),
+                    fence.run_id(),
+                    EventId::generate(),
+                    JournalExpectation::exact(prepared.event().head()),
+                    fence.clone(),
+                    42_301,
+                ),
+                &prepared.invocation().head(),
+                ModelInvocationTransition::StartAttempt {
+                    attempt_id: physical,
+                },
+            )
+            .await
+            .unwrap();
+        let response = model_response(&intent, physical);
+        // The fixture provider prices this actual committed response at USD11 micro-units.
+        // Pricing is explicit trusted test evidence, not inferred from a zero-I/O child.
+        let costs = serde_json::from_value(json!([{"currency":"USD","micro_units":"11"}])).unwrap();
+        let usage = BudgetUsage::builder()
+            .model_attempts(stateknot_core::ExecutionCount::new(1))
+            .model_turns(stateknot_core::ExecutionCount::new(1))
+            .input_tokens(response.usage().input_tokens())
+            .cached_input_tokens(
+                response
+                    .usage()
+                    .cached_input_tokens()
+                    .unwrap_or(stateknot_core::TokenCount::ZERO),
+            )
+            .output_tokens(response.usage().output_tokens())
+            .reasoning_tokens(
+                response
+                    .usage()
+                    .reasoning_tokens()
+                    .unwrap_or(stateknot_core::TokenCount::ZERO),
+            )
+            .known_costs(costs)
+            .build()
+            .unwrap();
+        let committed = store
+            .advance_model_invocation(
+                worker_append(
+                    fence.tenant_id().clone(),
+                    fence.run_id(),
+                    EventId::generate(),
+                    JournalExpectation::exact(executing.event().head()),
+                    fence.clone(),
+                    42_302,
+                ),
+                &executing.invocation().head(),
+                ModelInvocationTransition::RecordResponse { response },
+            )
+            .await
+            .unwrap();
+        assert_eq!(
+            committed.invocation().status(),
+            ModelInvocationStatus::Committed
+        );
+        let loaded = store
+            .load_model_invocation(fence.tenant_id(), fence.run_id(), intent.invocation_id())
+            .await
+            .unwrap();
+        assert_eq!(
+            serde_json::to_value(&loaded).unwrap(),
+            serde_json::to_value(committed.invocation()).unwrap()
+        );
+        (committed.event().head(), usage)
+    }
+
+    async fn child_complete_usage(
+        store: &PostgresStore,
+        child: &StoredAgentAdmission,
+        event: EventId,
+        model_usage: &BudgetUsage,
+    ) -> BudgetUsage {
+        let owner = child.admission().intent().provenance();
+        let journal = store
+            .load_journal_page(
+                owner.tenant_id(),
+                owner.run_id(),
+                None,
+                JournalPageSize::new(16).unwrap(),
+            )
+            .await
+            .unwrap();
+        assert!(!journal.has_more());
+        assert_eq!(journal.events().last().unwrap().event_id(), event);
+        let event_bytes: usize = journal
+            .events()
+            .iter()
+            .map(|row| serde_json_canonicalizer::to_vec(row).unwrap().len())
+            .sum();
+        // This child committed no graph barrier. Count its real model response,
+        // complete pre-terminal journal, initial checkpoint and admitted input.
+        BudgetUsage::builder()
+            .graph_depth(stateknot_core::ExecutionCount::new(1))
+            .concurrent_branches(stateknot_core::ExecutionCount::new(1))
+            .fan_out(stateknot_core::ExecutionCount::new(1))
+            .event_bytes(ByteCount::new(event_bytes as u64))
+            .checkpoint_bytes(initial_usage(child).checkpoint_bytes())
+            .input_bytes(ByteCount::new(
+                serde_json_canonicalizer::to_vec(child.admission().intent().request().input())
+                    .unwrap()
+                    .len() as u64,
+            ))
+            .build()
+            .unwrap()
+            .checked_accumulate(model_usage)
+            .unwrap()
+    }
+
+    async fn commit_priced_child_failure(
+        store: &PostgresStore,
+        child: &StoredAgentAdmission,
+        usage: &BudgetUsage,
+    ) {
+        let owner = child.admission().intent().provenance();
+        let run = store
+            .load_run(owner.tenant_id(), owner.run_id())
+            .await
+            .unwrap();
+        let event = EventId::generate();
+        let at = store.observe_database_clock().await.unwrap();
+        store
+            .append_control_plane(
+                JournalAppend::new(
+                    JournalExpectation::exact(run.journal_head().unwrap().clone()),
+                    JournalEventIntent::control_plane(
+                        owner.tenant_id().clone(),
+                        owner.run_id(),
+                        event,
+                        payload("test-priced-child-failed"),
+                    )
+                    .unwrap(),
+                )
+                .unwrap(),
+                RunProjection::transition(
+                    run.lifecycle().revision(),
+                    RunTransition::Fail {
+                        failure: RunFailure::new(
+                            terminal_run_failure(event, at).failure().clone(),
+                            at,
+                            usage.clone(),
+                        )
+                        .unwrap(),
+                    },
+                ),
+            )
+            .await
+            .unwrap();
+    }
+
+    async fn settle_priced_child(
+        store: &PostgresStore,
+        value: &Fixture,
+        child: &StoredAgentAdmission,
+    ) -> BudgetUsage {
+        let owner = child.admission().intent().provenance();
+        let fence = store
+            .claim_lease(owner.tenant_id(), owner.run_id(), AttemptId::generate())
+            .await
+            .unwrap()
+            .lease()
+            .fence()
+            .clone();
+        let plan = ReadyNodeRecoveryPlanner::new(child.checkpoint().clone(), fence.clone())
+            .unwrap()
+            .finish(
+                child.event().head(),
+                store.observe_database_clock().await.unwrap(),
+            )
+            .unwrap();
+        let started = Box::pin(store.start_recovered_node_attempt(
+            worker_append(
+                owner.tenant_id().clone(),
+                owner.run_id(),
+                EventId::generate(),
+                JournalExpectation::exact(child.event().head()),
+                fence.clone(),
+                42_303,
+            ),
+            &plan,
+            child.checkpoint().ready_nodes().iter().next().unwrap(),
+            AttemptId::generate(),
+        ))
+        .await
+        .unwrap();
+        let (head, model_usage) = Box::pin(priced_response(
+            store,
+            &fence,
+            &started.attempt().start().head(),
+            &started.event().head(),
+        ))
+        .await;
+        let event = EventId::generate();
+        let at = store.observe_database_clock().await.unwrap();
+        Box::pin(store.fail_node_attempt(
+            worker_append(
+                owner.tenant_id().clone(),
+                owner.run_id(),
+                event,
+                JournalExpectation::exact(head),
+                fence,
+                42_304,
+            ),
+            &started.attempt().start().head(),
+            terminal_run_failure(event, at).failure().clone(),
+            model_usage.clone(),
+        ))
+        .await
+        .unwrap();
+        let usage = Box::pin(child_complete_usage(store, child, event, &model_usage)).await;
+        Box::pin(commit_priced_child_failure(store, child, &usage)).await;
+        let append = join::control_append(store, value, "child-run-settled").await;
+        let settled = Box::pin(store.settle_child_run(value.intent.key(), append.clone()))
+            .await
+            .unwrap();
+        let stateknot_store_postgres::ChildRunSettlementOutcome::Committed { record, .. } = settled
+        else {
+            panic!("fresh priced child settlement");
+        };
+        assert_eq!(record.settlement().unwrap().usage(), &usage);
+        assert!(matches!(
+            Box::pin(store.settle_child_run(value.intent.key(), append))
+                .await
+                .unwrap(),
+            stateknot_store_postgres::ChildRunSettlementOutcome::Idempotent { .. }
+        ));
+        usage
+    }
+
+    async fn reject_wrong_total_without_writes(
+        store: &PostgresStore,
+        cold: &PostgresStore,
+        db: &PgPool,
+        value: &Fixture,
+        original: &stateknot_store_postgres::StoredGraphFrameClosure,
+        account: &stateknot_core::ChildRunBudgetAccount,
+    ) {
+        let key = value.intent.key();
+        let delegated = account.delegated_usage().unwrap();
+        let total = original
+            .direct_usage()
+            .checked_accumulate(&delegated)
+            .unwrap();
+        let costs = serde_json::from_value(json!([{"currency":"USD","micro_units":"1"}])).unwrap();
+        let extra = BudgetUsage::builder().known_costs(costs).build().unwrap();
+        let wrong_total = total.checked_accumulate(&extra).unwrap();
+        assert_ne!(wrong_total, total);
+        assert!(wrong_total.checked_subtract_cumulative(&delegated).is_ok());
+        let parent = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        let append = join::control_append(store, value, "test-frame-priced-wrong-total").await;
+        let projection = RunProjection::transition(
+            parent.lifecycle().revision(),
+            RunTransition::ConfirmCancellation {
+                completed_at: store.observe_database_clock().await.unwrap(),
+                usage: wrong_total,
+            },
+        );
+        let before = registered_join_tenant_facts(db, key.tenant_id()).await;
+        let rejected = store.append_control_plane(append, projection).await;
+        assert!(
+            matches!(rejected, Err(StoreError::IncompleteChildAccounting)),
+            "a subtractable wrong total must fail exact frozen DIRECT validation: {rejected:?}"
+        );
+        assert_eq!(
+            registered_join_tenant_facts(db, key.tenant_id()).await,
+            before
+        );
+        assert_eq!(
+            cold.load_child_budget_account(key.tenant_id(), key.parent_run_id())
+                .await
+                .unwrap(),
+            Some(account.clone())
+        );
+        let loaded = Box::pin(cold.load_graph_frame_closure(key.tenant_id(), key.parent_run_id()))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_same_published_close(&loaded, original);
+        assert_eq!(
+            registered_join_tenant_facts(db, key.tenant_id()).await,
+            before
+        );
+    }
+
+    async fn commit_priced_parent_terminal(
+        store: &PostgresStore,
+        cold: &PostgresStore,
+        db: &PgPool,
+        value: &Fixture,
+        original: &stateknot_store_postgres::StoredGraphFrameClosure,
+        account: &stateknot_core::ChildRunBudgetAccount,
+    ) -> Result<
+        (
+            stateknot_store_postgres::AppendOutcome,
+            JournalAppend,
+            RunProjection,
+            BudgetUsage,
+        ),
+        StoreError,
+    > {
+        let key = value.intent.key();
+        let direct = original.direct_usage();
+        let total = direct
+            .checked_accumulate(&account.delegated_usage().unwrap())
+            .unwrap();
+        let parent = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        let append =
+            join::control_append(store, value, "test-frame-priced-cancellation-confirmed").await;
+        let projection = RunProjection::transition(
+            parent.lifecycle().revision(),
+            RunTransition::ConfirmCancellation {
+                completed_at: store.observe_database_clock().await.unwrap(),
+                usage: total.clone(),
+            },
+        );
+        let before = registered_join_tenant_facts(db, key.tenant_id()).await;
+        let observed = store
+            .append_control_plane(append.clone(), projection.clone())
+            .await;
+        println!(
+            "\nSTATEKNOT_FRAME_FROZEN_DIRECT_COST_EVIDENCE={}",
+            json!({
+                "phase":"terminal", "terminal_committed":observed.is_ok(),
+                "wrong_total_rejected_without_writes":true,
+                "actual_error":observed.as_ref().err().map(|error| format!("{error:?}")),
+                "frozen_direct_costs":direct.known_costs(),
+                "actual_delegated_costs":account.delegated_usage().unwrap().known_costs(),
+                "original_close_event":original.event().event_id(),
+            })
+        );
+        let ack = match observed {
+            Ok(ack) => ack,
+            Err(error) => {
+                assert_eq!(
+                    registered_join_tenant_facts(db, key.tenant_id()).await,
+                    before
+                );
+                assert_eq!(
+                    store
+                        .load_child_budget_account(key.tenant_id(), key.parent_run_id())
+                        .await
+                        .unwrap(),
+                    Some(account.clone())
+                );
+                let loaded =
+                    Box::pin(cold.load_graph_frame_closure(key.tenant_id(), key.parent_run_id()))
+                        .await
+                        .unwrap()
+                        .unwrap();
+                assert_same_published_close(&loaded, original);
+                assert_eq!(
+                    registered_join_tenant_facts(db, key.tenant_id()).await,
+                    before
+                );
+                return Err(error);
+            }
+        };
+        Ok((ack, append, projection, total))
+    }
+
+    async fn terminal_and_replay(
+        store: &PostgresStore,
+        cold: &PostgresStore,
+        db: &PgPool,
+        value: &Fixture,
+        original: &stateknot_store_postgres::StoredGraphFrameClosure,
+        account: &stateknot_core::ChildRunBudgetAccount,
+    ) -> Result<(), StoreError> {
+        Box::pin(reject_wrong_total_without_writes(
+            store, cold, db, value, original, account,
+        ))
+        .await;
+        let (ack, append, projection, total) = Box::pin(commit_priced_parent_terminal(
+            store, cold, db, value, original, account,
+        ))
+        .await?;
+        let key = value.intent.key();
+        let direct = original.direct_usage();
+        let expected = account
+            .observe_direct(ack.event().head(), direct.clone())
+            .unwrap();
+        let terminal = cold
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        assert_eq!(terminal.lifecycle().status(), RunStatus::Cancelled);
+        assert_eq!(terminal.lifecycle().terminal_usage(), Some(&total));
+        assert_eq!(terminal.journal_head(), Some(&ack.event().head()));
+        let actual = cold
+            .load_child_budget_account(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.direct_head(), &ack.event().head());
+        assert_eq!(actual.direct_usage(), direct);
+        assert!(actual.direct_usage().known_costs().is_empty());
+        assert_eq!(actual.children(), account.children());
+        assert_eq!(
+            actual.delegated_usage().unwrap(),
+            account.delegated_usage().unwrap()
+        );
+        let retained = registered_join_tenant_facts(db, key.tenant_id()).await;
+        let loaded = Box::pin(cold.load_graph_frame_closure(key.tenant_id(), key.parent_run_id()))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_same_published_close(&loaded, original);
+        let replay = cold.append_control_plane(append, projection).await.unwrap();
+        assert_eq!(replay.event(), ack.event());
+        let replay = Box::pin(cold.close_graph_frames(
+            key.tenant_id(),
+            key.parent_run_id(),
+            EventId::generate(),
+            value.head.clone(),
+            value.admission.run().lifecycle().revision(),
+            BudgetUsage::zero(),
+        ))
+        .await
+        .unwrap();
+        assert!(matches!(
+            &replay,
+            stateknot_store_postgres::GraphFrameClosureCommitOutcome::Existing(_)
+        ));
+        assert_same_published_close(replay.record(), original);
+        assert_eq!(
+            cold.load_child_budget_account(key.tenant_id(), key.parent_run_id())
+                .await
+                .unwrap(),
+            Some(expected)
+        );
+        assert!(
+            cold.load_run_failure_close(key.tenant_id(), key.parent_run_id())
+                .await
+                .unwrap()
+                .is_none()
+        );
+        assert_eq!(
+            registered_join_tenant_facts(db, key.tenant_id()).await,
+            retained
+        );
+        Ok(())
+    }
+
+    async fn register_and_settle_priced_child(
+        store: &PostgresStore,
+        value: &Fixture,
+    ) -> (
+        stateknot_store_postgres::ChildJoinCommitOutcome,
+        stateknot_store_postgres::ChildRunRecord,
+        stateknot_core::ChildRunBudgetAccount,
+    ) {
+        let key = value.intent.key();
+        let spawned = Box::pin(spawn(store, value)).await.unwrap();
+        let registered = Box::pin(store.register_child_join(
+            stateknot_core::ChildRunJoinRequest::new([key.clone()]).unwrap(),
+            &value.node,
+            join_append(value, &spawned.record().spawn().head()),
+        ))
+        .await
+        .unwrap();
+        let usage = Box::pin(settle_priced_child(store, value, spawned.record().child())).await;
+        assert_eq!(
+            serde_json::to_value(usage.known_costs()).unwrap(),
+            json!([{"currency":"USD","micro_units":"11"}])
+        );
+        assert_eq!(
+            usage.unpriced_cost_events(),
+            stateknot_core::ExecutionCount::ZERO
+        );
+        let child = Box::pin(store.load_child_run(key)).await.unwrap();
+        assert_eq!(child.settlement().unwrap().usage(), &usage);
+        assert_eq!(child.child().run().lifecycle().status(), RunStatus::Failed);
+        assert_eq!(
+            child.child().run().lifecycle().terminal_usage(),
+            Some(&usage)
+        );
+        let account = store
+            .load_child_budget_account(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(account.children().len(), 1);
+        assert_eq!(account.children()[0].key(), key);
+        assert_eq!(account.children()[0].settlement().unwrap().usage(), &usage);
+        assert_eq!(account.delegated_usage().unwrap(), usage.cumulative_only());
+        (registered, child, account)
+    }
+
+    async fn characterize(
+        store: &PostgresStore,
+        cold: &PostgresStore,
+        db: &PgPool,
+    ) -> Result<(), StoreError> {
+        let value = Box::pin(started(store, "frame-frozen-direct-priced-child")).await;
+        let key = value.intent.key();
+        let (registered, child, account) =
+            Box::pin(register_and_settle_priced_child(store, &value)).await;
+        let requested = Box::pin(cancel_parent(store, &value)).await;
+        let direct = Box::pin(join::direct(store, &value, 2, &BudgetUsage::zero())).await;
+        assert!(direct.known_costs().is_empty());
+
+        let parent = store
+            .load_run(key.tenant_id(), key.parent_run_id())
+            .await
+            .unwrap();
+        assert_eq!(
+            parent.lifecycle().status(),
+            RunStatus::CancellationRequested
+        );
+        assert!(parent.lease().is_none());
+        let closed = Box::pin(store.close_graph_frames(
+            key.tenant_id(),
+            key.parent_run_id(),
+            EventId::generate(),
+            requested,
+            parent.lifecycle().revision(),
+            direct.clone(),
+        ))
+        .await
+        .unwrap();
+        assert!(matches!(
+            &closed,
+            stateknot_store_postgres::GraphFrameClosureCommitOutcome::Committed(_)
+        ));
+        assert_eq!(closed.record().direct_usage(), &direct);
+        assert!(closed.record().original_cancellation_lifecycle().is_some());
+        assert_eq!(
+            closed.record().event().payload().data().as_value()["version"],
+            json!(2)
+        );
+        Box::pin(assert_stopped_registered_join_owner(
+            store,
+            &value,
+            registered.record(),
+            closed.record(),
+        ))
+        .await;
+        let loaded = Box::pin(cold.load_graph_frame_closure(key.tenant_id(), key.parent_run_id()))
+            .await
+            .unwrap()
+            .unwrap();
+        assert_same_published_close(&loaded, closed.record());
+        assert_eq!(
+            cold.load_child_budget_account(key.tenant_id(), key.parent_run_id())
+                .await
+                .unwrap(),
+            Some(account.clone())
+        );
+        let total = direct
+            .checked_accumulate(&account.delegated_usage().unwrap())
+            .unwrap();
+        assert_eq!(
+            Box::pin(store.include_child_usage(
+                key.tenant_id(),
+                key.parent_run_id(),
+                direct.clone()
+            ))
+            .await
+            .unwrap(),
+            total
+        );
+        assert!(
+            store
+                .load_run_failure_close(key.tenant_id(), key.parent_run_id())
+                .await
+                .unwrap()
+                .is_none()
+        );
+        println!(
+            "\nSTATEKNOT_FRAME_FROZEN_DIRECT_COST_EVIDENCE={}",
+            json!({
+                "phase":"setup_verified", "failure_close_absent":true,
+                "closure_version":2, "frozen_direct_costs":direct.known_costs(),
+                "actual_child_costs":child.settlement().unwrap().usage().known_costs(),
+                "actual_delegated_costs":account.delegated_usage().unwrap().known_costs(),
+                "closure_ack_reloaded":true, "original_owner_retained":true,
+            })
+        );
+        Box::pin(terminal_and_replay(
+            store,
+            cold,
+            db,
+            &value,
+            closed.record(),
+            &account,
+        ))
+        .await
+    }
+
+    #[tokio::test]
+    async fn closed_frame_cancellation_preserves_empty_direct_costs_with_priced_child() {
+        let _guard = DATABASE_TEST_MUTEX.lock().await;
+        let Some(store) = test_store().await else {
+            return;
+        };
+        let url = std::env::var(DATABASE_URL_ENV).unwrap();
+        let cold = PostgresStore::connect(&url, store.options().clone())
+            .await
+            .unwrap();
+        let db = super::super::super::frame_barriers::pool().await;
+        let (worker, reloaded, facts) = (store.clone(), cold.clone(), db.clone());
+        let observed =
+            tokio::spawn(async move { Box::pin(characterize(&worker, &reloaded, &facts)).await })
+                .await;
+        // Drain the owned test task and close both Store pools and the facts pool
+        // before reporting either a setup panic or the terminal characterization.
+        cold.close().await;
+        db.close().await;
+        store.close().await;
+        observed
+            .expect("frame-cost setup and owning assertions must finish")
+            .expect("a correct whole-frame total must retain the original frozen DIRECT");
+    }
+}

@@ -180,6 +180,17 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- Preserve frozen DIRECT usage when completing a sealed failure-close or ordinary
+  whole-frame cancellation with priced settled children. A parent with no DIRECT
+  cost entries keeps that representation while charging a child's `USD` cost of
+  11 micro-units once; inconsistent terminal totals remain rejected. No public API
+  or database schema changes. Full Native/CI qualification, R1 closure and Supported
+  status remain separate.
+  修复已封存 failure-close 与普通 whole-frame cancellation 在子任务已结算计价时的
+  终态记账：父任务保留原 DIRECT 空成本集合，子任务的 `USD` 11 微单位成本仅累计一次，
+  继续拒绝不一致的终态总量。公共 API 与数据库 schema 不变；不授予完整 Native/CI
+  资格，不关闭 R1，也不改变 Supported 状态。
+
 - Make zero-delay A2A subscription test policies ready on their first poll,
   preserving every configured delay and request budget. Add bounded failure
   diagnostics and a regression control using real decoded HTTP requests.

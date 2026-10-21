@@ -1524,8 +1524,10 @@ pub(super) async fn prepare_failure_close(
 pub(super) async fn validate_closed_direct_usage(
     tx: &mut Transaction<'_, Postgres>,
     event: &JournalEvent,
-    direct: &BudgetUsage,
-) -> Result<(), StoreError> {
+    total: &BudgetUsage,
+    delegated: &BudgetUsage,
+    expected_direct: Option<&BudgetUsage>,
+) -> Result<Option<BudgetUsage>, StoreError> {
     let open: bool = query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.graph_frame_stacks WHERE tenant_id=$1 AND run_id=$2 AND active_namespace<>'')")
         .bind(event.tenant_id().as_str()).bind(*event.run_id().as_uuid())
         .fetch_one(&mut **tx).await.map_err(|e|StoreError::database("terminal frame boundary",e))?;
@@ -1533,7 +1535,7 @@ pub(super) async fn validate_closed_direct_usage(
         return Err(StoreError::GraphFrameCompoundRequired);
     }
     let Some(saved) = closures::row(tx, event.tenant_id(), event.run_id()).await? else {
-        return Ok(());
+        return Ok(None);
     };
     let current = query_as::<_, RunRow>(SELECT_RUN)
         .bind(event.tenant_id().as_str())
@@ -1543,7 +1545,13 @@ pub(super) async fn validate_closed_direct_usage(
         .map_err(|e| StoreError::database("closed terminal Run", e))?;
     let current = decode_run(current)?;
     let record = Box::pin(closures::verified_record(tx, &current, saved)).await?;
-    if record.direct_usage() != direct {
+    if expected_direct.is_some_and(|direct| record.direct_usage() != direct)
+        || record
+            .direct_usage()
+            .checked_accumulate(delegated)
+            .map_err(|_| StoreError::IncompleteChildAccounting)?
+            != *total
+    {
         return Err(StoreError::IncompleteChildAccounting);
     }
     // The parent is locked by the existing terminal writer. Historical closure
@@ -1566,5 +1574,5 @@ pub(super) async fn validate_closed_direct_usage(
         ))
         .await?;
     }
-    Ok(())
+    Ok(Some(record.direct_usage().clone()))
 }

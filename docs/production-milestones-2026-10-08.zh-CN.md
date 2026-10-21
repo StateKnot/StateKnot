@@ -509,3 +509,13 @@ npm run verify
 2026-10-21 published scoped Join 公开 Loop 定向追加（R1/RFC-0022/R6/R7 仍开放）：
 
 - [公开 Loop COMMIT 丢确认记录](qualification/experimental-published-join-public-loop-commit-loss-2026-10-21.zh-CN.md)分开绑定两组证据：已发布 `53b0d83` 的969/563、source `fbc2dc9c…`/compiled `3c6dd428…` 已通过完整 CI39444455774（22/22 job、20 checkout、56 artifact、15组件/111负控；双版各 Store275/Runtime227）；新 minimal-v2 的 source `1424fc42…`/compiled `54c23f83…` 仅实际通过 macOS aarch64、PostgreSQL16.15/17.11 各1项/227filtered 的四个 COMMIT 切点。Writer 是公开 `DurableAgentLoop::run` 的 lifecycle mutation，Driver handoff 已观察，独立 Driver mutation 未中断。冷 Before 由原身份/graph pins 重建并等原30秒租约自然到期，冷 After 优先原 closure ACK；完整 tenant/租约、原 owner/binding 与 child usage once 均保持。新库存275/228不等于新全套通过；两测试路径之外生产/API不变，首轮 json 宏编译101原样保留且非功能RED。新组合六门禁、完整Native/新CI及R1/stdio/发布资格继续待验，不继承53的CI。
+
+
+2026-10-21 D3 generic failure-close 冻结DIRECT修复（限定双PG定向GREEN，全组合待验）：
+
+- [真实Tool Unknown与冻结DIRECT记录](qualification/experimental-failure-close-real-tool-unknown-2026-10-21.zh-CN.md)绑定实际生产false rejection：verified parent frozenDIRECT costs[]、settledchild USD11时，total正确但减法保留USD0，parentfinalizer精确IncompleteChildAccounting；RED420a34aa…的A已完成、两版B未完成，DB/原Coreunit证据齐全。仅Store failure_closes.rs/child_runs.rs两私有路径改为先验证原DIRECT+实际delegated的完整total，再返回原DIRECT；Corezero/公开API/SQL不变，普通frame/noFailure/Rootbarrier同类fallback仍开放。原Runtime2730整字节不变，fixed972source dcf0a544…/563compiled88e00f75…/prep6dc564b3…由Root523ca62e…确认PG16/17各exact1pass/228filtered、4A/Bprofiles/116checks全true，A成本11+11=22、B[]+11=11（USDmicro_units），完整DIRECT/child累计一次、拓扑不继承、原ACK和wholetenant重建重放不写。范围仅macOSaarch64+PGcontainers、同进程Store/Runtime重建，不称OSkill或外网exactly-once。同源严格Clippy101仅两新helpers101/105行；style/CI6/docs组合须重新六门禁/完整275229×双PG/新CI，未来hash不预填。v2静态oracle、编译101及真实RED全保留，90/1800/30min不变；6ec旧六门/1006与未获fullCI的39464102714不转授，不关闭R1/RFC/stdio/发布。
+
+
+2026-10-21 D4 closed-frame 冻结 DIRECT限定追加：
+
+- [双语资格记录](qualification/experimental-closed-frame-direct-costs-2026-10-21.zh-CN.md)绑定已证 closure-only空DIRECT/真实child USD11的双版RED与同测试minimalGREEN。仅三条私有Store生产路径认证原冻结DIRECT并正向校验完整total，Core零币种/API/SQL/schema与原预算不变。当前974source16863bd8…/563compiled48eccc16…的D4双版各1pass/275filtered、D3回归双版各1pass/228filtered（116true），另五个旧case双版十次exact通过；七case×双版14次仅限定定向范围。同源严格Clippy101为三项测试helper过长，wrong-total稿未运行；旧D3 source6baea426…四套1800秒watchdog负例仍保留，不能转授当前源。最终source/六门禁/完整Native/发布新CI均待真实记录，R1/R6/R7、RFC-0022与stdio不关闭。

@@ -184,3 +184,9 @@ R2/R5/R6/R7 项有明确后续阶段，但仍是原 RFC 的整体验收门禁。
 
 
 2026-10-21 限定增量：[published scoped Join 公开 Loop COMMIT 丢确认](qualification/experimental-published-join-public-loop-commit-loss-2026-10-21.zh-CN.md)补充 G3/G4/D3 的精确 publicLoop lifecycle 边界。旧已发布 `53b0d83`/source `fbc2dc9c…` 的完整 run39444455774 为22/22成功；新 minimal-v2 `1424fc42…`/compiled `54c23f83…` 的本机双PG16.15/17.11各1项定向通过仅证明四个cut：实际公开Loop经Driver handoff后写v3 closure，真实kill/reap，Before按持久原身份重建registry/完整DIRECT并等待原租约自然到期取得F3，After ID-only优先原ACK，完整tenant/租约及child once不变。`standalone_driver_mutation_interrupted=false`；新275/228只是实际构建库存，不是完整suite或CI验收。首轮宏语法构建101非功能RED且保留，新组合门禁/完整Native/CI、完整故障矩阵、R1/R6/R7及stdio仍开放；不改写前文历史条目或转授旧CI。
+
+
+2026-10-21 D3 generic RunFailureClose限定修复：[实测记录](qualification/experimental-failure-close-real-tool-unknown-2026-10-21.zh-CN.md)给出真实Unknown/ReconcileFirst及childaccount组合退出边界。A在parentnodefailure真实保存、Run仍Active后逐请求精确Toolblocker无写；B在原failure-close及childRequestCancellation保存后精确UnsettledChildRuns无写，再经原invocation/schema/operation当前consent的真实provider对账，不业务重发。实际B的frozenDIRECT空币种与childUSD11产生正确total，却在原终态减法中保留USD0导致IncompleteChildAccounting；420a实RED+DB诊断保留。仅两私有Store路径正向验证frozenDIRECT+delegated并保留原DIRECT，Core明确zero语义及公开API/SQL未改。原测试2730保持，fixed972dcf/56388e的Root523ca双PG各1pass/228filtered、4profiles/116true，完整成本累计一次、child拓扑不继承、原ACK与wholeaccount重建后不写均有证据。该源Clippy仍101两helpers过长，style/CI/docs新组合须独立六门禁/完整Native/新CI；旧6ec与父53资格不转授。普通frame/noFailure/Rootbarrier同类问题、更广scopedUnknown/OSkill/外网effect、Driver中断、R1/R6/R7/RFC、stdio与发布仍开放，不修改原退出条件或历史限定结论。
+
+
+2026-10-21 D4限定补证：[closed-frame冻结DIRECT记录](qualification/experimental-closed-frame-direct-costs-2026-10-21.zh-CN.md)补普通已关闭取消帧、无RunFailureClose且child引入币种的真实false rejection；三私有Store路径保留已认证原DIRECT，完整total正向核验、两来源全等与原锁序/错误优先级不减。当前16863bd8…/48eccc16…双版D4/D3及五个旧case共14次定向通过；同源Clippy仍101，完整六门禁/Native/发布CI未授。旧6baea426…四套full Native失败保留且不归当前源；wrong-total保护稿尚未运行，Root-barrier/更多Unknown与故障矩阵继续开放，不修改原R1/R6/R7、RFC与stdio退出条件。
