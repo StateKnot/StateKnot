@@ -190,3 +190,6 @@ R2/R5/R6/R7 项有明确后续阶段，但仍是原 RFC 的整体验收门禁。
 
 
 2026-10-21 D4限定补证：[closed-frame冻结DIRECT记录](qualification/experimental-closed-frame-direct-costs-2026-10-21.zh-CN.md)补普通已关闭取消帧、无RunFailureClose且child引入币种的真实false rejection；三私有Store路径保留已认证原DIRECT，完整total正向核验、两来源全等与原锁序/错误优先级不减。当前16863bd8…/48eccc16…双版D4/D3及五个旧case共14次定向通过；同源Clippy仍101，完整六门禁/Native/发布CI未授。旧6baea426…四套full Native失败保留且不归当前源；wrong-total保护稿尚未运行，Root-barrier/更多Unknown与故障矩阵继续开放，不修改原R1/R6/R7、RFC与stdio退出条件。
+
+
+2026-10-27 真实 Unknown 对账后父 finalizer 进程故障限定追加：[双语记录](qualification/experimental-real-tool-unknown-finalizer-commit-loss-2026-10-27.zh-CN.md)绑定既有隔离 ce3b2c6c…/564编译输入9b485402…：macOS aarch64 的 PostgreSQL16/17各exact1pass/230filtered，两个父finalizer COMMIT切点共4次真实writer SIGKILL/reap、72项前置检查true，随后身份限定新进程public tick与完整owning reads。Unknown已在kill前显式授权对账且child已结算；After空tick不是ACK，原完整event/account.observe_direct与全租户无写另有断言。生产源码不变；现行库存276/231及真实本机fixture不改写c9历史229或冒称Linux CI。b514基础上的新组合source/六门禁/完整Native/准确head CI待验；未解析Unknown跨进程、provider backend durability、Store Existing replay、跨OS kill、独立Driver mutation及R1/R6/R7/RFC/stdio/发布仍开放。

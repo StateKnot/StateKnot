@@ -519,3 +519,6 @@ npm run verify
 2026-10-21 D4 closed-frame 冻结 DIRECT限定追加：
 
 - [双语资格记录](qualification/experimental-closed-frame-direct-costs-2026-10-21.zh-CN.md)绑定已证 closure-only空DIRECT/真实child USD11的双版RED与同测试minimalGREEN。仅三条私有Store生产路径认证原冻结DIRECT并正向校验完整total，Core零币种/API/SQL/schema与原预算不变。当前974source16863bd8…/563compiled48eccc16…的D4双版各1pass/275filtered、D3回归双版各1pass/228filtered（116true），另五个旧case双版十次exact通过；七case×双版14次仅限定定向范围。同源严格Clippy101为三项测试helper过长，wrong-total稿未运行；旧D3 source6baea426…四套1800秒watchdog负例仍保留，不能转授当前源。最终source/六门禁/完整Native/发布新CI均待真实记录，R1/R6/R7、RFC-0022与stdio不关闭。
+
+
+2026-10-27 真实 Unknown 对账后父 finalizer 进程故障限定追加：[双语记录](qualification/experimental-real-tool-unknown-finalizer-commit-loss-2026-10-27.zh-CN.md)绑定既有隔离 ce3b2c6c…/564编译输入9b485402…：macOS aarch64 的 PostgreSQL16/17各exact1pass/230filtered，两个父finalizer COMMIT切点共4次真实writer SIGKILL/reap、72项前置检查true，随后身份限定新进程public tick与完整owning reads。Unknown已在kill前显式授权对账且child已结算；After空tick不是ACK，原完整event/account.observe_direct与全租户无写另有断言。生产源码不变；现行库存276/231及真实本机fixture不改写c9历史229或冒称Linux CI。b514基础上的新组合source/六门禁/完整Native/准确head CI待验；未解析Unknown跨进程、provider backend durability、Store Existing replay、跨OS kill、独立Driver mutation及R1/R6/R7/RFC/stdio/发布仍开放。

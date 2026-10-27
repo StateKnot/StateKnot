@@ -276,7 +276,7 @@
   },
   "full_inventory": {
     "store": 276,
-    "runtime": 229
+    "runtime": 231
   },
   "native_majors": [
     16,
@@ -1422,7 +1422,7 @@
       "equivalence": "exact original step object and run body"
     }
   ],
-  "current_candidate_workflow_sha256": "2b15e4145753f9bd23d8a326b8b745bdad7653b7e1b67c688699886bb8c2ee27",
+  "current_candidate_workflow_sha256": "701d6ce5331794af64656f19eb407c81b77df20d897b39658a6b3d8426bc4208",
   "explicit_extra_steps": [
     {
       "shard": "native",
@@ -1531,7 +1531,7 @@
   "producer_export_receipt_outside_sealed_bundle": true,
   "runtime_shard_unit_controls": {
     "script": ".github/scripts/test-postgres-native-runtime-shards.py",
-    "fixture_provenance": ".github/scripts/tests/fixtures/postgres-native-runtime-shards/provenance.json",
+    "fixture_provenance": ".github/scripts/tests/fixtures/postgres-native-runtime-shards/current-provenance.json",
     "positive_first_required_for_every_negative": true,
     "fixtures_are_codec_inputs_only": true,
     "ci_job": "postgres-native-build",

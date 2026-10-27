@@ -6,7 +6,9 @@
 Only the producer binding/environment and final live process-scan boundaries
 are substituted. Persisted owner identities and ABI receipts remain real inputs.
 The real sharded plan, harness, owner, routing and stream validators run over
-complete artifact-shaped files and original 276/229 producer inventories.
+complete artifact-shaped files and original 276/231 producer inventories.
+The Store list is historical Linux CI; the Runtime list is local macOS evidence.
+Their per-role provenance is distinct from the synthetic protocol receipts below.
 Every rejection first proves that its untouched fixture is accepted.
 """
 import copy
@@ -64,7 +66,7 @@ class Evidence:
         self.root = root
         self.out = root / 'postgres-native-parallel'
         self.out.mkdir()
-        provenance = json.loads((FIXTURES / 'provenance.json').read_bytes())
+        provenance = json.loads((FIXTURES / 'current-provenance.json').read_bytes())
         if tuple(binaries.LANES) != LANES or binaries.DATABASES != DATABASES:
             raise ValueError('implementation lane or database constants drifted from the independent protocol')
         self.names, raw_lists = {}, {}
@@ -83,8 +85,9 @@ class Evidence:
             self.names[role] = sorted(names)
             raw_lists[role] = raw
             put(self.out, 'import/producer/' + role + '-inventory.stdout', raw)
-        source = {'head': 'c9c3398015ea3183f915c7ec1dd4d7aa81d497ac',
-                  'files': [], 'manifest_sha256': '1' * 64}
+        # Artifact-shaped receipts share a synthetic binding; actual list origins
+        # remain separate in current-provenance.json and are not relabeled as CI.
+        source = copy.deepcopy(provenance['protocol_receipt_source'])
         self.receipts, self.environments = {}, {}
         for role in ('store', 'runtime'):
             binary = root / 'target/debug/deps' / ('postgres-' + role)

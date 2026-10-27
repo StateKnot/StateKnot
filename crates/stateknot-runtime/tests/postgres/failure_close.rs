@@ -19,6 +19,9 @@ mod commit_loss;
 #[path = "failure_close_completion_commit_loss.rs"]
 mod completion_commit_loss;
 
+#[path = "failure_close_real_tool_unknown_finalizer_process_faults.rs"]
+mod real_unknown_finalizer_faults;
+
 #[path = "role_profile.rs"]
 mod role_profile;
 

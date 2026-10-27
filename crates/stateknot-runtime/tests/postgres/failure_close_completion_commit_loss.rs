@@ -27,7 +27,7 @@ fn child_usage() -> BudgetUsage {
         .unwrap()
 }
 
-async fn worker_store(input: &Value) -> PostgresStore {
+pub(super) async fn worker_store(input: &Value) -> PostgresStore {
     let url = std::env::var(DATABASE_URL_ENV).expect("COMMIT-loss worker requires PostgreSQL");
     let mut connection: PgConnectOptions = url.parse().unwrap();
     if let Some(port) = input["proxy_port"].as_u64() {
@@ -228,7 +228,7 @@ async fn snapshot(
     }
 }
 
-async fn wait_for_backend_disconnect(pool: &sqlx_postgres::PgPool, pid: i32) {
+pub(super) async fn wait_for_backend_disconnect(pool: &sqlx_postgres::PgPool, pid: i32) {
     tokio::time::timeout(Duration::from_secs(30), async {
         loop {
             let gone: bool =

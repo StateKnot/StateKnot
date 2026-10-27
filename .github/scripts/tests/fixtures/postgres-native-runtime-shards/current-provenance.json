@@ -1,0 +1,56 @@
+{
+  "schema": "stateknot.native-runtime-shards-fixture-provenance.v2",
+  "purpose": "Portable codec/unit inputs only; not Native execution or qualification of the combined candidate.",
+  "repository": "StateKnot/StateKnot",
+  "historical_fixture_provenance": {
+    "file": "provenance.json",
+    "sha256": "030c520568d84cffb461dd54dcdf38b8a18df85359e424e7b50202c45cad3367",
+    "retained_unchanged": true
+  },
+  "roles": {
+    "store": {
+      "file": "c9-store-inventory.stdout",
+      "inventory": 276,
+      "bytes": 24307,
+      "sha256": "8102425660ba2c4b09eb5eee122091cef019bf61487377dfa32c656b4d201fa3",
+      "origin": {
+        "kind": "actual-linux-CI-producer-list",
+        "head": "c9c3398015ea3183f915c7ec1dd4d7aa81d497ac",
+        "run_id": 39548415549,
+        "run_attempt": 1,
+        "major": 17,
+        "source_directory": "r1-d4-c9c339-native17-streams-v1/import/producer"
+      }
+    },
+    "runtime": {
+      "file": "local-ce3b-runtime-inventory.stdout",
+      "inventory": 231,
+      "bytes": 24387,
+      "sha256": "ba9106863109842a771ff57f1bf1af7fbba476be72da70118c79f59355a14703",
+      "origin": {
+        "kind": "actual-local-macos-aarch64-native-build-list",
+        "source_directory": "r1-real-unknown-finalizer-fault-source-v3",
+        "source_files": 977,
+        "source_tree_sha256": "ce3b2c6c43fa654c3174f1badc08cd0e9719f7d992614b48347be7d41cf1563b",
+        "compiled_inputs": 564,
+        "compiled_sha256": "9b4854020bb8e3bfd54ebc54fd6e4c807ab8b8f83ae94e6e05e5e61c9bba1829",
+        "capture_directory": "r1-real-unknown-finalizer-fault-native-build-v1",
+        "capture_manifest_sha256": "bbe18cc5ffc1ead60d3c90767076399484774bd93520d119957fb3460a872ce0",
+        "original_file": "runtime-inventory.stdout",
+        "inventory_receipt_sha256": "f8df1837e44be255d37cca73cc226d888eaa1ace81f1a535dd317a153767e7f8",
+        "binary_sha256": "6b2ac16355a11065187b688897c6790d887464a1bacf0148da36090c1a79aaf5",
+        "linux_CI": false,
+        "head_claimed": false
+      }
+    }
+  },
+  "protocol_receipt_source": {
+    "head": "ffffffffffffffffffffffffffffffffffffffff",
+    "files": [],
+    "manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "protocol_receipt_source_is_synthetic": true,
+  "protocol_receipt_source_purpose": "Unit-only consistent source binding for fabricated artifact-shaped receipts; not the historical provenance of either actual inventory list.",
+  "qualification_awarded": false,
+  "verification": "The author copied the original bytes with Node built-in file APIs and checked SHA-256, byte length, 231 unique actual test names, and the exact two-case delta from the retained historical c9 list. No binary or test was executed by this author."
+}
