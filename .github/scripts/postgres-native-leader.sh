@@ -44,7 +44,7 @@ other_group_members() {
   local proc line tail state parent group rest
   for proc in /proc/[0-9]*/stat; do
     [[ "$proc" == "/proc/$$/stat" ]] && continue
-    if IFS= read -r line < "$proc" 2>/dev/null; then
+    if { IFS= read -r line < "$proc"; } 2>/dev/null; then
       tail=${line##*) }
       read -r state parent group rest <<< "$tail"
       [[ "$group" == "$$" ]] && return 0

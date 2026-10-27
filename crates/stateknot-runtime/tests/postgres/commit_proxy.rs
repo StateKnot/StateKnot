@@ -43,11 +43,15 @@ pub(super) enum TransactionTarget {
     LeaseRelease,
     RunQuarantine,
     GraphFrameCancellationConfirmation,
+    ToolInvocationOutcome,
 }
 
 impl TransactionTarget {
     const fn parse_prefix(self) -> &'static [u8] {
         match self {
+            Self::ToolInvocationOutcome => {
+                b"\nUPDATE stateknot.tool_invocations AS current_invocation\n"
+            }
             Self::FailureClose => b"INSERT INTO stateknot.run_failure_closes ",
             Self::FailureCloseCompletion => b"\nUPDATE stateknot.runs\nSET journal_sequence = $3,",
             Self::ChildAdmission => b"INSERT INTO stateknot.child_run_ownership ",
@@ -95,6 +99,7 @@ pub(super) struct CommitProxy {
     task: JoinHandle<io::Result<()>>,
     resume: Option<tokio::sync::oneshot::Sender<()>>,
     messages_while_ack_held: Arc<AtomicUsize>,
+    outcome_phase: Option<tokio::sync::oneshot::Sender<()>>,
 }
 
 impl CommitProxy {
@@ -114,7 +119,7 @@ impl CommitProxy {
         target: TransactionTarget,
         skip: u8,
     ) -> Self {
-        Self::start_cut(options, cut, target, skip, None).await
+        Self::start_cut(options, cut, target, skip, None, None).await
     }
 
     // A real executor call distinguishes execution maintenance from any
@@ -125,7 +130,33 @@ impl CommitProxy {
         target: TransactionTarget,
         calls: Arc<AtomicUsize>,
     ) -> Self {
-        Self::start_cut(options, cut, target, 0, Some(calls)).await
+        Self::start_cut(options, cut, target, 0, Some(calls), None).await
+    }
+
+    // The writer uses this one session only for commit_tool_terminal after its
+    // direct Store has completed prepare/start/provider dispatch. The controller
+    // snapshots all committed tenant facts before releasing the matching Parse.
+    pub(super) async fn start_paused_tool_outcome(options: &PgConnectOptions, cut: Cut) -> Self {
+        let (sender, receiver) = tokio::sync::oneshot::channel();
+        let mut proxy = Self::start_cut(
+            options,
+            cut,
+            TransactionTarget::ToolInvocationOutcome,
+            0,
+            None,
+            Some(receiver),
+        )
+        .await;
+        proxy.outcome_phase = Some(sender);
+        proxy
+    }
+
+    pub(super) fn arm_tool_outcome(&mut self) {
+        self.outcome_phase
+            .take()
+            .expect("arm the isolated outcome phase once")
+            .send(())
+            .expect("outcome proxy must remain live");
     }
 
     #[allow(clippy::too_many_lines)]
@@ -135,6 +166,7 @@ impl CommitProxy {
         target: TransactionTarget,
         mut skip: u8,
         launched: Option<Arc<AtomicUsize>>,
+        mut outcome_phase: Option<tokio::sync::oneshot::Receiver<()>>,
     ) -> Self {
         let backend = loopback_target(options);
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
@@ -179,7 +211,13 @@ impl CommitProxy {
                     }
                     if frame.tag == b'P' {
                         let query = parse_query(&frame.body)?;
-                        armed |= query.starts_with(target.parse_prefix());
+                        let matched = query.starts_with(target.parse_prefix());
+                        armed |= matched;
+                        if matched && let Some(phase) = outcome_phase.take() {
+                            phase
+                                .await
+                                .map_err(|_| invalid("controller gone before outcome phase"))?;
+                        }
                     }
                     if armed && frame.tag == b'Q' && frame.body == b"COMMIT\0" {
                         armed = false;
@@ -253,6 +291,7 @@ impl CommitProxy {
             task,
             resume: Some(resume),
             messages_while_ack_held,
+            outcome_phase: None,
         }
     }
 
@@ -386,6 +425,7 @@ async fn commit_proxy_rejects_truncated_oversized_and_malformed_frames() {
         TransactionTarget::ChildJoinConsumption,
         TransactionTarget::AgentDeadlineCancellation,
         TransactionTarget::GraphFrameCancellationConfirmation,
+        TransactionTarget::ToolInvocationOutcome,
     ] {
         assert!(!target.parse_prefix().is_empty());
     }

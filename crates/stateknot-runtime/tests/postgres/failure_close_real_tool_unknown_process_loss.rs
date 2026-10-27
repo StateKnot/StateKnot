@@ -4,6 +4,9 @@
 //! Framework Unknown survives writer loss. The controller retains the actual
 //! fixture receipt; this is not independent external-provider durability.
 
+#[path = "failure_close_tool_unknown_transition_commit_loss.rs"]
+mod outcome_commit_faults;
+
 use super::*;
 use stateknot_core::ChildRunBudgetSettlement;
 use stateknot_store_postgres::StoredRun;

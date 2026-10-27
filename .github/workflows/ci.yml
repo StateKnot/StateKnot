@@ -605,10 +605,10 @@ jobs:
               require(sum(line.startswith("test " + CASE + " ...") for line in lines) == 1,
                       "exact controller start line missing or repeated")
               summaries = re.findall(
-                  r"^test result: ok[.] 1 passed; 0 failed; 0 ignored; 0 measured; 232 filtered out; finished in [0-9.]+s$",
+                  r"^test result: ok[.] 1 passed; 0 failed; 0 ignored; 0 measured; 234 filtered out; finished in [0-9.]+s$",
                   text, re.MULTILINE,
               )
-              require(len(summaries) == 1, "complete 1/232 harness summary missing or repeated")
+              require(len(summaries) == 1, "complete 1/234 harness summary missing or repeated")
               marker_lines = [line[len(PREFIX):] for line in lines if line.startswith(PREFIX)]
               require(len(marker_lines) == 2, "exactly two Return cut markers required")
               seen = {}
@@ -649,8 +649,8 @@ jobs:
               rows = validate_bytes(raw, major, "linux", platform.machine())
               result = {
                   "profile": "frame-return-commit-loss-v1", "status": "passed",
-                  "exact_case": CASE, "full_runtime_inventory": 233,
-                  "selected_passed": 1, "filtered_out": 232, "marker_count": 2,
+                  "exact_case": CASE, "full_runtime_inventory": 235,
+                  "selected_passed": 1, "filtered_out": 234, "marker_count": 2,
                   "log_sha256": hashlib.sha256(raw).hexdigest(),
                   "postgres_major": major, "runner_os": "linux", "runner_arch": platform.machine(),
                   "cuts": rows,

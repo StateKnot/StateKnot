@@ -1444,3 +1444,8 @@ The [bilingual experimental record](../qualification/experimental-real-tool-unkn
 ## 2026-10-27 unresolved-Unknown writer-loss evidence
 
 The [new bounded profile](../qualification/experimental-unresolved-tool-unknown-writer-loss-2026-10-27.md) kills the actual writer after its committed Tool Unknown, proves ID-only cold Driver fail-closed behavior before receipt/provider reconstruction, then explicitly authorizes reconciliation. Its local scope and full account/ACK assertions do not establish Unknown-transaction COMMIT ambiguity or independent provider durability. The new composition and exact-head CI remain pending; status stays Draft.
+
+
+## 2026-10-27 Tool outcome COMMIT evidence
+
+The [new local profile](../qualification/experimental-tool-unknown-transition-commit-loss-2026-10-27.md) distinguishes the uncommitted Executing revision from committed Unknown, without reconstructing a private handoff or dispatching again. It covers child-root Tool activation, not a scoped-leaf uncertain-effect combination. The composed235-case inventory and documentation still require their own exact-tree CI; authorized Executing disposition and the remaining matrix stay open. Status remains Draft.

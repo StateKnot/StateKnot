@@ -393,7 +393,7 @@ def inventory(directory, role, receipt, module):
     names = [line[:-6] for line in lines if line.endswith(': test')]
     count = module.ROLES[role][1]
     require(len(names) == len(set(names)) == count and len(lines) == count + 2
-            and lines[-1] == str(count) + ' tests, 0 benchmarks', 'full 276/233 Native inventory')
+            and lines[-1] == str(count) + ' tests, 0 benchmarks', 'full 276/235 Native inventory')
 
 
 def validate_ci_contract(contract, workflow_sha256):
@@ -403,7 +403,7 @@ def validate_ci_contract(contract, workflow_sha256):
             'explicit current runtime-shards CI contract schema')
     require(contract['expected_jobs'] == 22 and contract['expected_checkouts'] == 20
             and contract['current_candidate_workflow_sha256'] == workflow_sha256
-            and contract['full_inventory'] == {'store': 276, 'runtime': 233}
+            and contract['full_inventory'] == {'store': 276, 'runtime': 235}
             and 'native_pair_owner_unchanged' not in contract,
             'explicit current runtime-shards CI contract')
     execution = contract['native_execution']

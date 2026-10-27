@@ -199,3 +199,6 @@ R2/R5/R6/R7 项有明确后续阶段，但仍是原 RFC 的整体验收门禁。
 
 
 2026-10-27 未解析 Unknown writer-loss 补充：[限定记录](qualification/experimental-unresolved-tool-unknown-writer-loss-2026-10-27.zh-CN.md)绑定真实 writer execute_tool 后 Unknown/reconcile-first、kill/reap、ID-only cold 进程自然租约到期后的更高 fence Driver handoff、显式 release 与之后明确 consent 恢复；完整账户、原 ACK、terminal delta 与分段无写窗口均有实际断言。992source f2089d5a…/565compiled7964eb40…六门禁及双PG各exact1pass/232filtered通过；真实库存276/233，CI同步保留历史229/231和原预算。新组合及准确head CI继续待验；Unknown事务COMMIT歧义、独立provider持久化、完整矩阵、R1/R6/R7与stdio仍开放。
+
+
+2026-10-27 Tool Unknown 转换 COMMIT 限定补证：[记录](qualification/experimental-tool-unknown-transition-commit-loss-2026-10-27.zh-CN.md)分别证明 Before 的原 Executing1 与 After 的原 Unknown2，真实 writer/cold kill-reap、自然租约及空 provider 的原 attempt 恢复/新 attempt 拒绝，After 才显式 consent 对账与原 ACK。996source ccf157dc…/566compiled a2b025e7… 六门禁和双PG各exact1pass/234filtered通过，实际库存276/235；新CI动态118/117保留旧库存/原预算。该切片 child 仍 Active/unsettled，不声明 scoped-leaf、自动 Executing 授权处置或完整矩阵；补CI/文档新组合和准确tree CI待验，R1/R6/R7/RFC/stdio/发布不关闭。旧0d0d的22项CI成功与1018个case只属于其tree。

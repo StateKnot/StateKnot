@@ -23,22 +23,32 @@
       }
     },
     "runtime": {
-      "file": "local-f208-runtime-inventory.stdout",
-      "inventory": 233,
-      "bytes": 24710,
-      "sha256": "5d2625b900965a2079fc1c700eff5372e13acc5d3cc26cfd1ffea3c4cdfe0687",
+      "file": "local-ccf1-runtime-inventory.stdout",
+      "inventory": 235,
+      "bytes": 25080,
+      "sha256": "a6c32e044abfbcb9b8bc81551d0273f76138d31446a791ac235505212ae1bd0b",
       "origin": {
         "kind": "actual-local-macos-aarch64-native-build-list",
-        "source_directory": "r1-unresolved-unknown-writer-loss-source-v2",
-        "source_files": 992,
-        "source_tree_sha256": "f2089d5a48d9288cc1241b0674235d17d13a024751b41fb0e9f0249092c6d939",
-        "compiled_inputs": 565,
-        "compiled_sha256": "7964eb40eee79683f35c5ec6cb9677bf0751f597e031065261ca92842617df30",
-        "capture_directory": "r1-unresolved-unknown-writer-loss-native-build-v1",
-        "capture_manifest_sha256": "235f484f7a0bc4ac896fd1137aab4565a643a83be7bee2bf51259dcde4df44fa",
+        "source_directory": "r1-tool-unknown-transition-commit-source-v4",
+        "source_files": 996,
+        "source_tree_sha256": "ccf157dc180a1519c490d1bddc061ef00fdbb372f72655a44168536bc948f4b5",
+        "compiled_inputs": 566,
+        "compiled_sha256": "a2b025e70cfc20bd674beafdd783dcaf3ade250facaa8adc2d9b4d7b9a63b59a",
+        "capture_directory": "r1-tool-unknown-transition-commit-native-build-v2",
+        "capture_manifest_sha256": "ccbf7f631022710f2de2cb502dcd3139b468b1df7b7e77f2537773e3ceb8e72d",
         "original_file": "runtime-inventory.stdout",
-        "inventory_receipt_sha256": "731269b1ea1d5c37338d0cba9fe5fea2bfe70e8bee4be36e25dff5e3e1af57c7",
-        "binary_sha256": "b977e02d048de3e0a7f556efe74f67e2ba23b5db5558ba06ef643bed442d8b7b",
+        "inventory_receipt_sha256": "fae3da893908e5f6d9856a6931b30d898b8a633b3669dd32d9d05e59bf2dc451",
+        "binary_sha256": "cffb003254d63ab9755fc5d8b5e6c6ade286a666e3ff5b1f9366dea9fa83a7a8",
+        "build_receipt_sha256": "e5c3ae6f18fde1151f22e2d8c0519559b35c982296f3a083e62227db75b65789",
+        "actual_build_exit_code": 0,
+        "actual_inventory_exit_code": 0,
+        "rustc_host": "aarch64-apple-darwin",
+        "default_features_enabled": true,
+        "selected_features": [],
+        "test_opt_level": "1",
+        "cold_build_observed": false,
+        "cache_reuse_without_timestamp_refresh": true,
+        "selected_artifact_fresh": true,
         "linux_CI": false,
         "head_claimed": false
       }
@@ -52,7 +62,7 @@
   "protocol_receipt_source_is_synthetic": true,
   "protocol_receipt_source_purpose": "Unit-only consistent source binding for fabricated artifact-shaped receipts; not the historical provenance of either actual inventory list.",
   "qualification_awarded": false,
-  "verification": "The author copied the original bytes with Node built-in file APIs and checked SHA-256, byte length, 233 unique actual test names, and the exact two-case delta from the retained local-ce3b 231 list. The c9 229 and local-ce3b 231 files retain their historical bytes and provenance. No binary or test was executed by this author; the local build inventory is not Linux CI or exact-profile qualification.",
+  "verification": "The author copied the original raw 235-list bytes with Node built-in file APIs and checked SHA-256, byte length, 235 unique actual test names, and the exact two-case delta from retained local-f208 233. Historical c9 229, local-ce3b 231 and local-f208 233 files retain their original bytes and provenance. This Runtime list came from a real local Mac aarch64 default-feature opt1 build/list with cache reuse and fresh=true, not a cold build or Linux CI. No binary, test, Linux guard or CI was executed by this author; the combined candidate is not qualified.",
   "retained_runtime_fixtures": [
     {
       "file": "local-ce3b-runtime-inventory.stdout",
@@ -74,6 +84,28 @@
         "linux_CI": false,
         "head_claimed": false
       }
+    },
+    {
+      "file": "local-f208-runtime-inventory.stdout",
+      "inventory": 233,
+      "bytes": 24710,
+      "sha256": "5d2625b900965a2079fc1c700eff5372e13acc5d3cc26cfd1ffea3c4cdfe0687",
+      "origin": {
+        "kind": "actual-local-macos-aarch64-native-build-list",
+        "source_directory": "r1-unresolved-unknown-writer-loss-source-v2",
+        "source_files": 992,
+        "source_tree_sha256": "f2089d5a48d9288cc1241b0674235d17d13a024751b41fb0e9f0249092c6d939",
+        "compiled_inputs": 565,
+        "compiled_sha256": "7964eb40eee79683f35c5ec6cb9677bf0751f597e031065261ca92842617df30",
+        "capture_directory": "r1-unresolved-unknown-writer-loss-native-build-v1",
+        "capture_manifest_sha256": "235f484f7a0bc4ac896fd1137aab4565a643a83be7bee2bf51259dcde4df44fa",
+        "original_file": "runtime-inventory.stdout",
+        "inventory_receipt_sha256": "731269b1ea1d5c37338d0cba9fe5fea2bfe70e8bee4be36e25dff5e3e1af57c7",
+        "binary_sha256": "b977e02d048de3e0a7f556efe74f67e2ba23b5db5558ba06ef643bed442d8b7b",
+        "linux_CI": false,
+        "head_claimed": false
+      },
+      "verification": "The author copied the original bytes with Node built-in file APIs and checked SHA-256, byte length, 233 unique actual test names, and the exact two-case delta from the retained local-ce3b 231 list. The c9 229 and local-ce3b 231 files retain their historical bytes and provenance. No binary or test was executed by this author; the local build inventory is not Linux CI or exact-profile qualification."
     }
   ]
 }
