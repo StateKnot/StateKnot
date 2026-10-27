@@ -1,0 +1,130 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-reuse-source",
+  "binary_sha256": "ce564af521e3ca6c27e0758d980cd858f4ec64a75b513f9a284cf9a69e21992d",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-reuse/a-final-probe-build/stateknot-store-postgres-postgres",
+    "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "postgres_major": "16",
+  "database": "stateknot_r1_proof_base_20261015v1",
+  "exit_code": 0,
+  "seconds": 5.599858283996582,
+  "valid_native_success": true,
+  "trials": [
+    {
+      "trial": 0,
+      "elapsed_ns": 85285917,
+      "counts": {
+        "base_start": 1,
+        "bound_checkpoint": 1,
+        "admission": 1,
+        "closure": 1,
+        "history_anchors": 1,
+        "pending_bindings node=first": 1,
+        "pending_bindings node=finish": 1
+      },
+      "sql_statement_counts": {
+        "BEGIN": 1,
+        "SELECT": 51,
+        "COMMIT": 1
+      },
+      "sql_statements": 53
+    },
+    {
+      "trial": 1,
+      "elapsed_ns": 110525000,
+      "counts": {
+        "base_start": 1,
+        "bound_checkpoint": 1,
+        "admission": 1,
+        "closure": 1,
+        "history_anchors": 1,
+        "pending_bindings node=first": 1,
+        "pending_bindings node=finish": 1
+      },
+      "sql_statement_counts": {
+        "BEGIN": 1,
+        "SELECT": 51,
+        "COMMIT": 1
+      },
+      "sql_statements": 53
+    },
+    {
+      "trial": 2,
+      "elapsed_ns": 95369833,
+      "counts": {
+        "base_start": 1,
+        "bound_checkpoint": 1,
+        "admission": 1,
+        "closure": 1,
+        "history_anchors": 1,
+        "pending_bindings node=first": 1,
+        "pending_bindings node=finish": 1
+      },
+      "sql_statement_counts": {
+        "BEGIN": 1,
+        "SELECT": 51,
+        "COMMIT": 1
+      },
+      "sql_statements": 53
+    },
+    {
+      "trial": 3,
+      "elapsed_ns": 168423875,
+      "counts": {
+        "base_start": 1,
+        "bound_checkpoint": 1,
+        "admission": 1,
+        "closure": 1,
+        "history_anchors": 1,
+        "pending_bindings node=first": 1,
+        "pending_bindings node=finish": 1
+      },
+      "sql_statement_counts": {
+        "BEGIN": 1,
+        "SELECT": 51,
+        "COMMIT": 1
+      },
+      "sql_statements": 53
+    },
+    {
+      "trial": 4,
+      "elapsed_ns": 203549417,
+      "counts": {
+        "base_start": 1,
+        "bound_checkpoint": 1,
+        "admission": 1,
+        "closure": 1,
+        "history_anchors": 1,
+        "pending_bindings node=first": 1,
+        "pending_bindings node=finish": 1
+      },
+      "sql_statement_counts": {
+        "BEGIN": 1,
+        "SELECT": 51,
+        "COMMIT": 1
+      },
+      "sql_statements": 53
+    }
+  ],
+  "started_unix": 1792051044.202504,
+  "sql_capture_valid": true,
+  "expected_bound_checkpoint_calls": 1,
+  "tight_duplicate_base_criterion": true,
+  "median_read_ns": 110525000,
+  "log_sha256": "fdd1a2b0cb2ffb12cdf4331c987501b58269390923b74e5b6db367f9f12bfff1",
+  "default_stack": true,
+  "resource_parameters_unchanged": true,
+  "backend_pids": [
+    1464,
+    1465,
+    1466,
+    1467
+  ],
+  "session_log_sha256": "a5998d4cdd225c1fc0c4876fed075b31303061f3e61c2688a718803549aa9004",
+  "session_complete_log_sha256": "5ee9e541e4e99d9186c72c29a69137bba000e5faed81732d6fa7599bbe2553f2",
+  "sql_parser_note": "Derived from the original native execution window; case-insensitive PostgreSQL 16/17 parameter labels, full multiline statements, tenant-associated Store and marker backend PIDs."
+}

@@ -1,0 +1,32 @@
+{
+  "base_source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "final_source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "base_files": 928,
+  "final_files": 930,
+  "changes": [
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+      "before_sha256": null,
+      "bytes": 14901,
+      "after_sha256": "b498c091c580665e0f4d584ca8b36ca39723f7753b8c3831cb85afa07877e042",
+      "payload": "source/payloads/b498c091c580665e0f4d584ca8b36ca39723f7753b8c3831cb85afa07877e042.rs.gz"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server.rs",
+      "before_sha256": "ab57758507782b3102863316abaaf9847236e7e0c1a0f2c08eddf15120aeb48a",
+      "bytes": 98954,
+      "after_sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+      "payload": "source/payloads/a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5.rs.gz"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+      "before_sha256": null,
+      "bytes": 41547,
+      "after_sha256": "ce8ca227d3c4e032dbf6c5d2ded45df7e560c13016c6c8e6ade4071431860458",
+      "payload": "source/payloads/ce8ca227d3c4e032dbf6c5d2ded45df7e560c13016c6c8e6ade4071431860458.rs.gz"
+    }
+  ],
+  "new_source_payloads": 3,
+  "compiler_read_closure_claimed": false,
+  "whole_actual_main_Git_tree_equality_claimed": false
+}

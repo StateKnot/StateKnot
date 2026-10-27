@@ -1,0 +1,70 @@
+{
+  "files": [
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/source.tar.gz",
+      "bytes": 3451150,
+      "sha256": "5a882322c32b5ec165d1a37bf84f087f0c5afc8811b805c07cc4ac7a590e75e3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/summary.json",
+      "bytes": 397,
+      "sha256": "409185d1e72d5d55f025cb11ac6241be0b8094d6fe647c46e56256c17bbcef23"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/receipts.json.gz",
+      "bytes": 1044,
+      "sha256": "a9c602ae31d342867393a4f5c3d91f461fc396ecf0b9d0d69651227b24feabbf"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/all-inputs-before.json.gz",
+      "bytes": 100555,
+      "sha256": "770bf3add8028d38d7efc2737bddb0fba26ba0ad2e7eee2d6d83d42c7faff263"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/all-inputs-after.json.gz",
+      "bytes": 100555,
+      "sha256": "770bf3add8028d38d7efc2737bddb0fba26ba0ad2e7eee2d6d83d42c7faff263"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/git-context.json",
+      "bytes": 651,
+      "sha256": "aa3124f2796a30a2d5e124f6fc036dbdd6ad66ed5144c2f091a6965c34e8d5fa"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/expected-compiled-inputs.json.gz",
+      "bytes": 27659,
+      "sha256": "aecf4d07e8efd44e722dff19a6210fda7fe3a309b1ac2d175f7c8814cc463cc4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/fmt.receipt.json",
+      "bytes": 404,
+      "sha256": "c78b40396881fe7b1cd6797e61965c2e96757695ac182d9f6598cb67d6cfa26f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/clippy.receipt.json",
+      "bytes": 497,
+      "sha256": "ad296e513268ccd599bef78bf0a2cb6927e1919c8966250616eda67d43140cc8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/workspace.receipt.json",
+      "bytes": 6075,
+      "sha256": "033616fddd6448170f46dde45a16ceaf5d0e9a115d05cabe3cd04e3e903f3058"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/doctests.receipt.json",
+      "bytes": 1024,
+      "sha256": "a6e282e462d8fe7d19e7977f69341f20454140ea3953a5402265eb13b33e7bf7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/rustdoc.receipt.json",
+      "bytes": 456,
+      "sha256": "01c3316b9d4709a4ef7ced472e59c41a08bf710c58aa25360ff6a312dae96d88"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/nightly.receipt.json",
+      "bytes": 495,
+      "sha256": "cdfc2d9d54bdcbea4c74dcfbb01e791481c57e8004e21f19818a874516cc0053"
+    }
+  ],
+  "references_not_new_execution": true
+}

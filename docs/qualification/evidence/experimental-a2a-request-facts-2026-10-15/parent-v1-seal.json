@@ -1,0 +1,19 @@
+{
+  "schema": "stateknot.a2a-request-facts-seal.v1",
+  "status": "sealed-exact-request-facts-execution-only",
+  "source_files": 923,
+  "source_tree_sha256": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "compiled_input_count": 531,
+  "manifest_sha256": "95b0184d8c1fbdfc47a63ab042e4f9552d5fd7061eb3b8b9621b1c99433f3ae6",
+  "reports": {
+    "experimental-a2a-request-facts-2026-10-15.md": "62cf9da8cba457490dd46fd8e42d9dbc462a1dce7457f0f5bd055d84fe917969",
+    "experimental-a2a-request-facts-2026-10-15.zh-CN.md": "96c19677561e941339aa5d906bed6f7336b58731196d5885cd53ea6b396e3206",
+    "experimental-a2a-request-facts-2026-10-15.json": "f9cadd1d895629a877f63e130d21ec2dd578b2d5abe3b2ac5f64c8fe4a91895f"
+  },
+  "static_gates_passed": 6,
+  "network_libtest_passed": 26,
+  "mandatory_durable_passed_per_major": 6,
+  "exact_execution_record_passed": true,
+  "full_CI_passed": false,
+  "overall_production_qualification": false
+}

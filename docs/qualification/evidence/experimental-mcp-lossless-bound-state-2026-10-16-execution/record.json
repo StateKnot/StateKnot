@@ -1,0 +1,118 @@
+{
+  "kind": "execution provenance supplement and later actual-main six-gate record",
+  "parent_P2": {
+    "publication_manifest_sha256": "ae37d8dcb37e964a3a727c5e3ac10803867ccc2d18c76f87a181404873de9f7f",
+    "evidence_manifest_sha256": "b026df3fcfbfcc90bd938b567dbc2de488cf41c202d8c0666a53fdf18148b171",
+    "seal_sha256": "ffa8222a8f56aba03aa46f7234640c4a9371e4cad0ca40b2c2ab39dd03a18a9b",
+    "published_evidence": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16",
+    "verifier_sha256": "3a767a0a676bb87ef38654b15292db2c3bbcb852914a50b540037d8fcc9aea32",
+    "files": 449,
+    "original_seal_modified": false,
+    "initial_environment_fully_self_contained": false,
+    "collection_omission": "P2 collected execute-six.py but omitted the actual isolated run-gate.py. Its existing hash verification did not establish complete runner provenance. This appendix supplies the original; no product command was rerun."
+  },
+  "source": {
+    "tree_sha256": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+    "frozen_source_files": 928,
+    "conservative_inputs": 536,
+    "canonical_relative_path_string_sorted_sha256": "cfd0f2f8b48e062567fb591be2e5c427781cb7db616ee20b942cc2174a775b2d",
+    "original_manifest_order_sha256": "ded1a866797889ed38df63f59f671c8a2c34a5b7373a688932cc714eae582794",
+    "product_source_changed_by_appendix": false,
+    "CI15_sha256": "2c69f7e78b0b4c9b703e52864cdfd029b3cfc74d9ecceb31510768195b0e45ad",
+    "adoption_docs7": [
+      {
+        "path": "CHANGELOG.md",
+        "bytes": 80157,
+        "sha256": "530fd2576d40069a218d622eb65340377ba3c03a9fe4d35d2bf514632318cbfd",
+        "baseline_sha256": "839d0000157c06621f6bea62938d07415545c690600aa46009db6637540f0c9f"
+      },
+      {
+        "path": "docs/mcp-server.md",
+        "bytes": 20853,
+        "sha256": "5fb3a4086c937d9d3ffc3e556b643152f59cc79dd17983f7a67c5a2bb8297145",
+        "baseline_sha256": "b4d6002b72c2705770aba63278ee001b5f58708eff90e88f2c88c758fcb75254"
+      },
+      {
+        "path": "docs/mcp-server.zh-CN.md",
+        "bytes": 18838,
+        "sha256": "1ccf57d09385df19ca6a8d983280fee7302607fb805c38f1fdd4a329bee1bd1c",
+        "baseline_sha256": "4cd54f36788d2ef2fca3d6eab14f7f6bdf400b2087e85212c21cf85dde49a4d7"
+      },
+      {
+        "path": "docs/production-milestones-2026-10-08.zh-CN.md",
+        "bytes": 52651,
+        "sha256": "ddde171b443b39855829d7a126c4b2f2cc22518eca1f0e8a374a4739d0517d83",
+        "baseline_sha256": "1e798bbaa842fa65e7b161a1fba8212389f7a30f2a94c948174832787db51fb6"
+      },
+      {
+        "path": "docs/r1-contract-gap-ledger.zh-CN.md",
+        "bytes": 27557,
+        "sha256": "1ff4e62981df1442951ad3909c1915df199eadac68b657f1520fbb7f56b710f5",
+        "baseline_sha256": "c94696d1dc0b4d403b9a456545cb6ad84ee34580e1bb65392062b33c07d7e8db"
+      },
+      {
+        "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+        "bytes": 25475,
+        "sha256": "3c5e5f14c7d14ad12bef2628c6d726191b0f7a3cec2d5f3bf340cd33f49296e4",
+        "baseline_sha256": "345d422fb869f347e8fef51689fcb712fbb17c030d60268f62315a0242a2784e"
+      },
+      {
+        "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+        "bytes": 20927,
+        "sha256": "b739aaebca66c6d18206291a6be2b2498a527c496f6c2811e0bb5863f6534e3a",
+        "baseline_sha256": "d27169716d14f446e36fac5873a36044a2fdc3a29c173420ea2c69627e554d6b"
+      }
+    ]
+  },
+  "runners": {
+    "isolated": {
+      "sha256": "084de67b556627e6faa764ebc7cd560651c607b8c45bc146da0761ce4a6cab03",
+      "cwd": "frozen mcp-lossless-bound-state-source-v3",
+      "execution_observation": "original isolated receipts retain start_unix and process IDs; collector file mtime observations are later metadata",
+      "profile": "opt0; CARGO_INCREMENTAL=0; CARGO_PROFILE_DEV_DEBUG=0; CARGO_PROFILE_TEST_DEBUG=0; RUSTFLAGS and RUSTDOCFLAGS=-D warnings; default stack; all STATEKNOT_ and CARGO_PROFILE_ environment overrides removed before explicit settings"
+    },
+    "actual_main": {
+      "sha256": "d74eaf7579e5cfefde29e08a6399b40f2ac058dcfb75d2c43b8a89d6ac684a55",
+      "cwd": "actual repository working tree",
+      "HEAD": "85f3fd556ff7623ef148da7e335b67e08dd022ad",
+      "working_tree_dirty_at_execution": true,
+      "observed_nonignored_files": 2810,
+      "before_after_exact": true,
+      "state": "passed",
+      "gates": 6,
+      "workspace": {
+        "suites": 99,
+        "passed": 2098,
+        "failed": 0,
+        "ignored": 6
+      },
+      "doctests": {
+        "suites": 10,
+        "passed": 48,
+        "failed": 0,
+        "ignored": 0
+      },
+      "seconds": 154.91098380088806,
+      "same_profile_as_isolated": true,
+      "original_receipts_do_not_record_start_unix": true,
+      "per_gate_durations_are_original_receipt_values": true
+    }
+  },
+  "scope": {
+    "actual_main_six_local_gates": true,
+    "new_Native_execution": false,
+    "GitHub_CI_or_Ubuntu_opt1_full_job_qualified": false,
+    "R1_or_RFC_or_supported_qualification": false,
+    "whole_final_Git_tree_qualification": false,
+    "later_copied_appendix_or_review_metadata_in_2810_execution_snapshot": false,
+    "binary_cache_sourcearchive_copied": false,
+    "network_build_DB_Docker_or_cleanup_by_collector": false,
+    "independent_source_or_test_Spec_review": false
+  },
+  "limitations": [
+    "P2 remains sealed with its original runner collection omission; this supplement does not retroactively rewrite the old package.",
+    "The actual-main run observed HEAD85 with adopted working changes and 2810 exact before/after files. Later evidence copies and commits are outside that all-file observation; the 536 product input binding remains precise.",
+    "This verifies captured artifacts and original runner text, not an operating-system environment dump or compiler filesystem-read closure.",
+    "The actual-main draft-preflight stdout is a no-execution preview, with empty stderr. Earlier digest-order guard failures remain in their original evidence directories; P2 collector history remains sealed."
+  ]
+}

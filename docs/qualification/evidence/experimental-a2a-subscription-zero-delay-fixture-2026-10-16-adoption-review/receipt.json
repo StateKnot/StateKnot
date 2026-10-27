@@ -1,0 +1,20 @@
+{
+  "reviewer": "root; independent of documentation author",
+  "actual_argv": [
+    "python3",
+    "-B",
+    "/Users/jiawy/Documents/RustAgentFramework/docs/qualification/evidence/experimental-a2a-subscription-zero-delay-fixture-2026-10-16/verify.py",
+    "--workspace-root",
+    "/Users/jiawy/Documents/RustAgentFramework"
+  ],
+  "actual_exit_code": 0,
+  "seconds": 0.1136329174041748,
+  "delivery_receipt_sha256": "a4dd88a2ba5fa5c397fcd1597fd230a25a3b4daf6828d7d87aabdd250b8aa396",
+  "all99_candidate_files_exact": true,
+  "source542_main_exact": true,
+  "source_and_qualification_docs_verifier_reviewed": true,
+  "blocking_findings": 0,
+  "stdout_sha256": "8c41888b2cff81d4edd7eee30819aad17bb7cfd3451e5772c0c70431ce91d367",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "original_Windows_CI_cause_or_full_CI_qualified": false
+}

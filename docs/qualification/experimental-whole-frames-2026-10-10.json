@@ -1,0 +1,938 @@
+{
+  "copyright": "2026 StateKnot contributors",
+  "license": "Apache-2.0",
+  "milestone": "R1 remains in progress",
+  "qualified_on": "2026-10-10",
+  "pull_request": "https://github.com/StateKnot/StateKnot/pull/161",
+  "pull_request_state": "Draft",
+  "source_commit": "f05d473fcef967bbe1690768562648b8e3cefe3e",
+  "source_tree": "0b2449e15c4bde35b9fd26a0876ac6a06cc37661",
+  "qualification_complete": true,
+  "business_nested_execution_complete": false,
+  "ci_run": 38016667371,
+  "ci_passed": true,
+  "supply_chain_run": 38016932475,
+  "supply_chain_passed": true,
+  "strict_clippy": {
+    "passed": true,
+    "seconds": 29.55,
+    "log": "/tmp/stateknot-frame-close-node-stack-full-clippy-v1.log",
+    "log_sha256": "8f175767164c635e6e35db84e9f510e3b6052e55752cb2107cbd952eb56e90c9"
+  },
+  "workspace": {
+    "suites": 98,
+    "passed": 1900,
+    "failed": 0,
+    "ignored": 3,
+    "log": "/tmp/stateknot-frame-close-node-stack-full-workspace-v1.log",
+    "log_sha256": "0e2cea1b711f5e979ba1ad0f950812a3c0d2eb04d5bb5a151875e0386def51d3"
+  },
+  "rustdoc": {
+    "passed": true,
+    "seconds": 14.69,
+    "log": "/tmp/stateknot-frame-close-node-stack-rustdoc-v1.log",
+    "log_sha256": "2f1c66ad1fd93541d4c577d24803b1bdc70af1782dce70382f37d0cb409b936e"
+  },
+  "linux_original_regression": {
+    "parent_commit": "bc3a3f1a232138ef0952dc72fb95537980ff2d55",
+    "changed_file_sha256": {
+      "crates/stateknot-store-postgres/src/store.rs": "573e9b1369c102202fc86085567d5df4d25ea96da41008e307118eb149145225",
+      "docs/graph-composition.md": "8b3f880c0da9eeee89b64756012f9cd3288b8799efa7ec2b76bbbf798940ddea",
+      "docs/graph-composition.zh-CN.md": "a42a2f1d3ca73d25f8c0fa8d20c664336b482485d5337a68b44046b6ca6a5364",
+      "CHANGELOG.md": "efa0ea0fe65fef4f757cb007408dbca5cebc84e9fa93c356021aed6f0da5911e"
+    },
+    "unmodified_original_regression": true,
+    "debug_instrumentation_removed": true,
+    "limits": "original default Linux stack, Rust 1.88.0, no deadline changes",
+    "source_commit": "f05d473fcef967bbe1690768562648b8e3cefe3e",
+    "source_tree": "0b2449e15c4bde35b9fd26a0876ac6a06cc37661",
+    "all_tracked_files_match": 842,
+    "file_manifest_sha256": "e3ae562a63ff617c855b3edf1f0fb01d40acd6982840bd4e5f94d51d0efaec09",
+    "original_linux_regression": {
+      "passed": 1,
+      "failed": 0,
+      "seconds": 114.15,
+      "log": "/tmp/stateknot-linux-stack-clean-fix-v1.log",
+      "toolchain": "Rust 1.88.0",
+      "architecture": "aarch64-unknown-linux-gnu"
+    }
+  },
+  "local_fuzz": {
+    "schema": "https://stateknot.github.io/schema/qualification/core-fuzz/1.0.0",
+    "targets": {
+      "bounded_json": {
+        "seed_files": 16,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "2c0cad4a066963c811119b7e656306bcaec6049554fcb3404d78155a33d665d0",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/Users/jiawy/Documents/RustAgentFramework/fuzz/artifacts/bounded_json/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 516,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 402,
+        "retained_coverage_bytes": 4063861,
+        "log_sha256": "f15ab0b8f507d14c4ec9f224e2ada5f526728ac826b563ca77e128fffc7a2995"
+      },
+      "core_readers": {
+        "seed_files": 2269,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "bf0e81c833da03760e66355394c463ef1132c93dd7582b209635e9f0ba2a977c",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/Users/jiawy/Documents/RustAgentFramework/fuzz/artifacts/core_readers/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 894,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 308,
+        "retained_coverage_bytes": 251477,
+        "log_sha256": "f0253352bec5f70fd38282d14729972c35380268e14ede4580186097551dae83"
+      },
+      "schema_registry": {
+        "seed_files": 12,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "c11600b09bfe0505cac338403acf9e45c922e109638aa2e3e20315066a662570",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/Users/jiawy/Documents/RustAgentFramework/fuzz/artifacts/schema_registry/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 473,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 230,
+        "retained_coverage_bytes": 790480,
+        "log_sha256": "f85b2c491a9703afe80400d9f6350b549063e37ac16cb2891cc59c5c99accd0e"
+      }
+    },
+    "limits": {
+      "max_input_bytes": 131072,
+      "max_mutation_runs_per_target": 10000,
+      "max_seconds_per_target": 60,
+      "max_seconds_per_input": 10,
+      "rss_limit_mib": 2048,
+      "build_jobs": 2,
+      "sanitizer": "address",
+      "cfg_fuzzing": false
+    },
+    "complete": true,
+    "run_directory": "fuzz/results/qualification-6m9kj3d6",
+    "source_files_sha256": "637d65d789f34f6f26c7ebc8cbad8c27e9f3005b41bab1a1d6c918628120622e",
+    "source_commit": "f05d473fcef967bbe1690768562648b8e3cefe3e",
+    "source_dirty": false,
+    "rustc": "rustc 1.101.0-nightly (8d1a76430 2026-10-06)",
+    "cargo_fuzz": "cargo-fuzz 0.13.2",
+    "cargo_locks": {
+      "Cargo.lock": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+      "fuzz/Cargo.lock": "8310a4df054f97b4b64eeaa9ac97c26b4185718d5842b46bdc8ade6cc1439cf6"
+    },
+    "product_dependency_versions_preserved": true,
+    "reader_count": 313,
+    "enum_type_count": 71,
+    "enum_variant_count": 298,
+    "seeds_manifest_sha256": "33c1bc82f482529105f2c302cd02c8b04245b1d36d76e91f3e68bb86ae1c8c7e",
+    "lockfiles_unchanged": true,
+    "elapsed_seconds": 672.591,
+    "source_files_unchanged": true
+  },
+  "postgres": {
+    "16": {
+      "initial_full_native": {
+        "passed": 172,
+        "failed": 1,
+        "seconds": 784.5,
+        "failure": "seven-level return LeaseExpired, normal limits",
+        "log": "/tmp/stateknot-frame-close-node-stack-full-store16-v2.log"
+      },
+      "serial_full_native": {
+        "passed": 173,
+        "failed": 0,
+        "unit_passed": 10,
+        "artifact_passed": 1,
+        "seconds": 578.99,
+        "log": "/tmp/stateknot-frame-close-node-stack-full-store16-v3.log"
+      },
+      "runtime_initial": {
+        "passed": 139,
+        "failed": 1,
+        "failure": "sql_pool SSLRequest handshake unexpected 0x00 before query",
+        "log": "/tmp/stateknot-frame-close-node-stack-runtime16-v2.log",
+        "log_sha256": "171ecc175c45fc810d8e2872a7c17fc49923a99a54b57d9718895165f2873591",
+        "not_transferred_to_repeat": true
+      },
+      "runtime_full": {
+        "passed": 140,
+        "failed": 0,
+        "seconds": 257.04,
+        "log": "/tmp/stateknot-frame-close-node-stack-runtime16-v3.log",
+        "log_sha256": "e58b39af4170d541a68fa29b5b4cd3d5bd3521fae99fbbf43d130dda2df2397d",
+        "actual_login_role_profile": {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 33,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        }
+      }
+    },
+    "17": {
+      "initial_full_native": {
+        "passed": 172,
+        "failed": 1,
+        "seconds": 777.85,
+        "failure": "seven-level return LeaseExpired, normal limits",
+        "log": "/tmp/stateknot-frame-close-node-stack-full-store17-v1.log"
+      },
+      "serial_full_native": {
+        "passed": 173,
+        "failed": 0,
+        "unit_passed": 10,
+        "artifact_passed": 1,
+        "seconds": 539.85,
+        "log": "/tmp/stateknot-frame-close-node-stack-full-store17-v2.log",
+        "log_sha256": "78e59494da512e564b91e10df2d8fefb2df4e1e8b0dbee44476b04a57e5fd1e5",
+        "configuration": "ordinary Rust 1.88, normal stack, no incremental/debug symbols; original assertions/overflow/lease limits"
+      },
+      "runtime_full": {
+        "passed": 140,
+        "failed": 0,
+        "seconds": 246.41,
+        "log": "/tmp/stateknot-frame-close-node-stack-runtime17-v2.log",
+        "log_sha256": "2f9e17d2ffa3a592e2a7dfae59dd72a4feeb67deaa60efb6eaa0abd73b840434",
+        "actual_login_role_profile": {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 33,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        }
+      }
+    }
+  },
+  "prior_business_restore": {
+    "source_commit": "bc3a3f1a232138ef0952dc72fb95537980ff2d55",
+    "passed": true,
+    "not_transferred_to_current_reader": true,
+    "evidence": "/tmp/stateknot-frame-close-stack-business-evidence-v1.json"
+  },
+  "ci_merge_commit": "0662d16f8e45f7479d39464a9e8e59dc79af7379",
+  "ci_merge_tree": "0b2449e15c4bde35b9fd26a0876ac6a06cc37661",
+  "ci_merge_parents": [
+    "aa11b4f44a948aaf2e2baba4c30a297dc828ce6d",
+    "f05d473fcef967bbe1690768562648b8e3cefe3e"
+  ],
+  "ci_jobs": [
+    {
+      "id": 114108348684,
+      "name": "Website",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348801,
+      "name": "MCP Conformance",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348814,
+      "name": "Quality",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348839,
+      "name": "Test (windows-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348849,
+      "name": "Release packages",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348854,
+      "name": "PostgreSQL PITR (16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348862,
+      "name": "A2A 1.0 Conformance",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348866,
+      "name": "Core bounded fuzz",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348878,
+      "name": "PostgreSQL (17)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348883,
+      "name": "Test (macos-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348895,
+      "name": "PostgreSQL (16)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348904,
+      "name": "Test (ubuntu-latest)",
+      "conclusion": "success"
+    },
+    {
+      "id": 114108348917,
+      "name": "PostgreSQL PITR (17)",
+      "conclusion": "success"
+    }
+  ],
+  "ci_fuzz": {
+    "schema": "https://stateknot.github.io/schema/qualification/core-fuzz/1.0.0",
+    "targets": {
+      "bounded_json": {
+        "seed_files": 16,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "87575dd8b2277995652037355a7defe1249fe79dbd9a5f8f3bda41226342f541",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/bounded_json/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 429,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 379,
+        "retained_coverage_bytes": 3553813,
+        "log_sha256": "a3826a21b3cc91ca9a0114d6df4b84c3f2508b364b4bf0bcb5969cf275b232a2"
+      },
+      "core_readers": {
+        "seed_files": 2269,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "f75c9f6bb5aba43f995f6f9b97c154e7cb4c7c0d5285407edc6875719b809643",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/core_readers/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 1031,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 328,
+        "retained_coverage_bytes": 265911,
+        "log_sha256": "a634c0a50f1df2cbe4df61363a7b74c79f33a5247073b51614914fe0537feee7"
+      },
+      "schema_registry": {
+        "seed_files": 12,
+        "seed_replay_passed": true,
+        "mutation_passed": true,
+        "binary_sha256": "43b89d8fc3fa7bd30d9ad890e0d0e9e256fd953e7393c6e81b1b79fd1333b005",
+        "flags": [
+          "-max_len=131072",
+          "-timeout=10",
+          "-rss_limit_mb=2048",
+          "-artifact_prefix=/home/runner/work/StateKnot/StateKnot/fuzz/artifacts/schema_registry/",
+          "-seed=20261008",
+          "-print_final_stats=1"
+        ],
+        "actual_mutation_runs": 10000,
+        "peak_rss_mib": 267,
+        "execution_cap_reached": true,
+        "retained_coverage_files": 240,
+        "retained_coverage_bytes": 326132,
+        "log_sha256": "5a99eca4006170b54bf9014cc8b80b8dc556341b933ecf90cf80e1ef3d5ac709"
+      }
+    },
+    "limits": {
+      "max_input_bytes": 131072,
+      "max_mutation_runs_per_target": 10000,
+      "max_seconds_per_target": 60,
+      "max_seconds_per_input": 10,
+      "rss_limit_mib": 2048,
+      "build_jobs": 2,
+      "sanitizer": "address",
+      "cfg_fuzzing": false
+    },
+    "complete": true,
+    "run_directory": "fuzz/results/qualification-picv6mxm",
+    "source_files_sha256": "637d65d789f34f6f26c7ebc8cbad8c27e9f3005b41bab1a1d6c918628120622e",
+    "source_commit": "0662d16f8e45f7479d39464a9e8e59dc79af7379",
+    "source_dirty": false,
+    "rustc": "rustc 1.101.0-nightly (8d1a76430 2026-10-06)",
+    "cargo_fuzz": "cargo-fuzz 0.13.2",
+    "cargo_locks": {
+      "Cargo.lock": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+      "fuzz/Cargo.lock": "8310a4df054f97b4b64eeaa9ac97c26b4185718d5842b46bdc8ade6cc1439cf6"
+    },
+    "product_dependency_versions_preserved": true,
+    "reader_count": 313,
+    "enum_type_count": 71,
+    "enum_variant_count": 298,
+    "seeds_manifest_sha256": "33c1bc82f482529105f2c302cd02c8b04245b1d36d76e91f3e68bb86ae1c8c7e",
+    "lockfiles_unchanged": true,
+    "elapsed_seconds": 431.407,
+    "source_files_unchanged": true
+  },
+  "ci_fuzz_actual_stats": {
+    "bounded_json": {
+      "seeds": 16,
+      "actual_mutation_runs": 10000,
+      "peak_rss_mib": 429
+    },
+    "core_readers": {
+      "seeds": 2269,
+      "actual_mutation_runs": 10000,
+      "peak_rss_mib": 1031
+    },
+    "schema_registry": {
+      "seeds": 12,
+      "actual_mutation_runs": 10000,
+      "peak_rss_mib": 267
+    }
+  },
+  "ci_fuzz_artifact": 11655799106,
+  "ci_fuzz_source_and_seed_manifest_verified": true,
+  "current_reader_business_restore": {
+    "passed": true,
+    "evidence": "/tmp/stateknot-frame-close-node-stack-business-evidence-v1.json",
+    "sha256": "0a0efcfe915196c4f409bd352ff7b8c9c6f179136577e57d2c75fab3c519df87",
+    "corpus_commit": "bc3a3f1a232138ef0952dc72fb95537980ff2d55",
+    "scope": "logical-business-backup-no-ACL-no-historical-executable",
+    "details": {
+      "source_commit": "f05d473fcef967bbe1690768562648b8e3cefe3e",
+      "source_corpus_commit": "bc3a3f1a232138ef0952dc72fb95537980ff2d55",
+      "qualification_scope": "logical-business-backup-no-ACL-no-historical-executable",
+      "postgres": {
+        "16": {
+          "server": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "schema_version": 33,
+          "exact_catalog": true,
+          "exact_migration_checksums": true,
+          "all_52_table_counts_and_sha256": true,
+          "business_facts": {
+            "agent_admissions": [
+              21,
+              "0d304877b5b992323ccf6e1c4bcff34078daeb3a74e2d8427f03c0fad55453b8"
+            ],
+            "agent_submission_keys": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "artifact_parents": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "artifacts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_budget_accounts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_cancellation_receipts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_cancellations": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_join_bindings": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_join_consumptions": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_joins": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_ownership": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_settlements": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_terminals": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "graph_definitions": [
+              66,
+              "bc16d0957c57c630a2870a4e722538901718b0b0ffc2e78e8c4e48088c95612d"
+            ],
+            "graph_frame_barriers": [
+              1,
+              "71c411e816db6e17ab725a943236cb1b8acbde9cc27d35b586e86a6810c60fb9"
+            ],
+            "graph_frame_caller_bindings": [
+              4,
+              "a723b4cd812acd948099577b39237a3ce09231e4e2aa4695a6ee31f83edb5cdd"
+            ],
+            "graph_frame_closed_callers": [
+              40,
+              "33cc4ec0b82f87e7742787e316d75544ba54058c32c455b3bdb56ee0d6c3b421"
+            ],
+            "graph_frame_closures": [
+              16,
+              "25d6e700156b1b1b23a95093bb3ce840f113d97739842e6b6234f0cbff9fcba8"
+            ],
+            "graph_frame_entries": [
+              45,
+              "7c5f04ea76bc66e686eb5533a7cc1344ecebb083dcc682954d79ceb4fd42b13a"
+            ],
+            "graph_frame_heads": [
+              45,
+              "48a2a9a53d3e1b1a262432df99a4dd0143449ed99332d26dc07d63c341301bfe"
+            ],
+            "graph_frame_returns": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "graph_frame_stacks": [
+              21,
+              "42121740390b8f62dec125ecaaa02b8771318042ff6404356ddd470805a11c9d"
+            ],
+            "interrupt_resolutions": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "model_invocation_revisions": [
+              10,
+              "7867161da656e38515fd7398bc8ec90e27b4e62dc792684f54e79e26e99a8e4d"
+            ],
+            "model_invocations": [
+              4,
+              "46d31d8f8bfadba0b44213fb20ad4a45311c84fe198665ab0bb6fac2f0e79eb7"
+            ],
+            "node_attempt_completions": [
+              3,
+              "429385055e79b7ed25c68d255da4afc939506f4236305c557de961f3568e7ebc"
+            ],
+            "node_attempts": [
+              57,
+              "393f235f7bd3fc8c01e39c9681668ea2bf8079f4b651ded18f645c80b48ea541"
+            ],
+            "outbox_attempt_completions": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "outbox_attempts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "outbox_deliveries": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "outbox_destinations": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "pending_node_result_consumptions": [
+              1,
+              "f237ddf0217f2af364211fcab2099041d9e6c9764f75f1930520e5f64d86443f"
+            ],
+            "pending_node_result_model_bindings": [
+              2,
+              "8fcda69ee0c030b72f7796576058753fcc96033dce933763da6cf7b93745e3f8"
+            ],
+            "pending_node_result_tool_bindings": [
+              2,
+              "05365734babb3a4547077437b0e2ac8ab8768a7dd072bfd38eaec0c5b0c6a634"
+            ],
+            "pending_node_results": [
+              3,
+              "e34944f8bac1816625216a2691a3508af335c179a7d32c84349cb9d8026acdcf"
+            ],
+            "run_attempt_claims": [
+              65,
+              "cdddcaa6b0d7b3d242e996f5ed1e6fed10e66c20480742cad77d50fb55547ae4"
+            ],
+            "run_checkpoints": [
+              67,
+              "b0c0dad91e4d85c05e450798b896f1150fe12ea79a7f8a6f7f3fe10e7a8a002c"
+            ],
+            "run_events": [
+              151,
+              "6b86cf114d814e01a39f4ab8717a2d31e59dc2f58e17c9ee116047f9e912043b"
+            ],
+            "run_failure_closes": [
+              2,
+              "8a28b7d0f4e48ccf941c6e2a174f21bc55907a39891dc70d38fb0ad377ccb560"
+            ],
+            "run_quarantines": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "run_wait_registrations": [
+              1,
+              "ad47ee170ec82dda122e92f6b86207a3e393f0462e50e6cbcfa093b601eb6bf2"
+            ],
+            "runs": [
+              21,
+              "2588e103f83f413d83b624a3d8d5f9148272379edcb8f203b6b6f361a10027bf"
+            ],
+            "scheduler_fairness_reservations": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "scheduler_fairness_shards": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "skill_acting_window_revocations": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "skill_acting_windows": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "skill_activation_approvals": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "timer_firings": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "tool_authorization_receipts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "tool_invocation_revisions": [
+              12,
+              "be8541fe22f01bb55742c9b27a254cc646a50d363d53ab5d8d22a318ccc949fa"
+            ],
+            "tool_invocations": [
+              4,
+              "d85958c94993c3de6641f33cd8a6381449af05dc3c54c0b8bf30ad14d0d1405e"
+            ],
+            "wait_abandonments": [
+              1,
+              "523a10ad9a0edf5a0c6b1f1100332f26fb3935ae4273f2386898e3757d5175b5"
+            ]
+          },
+          "typed_readers": {
+            "caller_count": 40,
+            "invariants": "passed",
+            "original_closures": 16,
+            "provider_count": 4,
+            "root_and_lifecycle_exact": true,
+            "typed_health": true,
+            "whole_decision_and_retry": true
+          },
+          "dump_sha256": "c98ce6b42c710b1158829fba25592f6d330a6864e52005a7699d1e25d57817ff",
+          "manifest_sha256": "a5d5579414381061690341a685dc46fe1f6739f7a63080a9d957342cbf27d4b8",
+          "restore_log": "/tmp/stateknot-frame-close-node-stack-business16-v1-restore.log"
+        },
+        "17": {
+          "server": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "schema_version": 33,
+          "exact_catalog": true,
+          "exact_migration_checksums": true,
+          "all_52_table_counts_and_sha256": true,
+          "business_facts": {
+            "agent_admissions": [
+              22,
+              "d5d785b94d47bd0900ff55ac887f2f6625325916851ece42fe277025bb23cebb"
+            ],
+            "agent_submission_keys": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "artifact_parents": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "artifacts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_budget_accounts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_cancellation_receipts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_cancellations": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_join_bindings": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_join_consumptions": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_joins": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_ownership": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_settlements": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "child_run_terminals": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "graph_definitions": [
+              74,
+              "b89fb5e4a17ce03407ef124ea2a5c9cbb440ef5ccfb314543d521ece4b4e97f8"
+            ],
+            "graph_frame_barriers": [
+              14,
+              "cbc6c545b43e837b8476c29bcece8b51fe20599d83e37f77e35c09df0e38a360"
+            ],
+            "graph_frame_caller_bindings": [
+              4,
+              "3a0c4185d2faa134bd435dfcf908da5b329e9255fa147fb9ee7e6c579f8726c7"
+            ],
+            "graph_frame_closed_callers": [
+              40,
+              "79c9368ff23ab61af6b67dac474a92c09e1a6b4c0428dcb54e85ef71b7679ec9"
+            ],
+            "graph_frame_closures": [
+              16,
+              "9a7d8c5ad714d9a68037bad8a4ab48de00079f9c4d1f51c9ce55d054c784617e"
+            ],
+            "graph_frame_entries": [
+              52,
+              "8b06c82effdc17aca731be7da3e512330ac574fa7a9371855289d226c4d51a89"
+            ],
+            "graph_frame_heads": [
+              52,
+              "6df820ae483fc52b2041bd4613218618d0e90881657b834c123b085083a7b51b"
+            ],
+            "graph_frame_returns": [
+              7,
+              "277cfb237426d1cd045c543f5e5fe17a493538b8afa75b251bd82fbef4e80ded"
+            ],
+            "graph_frame_stacks": [
+              22,
+              "961ef801d09dece70f347ad2d68b0d17d4f8a7d5eae0fa66da889065d42a96c3"
+            ],
+            "interrupt_resolutions": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "model_invocation_revisions": [
+              10,
+              "49bcbcd94386e32edf558eccdde01a34ad0bbd2508827a4d8c79e5e2cda8877f"
+            ],
+            "model_invocations": [
+              4,
+              "263555678d15d3ce99a2737abc493dd0973e51702e9e744702c9157ebd42191c"
+            ],
+            "node_attempt_completions": [
+              17,
+              "0b93b7145cb505dcc7ef3a05d0dc641c3d67d295410ceae41727c719d8d46a1c"
+            ],
+            "node_attempts": [
+              71,
+              "8effbc8b2514a8372f3806a52a2198c827ddada4e830e7b6f7fd3b01c290e493"
+            ],
+            "outbox_attempt_completions": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "outbox_attempts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "outbox_deliveries": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "outbox_destinations": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "pending_node_result_consumptions": [
+              14,
+              "ca9896a1522faf787ed24c707a378f1259f6195fe71bf8560942b5a4511edc26"
+            ],
+            "pending_node_result_model_bindings": [
+              2,
+              "a986058f380f2df59107df7cc5e38408de1a7ca23691b16bcdac78b45c07225b"
+            ],
+            "pending_node_result_tool_bindings": [
+              2,
+              "5cae02793b2dd6391bb016a01388223fe9f5c02e29f8ab85e6a9158018accefd"
+            ],
+            "pending_node_results": [
+              17,
+              "83afc17dbe397bc9de744775bb0be443280cf61ea923c01bb1e91e1fbe35441a"
+            ],
+            "run_attempt_claims": [
+              79,
+              "7d119e04bd957b9df044334bb05eb018bf027c8586179eb07af0521ae7ccb6f8"
+            ],
+            "run_checkpoints": [
+              88,
+              "0ed3d2c1c6ebc23159004f9192c865956a545f9da38155d3a7aee5226d2044a1"
+            ],
+            "run_events": [
+              193,
+              "17007d6db45df703d21742cd320d46bf6b74797c0a1ca340495c735cecbe8ca7"
+            ],
+            "run_failure_closes": [
+              2,
+              "f50273a93a12cbfe21a3c1bc54e43db6d2a61ea8a1e5934f4ea82f06b1018812"
+            ],
+            "run_quarantines": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "run_wait_registrations": [
+              1,
+              "e21a845813a6c376506c2afbae293b4ad07bcd2f0ec1307501aea2917b2e34af"
+            ],
+            "runs": [
+              22,
+              "27338d4386a9764eeaba92a49ea3d02215a5b1e9abbd792aef54a2125d7f7658"
+            ],
+            "scheduler_fairness_reservations": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "scheduler_fairness_shards": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "skill_acting_window_revocations": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "skill_acting_windows": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "skill_activation_approvals": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "timer_firings": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "tool_authorization_receipts": [
+              0,
+              "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+            ],
+            "tool_invocation_revisions": [
+              12,
+              "e6cd54562bba7719de5951b02c7895242b277987cbb6e03f79264c482911292f"
+            ],
+            "tool_invocations": [
+              4,
+              "e4b270eff9339ff2c92cb8e9f871cde3946c7f91deb4a540bcba5005d8403b92"
+            ],
+            "wait_abandonments": [
+              1,
+              "72700bee13e36857a009ebdd3f13e56fe747d195f44cbab294d002765e1e70a6"
+            ]
+          },
+          "typed_readers": {
+            "caller_count": 40,
+            "invariants": "passed",
+            "original_closures": 16,
+            "provider_count": 4,
+            "root_and_lifecycle_exact": true,
+            "typed_health": true,
+            "whole_decision_and_retry": true
+          },
+          "dump_sha256": "b84962990e8d9a605d5a182ec16abf9e8a80584c2e03dbcc1a83401bd0162f98",
+          "manifest_sha256": "dcaecfb8a94becf06434c3afca49c1a97aaee27efac44906d1ff880153a3d37e",
+          "restore_log": "/tmp/stateknot-frame-close-node-stack-business17-v1-restore.log"
+        }
+      },
+      "probe_sha256": "74527a06a1a0c64a6a9ad61c9957b07da35a64320bea5a34913cd3ff24928f2b",
+      "probe_build_log": "/tmp/stateknot-frame-close-node-stack-restore-probe-build-v1.log",
+      "passed": true
+    }
+  },
+  "qualification_scope": "Experimental Core/PostgreSQL through whole closure; frozen f05 source only, excludes claimed-frame development, actual nested Driver, history N-1/N-2 and R1/R6/R7 closure"
+}

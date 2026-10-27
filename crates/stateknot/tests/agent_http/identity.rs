@@ -433,6 +433,7 @@ async fn keycloak_tls_authentication_rotation_revocation_and_owned_ingress() {
     register_standard_child_reconciliation_event_schema(&mut schemas).unwrap();
     register_standard_child_join_event_schema(&mut schemas).unwrap();
     register_standard_run_failure_close_event_schema(&mut schemas).unwrap();
+    register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
     let maintenance = stateknot::agent_maintenance::AgentMaintenanceBinding::new(
         f.store.clone(),
         schemas.build().unwrap(),

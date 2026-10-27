@@ -1,0 +1,34 @@
+{
+  "case": 5,
+  "exact_test": "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+  "origin_label": "elapsed36-ready-v2-extra-05-pg16",
+  "postgres_major": "16",
+  "database": "stateknot_r1_a36_feedback_oct15v1",
+  "package": "stateknot-store-postgres",
+  "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+    "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "exit_code": 0,
+  "seconds": 0.5149402618408203,
+  "valid_exact_native_success": true,
+  "summaries": [
+    [
+      "ok",
+      "1",
+      "0",
+      "0"
+    ]
+  ],
+  "result_lines": [
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.51s"
+  ],
+  "log_sha256": "040180d0ceba6f1245b55c282c6d53e403e6f4793a277c6e95f704f452a8f5ab",
+  "default_stack": true,
+  "original_config_and_assertions": true
+}

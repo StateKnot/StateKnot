@@ -344,40 +344,45 @@ impl DurableChildReconciler {
         Ok(tick)
     }
 
-    async fn reconcile_with_retry(
-        &self,
-        key: &ChildRunKey,
+    fn reconcile_with_retry<'a>(
+        &'a self,
+        key: &'a ChildRunKey,
         kind: ChildReconciliationKind,
-    ) -> Result<ChildReconciliationCommit, StoreError> {
-        let event_id = EventId::generate();
-        let failure_id = FailureId::generate();
-        for attempt in 1..=self.options.maximum_mutation_attempts {
-            let result = match kind {
-                ChildReconciliationKind::Cancellation => {
-                    Box::pin(self.cancel(key, event_id, failure_id)).await
+    ) -> BoxFuture<'a, Result<ChildReconciliationCommit, StoreError>> {
+        Box::pin(async move {
+            let event_id = EventId::generate();
+            let failure_id = FailureId::generate();
+            for attempt in 1..=self.options.maximum_mutation_attempts {
+                let result = match kind {
+                    ChildReconciliationKind::Cancellation => {
+                        Box::pin(self.cancel(key, event_id, failure_id)).await
+                    }
+                    ChildReconciliationKind::Settlement => {
+                        Box::pin(self.settle(key, event_id)).await
+                    }
+                };
+                match result {
+                    Err(error)
+                        if attempt < self.options.maximum_mutation_attempts
+                            && (error.is_retryable()
+                                || matches!(
+                                    error,
+                                    StoreError::StaleJournalHead
+                                        | StoreError::StaleLifecycleRevision
+                                )) =>
+                    {
+                        let delay = self
+                            .options
+                            .retry_initial_delay
+                            .saturating_mul(1_u32 << (attempt - 1))
+                            .min(Duration::from_secs(1));
+                        tokio::time::sleep(delay).await;
+                    }
+                    other => return other,
                 }
-                ChildReconciliationKind::Settlement => Box::pin(self.settle(key, event_id)).await,
-            };
-            match result {
-                Err(error)
-                    if attempt < self.options.maximum_mutation_attempts
-                        && (error.is_retryable()
-                            || matches!(
-                                error,
-                                StoreError::StaleJournalHead | StoreError::StaleLifecycleRevision
-                            )) =>
-                {
-                    let delay = self
-                        .options
-                        .retry_initial_delay
-                        .saturating_mul(1_u32 << (attempt - 1))
-                        .min(Duration::from_secs(1));
-                    tokio::time::sleep(delay).await;
-                }
-                other => return other,
             }
-        }
-        unreachable!("validated positive attempt count always returns")
+            unreachable!("validated positive attempt count always returns")
+        })
     }
 
     async fn cancel(

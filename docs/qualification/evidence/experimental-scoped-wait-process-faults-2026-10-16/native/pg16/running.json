@@ -1,0 +1,54 @@
+{
+  "argv": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/binaries/runtime-postgres",
+    "nested_driver::frame_wait_process_faults::scoped_wait_commit_loss_survives_real_kill_authorized_resolution_and_cold_driver",
+    "--exact",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "cwd": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-source-v2",
+  "pid": 52082,
+  "runner_pid": 52059,
+  "start_unix": 1792141911.168426,
+  "runner_sha256": "66a53bff1bff2590e2a45dd9cc6e8507f6c0976b8935997af6f535c4f5527316",
+  "shared_build_module_sha256": "1edc9ea863bf220b2bc165f3d7c5557f7aeed48e00ea9a9ffd4ee610c3fc9d66",
+  "role": "candidate",
+  "leg": "B",
+  "case": "runtime_exact",
+  "source_tree": "b286803afacf84278ffa579e8f898610e9474378bd982897e90f1c3c0f0c718c",
+  "compiled_inputs_sha256": "43877dc8d16584c5a957356a1d0310ac4faea1525b743c05c4a159178780c305",
+  "binary_sha256": "ade87f1b40b8a1b28da07d1908e73114e40d77f0595a9d6e919ae6dc8306a1f8",
+  "profile_build_receipt_sha256": "5c2bd81e2e533512e35c4f7035c967d2f2b8990a6be216cf9c711d20f2aad670",
+  "environment_allowlist": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+    "RUSTDOCFLAGS": "-D warnings",
+    "RUSTFLAGS": "-D warnings"
+  },
+  "mandatory_database_env_present": true,
+  "overrides_present": {
+    "RUST_MIN_STACK": false,
+    "CARGO_ENCODED_RUSTFLAGS": false,
+    "RUSTC_WRAPPER": false,
+    "RUSTC_WORKSPACE_WRAPPER": false,
+    "RUSTC_BOOTSTRAP": false,
+    "RUSTC": false
+  },
+  "database": {
+    "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+    "image_id": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+    "port": 55416,
+    "name": "stateknot_r1_waitfaultv1_20261016_pg16_runtime_b",
+    "URL_credentials_not_logged": true
+  },
+  "full_inventory_count": 193,
+  "expected_filtered": 192,
+  "external_observation_watchdog_seconds": 600,
+  "original_business_budgets_unchanged": true,
+  "diagnostic_markers_required": false
+}

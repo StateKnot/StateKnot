@@ -1,0 +1,487 @@
+{
+  "format_version": 1,
+  "profile": "experimental-published-scoped-child-join-resume-G1",
+  "snapshot_utc": "2026-10-19T09:38:21.961543+00:00",
+  "publication_status": "EXACT_RUNTIME_HEAD_CI_VERIFIED; LATER_DOCUMENTATION_CANDIDATE_NOT_ADOPTED",
+  "runtime_binding": {
+    "head": "343b244d59a9f13987139fe98f802491a474640b",
+    "parent": "7565825aca72dc39ad436353fe8315d1075f1fcb",
+    "tree": "bdbddf21d9bd0a98b0fc25171e0c5a2df7ed15a6",
+    "checkout": "4a05c35a9ef4f17b4176caf6b3afd85d94c39b7c",
+    "ordered_checkout_parents": [
+      "aa11b4f44a948aaf2e2baba4c30a297dc828ce6d",
+      "343b244d59a9f13987139fe98f802491a474640b"
+    ],
+    "source_count": 949,
+    "source_tree_sha256": "1404f54f6de8bd777a9d4a7a832c79dacdc75f3b7f732c6eca303f33ff97f8c1",
+    "compiled_count": 553,
+    "compiled_canonical_sha256": "4745bb73cca9553b03d94df998b7d8b21a7b442c4357bb9e3038ee117fac9820",
+    "native_directed_source": "scoped-child-join-g1-green-source-v1",
+    "native_directed_source_tree_sha256": "451a1cd9916cd57020b69f230708908107cfbf5ce56e565c85d9f597e63ea08c",
+    "final_only_noncompiled_delta": [
+      "CHANGELOG.md",
+      "docs/rfcs/0022-namespaced-graph-frames.md",
+      ".github/scripts/postgres-native-binaries.py",
+      ".github/scripts/run-postgres-native-parallel.sh",
+      ".github/scripts/verify-scoped-wait-markers.py",
+      ".github/workflows/ci.yml"
+    ],
+    "all553_compiled_bytes_identical": true,
+    "branch_DCO_commits": 131,
+    "branch_DCO_trailer_rows": 132,
+    "historical_duplicate_trailer_commit": "44338b92213de0318cf68d3153f15f7a55b8f1bb"
+  },
+  "documentation_binding": {
+    "new_documentation_commit": null,
+    "measured_head_unchanged": "343b244d59a9f13987139fe98f802491a474640b",
+    "new_documentation_source_or_CI_qualification": false
+  },
+  "contract": {
+    "published_unconsumed_only": true,
+    "whole_owning_actual_frame_Join_preflight": true,
+    "actual_result_consumption_and_Return": true,
+    "original_F1_remains_Executing": true,
+    "Root_handoff_status": "Active",
+    "positive_OS_process_kill": false,
+    "positive_child_application_executed": false,
+    "positive_child_fixture": "zero-I/O admission with trusted control-plane failure terminal, real settlement/publication",
+    "quarantine_guarantee": "already quarantined before drive refuses before fresh Start; no revocation promise after preflight gate; final atomic fresh consumption guards retained",
+    "fresh_suspension_partial_spawn_general_cancellation_qualified": false
+  },
+  "local": {
+    "six_gates_all_actual_zero": true,
+    "workspace": {
+      "harnesses": 100,
+      "passed": 2144,
+      "failed": 0,
+      "ignored": 6
+    },
+    "doctests": {
+      "harnesses": 10,
+      "passed": 48,
+      "failed": 0,
+      "ignored": 0
+    },
+    "Native_inventory": 210,
+    "PG_directed_runs": 20,
+    "directed": [
+      {
+        "group": "selected",
+        "label": "pg16-case1",
+        "selector": "scoped_join_close_process_faults::active_join_resume::published_scoped_join_f2_resumes_consumes_returns_and_continues_parent",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-pg16-case1-v1/observations.json",
+        "observation_sha256": "93481fe0f1bf6cfe9aec10f213426d420298aa3e63f68f761ebed108f1bc03ab"
+      },
+      {
+        "group": "selected",
+        "label": "pg16-case2",
+        "selector": "scoped_join_close_process_faults::active_join_resume::profile_bounds::fresh_frame_entry_with_child_declarations_stays_unsupported_before_work",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-pg16-case2-v1/observations.json",
+        "observation_sha256": "c835f9f75bf6de4207ffc0d05c323ca92b5962e6dd9220d96f869d0265b87ebe"
+      },
+      {
+        "group": "selected",
+        "label": "pg16-case3",
+        "selector": "scoped_join_close_process_faults::active_join_resume::profile_bounds::published_scoped_join_quarantined_child_refuses_resume_before_new_start",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-pg16-case3-v1/observations.json",
+        "observation_sha256": "b75befedc53b8bb1195a06834f33a73132ae1f98d1952d32b26149a2d9830905"
+      },
+      {
+        "group": "selected",
+        "label": "pg16-case4",
+        "selector": "scoped_join_close_process_faults::active_join_resume::profile_bounds::active_frame_unsupported_framework_target_rejects_before_f2_caller_rebind",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-pg16-case4-v1/observations.json",
+        "observation_sha256": "c48d460c72cee9b9e82661ed048db3970dd70bb9b12cecf97cdf269c77e7b33f"
+      },
+      {
+        "group": "selected",
+        "label": "pg17-case1",
+        "selector": "scoped_join_close_process_faults::active_join_resume::published_scoped_join_f2_resumes_consumes_returns_and_continues_parent",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-pg17-case1-v1/observations.json",
+        "observation_sha256": "9fb6f485c76e9f710e8d575edac1c26a3960a89c3c0bac7613edf98202882904"
+      },
+      {
+        "group": "selected",
+        "label": "pg17-case2",
+        "selector": "scoped_join_close_process_faults::active_join_resume::profile_bounds::fresh_frame_entry_with_child_declarations_stays_unsupported_before_work",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-pg17-case2-v1/observations.json",
+        "observation_sha256": "1824a14feb94d6039eeb8727ecf0dffe694fa755401d0441e2f9bf5ef661d22c"
+      },
+      {
+        "group": "selected",
+        "label": "pg17-case3",
+        "selector": "scoped_join_close_process_faults::active_join_resume::profile_bounds::published_scoped_join_quarantined_child_refuses_resume_before_new_start",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-pg17-case3-v1/observations.json",
+        "observation_sha256": "e6654669184a866ae1035645b587d51054ead15f81b2514b7df75c81569a9cec"
+      },
+      {
+        "group": "selected",
+        "label": "pg17-case4",
+        "selector": "scoped_join_close_process_faults::active_join_resume::profile_bounds::active_frame_unsupported_framework_target_rejects_before_f2_caller_rebind",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-pg17-case4-v1/observations.json",
+        "observation_sha256": "70fd882f73637676db0b3692102122337a7491bab57b122d65ac2af87042c87a"
+      },
+      {
+        "group": "regression",
+        "label": "pg16-case1",
+        "selector": "nested_driver::framework_entry_and_scoped_application_start_share_original_run",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg16-case1-v1/observations.json",
+        "observation_sha256": "25069c7ddd64986770b53d1256684189c1d4bcb257dfff2ddd44dd2c347dd718"
+      },
+      {
+        "group": "regression",
+        "label": "pg16-case2",
+        "selector": "nested_driver::scoped_start_lost_commit_ack_retries_exact_original_without_application_launch",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg16-case2-v1/observations.json",
+        "observation_sha256": "2a52fd152bd665e555462ce0eb6cf386c40711ce1df4a7dd67c3d569882d01a1"
+      },
+      {
+        "group": "regression",
+        "label": "pg16-case3",
+        "selector": "child_admission::ownership::join::child_join_register_publish_recover_and_consume_exact_result",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg16-case3-v1/observations.json",
+        "observation_sha256": "8c4a676d1bd2913c058df221f75e3c5f829c1282b468084eabd21cd67dd4d2c4"
+      },
+      {
+        "group": "regression",
+        "label": "pg16-case4",
+        "selector": "scoped_join_close_process_faults::f2_driver::settled_registered_scoped_join_cancellation_yields_a_real_f2_driver_handoff_without_dispatch",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg16-case4-v1/observations.json",
+        "observation_sha256": "ce72197743a0d6a3c5ed1656fa09cddda95b0347292b70f692b9f0975473442f"
+      },
+      {
+        "group": "regression",
+        "label": "pg16-case5",
+        "selector": "scoped_join_close_process_faults::cold_continuation::closed_scoped_join_cancellation_is_finished_by_fresh_process_owned_maintenance",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg16-case5-v1/observations.json",
+        "observation_sha256": "980030d2db5dbe5fdd6726a4d23f3d64ffe75f84ec9c9ab444c0f9507123e3c5"
+      },
+      {
+        "group": "regression",
+        "label": "pg16-case6",
+        "selector": "child_admission::ownership::join::driver::automatic_join_suspends_runs_child_recovers_parent_and_consumes_once",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg16-case6-v1/observations.json",
+        "observation_sha256": "b80d1a523c28cf81611db3a326c5916ad96a7a3d24cd7e3b3e3a6d8ac0cbd287"
+      },
+      {
+        "group": "regression",
+        "label": "pg17-case1",
+        "selector": "nested_driver::framework_entry_and_scoped_application_start_share_original_run",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg17-case1-v1/observations.json",
+        "observation_sha256": "09c74e4d2feae5ccb9566672523984fe0a6589265a7166bf2a83250f139db8f1"
+      },
+      {
+        "group": "regression",
+        "label": "pg17-case2",
+        "selector": "nested_driver::scoped_start_lost_commit_ack_retries_exact_original_without_application_launch",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg17-case2-v1/observations.json",
+        "observation_sha256": "dbb6262f5f11ef2d2dab5a27748eaee517d1cd97d81ba4bc967c5d2aa7609479"
+      },
+      {
+        "group": "regression",
+        "label": "pg17-case3",
+        "selector": "child_admission::ownership::join::child_join_register_publish_recover_and_consume_exact_result",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg17-case3-v1/observations.json",
+        "observation_sha256": "902e09c5fb3157c5d6cf82e1df021353b90c11b1c885f38ad6e97cd989a5eb50"
+      },
+      {
+        "group": "regression",
+        "label": "pg17-case4",
+        "selector": "scoped_join_close_process_faults::f2_driver::settled_registered_scoped_join_cancellation_yields_a_real_f2_driver_handoff_without_dispatch",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg17-case4-v1/observations.json",
+        "observation_sha256": "63a2672d947d7426a3fa76a2fe490ab83a0108cbf65c67af5c3af3e52ff857d8"
+      },
+      {
+        "group": "regression",
+        "label": "pg17-case5",
+        "selector": "scoped_join_close_process_faults::cold_continuation::closed_scoped_join_cancellation_is_finished_by_fresh_process_owned_maintenance",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg17-case5-v1/observations.json",
+        "observation_sha256": "226faea2abe45223c2cfbe21a204002ee08aac7c52e60c517aa3bbfe2e7fb0e5"
+      },
+      {
+        "group": "regression",
+        "label": "pg17-case6",
+        "selector": "child_admission::ownership::join::driver::automatic_join_suspends_runs_child_recovers_parent_and_consumes_once",
+        "actual_test_exit": 0,
+        "observation_path": ".local-verification/2026-10-18/scoped-child-join-g1-regression-pg17-case6-v1/observations.json",
+        "observation_sha256": "e1effa853da3ae5890ed7b75dbff76584e38ca315dac8cab15b2e4c086803915"
+      }
+    ]
+  },
+  "CI": {
+    "run_id": 39228803615,
+    "run_url": "https://github.com/StateKnot/StateKnot/actions/runs/39228803615",
+    "actual_analyzer_exit": 0,
+    "full_CI_success_verified": true,
+    "full_CI_qualification": true,
+    "analysis_errors": [],
+    "component_verified": {
+      "all19_actual_initial_checkout_logs": true,
+      "all21_official_job_outcomes": true,
+      "all60_step_states_on_both_majors": true,
+      "all_workflow_artifacts_and_raw_files": true,
+      "pg16_native267_210_two_live_owners": true,
+      "pg16_return_two_real_cuts210_209": true,
+      "pg16_scoped-wait_two_real_cuts210_209": true,
+      "pg16_all_process_host_protocol_TLS_backup_PITR_markers": true,
+      "pg16_actual_original_protocol_harnesses": true,
+      "pg17_native267_210_two_live_owners": true,
+      "pg17_return_two_real_cuts210_209": true,
+      "pg17_scoped-wait_two_real_cuts210_209": true,
+      "pg17_all_process_host_protocol_TLS_backup_PITR_markers": true,
+      "pg17_actual_original_protocol_harnesses": true
+    },
+    "jobs_success": 21,
+    "jobs_total": 21,
+    "checkouts_at_S": 19,
+    "aggregate_jobs_without_checkout": 2,
+    "required_source_steps_per_major": 60,
+    "all120_required_step_states_success": true,
+    "native": {
+      "16": {
+        "verified": true,
+        "roles": {
+          "store": {
+            "passed": 267,
+            "suite_exit": 0,
+            "test_seconds": 413.29,
+            "build_seconds": 130.22435797900002,
+            "binary_sha256": "0ba47a0f245f5ce7e629cdd3ed43f9c053dbabfcc704458414a9879ef678e0fd"
+          },
+          "runtime": {
+            "passed": 210,
+            "suite_exit": 0,
+            "test_seconds": 768.19,
+            "build_seconds": 135.88235990500002,
+            "binary_sha256": "40f548052360c1d05449e2ffc9d99e64314c02a9a2a5a89f0f39c7eb0b16bb85"
+          }
+        },
+        "actual_native_overlap": true,
+        "both_live_owners_retired": true,
+        "monitor_exit": 0,
+        "default_features_stack_profile": true,
+        "all553_inputs_exact": true
+      },
+      "17": {
+        "verified": true,
+        "roles": {
+          "store": {
+            "passed": 267,
+            "suite_exit": 0,
+            "test_seconds": 423.57,
+            "build_seconds": 135.014970763,
+            "binary_sha256": "0ba47a0f245f5ce7e629cdd3ed43f9c053dbabfcc704458414a9879ef678e0fd"
+          },
+          "runtime": {
+            "passed": 210,
+            "suite_exit": 0,
+            "test_seconds": 799.31,
+            "build_seconds": 134.48771229800002,
+            "binary_sha256": "40f548052360c1d05449e2ffc9d99e64314c02a9a2a5a89f0f39c7eb0b16bb85"
+          }
+        },
+        "actual_native_overlap": true,
+        "both_live_owners_retired": true,
+        "monitor_exit": 0,
+        "default_features_stack_profile": true,
+        "all553_inputs_exact": true
+      }
+    },
+    "bootstrap_GETs": 17,
+    "all_indexed_files": 1544,
+    "all_archive_digests": 54,
+    "all_official_GETs": 99,
+    "terminal_index_sha256": "813232b4c80602afec07e7eb84638bc3df53874f1ff94fc8b0c5dfe99de1002e",
+    "analyzer_sha256": "e29513b4ff55dc6e46a235cb8f8fec05e773c7f8d03b48fa4befa442d93c6f44"
+  },
+  "history": {
+    "C9dd_commit": "9dd396b0dc60a798ce6b52ec6ce3470aab0d3a88",
+    "C9dd_CI_run": 39221903796,
+    "C9dd_CI_successful_jobs": 16,
+    "C9dd_CI_total_jobs": 21,
+    "C9dd_full_CI_qualification": false,
+    "original37_local_workspace_passed": 2140,
+    "original37_runtime_inventory": 206,
+    "original37_portable_bundle_modified": false,
+    "G2_source_tests_or_RED_included_in_G1_CI": false
+  },
+  "milestones": {
+    "RFC0022_status": "Draft",
+    "PR161_status": "Draft",
+    "Supported_status_changed": false,
+    "R1_closed": false,
+    "R6_closed": false,
+    "R7_closed": false
+  },
+  "evidence_storage": {
+    "kind": "concise hash index into retained local originals",
+    "portable_payload": false,
+    "archived_helpers_executed_for_this_documentation": false,
+    "anchors": [
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-analysis-v1/receipt.json",
+        "bytes": 418695,
+        "sha256": "337577a6f3cd3f637f456ae6e503757ef7df6617debc27063fec4767edb0e43f"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-terminal-v1/collection.receipt.json",
+        "bytes": 381,
+        "sha256": "5cf9f6f70b5b1f7d0b2ed7f1aa8cdc5d4d7ed1ee7e31f23720d8589c137e6c9d"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-terminal-v1/files.json",
+        "bytes": 396396,
+        "sha256": "813232b4c80602afec07e7eb84638bc3df53874f1ff94fc8b0c5dfe99de1002e"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-bootstrap-v1/capture.receipt.json",
+        "bytes": 13432,
+        "sha256": "921f23c8cf26785b217644598a7389c6f36ef9a27842ecfd794c71f5d8da3f24"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-bootstrap-v1/checkout-commit.stdout",
+        "bytes": 2622,
+        "sha256": "3c89a2ecdb2999d92257080281f75130ac6aab8adac8757a98ac5e582d92965e"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-bundle-v1/manifest.json",
+        "bytes": 70518,
+        "sha256": "5b865c07c9b3c81905d637b164b4d501bd411fc34dc0a66bd96433c89acf6ff1"
+      },
+      {
+        "path": ".local-verification/2026-10-18/ci-postgres-shards-terminal-analyzer-v9-independent-review-oct19-v1/manifest.json",
+        "bytes": 1158,
+        "sha256": "e448c4d2fb1ecaf52e99e603050b4cdaa857370c251b1d9ae2401483272e5176"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-final-local-qualification-root-v1/receipt.json",
+        "bytes": 2425,
+        "sha256": "643124a3e1e8a0f105799fee99a68b7d1a3a67d4f9e0b84b592570ee701141cd"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-final-qualification-v1/scope.json",
+        "bytes": 854,
+        "sha256": "ef3e01859b0a64461de2f77936abbeda436e1a857ca76d41018267274bce67b3"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-final-qualification-v1/frozen-source-manifest.json",
+        "bytes": 173140,
+        "sha256": "dce5ef3b2cd64e0dc14880d677a0bfa86f8cc90fe80ea082c1c55d68d34981cc"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-final-qualification-v1/compiled-inputs.json",
+        "bytes": 104973,
+        "sha256": "a1d643000c3fa64a3a63410ea324da6850fe1fba7a600552d806bd6f39ef5396"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-preparation-root-v1/frozen-source-manifest.json",
+        "bytes": 173140,
+        "sha256": "81d823a9dae11cea1213c1cd30ba7c43a4fde4ba10e9902985298e201d6bb814"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-native-v1/build-summary.json",
+        "bytes": 7018,
+        "sha256": "35d401704071cb6a407deb476b5f10e4945f49876731998ba5d4a95839160d7f"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-selected-root-v1/receipt.json",
+        "bytes": 154,
+        "sha256": "3d85c53dd81b6716aba0f668c722403f6966e509966fbea56727c6b5ff423be9"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-selected-root-v1/execution.json",
+        "bytes": 8042,
+        "sha256": "2409f77ccf8ab8628b9f69c677fce68049f8a9c4f95e9a13c081ece0d9922ada"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-regressions-root-v1/receipt.json",
+        "bytes": 163,
+        "sha256": "5569a0dd2a1742d63c066a8a7fd9b273c7bf4c4062e7101bc9bcdafcadf00246"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-regressions-root-v1/execution.json",
+        "bytes": 11535,
+        "sha256": "e809dd9b98f625381887a958b5eb9ba271d608a94bbc042b6176901dbae2cd43"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g1-primary-adoption-actual-root-v1/receipt.json",
+        "bytes": 3062,
+        "sha256": "72d25e1d0528434a6db4728b5e1631df63a57b381c748b402cee718ff0c13d4b"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-three-commit-push-actual-v1/receipt.json",
+        "bytes": 378,
+        "sha256": "d85692431fade3d158b608cb162127860b2567ce8d4dac75829cd1c3bacdfb2e"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-all-range-DCO-root-v1/receipt.json",
+        "bytes": 368,
+        "sha256": "4beaad5904c4d3b03d9a648b48eeb8a2134abf1c8579690e03f10313b43364c2"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-all-range-DCO-root-v1/stdout",
+        "bytes": 41188,
+        "sha256": "1f48fb3c29fe8d110266837d63c369d0dfddec14c205495ea91d44db4d64bba4"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-C-ci-analysis-v1/receipt.json",
+        "bytes": 246786,
+        "sha256": "03274f3299792608e85b0039fa8c8363fd9d996a1f078d7e25b6652f308c8d42"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-frame-cancellation-portable-delivery-v1/artifact-index.json",
+        "bytes": 2496070,
+        "sha256": "f6cac6f0886c9b005a39a2d5f5da07dca4cf687fde08a137dd08b485df63dd56"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-frame-cancellation-portable-delivery-v1/review-originals.tar.gz",
+        "bytes": 51925681,
+        "sha256": "00cba960effdb49f0fe8fa773b56a7f869d9e16042cc87fc0a516f406ed6b049"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-frame-cancellation-portable-root-actual-v1/receipt.json",
+        "bytes": 5036,
+        "sha256": "f3004a872ec8e14aedd70b9f164d9e34ffe76816d97471614203e01e0310b7c5"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-terminal-v1/artifacts/12176867301-postgres-native-parallel-16-39228803615/store.stdout",
+        "bytes": 24996,
+        "sha256": "6a31a4b007657cd871bdb2c0d621ffde3ad4a48ace9eccf03b2080e46ff27fcf"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-terminal-v1/artifacts/12176867301-postgres-native-parallel-16-39228803615/runtime.stdout",
+        "bytes": 22943,
+        "sha256": "20c4b7fd551c61eb16c35334b595ccf700e461f7be21c3bc41ee104703dfb037"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-terminal-v1/artifacts/12176449388-postgres-native-parallel-17-39228803615/store.stdout",
+        "bytes": 24996,
+        "sha256": "c24c0c4465d552159110b39ece9a63780e97f76a3438fdd0acf599c6843f5f53"
+      },
+      {
+        "path": ".local-verification/2026-10-18/pr161-G1-ci-terminal-v1/artifacts/12176449388-postgres-native-parallel-17-39228803615/runtime.stdout",
+        "bytes": 22943,
+        "sha256": "d953bb92ecca991c6f263c48ff3d8677fef17c1ac695071c89ca78d1be9520b6"
+      }
+    ]
+  }
+}

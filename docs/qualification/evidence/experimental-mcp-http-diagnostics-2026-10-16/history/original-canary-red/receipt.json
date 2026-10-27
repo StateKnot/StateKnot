@@ -1,0 +1,26 @@
+{
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "-p",
+    "stateknot-integrations",
+    "--test",
+    "mcp_client_contract",
+    "--locked",
+    "--",
+    "--exact",
+    "http_response_debug_hides_payloads_without_changing_raw_values_or_resume",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "exit_code": 101,
+  "seconds": 24.99717402458191,
+  "source_tree": "262754645fd0265a31fd1da53dd3150079b1a2bf31f6fd27768cda574e263300",
+  "source_928_before_after_exact": true,
+  "log_sha256": "fde49495aaf4bd84acc7f673816dbf90250c2b4a5a2a7368f7b0308205902858",
+  "task_cache_before_kib": 11477248,
+  "task_cache_after_kib": 11493468,
+  "DB_environment_cleared": true,
+  "main_source_modified": false
+}

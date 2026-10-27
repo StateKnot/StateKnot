@@ -4,7 +4,7 @@
 //! Deterministic ready-node replay and crash-recovery planning.
 //!
 //! A plan is derived only from one fully verified checkpoint, its canonical
-//! root-node activations, immutable pending results, complete physical-attempt
+//! scope-bound node activations, immutable pending results, complete physical-attempt
 //! histories, one exact live worker fence, and a database-observed timestamp.
 //! It performs no I/O and authorizes no dispatch. Storage/runtime code must
 //! revalidate ownership and commit a durable node-attempt start before invoking
@@ -16,10 +16,11 @@ use std::collections::BTreeMap;
 use thiserror::Error;
 
 use crate::{
-    BarrierResultHeads, BarrierResultHeadsError, Checkpoint, Failure, JournalHead, NodeActivation,
-    NodeActivationError, NodeAttempt, NodeAttemptHistoryError, NodeAttemptHistoryVerifier,
-    NodeAttemptOutcome, NodeAttemptStartHead, NodeAttemptStatus, NodeId, PendingNodeResult,
-    PendingNodeResultHead, RetryAdvice, RunFence, Timestamp,
+    BarrierResultHeads, BarrierResultHeadsError, Checkpoint, Failure, GraphFrameCheckpoint,
+    GraphFrameError, GraphFrameIdentity, JournalHead, NodeActivation, NodeActivationError,
+    NodeAttempt, NodeAttemptHistoryError, NodeAttemptHistoryVerifier, NodeAttemptOutcome,
+    NodeAttemptStartHead, NodeAttemptStatus, NodeId, PendingNodeResult, PendingNodeResultHead,
+    RetryAdvice, RunFence, Timestamp,
 };
 
 /// Stable reason that one logical activation may start a new physical attempt.
@@ -193,6 +194,7 @@ impl RecoveryNode {
 #[derive(Clone, Debug)]
 pub struct ReadyNodeRecoveryPlan {
     checkpoint: Checkpoint,
+    frame: Option<GraphFrameIdentity>,
     fence: RunFence,
     journal_head: JournalHead,
     observed_at: Timestamp,
@@ -204,6 +206,15 @@ impl ReadyNodeRecoveryPlan {
     #[must_use]
     pub const fn checkpoint(&self) -> &Checkpoint {
         &self.checkpoint
+    }
+
+    /// Returns the exact experimental frame, or `None` for root recovery.
+    ///
+    /// This is scope data; storage must still revalidate the active leaf and
+    /// current fence before dispatch or returning to a suspended caller.
+    #[must_use]
+    pub const fn frame(&self) -> Option<&GraphFrameIdentity> {
+        self.frame.as_ref()
     }
 
     /// Returns the exact worker ownership used to classify attempt histories.
@@ -240,13 +251,14 @@ impl ReadyNodeRecoveryPlan {
                 .all(|node| node.kind() == RecoveryNodeKind::Completed)
     }
 
-    /// Builds the exact compact result set when the checkpoint can enter its
-    /// barrier, or returns `None` while any activation remains unsettled.
+    /// Builds the root-only compact result set when the checkpoint can enter
+    /// its barrier, or returns `None` while any activation remains unsettled.
     ///
     /// # Errors
     ///
     /// Returns [`BarrierResultHeadsError`] only if an internal invariant is
-    /// violated while materializing the already validated canonical set.
+    /// violated while materializing the already validated canonical set, or
+    /// when frame results are passed to the legacy root-only collection.
     pub fn barrier_result_heads(
         &self,
     ) -> Result<Option<BarrierResultHeads>, BarrierResultHeadsError> {
@@ -255,6 +267,23 @@ impl ReadyNodeRecoveryPlan {
         }
         let results = self.nodes.iter().filter_map(RecoveryNode::result).cloned();
         BarrierResultHeads::try_new(results).map(Some)
+    }
+
+    /// Returns the complete bounded result-head slice in canonical node order.
+    ///
+    /// Scoped callers must retain [`Self::frame`] and verify the full scoped
+    /// checkpoint when constructing a frame barrier. These compact values alone
+    /// grant no storage or parent-continuation authority. Returns `None` until
+    /// every exact ready activation has a verified immutable result.
+    #[must_use]
+    pub fn completed_result_heads(&self) -> Option<Box<[PendingNodeResultHead]>> {
+        self.is_barrier_ready().then(|| {
+            self.nodes
+                .iter()
+                .filter_map(RecoveryNode::result)
+                .cloned()
+                .collect()
+        })
     }
 
     /// Returns the earliest durable retry instant when at least one node is
@@ -282,6 +311,7 @@ struct RecoveryEntry {
 #[derive(Clone, Debug)]
 pub struct ReadyNodeRecoveryPlanner {
     checkpoint: Checkpoint,
+    frame: Option<GraphFrameIdentity>,
     fence: RunFence,
     entries: BTreeMap<NodeId, RecoveryEntry>,
 }
@@ -301,6 +331,51 @@ impl ReadyNodeRecoveryPlanner {
     /// Returns [`ReadyNodeRecoveryError`] when the fence crosses checkpoint
     /// scope or deterministic activation construction fails.
     pub fn new(checkpoint: Checkpoint, fence: RunFence) -> Result<Self, ReadyNodeRecoveryError> {
+        let entries = Self::seed(&checkpoint, &fence, |node_id| {
+            NodeActivation::for_ready_root(&checkpoint, node_id)
+                .map_err(ReadyNodeRecoveryError::activation)
+        })?;
+        Ok(Self {
+            checkpoint,
+            frame: None,
+            fence,
+            entries,
+        })
+    }
+
+    /// Seeds exact ready activations from a fully verified experimental frame.
+    ///
+    /// The returned plan retains its immutable frame identity. Physical-attempt
+    /// history, result reuse, retry timing and fence checks use the same bounded
+    /// verifier as root recovery; the legacy root result collection stays closed.
+    /// This data planner performs no I/O and does not enable nested execution.
+    ///
+    /// # Errors
+    ///
+    /// Rejects crossed fence scope or scoped activation derivation failure.
+    pub fn for_frame(
+        checkpoint: GraphFrameCheckpoint,
+        fence: RunFence,
+    ) -> Result<Self, ReadyNodeRecoveryError> {
+        let entries = Self::seed(checkpoint.checkpoint(), &fence, |node_id| {
+            checkpoint
+                .activation(node_id)
+                .map_err(|source| ReadyNodeRecoveryError::FrameActivation { source })
+        })?;
+        let (frame, checkpoint) = checkpoint.into_parts();
+        Ok(Self {
+            checkpoint,
+            frame: Some(frame),
+            fence,
+            entries,
+        })
+    }
+
+    fn seed(
+        checkpoint: &Checkpoint,
+        fence: &RunFence,
+        mut activation: impl FnMut(NodeId) -> Result<NodeActivation, ReadyNodeRecoveryError>,
+    ) -> Result<BTreeMap<NodeId, RecoveryEntry>, ReadyNodeRecoveryError> {
         if fence.tenant_id() != checkpoint.tenant_id() {
             return Err(ReadyNodeRecoveryError::FenceTenantMismatch);
         }
@@ -309,8 +384,7 @@ impl ReadyNodeRecoveryPlanner {
         }
         let mut entries = BTreeMap::new();
         for node_id in checkpoint.ready_nodes().iter().cloned() {
-            let activation = NodeActivation::for_ready_root(&checkpoint, node_id.clone())
-                .map_err(ReadyNodeRecoveryError::activation)?;
+            let activation = activation(node_id.clone())?;
             entries.insert(
                 node_id,
                 RecoveryEntry {
@@ -321,11 +395,7 @@ impl ReadyNodeRecoveryPlanner {
                 },
             );
         }
-        Ok(Self {
-            checkpoint,
-            fence,
-            entries,
-        })
+        Ok(entries)
     }
 
     /// Observes one fully verified immutable pending result.
@@ -427,6 +497,7 @@ impl ReadyNodeRecoveryPlanner {
         }
         Ok(ReadyNodeRecoveryPlan {
             checkpoint: self.checkpoint,
+            frame: self.frame,
             fence: self.fence,
             journal_head,
             observed_at,
@@ -439,6 +510,13 @@ impl ReadyNodeRecoveryPlanner {
 #[derive(Clone, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum ReadyNodeRecoveryError {
+    /// Canonical activation derivation from a scoped checkpoint failed.
+    #[error("frame ready-node activation derivation failed: {source}")]
+    FrameActivation {
+        /// Public-safe scoped data failure.
+        #[source]
+        source: GraphFrameError,
+    },
     /// The live worker fence crossed the checkpoint tenant boundary.
     #[error("ready-node recovery fence crosses the checkpoint tenant boundary")]
     FenceTenantMismatch,

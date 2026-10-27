@@ -1,0 +1,11 @@
+[
+    {
+        "CreatedAt": "2026-10-15T11:58:13Z",
+        "Driver": "local",
+        "Labels": null,
+        "Mountpoint": "/var/lib/docker/volumes/stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1/_data",
+        "Name": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1",
+        "Options": null,
+        "Scope": "local"
+    }
+]

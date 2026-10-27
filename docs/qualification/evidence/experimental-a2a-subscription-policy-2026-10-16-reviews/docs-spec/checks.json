@@ -1,0 +1,47 @@
+{
+  "candidate_files": [
+    {
+      "path": "docs/a2a-server.md",
+      "baseline_exact_4e726": true,
+      "candidate_sha256": "6c2741bd99ffcdc803e9ffd2df4507e94035883a32d44d9d1c54642204ed321b",
+      "reverse_insertion_restores_all_original_bytes": true
+    },
+    {
+      "path": "docs/a2a-server.zh-CN.md",
+      "baseline_exact_4e726": true,
+      "candidate_sha256": "04c931e245f903aba919413c4f7c6ef3941ca73d4592c3c7a1feaf7255dc377f",
+      "reverse_insertion_restores_all_original_bytes": true
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "baseline_exact_4e726": true,
+      "candidate_sha256": "7d519a2896eabfa78e3219a7d1ea59c4ffd2564f96fceeb051f0ca60efb3596c",
+      "reverse_insertion_restores_all_original_bytes": true
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "baseline_exact_4e726": true,
+      "candidate_sha256": "e499f47d74c4264cb35498a3bc553bcf824273274ea3627822a1a678883bdbb3",
+      "reverse_insertion_restores_all_original_bytes": true
+    },
+    {
+      "path": "CHANGELOG.md",
+      "baseline_exact_4e726": true,
+      "candidate_sha256": "e11140fd7676878418da2001e8e04742410d879b33c5bad49074c0084f0b22c2",
+      "reverse_insertion_restores_all_original_bytes": true
+    }
+  ],
+  "new_API_matches_real_consuming_method": true,
+  "example_execution_claimed": false,
+  "numerical_facts_bound_to_final_v5_actual_six_gates": true,
+  "direct8_plus_TCPfamily1_not34_independent_tests": true,
+  "original_absolute_idle_and_stage_request_deadline_and_nonblocking_host_caveat": true,
+  "retire_before_return_handoff_and_original_backend_creation_boundary": true,
+  "fixed_principal_task_op_and_current_decoded_policy_not_credential_reauthentication": true,
+  "postcheck_linearization_backpressure_unpolled_no_periodic_expiry_SLO_and_no_byte_recall": true,
+  "Rust_Drop_not_durable_Task_cancel_or_backend_cleanup": true,
+  "new_Native_fullCI_TCK_IdP_durablebackend_R1_not_claimed": true,
+  "reserved_three_reports_must_be_supplied_before_adoption": true,
+  "reviewer_authored_these_five_docs": false,
+  "reviewer_reran_Rust_TCP_Native_or_CI": false
+}

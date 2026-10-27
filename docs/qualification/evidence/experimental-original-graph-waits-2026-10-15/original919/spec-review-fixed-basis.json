@@ -1,0 +1,294 @@
+{
+  "fixed_commit": "1fccf1816a2549d8ca7296b635434b52b30140e9",
+  "head_at_review": "1fccf1816a2549d8ca7296b635434b52b30140e9",
+  "candidate_source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+  "candidate_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "candidate_file_count": 919,
+  "ready_parent_tree": "c9e6ed1a81da511246e36d16fb277d958e146f747b59109854a4644e18d5875c",
+  "comparison_method": "git archive immutable 1fcc commit, bytewise compare every candidate file; complete candidate and parent manifest verification; no DB/compile",
+  "changed_since_fixed_1fcc": [
+    {
+      "path": ".gitignore",
+      "sha256": "d9660048d2738c9c097fcb33fa8e2448343924ecaa0519180ce2cef0cbbd54c5",
+      "fixed_1fcc_sha256": "f5b696600144c49ccbc97d595f0a7952addae5466c6de806a5f627aefb9db940"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "94c59fafb8af07a741142f2f07cbff1d00ec1bd124aabe2053a2490672b70522",
+      "fixed_1fcc_sha256": "d98547ef28caae8aea78b25583b5b7958f8a6da7026acb6a7f6d753bdbf92eb5"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_loop.rs",
+      "sha256": "6ae9b854083a8907325ab373933fd0ac358dd45fab9ee66f03cbb56b4f28db1a",
+      "fixed_1fcc_sha256": "b751d1b67d1a3f9c10a1f6f78c71f300092de5b7c5a3500e690766c753bf3f61"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/barrier.rs",
+      "sha256": "6ec98b0f9a88631075662ee6eb4b3cd2c467a6d079127cb95767b94a36c0dcbb",
+      "fixed_1fcc_sha256": "7c9e795ef0ae1ade78b4f4b75b721ea2f549af976c9d4774985fab3e18fbad8d"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/lifecycle.rs",
+      "sha256": "52950a0a18d9b53cda74c509da24550e59e07ab25690b9b2ce6b075a9dc97e79",
+      "fixed_1fcc_sha256": "127d626449497719c060c91cba0269310eb8ce1abf5f7fd711dd6221f8d7981b"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "sha256": "adc7e7405e7770d4b489e1c12675a3a74035211c866d2745eae5a1ec01dfef22",
+      "fixed_1fcc_sha256": "c087f6abe62294039755e8a5858cd9f8eef031f76bbfdee9595eedd483c6ab16"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "sha256": "20db69a8756ed6bed43b67e239b67f94b823440178beccd0c36045ea005cbfb1",
+      "fixed_1fcc_sha256": "33b9f916a73e095493d45f0d7d4265e3efdb69e442eeb40f95e58fddf914a1cf"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "sha256": "5c68670da51463baab9829352f5e9df662ad3510b81e76733f02ddbb1dfaeb10",
+      "fixed_1fcc_sha256": "bf5e89c5f80a8cd31e2ac083884aef0f0e24d0bfe6746a5554061e2c61edb18b"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/elapsed_graph_wait_races.rs",
+      "sha256": "2b9079a2498497b665a9bb2d0028315f727b2f6bf8ce3eb3b3595e9546c0a96c",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/elapsed_graph_waits.rs",
+      "sha256": "8fe8a7412110028d061cb1b767291b8d2c53af1ed1177c77c8d6d6a01c2cede9",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs",
+      "sha256": "005186858cbcedea53275b338ea05988d02c91f95d502018879383e0a7e328d9",
+      "fixed_1fcc_sha256": "cf833d897f425181a5b2435c0b705dad42d2c3d68966aed7f11483466bb88405"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9",
+      "fixed_1fcc_sha256": "9c01fc7d9b482134b0e0f11db45de4781282ab74cc2d589572dd88c8642d34be"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/role_profile.rs",
+      "sha256": "a09417101545c0c40baba62f49cb6e31733a43cbd0d06d3e3a6ad6f18e58910f",
+      "fixed_1fcc_sha256": "203aca8b475b066258d5d8bd31270a900ccaf8f356331c0032a327a2e7f60de9"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0036_elapsed_graph_waits.sql",
+      "sha256": "2b0c29bff090abf8c946a44b3a8c5a2c25748f2ad3d39ee7ac9dc96c50ab7a30",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/ops/trusted-role-profile.psql",
+      "sha256": "fd45043eb09affa007866dadb726850c8c31451dee40fdf86bfc3030d18ee5bb",
+      "fixed_1fcc_sha256": "986273d146601a9e3e7fc2dae3b26dba79c7fe2127e4bbd09d5b5e0c88bf636e"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/ops/trusted-role-profile.sql",
+      "sha256": "715e2ae998c51aadde4bd6b7ed1bd85689a6d85ef5fa1e44a02891b39a763ad1",
+      "fixed_1fcc_sha256": "ba13dd615fed015cf5e015c9f63364d3419bb0fcdd47016848d5f5b1caf5000c"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frame_catalog.json",
+      "sha256": "1c9dc41099d33671de055e42c7c6b5e13432377291b4f6b3b91dfb04f6ace139",
+      "fixed_1fcc_sha256": "13ac26b2af7068bb9fc8591647451ae61012161140a54af5529b0dea5ecc85c8"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/application_replay.rs",
+      "sha256": "f585b948552e7096f4d1d6aec13f104166b8c4563382dd087eedb1a5da80cdfc",
+      "fixed_1fcc_sha256": "116b37652a789c0a70147a188f041022b02947bac9dd678e05c6d56af98f6578"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/barriers/elapsed.rs",
+      "sha256": "2be8498a756934c06fa87667f1b89c118096de1cec9f43be92dd43bc22eabb17",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/barriers.rs",
+      "sha256": "f5a8bc46e5b2544c988cbd2e1db35804ef8c772cb010de525c8ebd9a809dedfd",
+      "fixed_1fcc_sha256": "dcac4d88e87c6aa7f1b7ce9790712cdecaf42b2876f7ded51888aebb34e0925a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/returns.rs",
+      "sha256": "b1dbee165ee311c3a38f228045e302937af9dcb50f672d9b54419d05ba9d223b",
+      "fixed_1fcc_sha256": "dc18bfd800e4f1413e04ded4edd4e951ff6afd200380c1b8687990f7fe780cd1"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames.rs",
+      "sha256": "16fe8662534fe2f6614be716bf4d69c9512db85e65fa6cd2f8f3a3312d798030",
+      "fixed_1fcc_sha256": "18feb6c0ff073a2e9306b08f7f085a922fbf0aaa08b9cfd6368c00ee98b51e8a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_wait_catalog.json",
+      "sha256": "b12b2ba36a28d11b167d308a0b40300d50486cfa16bba96988379679d477068d",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_wait_catalog.sql",
+      "sha256": "ff10201d9d96cbe74ad6c0b782e85a4e7966cd4c5f2c73bcefa58b2e2e89f7f4",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_waits/database.rs",
+      "sha256": "7e6b8c45bcb58cda53e99d1834050e67c0027fb58497ea958eb42c19c7aec040",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_waits.rs",
+      "sha256": "bb5cdd5320af08f41586c1ef3a3d7acf68084ecc906c99b9ef770d34fc669c53",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/lib.rs",
+      "sha256": "1e2b238a3a1ea80182f549617927b5b47965c7cc45a8750aaedd19fc2ebbaa0f",
+      "fixed_1fcc_sha256": "3fae7f9664d2c4afc31ad220e5e34e3085c32886290bc9220af21f7969123cf9"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barrier_catalog.json",
+      "sha256": "73c2062a6045503dc67ee25bdaec60b49b74776ea71977b3798c90d4384d0ecd",
+      "fixed_1fcc_sha256": "95810d1656abfaf398f0e746142a81ad7c9e22ad07d4c6aebc31a9f1ea338567"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barriers/elapsed.rs",
+      "sha256": "98fef1bcd95d5e327acc5bcb1639d48392d74bf5445da24ab4bdc55dd8917c17",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barriers.rs",
+      "sha256": "8ef0700e76f65bd778eb9b3575a64314ca0be24dff4bebbac7ec85ad188ac56b",
+      "fixed_1fcc_sha256": "37598ebdc1d2e9fb67e809833aad07ade5d210eee551f5d9108102416ab022dc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/store.rs",
+      "sha256": "78835132253e71ad070dfc26b86d6b2d57b819f7498006cf1dfa631530d21c80",
+      "fixed_1fcc_sha256": "6eb16e5e345768bc57c54008103c4026fe47b9e37c76bd6fcd9de9586385928a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql",
+      "sha256": "34f548206c9e155e6f085ad6fe63f9ccb5e26e0ea5b03e1a03196521fc19f6e8",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_application_replay.rs",
+      "sha256": "37ae13ca8f26aeaf108f414500b64bb4c4a8ce857534ec849d7740727fd486c0",
+      "fixed_1fcc_sha256": "88b690d496b95c8ba9b17cf1c565079e2b15faf83054d3c8e79e1298be6b0afc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs",
+      "sha256": "5627b9b566b658971ef17a0ac59c7177fd5a3ab80084c350392ccd8d1d57e354",
+      "fixed_1fcc_sha256": "31ada3b0afb748341f1b9c345110f70bc88c9f76e536ad01bdfc83de37fe1321"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_callers.rs",
+      "sha256": "51d2df3badd1a38eca4108041e3708ea6a2a2f49281e290bf7ac72ba808a073a",
+      "fixed_1fcc_sha256": "dba809a02fe26e9d13934c1c888be9e00f61003bca66c278537dd3a5a27ff8c3"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs",
+      "sha256": "1146bf99a43e0526c6e7445fbc61902346dfd1a4e1f006bb2848772079cf23f6",
+      "fixed_1fcc_sha256": "27453d5c6e3b8d24050a56cf59a720431afd0f1b99808225a69c1e9166eb6cea"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_elapsed_wait_faults.rs",
+      "sha256": "98490758b629cf9123cb81f3b92e38a259d83ad8591ea5f15fd0a866c5de76c0",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_elapsed_waits.rs",
+      "sha256": "d1a3c287542e19e02619810f822545855da1926510c46da2eadef93be63574f1",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_returns.rs",
+      "sha256": "2ef8458c19a728be0cc257b2e8231b9dc548d3de3b70838a2351b04e183766a7",
+      "fixed_1fcc_sha256": "44dfe53cdae34ca704c03ac21fd26c31e237269c190aeef0660967f353c200ec"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_scope.rs",
+      "sha256": "ef4e4dcd9e6647a358f4a4ed465d7557e824b98203173761ac9ad54140d1d901",
+      "fixed_1fcc_sha256": "819426c26cce6aea2f273c2c8de4912c52fa9053ddac2e8b4e08e16d1fdc12b5"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_waits.rs",
+      "sha256": "82d3808b1a27b31e4cd4aa24c269b980fefc8672503e553c518586c2ce39f9cd",
+      "fixed_1fcc_sha256": "0ceb5c1664d5eda5399b6bbaa66a9052c8c019834fd1fdc1f21bd6511ee6a23f"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/proof_base_reuse.rs",
+      "sha256": "75eadbdf73c2c6b377c9c065828a9bde88ae8750413aecb69565bea548aaf071",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/root_barrier_upgrade.rs",
+      "sha256": "8a9de45f2a3dbcece2c4e96afe10af011f9d2c8f82332ec39ccfc3fb62c88d2f",
+      "fixed_1fcc_sha256": "2e92b9e6eda3929b16e176f09eae3545b14af5ae191ee386198d1d9a54b47aa7"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/elapsed.rs",
+      "sha256": "21dfa062071820b9db3a8e0e8f6877a347469277a53e93eb8f3dc91646e8edf0",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/trusted_upgrade.rs",
+      "sha256": "63fed0ffa4b909b2ee307340aed22da5acf01c3eac5c7e232432fcfe7d848050",
+      "fixed_1fcc_sha256": "dd8d8e26fca0c65f04e2336f54e373b58d1ad3d5543bb4e687c61868c965eb66"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers.rs",
+      "sha256": "3867a9dabfe0ba155d1a1e1d6c8f2369bc32fabb378718e014059d85390a6dcf",
+      "fixed_1fcc_sha256": "766edbd3471ab6ca1e4276db97aa6ab775cf1a3a7af51567bd65d0e7f6a4ab24"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "sha256": "790697b004899c2123ea071fd5b5b193c126d5cc84b1bc85812858ef93efbdab",
+      "fixed_1fcc_sha256": "5d0c24250753b00d950c282dcefffdd81d00aed4843b745e6b624b6d27ba1d38"
+    },
+    {
+      "path": "docs/durable-graph-runtime.md",
+      "sha256": "77fdaa109fe4bc624c5816518c752775511970cfa58a4cd7e35d335abff9e04a",
+      "fixed_1fcc_sha256": "a6973f77b56c8bbab8a7f500f0ed1d700ddc38bc32bd1526083f75c2abae43fb"
+    },
+    {
+      "path": "docs/durable-graph-runtime.zh-CN.md",
+      "sha256": "c35410084f15a428cb5b466052a62e064ebca7be024c4b937cf0ae149614a6b6",
+      "fixed_1fcc_sha256": "cc34cf9211912a2230fdba08ecb1b0d978e1551fe17a2aae9e367006df6cd17a"
+    },
+    {
+      "path": "docs/elapsed-graph-waits.md",
+      "sha256": "bfc05953f200c74924674d2409085972eb8966bf5c4d5d5a4d30129001196b21",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "docs/elapsed-graph-waits.zh-CN.md",
+      "sha256": "a195b4c4d7de683864bae4c87b133fddfc2fd3e5977c68eb982e91aaae0f2f04",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "docs/elapsed-layout-2026-10-15.zh-CN.md",
+      "sha256": "a4c5003975f58768e332e4689b803056ae04bf562f446240e1ec4e604a66e6e4",
+      "fixed_1fcc_sha256": null
+    },
+    {
+      "path": "docs/production-milestones-2026-10-08.zh-CN.md",
+      "sha256": "738d55dbbfc4562b4aebc4cbc9565aa6d1035eabcc72389db233293c45acbf8b",
+      "fixed_1fcc_sha256": "6c82676a1d1963d0e2e8151ccd404e8ddf43e347af1c1e2379da39c71e181204"
+    },
+    {
+      "path": "docs/rfcs/0022-namespaced-graph-frames.md",
+      "sha256": "141c2f55cfa422bfabda58d9e918ac60757851ad69d310bc0246f375544c883c",
+      "fixed_1fcc_sha256": "43bba58720f2fe07850e1c1b1c8dd47b8001039ecd25e37c5b4b4cceb99c5c57"
+    }
+  ],
+  "removed_since_fixed_1fcc": [
+    "docs/qualification/evidence/driver-private-phases-2026-10-15/higher-fence-pg16.log",
+    "docs/qualification/evidence/driver-private-phases-2026-10-15/higher-fence-pg17.log",
+    "docs/qualification/evidence/driver-private-phases-2026-10-15/roles-pg16.log",
+    "docs/qualification/evidence/driver-private-phases-2026-10-15/roles-pg17.log",
+    "docs/qualification/evidence/driver-private-phases-2026-10-15/root-token-comparison.json",
+    "docs/qualification/evidence/driver-private-phases-2026-10-15/runtime-token-comparison.json",
+    "docs/qualification/evidence/driver-private-phases-2026-10-15/seven-levels-pg16.log",
+    "docs/qualification/evidence/driver-private-phases-2026-10-15/seven-levels-pg17.log",
+    "docs/qualification/experimental-driver-private-phases-2026-10-15.json",
+    "docs/qualification/experimental-driver-private-phases-2026-10-15.md",
+    "docs/qualification/experimental-driver-private-phases-2026-10-15.zh-CN.md"
+  ]
+}

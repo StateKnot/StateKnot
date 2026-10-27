@@ -64,6 +64,194 @@ impl ChildJoinCommitOutcome {
     }
 }
 
+// Private persisted evidence, never an execution or ordinary-completion permit.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct RegisteredJoinStop {
+    pub(super) owner: NodeAttemptStartHead,
+    pub(super) request_digest: Digest,
+    pub(super) registration: JournalHead,
+}
+
+pub(super) async fn registered_join_stop(
+    tx: &mut Transaction<'_, Postgres>,
+    owner: &NodeAttemptStartHead,
+    leaf: &stateknot_core::GraphFrameCheckpointHead,
+    observed: &JournalHead,
+) -> Result<RegisteredJoinStop, StoreError> {
+    let activation = owner.activation();
+    if activation.graph_namespace().is_root()
+        || activation.tenant_id() != observed.tenant_id()
+        || activation.run_id() != observed.run_id()
+        || activation.graph_namespace() != leaf.frame().namespace()
+        || activation.base_checkpoint() != leaf.checkpoint()
+    {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    verify_stopped_owner_history(tx, owner).await?;
+    let record = load(tx, activation, false)
+        .await?
+        .ok_or(StoreError::InvalidRunFailureClose)?;
+    let id = query_scalar::<_, Uuid>("SELECT node_attempt_id FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3")
+        .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid())
+        .bind(record.request().activation_digest().as_bytes()).fetch_one(&mut **tx).await
+        .map_err(|source| StoreError::database("stopped Join physical owner", source))?;
+    if id != *owner.attempt_id().as_uuid()
+        || record.binding().is_some()
+        || record.head().is_some()
+        || record.consumed().is_some()
+        || record.registration().source().worker_fence() != Some(owner.fence())
+        || record.registration().sequence() > observed.sequence()
+        || record.registration().recorded_at() > observed.recorded_at()
+        || load_pending_node_result_row(tx, activation)
+            .await?
+            .is_some()
+    {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    if verify_members(tx, record.request(), false).await?.is_none() {
+        return Err(StoreError::ChildRunSettlementUnavailable);
+    }
+    Ok(RegisteredJoinStop {
+        owner: owner.clone(),
+        request_digest: record.request().digest(),
+        registration: record.registration().head(),
+    })
+}
+
+// A published stop retains the original complete immutable publication. It is
+// neither result consumption nor an execution or ordinary-completion permit.
+#[derive(Clone, Debug, Eq, PartialEq, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub(super) struct PublishedJoinStop {
+    pub(super) owner: NodeAttemptStartHead,
+    pub(super) request_digest: Digest,
+    pub(super) registration: JournalHead,
+    pub(super) binding: ChildRunJoinBinding,
+    pub(super) publication: ChildRunJoinHead,
+}
+
+pub(super) async fn published_join_stop(
+    tx: &mut Transaction<'_, Postgres>,
+    owner: &NodeAttemptStartHead,
+    leaf: &stateknot_core::GraphFrameCheckpointHead,
+    observed: &JournalHead,
+) -> Result<PublishedJoinStop, StoreError> {
+    let activation = owner.activation();
+    if activation.graph_namespace().is_root()
+        || activation.tenant_id() != observed.tenant_id()
+        || activation.run_id() != observed.run_id()
+        || activation.graph_namespace() != leaf.frame().namespace()
+        || activation.base_checkpoint() != leaf.checkpoint()
+    {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    verify_stopped_owner_history(tx, owner).await?;
+    // The owning loader reconstructs every terminal and the binding, then
+    // authenticates the original publication event, projection and head bytes.
+    let record = load(tx, activation, false)
+        .await?
+        .ok_or(StoreError::InvalidRunFailureClose)?;
+    let binding = record
+        .binding()
+        .cloned()
+        .ok_or(StoreError::InvalidRunFailureClose)?;
+    let publication = record
+        .head()
+        .cloned()
+        .ok_or(StoreError::InvalidRunFailureClose)?;
+    let id = query_scalar::<_, Uuid>("SELECT node_attempt_id FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3")
+        .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid())
+        .bind(record.request().activation_digest().as_bytes()).fetch_one(&mut **tx).await
+        .map_err(|source| StoreError::database("published stopped Join physical owner", source))?;
+    if id != *owner.attempt_id().as_uuid()
+        || record.consumed().is_some()
+        || record.registration().source().worker_fence() != Some(owner.fence())
+        || record.registration().sequence() > observed.sequence()
+        || record.registration().recorded_at() > observed.recorded_at()
+        || binding.request() != record.request()
+        || publication.activation() != activation
+        || publication.request_digest() != record.request().digest()
+        || publication.binding_digest() != binding.digest()
+        || publication.journal_head().sequence() > observed.sequence()
+        || publication.journal_head().recorded_at() > observed.recorded_at()
+        || load_pending_node_result_row(tx, activation)
+            .await?
+            .is_some()
+    {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    if verify_members(tx, record.request(), false).await?.is_none() {
+        return Err(StoreError::ChildRunSettlementUnavailable);
+    }
+    let late_settlement: bool = query_scalar("SELECT EXISTS(SELECT 1 FROM stateknot.child_run_ownership o JOIN stateknot.child_run_settlements s USING(tenant_id,parent_run_id,key_digest) WHERE o.tenant_id=$1 AND o.parent_run_id=$2 AND o.activation_digest=$3 AND (s.journal_sequence>=$4 OR s.journal_recorded_at>$5))")
+        .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid())
+        .bind(record.request().activation_digest().as_bytes())
+        .bind(sequence(publication.journal_head())?)
+        .bind(to_database_time(publication.journal_head().recorded_at())?)
+        .fetch_one(&mut **tx).await
+        .map_err(|source| StoreError::database("published stopped Join settlement order", source))?;
+    if late_settlement {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    Ok(PublishedJoinStop {
+        owner: owner.clone(),
+        request_digest: record.request().digest(),
+        registration: record.registration().head(),
+        binding,
+        publication,
+    })
+}
+
+async fn verify_stopped_owner_history(
+    tx: &mut Transaction<'_, Postgres>,
+    owner: &NodeAttemptStartHead,
+) -> Result<(), StoreError> {
+    let activation = owner.activation();
+    let base = activation.base_checkpoint();
+    let rows = query_as::<_, NodeAttemptStartRow>(SELECT_NODE_ATTEMPT_HISTORY)
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(*base.checkpoint_id().as_uuid())
+        .bind(
+            i64::try_from(base.superstep().get())
+                .map_err(|_| StoreError::InvalidRunFailureClose)?,
+        )
+        .bind(base.digest().as_bytes())
+        .bind(activation.graph_namespace().as_str())
+        .bind(activation.node_id().as_str())
+        .bind(activation.input_digest().as_bytes())
+        .bind(0_i64)
+        .bind(
+            i64::try_from(ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE + 1)
+                .map_err(|_| StoreError::InvalidRunFailureClose)?,
+        )
+        .fetch_all(&mut **tx)
+        .await
+        .map_err(|source| StoreError::database("stopped owner complete history", source))?;
+    if rows.is_empty() || rows.len() > ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    let mut verifier = NodeAttemptHistoryVerifier::new();
+    let mut latest = None;
+    for row in rows {
+        let attempt = Box::pin(load_node_attempt_from_start_row(tx, row)).await?;
+        verifier
+            .verify_next(&attempt)
+            .map_err(|_| StoreError::corrupt("stopped owner history"))?;
+        let event = Box::pin(verify_node_attempt(tx, &attempt)).await?;
+        if graph_frames::is_framework_kind(event.payload().kind().as_str()) {
+            return Err(StoreError::InvalidRunFailureClose);
+        }
+        latest = Some(attempt);
+    }
+    let latest = latest.ok_or(StoreError::InvalidRunFailureClose)?;
+    if latest.start().head() != *owner || latest.completion().is_some() {
+        return Err(StoreError::InvalidRunFailureClose);
+    }
+    Ok(())
+}
+
 impl PostgresStore {
     /// Seals ALL children owned by one exact current activation, journals the
     /// registration, and releases the parent lease in the SAME transaction.
@@ -102,19 +290,7 @@ impl PostgresStore {
         if node.activation() != activation || append.worker_fence() != Some(node.fence()) {
             return Err(StoreError::ChildJoinRejected);
         }
-        let checkpoint = load_locked_current_checkpoint(
-            &mut tx,
-            &parent,
-            activation.tenant_id(),
-            activation.run_id(),
-        )
-        .await?
-        .ok_or(StoreError::StaleCheckpointHead)?;
-        if checkpoint.head() != *activation.base_checkpoint()
-            || !node_attempt_activation_is_ready(&checkpoint, activation)
-        {
-            return Err(StoreError::StaleCheckpointHead);
-        }
+        let scope = child_run_scope::current(&mut tx, &parent, activation).await?;
         let attempt = load_locked_node_attempt(&mut tx, node).await?;
         verify_node_attempt_start(&mut tx, attempt.start()).await?;
         if attempt.start().head() != *node
@@ -125,15 +301,18 @@ impl PostgresStore {
         {
             return Err(StoreError::ChildJoinRejected);
         }
-        let overlapping = query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND n.fence_attempt_id=$3 AND n.attempt_id<>$4 AND NOT EXISTS (SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id))")
+        // Only the complete authenticated stack's actual suspended framework
+        // callers are excluded. Every unfinished ordinary sibling still blocks.
+        let overlapping = query_scalar::<_, bool>("SELECT EXISTS (SELECT 1 FROM stateknot.node_attempts n WHERE n.tenant_id=$1 AND n.run_id=$2 AND n.fence_attempt_id=$3 AND n.attempt_id<>$4 AND n.attempt_id<>ALL($5) AND NOT EXISTS (SELECT 1 FROM stateknot.node_attempt_completions c WHERE c.tenant_id=n.tenant_id AND c.run_id=n.run_id AND c.attempt_id=n.attempt_id))")
             .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid())
             .bind(*node.fence().attempt_id().as_uuid()).bind(*node.attempt_id().as_uuid())
+            .bind(scope.suspended_callers())
             .fetch_one(&mut *tx).await.map_err(|source| StoreError::database("child Join exclusive boundary", source))?;
         if overlapping {
             return Err(StoreError::ChildJoinRejected);
         }
-        ensure_no_unsettled_tool_invocations(&mut tx, &checkpoint).await?;
-        ensure_no_unsettled_model_invocations(&mut tx, &checkpoint).await?;
+        ensure_no_unsettled_tool_invocations(&mut tx, scope.checkpoint()).await?;
+        ensure_no_unsettled_model_invocations(&mut tx, scope.checkpoint()).await?;
         verify_members(&mut tx, &request, true).await?;
         let event =
             JournalEvent::commit(append, at).map_err(|error| map_event_commit_error(&error))?;
@@ -168,6 +347,27 @@ impl PostgresStore {
         let record = load(&mut tx, activation, true)
             .await?
             .ok_or(StoreError::ChildJoinRejected)?;
+        // Registration deliberately cleared the lease above. Flush all of its
+        // deferred guards before checking the same original authority's expiry;
+        // holding the Run lock cannot extend that worker or its Agent deadline.
+        query("SET CONSTRAINTS ALL IMMEDIATE")
+            .execute(&mut *tx)
+            .await
+            .map_err(|source| StoreError::database("child Join component guards", source))?;
+        let original_expiry = parent.lease().ok_or(StoreError::LeaseExpired)?.expires_at();
+        let valid = query_scalar::<_, bool>(
+            "SELECT lease_attempt_id IS NULL AND fencing_epoch=$3 AND $4>clock_timestamp() AND agent_deadline_at>clock_timestamp() FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2",
+        )
+        .bind(activation.tenant_id().as_str())
+        .bind(*activation.run_id().as_uuid())
+        .bind(i64::try_from(node.fence().epoch().get()).map_err(|_| StoreError::StaleFence)?)
+        .bind(to_database_time(original_expiry)?)
+        .fetch_one(&mut *tx)
+        .await
+        .map_err(|source| StoreError::database("child Join final released authority", source))?;
+        if !valid {
+            return Err(StoreError::LeaseExpired);
+        }
         tx.commit()
             .await
             .map_err(|source| StoreError::database("child Join register commit", source))?;
@@ -369,37 +569,42 @@ async fn verify_members(
     request: &ChildRunJoinRequest,
     lock: bool,
 ) -> Result<Option<Vec<stateknot_core::ChildRunBudgetSettlement>>, StoreError> {
-    Box::pin(verify_members_inner(tx, request, lock)).await
+    verify_members_inner(tx, request, lock).await
 }
 
-async fn verify_members_inner(
-    tx: &mut Transaction<'_, Postgres>,
-    request: &ChildRunJoinRequest,
+fn verify_members_inner<'a>(
+    tx: &'a mut Transaction<'_, Postgres>,
+    request: &'a ChildRunJoinRequest,
     lock: bool,
-) -> Result<Option<Vec<stateknot_core::ChildRunBudgetSettlement>>, StoreError> {
-    let a = request.activation();
-    let keys = query_scalar::<_, Vec<u8>>("SELECT key_bytes FROM stateknot.child_run_ownership WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3 ORDER BY child_slot COLLATE \"C\" LIMIT 65")
+) -> stateknot_core::BoxFuture<
+    'a,
+    Result<Option<Vec<stateknot_core::ChildRunBudgetSettlement>>, StoreError>,
+> {
+    Box::pin(async move {
+        let a = request.activation();
+        let keys = query_scalar::<_, Vec<u8>>("SELECT key_bytes FROM stateknot.child_run_ownership WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3 ORDER BY child_slot COLLATE \"C\" LIMIT 65")
         .bind(a.tenant_id().as_str()).bind(*a.run_id().as_uuid()).bind(request.activation_digest().as_bytes())
         .fetch_all(&mut **tx).await.map_err(|source| StoreError::database("child Join membership", source))?;
-    if keys.len() != request.keys().len() {
-        return Err(StoreError::ChildJoinRejected);
-    }
-    let mut terminals = Vec::new();
-    for (bytes, key) in keys.iter().zip(request.keys()) {
-        if *bytes != canonical(key)? {
+        if keys.len() != request.keys().len() {
             return Err(StoreError::ChildJoinRejected);
         }
-        let child = Box::pin(child_runs::load_record_inner(tx, key, lock))
-            .await?
-            .ok_or(StoreError::ChildRunNotFound)?;
-        if lock && child.child().run().is_quarantined() {
-            return Err(StoreError::RunQuarantined);
+        let mut terminals = Vec::new();
+        for (bytes, key) in keys.iter().zip(request.keys()) {
+            if *bytes != canonical(key)? {
+                return Err(StoreError::ChildJoinRejected);
+            }
+            let child = child_runs::load_record_inner(tx, key, lock)
+                .await?
+                .ok_or(StoreError::ChildRunNotFound)?;
+            if lock && child.child().run().is_quarantined() {
+                return Err(StoreError::RunQuarantined);
+            }
+            if let Some(terminal) = child.settlement() {
+                terminals.push(terminal.clone());
+            }
         }
-        if let Some(terminal) = child.settlement() {
-            terminals.push(terminal.clone());
-        }
-    }
-    Ok((terminals.len() == keys.len()).then_some(terminals))
+        Ok((terminals.len() == keys.len()).then_some(terminals))
+    })
 }
 
 async fn load(

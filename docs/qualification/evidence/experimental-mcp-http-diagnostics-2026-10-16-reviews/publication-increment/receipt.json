@@ -1,0 +1,22 @@
+{
+  "classification": "non-author independent lossless packaging increment review only",
+  "observed_utc": "2026-10-16T03:59:51.800872+00:00",
+  "candidate_manifest_sha256": "cc98e0d5e10949ff07ae412a7c4b33bcdcf4e4ceedb73d05be5f08a845878770",
+  "candidate_freeze_sha256": "2d756f7b0b438d91ad288c37bbcf10ab63ad6014e4ba9d5e3831c1bf294d1ba0",
+  "candidate_files": 98,
+  "candidate_bytes": 594517,
+  "prior_v1_candidate_manifest_sha256": "29815d58e4d758bd2e65e99966f5811e2785d5de73bc772edf859ebc19ecc679",
+  "prior_independent_review_receipt_sha256": "93b3e33ed170458f22749303fdbc5ea1f13ac759ef3c0a2f86f430583dec555f",
+  "two_gzip_patch_roundtrips_exact": true,
+  "unchanged_candidate_files": 92,
+  "modified_metadata_files": 4,
+  "raw_source_execution_Native_facts_unchanged": true,
+  "EN_CN_verifiers_unchanged": true,
+  "non_gzip_text_trailing_whitespace_findings": 0,
+  "offline_exit": 0,
+  "remaining_findings": 0,
+  "original_v1_and_review_untouched": true,
+  "new_build_Native_network_DB_Docker_cache_main_index_or_candidate_mutation": false,
+  "new_raw_diff_artifact_written": false,
+  "new_independent_source_Spec_or_execution_qualification_claimed": false
+}

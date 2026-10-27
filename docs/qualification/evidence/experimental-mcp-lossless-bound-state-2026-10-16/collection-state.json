@@ -1,0 +1,12 @@
+{
+  "state": "existing terminal execution/source/history collected; publication not sealed",
+  "source_tree": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+  "strict_gates": 6,
+  "dual_PG_full15": true,
+  "old_eedd_adoptable": false,
+  "new_product_execution_by_collector": false,
+  "no_binary_cache_or_new_complete_source_archive": true,
+  "collector_original_external_test_author_not_independent_source_Spec": true,
+  "CI_Ubuntu_opt1_complete30m_RFC_R1_qualified": false,
+  "adoption_docs_collected": true
+}

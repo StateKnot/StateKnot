@@ -1,0 +1,15 @@
+{
+  "manifest_sha256": "863eb341211e7d864b8b579e8c66bdc1ffdb42b7195830b3b27e273a9deb2e90",
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "source_files": 928,
+  "compiled_canonical_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "compiled_inputs": 536,
+  "final_source_payloads": 2,
+  "actual_six_gates": 6,
+  "actual_targeted_Native_suites_per_major": {
+    "mcp_durable": 6,
+    "mcp_reconciliation": 10
+  },
+  "independent_review_pending": true,
+  "full_CI_Store_Runtime_Native_R1_qualified": false
+}

@@ -1,0 +1,9 @@
+{
+  "parent": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source",
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/source32-old35-producer-source",
+  "parent_files": 899,
+  "only_test_exporter_added": true,
+  "source35_Store_Core_production_unchanged": true,
+  "new_exact": "frame_closures::actual_schema35_writer_exports_original_wait_return_source32_fixture",
+  "qualification": "Actual schema35 writer + isolated source32 reconstruction, not historical schema32/released N-1/N-2 binary."
+}

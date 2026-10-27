@@ -1,0 +1,184 @@
+{
+  "scope": "11 decoded SDK operations; original Agent Card discovery remains outside prepare",
+  "bindings": [
+    "HTTP+JSON REST",
+    "JSON-RPC"
+  ],
+  "operations": [
+    {
+      "method": "send_message",
+      "operation": "SendMessage",
+      "REST_route_under_configured_prefix": "POST /message:send",
+      "JSON_RPC_method": "SendMessage",
+      "task_fact": "message.task_id optional",
+      "config_fact": "None",
+      "definition_line": 2055,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "send_streaming_message",
+      "operation": "SendStreamingMessage",
+      "REST_route_under_configured_prefix": "POST /message:stream",
+      "JSON_RPC_method": "SendStreamingMessage",
+      "task_fact": "message.task_id optional",
+      "config_fact": "None",
+      "definition_line": 2076,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "get_task",
+      "operation": "GetTask",
+      "REST_route_under_configured_prefix": "GET /tasks/{id}",
+      "JSON_RPC_method": "GetTask",
+      "task_fact": "request.id",
+      "config_fact": "None",
+      "definition_line": 2101,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "list_tasks",
+      "operation": "ListTasks",
+      "REST_route_under_configured_prefix": "GET /tasks",
+      "JSON_RPC_method": "ListTasks",
+      "task_fact": "None",
+      "config_fact": "None",
+      "definition_line": 2117,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "cancel_task",
+      "operation": "CancelTask",
+      "REST_route_under_configured_prefix": "POST /tasks/{id}:cancel",
+      "JSON_RPC_method": "CancelTask",
+      "task_fact": "request.id",
+      "config_fact": "None",
+      "definition_line": 2132,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "subscribe_to_task",
+      "operation": "SubscribeToTask",
+      "REST_route_under_configured_prefix": "POST /tasks/{id}:subscribe",
+      "JSON_RPC_method": "SubscribeToTask",
+      "task_fact": "request.id",
+      "config_fact": "None",
+      "definition_line": 2148,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "create_push_config",
+      "operation": "CreatePushConfig",
+      "REST_route_under_configured_prefix": "POST /tasks/{id}/pushNotificationConfigs",
+      "JSON_RPC_method": "CreatePushConfig",
+      "task_fact": "nonempty request.task_id optional",
+      "config_fact": "None",
+      "definition_line": 2185,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "get_push_config",
+      "operation": "GetPushConfig",
+      "REST_route_under_configured_prefix": "GET /tasks/{id}/pushNotificationConfigs/{config}",
+      "JSON_RPC_method": "GetPushConfig",
+      "task_fact": "request.task_id",
+      "config_fact": "request.id",
+      "definition_line": 2206,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "list_push_configs",
+      "operation": "ListPushConfigs",
+      "REST_route_under_configured_prefix": "GET /tasks/{id}/pushNotificationConfigs",
+      "JSON_RPC_method": "ListPushConfigs",
+      "task_fact": "request.task_id",
+      "config_fact": "None",
+      "definition_line": 2228,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "delete_push_config",
+      "operation": "DeletePushConfig",
+      "REST_route_under_configured_prefix": "DELETE /tasks/{id}/pushNotificationConfigs/{config}",
+      "JSON_RPC_method": "DeletePushConfig",
+      "task_fact": "request.task_id",
+      "config_fact": "request.id",
+      "definition_line": 2249,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    },
+    {
+      "method": "get_extended_agent_card",
+      "operation": "GetExtendedAgentCard",
+      "REST_route_under_configured_prefix": "GET /extendedAgentCard",
+      "JSON_RPC_method": "GetExtendedAgentCard",
+      "task_fact": "None",
+      "config_fact": "None",
+      "definition_line": 2276,
+      "shared_initial_prepare": true,
+      "required_each_binding": [
+        "authorizer pending until D -> wire internal A2A operation timed out; zero admission/backend",
+        "admission pending until same D -> wire internal A2A operation timed out; one authz and zero backend",
+        "quick normal and callback-error controls preserve original principal/op/task/config tuple, order and protocol mapping"
+      ]
+    }
+  ],
+  "common_oracles": [
+    "one cumulative post-auth body plus initial authz/admission deadline; phase-local success cannot reset D",
+    "shutdown during each pending body or policy future; actual owned Drop and zero forbidden downstream calls",
+    "ready at/after D is rejected after actual monotonic-clock check even if callback returns an error",
+    "already observed shutdown takes precedence over deadline/callback result",
+    "no operation permit while initial policy is pending; healthy task B succeeds with operationcap1 and requestcap>=2 before A times out",
+    "requestcap1 reuse after timeout while first error Response stays alive",
+    "capability/extension/validation/error maps and original8private+1TCPfamily17x2 remain"
+  ],
+  "not_yet_executed": true
+}

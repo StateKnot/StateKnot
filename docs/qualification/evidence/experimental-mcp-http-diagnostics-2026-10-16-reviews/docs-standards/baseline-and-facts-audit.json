@@ -1,0 +1,172 @@
+{
+  "fixed_baseline": "8016b74e8047fda51f60c735d477d735a897cb2f",
+  "candidate_manifest_sha256": "cb005ee64f102f3df0bff87becccd23c8c06b69a504d7de5c291574cd3022a56",
+  "candidate_freeze_sha256": "a1343299dda3437470b330e6593662027ae34aa5ac1ce06eec5f274939616dbc",
+  "documents": [
+    {
+      "path": "docs/mcp-client.md",
+      "baseline_git_object_byte_equal": true,
+      "baseline_sha256": "8c9f79308b73be6b46c5b42bef97e35a9b43fee9571ae25463d86619892e1cfe",
+      "candidate_sha256": "ad5c58b6763d692462c35bb74259ae951da2b8de26ad863cdf6e8d0644eb14b4",
+      "insertions_only": true,
+      "original_code_fences_preserved": true,
+      "original_code_fence_count": 4,
+      "added_lines": 47
+    },
+    {
+      "path": "docs/mcp-client.zh-CN.md",
+      "baseline_git_object_byte_equal": true,
+      "baseline_sha256": "0e934aaee09eb148b82deeefa04dffb5b0ea5931d31f2f113248b229251a7002",
+      "candidate_sha256": "2ccfe6e489af235d1c7c4bb156d9ddfc170c839bfbed1d109314daf285be21f3",
+      "insertions_only": true,
+      "original_code_fences_preserved": true,
+      "original_code_fence_count": 4,
+      "added_lines": 36
+    },
+    {
+      "path": "CHANGELOG.md",
+      "baseline_git_object_byte_equal": true,
+      "baseline_sha256": "530fd2576d40069a218d622eb65340377ba3c03a9fe4d35d2bf514632318cbfd",
+      "candidate_sha256": "7fd9cc4349e052c6b440feecbd93e4f145b1927535151d7c90065d1433e01efe",
+      "insertions_only": true,
+      "original_code_fences_preserved": true,
+      "original_code_fence_count": 0,
+      "added_lines": 12
+    }
+  ],
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "compiled_inputs": 536,
+  "canonical_compiled_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "independent_raw_summary_counts": {
+    "workspace": {
+      "raw_sha256": "6619ef63088b3e0b3ed841fee47abcf91a85eb6877cdbe5b3a5ba3d10307fa20",
+      "counts": [
+        99,
+        2099,
+        0,
+        6,
+        0
+      ]
+    },
+    "doctests": {
+      "raw_sha256": "43418d1c39e7dedd61b1c9748213b99c8c7cb51f4236a2753915aed7d1022fb2",
+      "counts": [
+        10,
+        48,
+        0,
+        0,
+        0
+      ]
+    }
+  },
+  "new_TCP_family_actual_ok_line": true,
+  "old_original_boundstate_Changelog_paragraph_preserved_by_insertions_only": true,
+  "links": [
+    {
+      "document": "docs/mcp-client.md",
+      "target": "mcp-conformance.md",
+      "resolved": "docs/mcp-conformance.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "docs/mcp-client.md",
+      "target": "mcp-remote-tool.md",
+      "resolved": "docs/mcp-remote-tool.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "docs/mcp-client.md",
+      "target": "mcp-oauth.md",
+      "resolved": "docs/mcp-oauth.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "docs/mcp-client.md",
+      "target": "mcp-server.md",
+      "resolved": "docs/mcp-server.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "docs/mcp-client.md",
+      "target": "qualification/experimental-mcp-http-diagnostics-2026-10-16.md",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.md",
+      "kind": "reserved-new-qualification-report"
+    },
+    {
+      "document": "docs/mcp-client.md",
+      "target": "qualification/experimental-mcp-http-diagnostics-2026-10-16.json",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.json",
+      "kind": "reserved-new-qualification-report"
+    },
+    {
+      "document": "docs/mcp-client.zh-CN.md",
+      "target": "mcp-conformance.zh-CN.md",
+      "resolved": "docs/mcp-conformance.zh-CN.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "docs/mcp-client.zh-CN.md",
+      "target": "mcp-remote-tool.zh-CN.md",
+      "resolved": "docs/mcp-remote-tool.zh-CN.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "docs/mcp-client.zh-CN.md",
+      "target": "mcp-oauth.zh-CN.md",
+      "resolved": "docs/mcp-oauth.zh-CN.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "docs/mcp-client.zh-CN.md",
+      "target": "mcp-server.zh-CN.md",
+      "resolved": "docs/mcp-server.zh-CN.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "docs/mcp-client.zh-CN.md",
+      "target": "qualification/experimental-mcp-http-diagnostics-2026-10-16.zh-CN.md",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.zh-CN.md",
+      "kind": "reserved-new-qualification-report"
+    },
+    {
+      "document": "docs/mcp-client.zh-CN.md",
+      "target": "qualification/experimental-mcp-http-diagnostics-2026-10-16.json",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.json",
+      "kind": "reserved-new-qualification-report"
+    },
+    {
+      "document": "CHANGELOG.md",
+      "target": "docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.md",
+      "resolved": "docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "CHANGELOG.md",
+      "target": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.md",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.md",
+      "kind": "reserved-new-qualification-report"
+    },
+    {
+      "document": "CHANGELOG.md",
+      "target": "docs/qualification/experimental-composed-request-facts-pitr-2026-10-15.md",
+      "resolved": "docs/qualification/experimental-composed-request-facts-pitr-2026-10-15.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "CHANGELOG.md",
+      "target": "docs/qualification/experimental-postgres-test-profile-2026-10-15.md",
+      "resolved": "docs/qualification/experimental-postgres-test-profile-2026-10-15.md",
+      "kind": "existing-main"
+    },
+    {
+      "document": "CHANGELOG.md",
+      "target": "docs/versioning-and-releases.md",
+      "resolved": "docs/versioning-and-releases.md",
+      "kind": "existing-main"
+    }
+  ],
+  "reserved_reports_exist_claimed": false,
+  "reserved_reports_must_be_supplied_before_publication": true,
+  "reviewer_authored_documents": false,
+  "executed_Cargo_network_DB_Docker_cache_or_saved_runner": false
+}

@@ -1,0 +1,10 @@
+{
+  "source_files": 922,
+  "source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "all_six_zero": true,
+  "workspace_passed": 2064,
+  "workspace_original_ignored": 6,
+  "doc_passed": 45,
+  "native_database_qualified": false,
+  "receipt": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/six-static-gates-v1-loopback/receipt.json"
+}

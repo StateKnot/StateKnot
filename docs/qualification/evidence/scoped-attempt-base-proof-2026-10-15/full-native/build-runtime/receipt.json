@@ -1,0 +1,27 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source",
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/Cargo.toml",
+    "-p",
+    "stateknot-runtime",
+    "--test",
+    "postgres",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "exit_code": 0,
+  "seconds": 18.156495809555054,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout",
+  "artifacts": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased-runtime-v1/stateknot-runtime-postgres",
+      "sha256": "2dc582601ae7471a87b1b85ac5c90dddd92c7665be71adfd05dd974996f585ab"
+    }
+  ],
+  "workspace_artifacts_explicitly_cleaned": false
+}

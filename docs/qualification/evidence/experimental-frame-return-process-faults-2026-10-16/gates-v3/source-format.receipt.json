@@ -1,0 +1,12 @@
+{
+  "argv": [
+    "cargo",
+    "+1.88.0",
+    "fmt",
+    "--all"
+  ],
+  "cwd": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3",
+  "exit_code": 0,
+  "start_unix": 1792137834.934199,
+  "seconds": 1.3198049068450928
+}

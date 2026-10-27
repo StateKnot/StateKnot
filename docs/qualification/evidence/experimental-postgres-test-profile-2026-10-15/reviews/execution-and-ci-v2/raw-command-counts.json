@@ -1,0 +1,273 @@
+{
+  "static": [
+    {
+      "gate": "fmt",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "exit_code": 0,
+      "receipt_sha256": "24bd5e826a8d3ce23078886678592f3163b62f7103c22549ba5f207781a0014c",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "gate": "clippy",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "receipt_sha256": "1bc9db9e78fb9ae362e3fc3ffc6b4001ca7c205492cdd2dc9c2f8a1a09b3cbff",
+      "log_sha256": "e12c4c07af926a038b35661be18ffd9894da67940cb9ae5183319d98655b4a7d"
+    },
+    {
+      "gate": "workspace",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "receipt_sha256": "27a75b00babf4f12aa5bcec5fccb6b6d1111bddaac2883bed67bdfc9f8ccfc35",
+      "log_sha256": "57efe784ce0fc3edbbde663328639411a9195dd5a7db6949972bfbe4b2d4a6d6",
+      "suites": 98,
+      "passed": 2073,
+      "failed": 0,
+      "ignored": 6
+    },
+    {
+      "gate": "doctests",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "receipt_sha256": "06896c0c52d0135b0b4b300e8434247e7db574ad6ac9e04014599c66274adeb8",
+      "log_sha256": "a1e2878771768262b34a1aecf562377d7288e4a373dcf5343d7621001af0c055",
+      "suites": 10,
+      "passed": 45,
+      "failed": 0,
+      "ignored": 0
+    },
+    {
+      "gate": "rustdoc",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "receipt_sha256": "c86b624c5a1ad1b195b3efc5532028b6e9537c6df5d6e4e8e00c53d057544703",
+      "log_sha256": "de56f015b54a45744697c2c70ebc6e2899e943e1221663a2474c1feb083aa207"
+    },
+    {
+      "gate": "nightly",
+      "command": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "receipt_sha256": "2ff6c9218b9b2e81d092dce5830895a89b076931fc89dadac20f7d09e7f12c20",
+      "log_sha256": "4aa8f7dae3f26354dbae8fb58749a6a66d1c9b3094d978c6f8a116dce4f4630b"
+    }
+  ],
+  "Native": [
+    {
+      "major": 16,
+      "suite": "store",
+      "passed": 264,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 446.94485211372375,
+      "receipt_sha256": "b969e0d57f95b94648db993a9bb7bf2ab9f9a8647cbdc117a81031d7dfcc68b4",
+      "log_sha256": "f397c3688334f3b61960b32a5ca70dffe6e6b2a7febcd2d6170c9a93e749781c",
+      "marker_counts": {}
+    },
+    {
+      "major": 16,
+      "suite": "runtime",
+      "passed": 189,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 719.3242228031158,
+      "receipt_sha256": "f18842f12d74a859da221f6ee2720b495df4c720b480732adc798a13416e1cd3",
+      "log_sha256": "8dfe377eaa74d7ac4ad53e1f58f234b6e888f353424faaff47d94b791c76dabb",
+      "marker_counts": {
+        "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9,
+        "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1,
+        "STATEKNOT_PROCESS_KILL_EVIDENCE": 6,
+        "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1,
+        "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8,
+        "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6
+      }
+    },
+    {
+      "major": 16,
+      "suite": "provider",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 1.223031997680664,
+      "receipt_sha256": "dc88d13e8c16624a44a680ddb58a38d41d6214e07b6dbe53f0728b5a8c056f26",
+      "log_sha256": "054b44a07f1b073b98ec8efd331dd47a341658ce169c25e4d5febb52c1c8bef2",
+      "marker_counts": {}
+    },
+    {
+      "major": 16,
+      "suite": "example",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 1.497352123260498,
+      "receipt_sha256": "a8a1cae4e868d21647654b7ef33ba00223b2fe5e6f1099a8fa231ac572fe5590",
+      "log_sha256": "89c65ee9c721b573529be40b5ed0d5b592f7876a0274c5cdf295dedee2a4926e",
+      "marker_counts": {}
+    },
+    {
+      "major": 16,
+      "suite": "facts",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 1.6749770641326904,
+      "receipt_sha256": "35b8ea817f5f7bfa16b972d60b70a1ba8ec2ac841c812cdf45c25cd3fa146cb8",
+      "log_sha256": "388cf2213f113f372d9aec0cd7f0257936b83cbbde5cb3e567c823d588ae236f",
+      "marker_counts": {
+        "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": 2,
+        "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2
+      }
+    },
+    {
+      "major": 17,
+      "suite": "store",
+      "passed": 264,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 454.4607629776001,
+      "receipt_sha256": "22739d5176c83c39d0e7ca1dccd10dac2e6076ef44752b2582ed4919d3690305",
+      "log_sha256": "fcb399395b556a20a519b8c82da6945e68640edc318f8868f1184570c236e567",
+      "marker_counts": {}
+    },
+    {
+      "major": 17,
+      "suite": "runtime",
+      "passed": 189,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 687.6176760196686,
+      "receipt_sha256": "5401f4c6fc97deb355e4543165e830d7244867e565d30ac4b65445c796ef43a9",
+      "log_sha256": "08c293eaa292d78361a17a4159615db4470691b71a61765394476b6036337434",
+      "marker_counts": {
+        "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9,
+        "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1,
+        "STATEKNOT_PROCESS_KILL_EVIDENCE": 6,
+        "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1,
+        "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8,
+        "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6
+      }
+    },
+    {
+      "major": 17,
+      "suite": "provider",
+      "passed": 2,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 1.1942179203033447,
+      "receipt_sha256": "9076e006a919ca451b1ef7d4ee287ac656eb372beb64effe7682c2463df1470e",
+      "log_sha256": "63999023050da47895aa7ef0474dc073e8b2294116c8fe381221f60cc3a4ecd9",
+      "marker_counts": {}
+    },
+    {
+      "major": 17,
+      "suite": "example",
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 1.5109031200408936,
+      "receipt_sha256": "2ea90662c47c4196b87e1950ba0168121a6067e8f72833b0d0da46a5edc927ce",
+      "log_sha256": "01fcfb3e693da80780f00a8d9365406372b6a86033e5ddad32a2817778173aa8",
+      "marker_counts": {}
+    },
+    {
+      "major": 17,
+      "suite": "facts",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "exit_code": 0,
+      "seconds": 1.6397368907928467,
+      "receipt_sha256": "3597cac2e05e484b3e59d4dcc29fb8ee4c2451a4040b7d1aee49dd056d892ed0",
+      "log_sha256": "6c9f548fa9dc48672649c10e6fd67f35226f1ba81520f3d7b1bac3e78ed2c32e",
+      "marker_counts": {
+        "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": 2,
+        "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2
+      }
+    }
+  ]
+}

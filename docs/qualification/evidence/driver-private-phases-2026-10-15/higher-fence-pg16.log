@@ -1,0 +1,6 @@
+
+running 1 test
+test nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 250.13s
+

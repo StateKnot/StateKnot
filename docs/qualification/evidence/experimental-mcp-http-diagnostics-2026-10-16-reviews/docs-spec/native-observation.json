@@ -1,0 +1,77 @@
+{
+  "actual_build_network_SQL_Docker_or_cache_operations_by_reviewer": false,
+  "all_run_receipt_runner_argv_cwd_profile_stack_bindings_verified": true,
+  "cache_tag_Git_lsof_lock_df_budget_records_verified": true,
+  "execution_owner": "root executed; reviewer authored runner preparation and only cross-checks actual receipts here",
+  "fresh_two_binary_default_feature_profile": {
+    "debug_assertions": true,
+    "debuginfo": 0,
+    "opt_level": "0",
+    "overflow_checks": true,
+    "test": true
+  },
+  "fullCI_Store_Runtime_capacity_R1_qualified": false,
+  "full_four_suite_rows": [
+    {
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "major": 16,
+      "passed": 6,
+      "target": "mcp_durable"
+    },
+    {
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "major": 16,
+      "passed": 10,
+      "target": "mcp_reconciliation"
+    },
+    {
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "major": 17,
+      "passed": 6,
+      "target": "mcp_durable"
+    },
+    {
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "major": 17,
+      "passed": 10,
+      "target": "mcp_reconciliation"
+    }
+  ],
+  "marker_counts": {
+    "pg16-mcp_durable": {
+      "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": 2,
+      "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2
+    },
+    "pg16-mcp_reconciliation": {
+      "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": 1,
+      "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": 1,
+      "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": 1
+    },
+    "pg17-mcp_durable": {
+      "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": 2,
+      "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2
+    },
+    "pg17-mcp_reconciliation": {
+      "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": 1,
+      "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": 1,
+      "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": 1
+    }
+  },
+  "native_summary_sha256": "d09277466fedc0fe80a2b6f42d801481d00831694118858eba18c11868b7eb05",
+  "prior_DB_names_retained_plus_only_new_DB": "stateknot_r1_mcp_debug_20261016v3",
+  "saved_binaries_rehashed": true,
+  "source": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "source928_current_and_all_recorded_before_after_exact": true,
+  "versions": {
+    "16": "16.15 (Debian 16.15-1.pgdg13+2)",
+    "17": "17.11 (Debian 17.11-1.pgdg13+2)"
+  }
+}

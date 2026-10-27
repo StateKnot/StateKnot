@@ -1,0 +1,16 @@
+{
+  "parent_source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-wait-oracle-source",
+  "parent_file_count": 919,
+  "parent_tree_sha256": "7c95defc78ea3d9829d30139baea143bb49ba10d2eafdec9586b8396b70de5b7",
+  "new_source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-test-fixes-source",
+  "original_dump": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/source32-old35-producer/native-pg16-v1/export/data.original.sql",
+  "original_dump_sha256": "2921a7cd08e9458a7bcbed9bf6225a7e2d0f48d5230d6ada35a28258b2dbc990",
+  "normalized_sql_sha256": "a08558e789498fde599645a70d336bf28946ca7e809566f79aa0d37dd1d55a26",
+  "normalized_sql_bytes": 361725,
+  "normalization": "Only the two psql client restrict/unrestrict lines removed. Every other byte including INSERT statements, canonical bytea, timestamps, ledger and paired restore trigger directives unchanged.",
+  "removed_client_lines_count": 2,
+  "fixture_origin": "Actual schema35+A writer; original test business prefix; original source32 reconstruction after original revert guard. Not an actual historical schema32 binary or released N-1/N-2 qualification.",
+  "chosen_fixture": "PG16 actual producer snapshot is identical across the two new reader-major tests; independent PG17 producer export retained separately.",
+  "production_files_changed": [],
+  "original_revert_guards_changed": false
+}

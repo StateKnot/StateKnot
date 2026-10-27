@@ -1,0 +1,22 @@
+{
+  "runner_pid": 65314,
+  "pid": 65367,
+  "gate": "clippy",
+  "command": [
+    "cargo",
+    "clippy",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "started_unix": 1792068789.7021198,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+  "exit_code": 0,
+  "seconds": 4.768429279327393,
+  "log_sha256": "942ca57cf81aa859f7b5c8039518cb2058f7549d6bc72188934a896c8284c44c",
+  "summaries": []
+}

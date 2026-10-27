@@ -1,0 +1,51 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-test-fixes-source",
+  "source_tree_sha256": "343eaa8ae7299a520fa2858fa2983025116b8b3ea55926c1ad8faef55df6508d",
+  "source_files": 921,
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-test-fixes-source/Cargo.toml",
+    "-p",
+    "stateknot-store-postgres",
+    "--test",
+    "postgres",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "exit_code": 0,
+  "seconds": 35.69722604751587,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+  "artifacts": [
+    {
+      "package": "stateknot-store-postgres",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-test-fixes-source/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/source32-real-old-producer-v1/strict-store-build-v1/stateknot-store-postgres-postgres",
+      "sha256": "de221bb45fcb9bd2efe50ebd9355bca18b302bbea6113604c06b09ef4f9c2bc7",
+      "fresh": false
+    }
+  ],
+  "workspace_only_clean": [
+    "cargo",
+    "clean",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-test-fixes-source/Cargo.toml",
+    "--target-dir",
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+    "-p",
+    "stateknot-store-postgres"
+  ],
+  "cache_inactive_before_clean": true,
+  "strict_environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings"
+  },
+  "database_tests_executed": false,
+  "qualification": "Strict Store Native binary built only. No Native execution qualification."
+}

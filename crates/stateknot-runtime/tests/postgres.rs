@@ -6,6 +6,15 @@
 #[path = "postgres/graph_composition.rs"]
 mod graph_composition;
 
+#[path = "postgres/nested_driver.rs"]
+mod nested_driver;
+
+#[path = "postgres/root_driver_recovery.rs"]
+mod root_driver_recovery;
+
+#[path = "postgres/root_cancellation_control.rs"]
+mod root_cancellation_control;
+
 #[path = "postgres/child_admission.rs"]
 mod child_admission;
 
@@ -14,6 +23,12 @@ mod process_harness;
 
 #[path = "postgres/commit_proxy.rs"]
 mod commit_proxy;
+
+#[path = "postgres/ordinary_root.rs"]
+mod ordinary_root;
+
+#[path = "postgres/scoped_join_close_process_faults.rs"]
+mod scoped_join_close_process_faults;
 
 use std::{
     collections::VecDeque,
@@ -46,7 +61,7 @@ use stateknot_core::{
     ModelFinishReason, ModelInvocationIntent, ModelInvocationStatus, ModelOutputItem,
     ModelProviderReplay, ModelProviderReplayFormat, ModelProviderToolCallId, ModelRequest,
     ModelResponse, ModelResponseMode, ModelResponseProvenance, ModelToolCallProposal, ModelUsage,
-    NodeActivation, NodeControl, NodeId, NodeInvocationBindings, NodeStateChange,
+    Money, NodeActivation, NodeControl, NodeId, NodeInvocationBindings, NodeStateChange,
     NodeTerminalOutput, NodeWait, NodeWaits, PrincipalIdentity, QuarantineId, ReadyNodes,
     ResolvedBudget, RetryAdvice, RunCancellationRequest, RunFence, RunId, RunStatus, RunTimerKind,
     RunTransition, SchedulerShardId, SchemaId, SchemaReference, SecurityLabel,
@@ -440,6 +455,7 @@ struct ScriptedReconciliationTool {
     calls: Arc<AtomicUsize>,
     probes: Arc<AtomicUsize>,
     retry_after: DurationMillis,
+    known_first_call: bool,
 }
 
 impl ErasedTool for ScriptedReconciliationTool {
@@ -456,7 +472,16 @@ impl ErasedTool for ScriptedReconciliationTool {
         context: ToolContext,
         _: ToolInput,
     ) -> BoxFuture<'_, Result<ToolResult, ToolError>> {
-        self.calls.fetch_add(1, Ordering::SeqCst);
+        let call = self.calls.fetch_add(1, Ordering::SeqCst);
+        if self.known_first_call && call == 0 {
+            let result = ToolResult::for_invocation(
+                &context,
+                &self.descriptor,
+                BoundedJson::try_from_value(json!({"receipt": "confirmed"})).unwrap(),
+                ToolArtifacts::empty(),
+            );
+            return Box::pin(async move { Ok(result) });
+        }
         let failure = Failure::new(
             FailureId::generate(),
             FailureCategory::AmbiguousExternalOutcome,
@@ -502,6 +527,7 @@ impl ErasedTool for ScriptedReconciliationTool {
 }
 
 struct ProviderNativeScriptedModel {
+    tool_count: usize,
     descriptor: ModelDescriptor,
     tool: ToolDescriptor,
     output_schema: SchemaReference,
@@ -509,6 +535,31 @@ struct ProviderNativeScriptedModel {
     transcript_lengths: Arc<tokio::sync::Mutex<Vec<usize>>>,
     remaining_model_turns: Arc<tokio::sync::Mutex<Vec<u64>>>,
     failed_outcomes: Arc<AtomicUsize>,
+}
+
+fn provider_native_tool_proposals(
+    tool: &ToolDescriptor,
+    tool_count: usize,
+) -> Vec<ModelOutputItem> {
+    (0..tool_count)
+        .map(|index| {
+            ModelOutputItem::tool_call(
+                ModelToolCallProposal::new(
+                    tool.metadata().identity().clone(),
+                    Some(
+                        ModelProviderToolCallId::new(format!(
+                            "call_stateknot_lookup_{:02}",
+                            index + 1
+                        ))
+                        .unwrap(),
+                    ),
+                    BoundedJson::try_from_value(json!({"query": "durable agents"})).unwrap(),
+                    Extensions::default(),
+                )
+                .unwrap(),
+            )
+        })
+        .collect()
 }
 
 impl Model for ProviderNativeScriptedModel {
@@ -523,6 +574,7 @@ impl Model for ProviderNativeScriptedModel {
     ) -> BoxFuture<'_, Result<ModelResponse, ModelError>> {
         self.calls.fetch_add(1, Ordering::SeqCst);
         let transcript_len = request.transcript().len();
+        let tool_count = self.tool_count;
         let descriptor = self.descriptor.clone();
         let tool = self.tool.clone();
         let output_schema = self.output_schema.clone();
@@ -549,18 +601,12 @@ impl Model for ProviderNativeScriptedModel {
             )
             .unwrap();
             if transcript_len == 0 {
-                let proposal = ModelToolCallProposal::new(
-                    tool.metadata().identity().clone(),
-                    Some(ModelProviderToolCallId::new("call_stateknot_lookup_01").unwrap()),
-                    BoundedJson::try_from_value(json!({"query": "durable agents"})).unwrap(),
-                    Extensions::default(),
-                )
-                .unwrap();
+                let proposals = provider_native_tool_proposals(&tool, tool_count);
                 let response = ModelResponse::new(
                     provenance,
                     &descriptor,
                     &request,
-                    [ModelOutputItem::tool_call(proposal)],
+                    proposals,
                     ModelFinishReason::ToolCalls,
                     usage,
                     Extensions::default(),
@@ -568,17 +614,24 @@ impl Model for ProviderNativeScriptedModel {
                 .unwrap();
                 let replay = ModelProviderReplay::new(
                     ModelProviderReplayFormat::new("stateknot.test.v1").unwrap(),
-                    BoundedJson::try_from_value(json!([{
-                        "type": "function_call",
-                        "call_id": "call_stateknot_lookup_01"
-                    }]))
+                    BoundedJson::try_from_value(json!(
+                        (0..tool_count)
+                            .map(|index| json!({
+                                "type": "function_call",
+                                "call_id": format!("call_stateknot_lookup_{:02}", index + 1)
+                            }))
+                            .collect::<Vec<_>>()
+                    ))
                     .unwrap(),
                 )
                 .unwrap();
                 Ok(response.with_provider_replay(replay).unwrap())
             } else {
                 assert_eq!(transcript_len, 1, "only one prior tool turn is expected");
-                assert_eq!(request.transcript().as_slice()[0].outcomes().len(), 1);
+                assert_eq!(
+                    request.transcript().as_slice()[0].outcomes().len(),
+                    tool_count
+                );
                 if request.transcript().as_slice()[0].outcomes()[0]
                     .error()
                     .is_some()
@@ -1095,6 +1148,35 @@ impl AgentInvocationAccounting for KnownFreeInvocationAccounting {
     }
 }
 
+struct PricedInvocationAccounting {
+    unpriced: bool,
+    reference: AgentInvocationAccountingReference,
+}
+
+impl AgentInvocationAccounting for PricedInvocationAccounting {
+    fn reference(&self) -> &AgentInvocationAccountingReference {
+        &self.reference
+    }
+
+    fn model_charge(&self, _: &stateknot_core::ModelInvocation) -> AgentInvocationCharge {
+        if self.unpriced {
+            return AgentInvocationCharge::Unpriced;
+        }
+        AgentInvocationCharge::Known(
+            KnownCosts::try_new([Money::new("USD".parse().unwrap(), 7)]).unwrap(),
+        )
+    }
+
+    fn tool_charge(&self, _: &stateknot_core::ToolInvocation) -> AgentInvocationCharge {
+        if self.unpriced {
+            return AgentInvocationCharge::Unpriced;
+        }
+        AgentInvocationCharge::Known(
+            KnownCosts::try_new([Money::new("USD".parse().unwrap(), 11)]).unwrap(),
+        )
+    }
+}
+
 struct StaticInvocationBudget {
     resolved: ResolvedBudget,
 }
@@ -1302,6 +1384,34 @@ fn provider_native_fixture_with_budget(
     policy_pause: Option<Arc<PolicyPause>>,
     budget_mode: NativeBudgetMode,
 ) -> ProviderNativeFixture {
+    provider_native_fixture_with_accounting(
+        store,
+        fail_policy_once,
+        fail_tool,
+        reconcile_tool,
+        policy_pause,
+        budget_mode,
+        Arc::new(KnownFreeInvocationAccounting {
+            reference: AgentInvocationAccountingReference::new(
+                capability("provider-native-invocation-accounting"),
+                Digest::sha256(b"provider-native known-free accounting v1"),
+            ),
+        }),
+        1,
+    )
+}
+
+#[allow(clippy::too_many_lines, clippy::too_many_arguments)]
+fn provider_native_fixture_with_accounting(
+    store: PostgresStore,
+    fail_policy_once: bool,
+    fail_tool: bool,
+    reconcile_tool: bool,
+    policy_pause: Option<Arc<PolicyPause>>,
+    budget_mode: NativeBudgetMode,
+    accounting: Arc<dyn AgentInvocationAccounting>,
+    tool_count: usize,
+) -> ProviderNativeFixture {
     let (input_schema, input_document) = schema("provider-native-input");
     let (output_schema, output_document) = schema("provider-native-output");
     let (tool_input_schema, tool_input_document) = schema("provider-native-tool-input");
@@ -1339,7 +1449,7 @@ fn provider_native_fixture_with_budget(
         AgentStructuredOutputStrategy::ModelNative,
         ExecutionCount::new(3),
         ExecutionCount::ZERO,
-        ExecutionCount::new(1),
+        ExecutionCount::new(u64::try_from(tool_count).unwrap()),
         AgentToolConcurrency::sequential(),
     )
     .unwrap();
@@ -1351,7 +1461,10 @@ fn provider_native_fixture_with_budget(
         template.instructions().clone(),
         AgentTools::try_new([tool.clone()]).unwrap(),
         execution,
-        template.budget_limits().clone(),
+        template
+            .budget_limits()
+            .clone()
+            .with_write_calls(ExecutionCount::new(u64::try_from(tool_count).unwrap())),
     )
     .unwrap();
     let model_calls = Arc::new(AtomicUsize::new(0));
@@ -1381,12 +1494,7 @@ fn provider_native_fixture_with_budget(
             .parse::<SecurityLabel>()
             .unwrap(),
         policy,
-        Arc::new(KnownFreeInvocationAccounting {
-            reference: AgentInvocationAccountingReference::new(
-                capability("provider-native-invocation-accounting"),
-                Digest::sha256(b"provider-native known-free accounting v1"),
-            ),
-        }),
+        accounting,
     )
     .unwrap();
 
@@ -1411,6 +1519,7 @@ fn provider_native_fixture_with_budget(
     let mut models = ModelProviderRegistryBuilder::new();
     models
         .register(Arc::new(ProviderNativeScriptedModel {
+            tool_count,
             descriptor: definition.descriptor().model().clone(),
             tool: tool.clone(),
             output_schema,
@@ -1428,6 +1537,7 @@ fn provider_native_fixture_with_budget(
                 calls: Arc::clone(&tool_calls),
                 probes: Arc::clone(&tool_probes),
                 retry_after: DurationMillis::new(10_000).unwrap(),
+                known_first_call: tool_count > 1,
             }))
             .unwrap();
     } else {
@@ -3489,7 +3599,7 @@ async fn provider_native_graph_recovers_committed_model_without_redispatch_and_c
     let Some(store) = test_store().await else {
         return;
     };
-    qualify_provider_native_with_store(&store, false).await;
+    Box::pin(qualify_provider_native_with_store(&store, false)).await;
     store.close().await;
 }
 
@@ -3499,7 +3609,70 @@ async fn provider_native_budget_recovers_prior_model_and_tool_usage_from_postgre
     let Some(store) = test_store().await else {
         return;
     };
-    qualify_provider_native_with_store(&store, true).await;
+    Box::pin(qualify_provider_native_with_store(&store, true)).await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn provider_native_recovered_response_does_not_charge_new_physical_attempt() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_fixture_with_accounting(
+        store.clone(),
+        true,
+        false,
+        false,
+        None,
+        NativeBudgetMode::Durable,
+        Arc::new(PricedInvocationAccounting {
+            unpriced: false,
+            reference: AgentInvocationAccountingReference::new(
+                capability("provider-native-priced-accounting"),
+                Digest::sha256(b"provider-native model 7 tool 11 USD micros v1"),
+            ),
+        }),
+        1,
+    );
+    let usage = Box::pin(qualify_provider_native_with_fixture(
+        &store, fixture, true, true,
+    ))
+    .await;
+    assert_eq!(
+        usage.known_costs().get("USD".parse().unwrap()),
+        Some(Money::new("USD".parse().unwrap(), 25))
+    );
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn provider_native_recovered_unpriced_response_retains_monetary_blocker() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_fixture_with_accounting(
+        store.clone(),
+        true,
+        false,
+        false,
+        None,
+        NativeBudgetMode::StaticFixture,
+        Arc::new(PricedInvocationAccounting {
+            unpriced: true,
+            reference: AgentInvocationAccountingReference::new(
+                capability("provider-native-unpriced-recovery"),
+                Digest::sha256(b"provider-native unavailable price v1"),
+            ),
+        }),
+        1,
+    );
+    let usage = Box::pin(qualify_provider_native_with_fixture(
+        &store, fixture, false, false,
+    ))
+    .await;
+    assert_eq!(usage.unpriced_cost_events(), ExecutionCount::new(1));
     store.close().await;
 }
 
@@ -3518,6 +3691,22 @@ async fn qualify_provider_native_with_store(store: &PostgresStore, durable_budge
     } else {
         provider_native_fixture(store.clone())
     };
+    Box::pin(qualify_provider_native_with_fixture(
+        &store,
+        fixture,
+        durable_budget,
+        true,
+    ))
+    .await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn qualify_provider_native_with_fixture(
+    store: &PostgresStore,
+    fixture: ProviderNativeFixture,
+    durable_budget: bool,
+    priced: bool,
+) -> BudgetUsage {
     let tenant_id = tenant(if durable_budget {
         "runtime-provider-native-budget"
     } else {
@@ -3542,6 +3731,21 @@ async fn qualify_provider_native_with_store(store: &PostgresStore, durable_budge
         ))
         .await
         .unwrap();
+    let initial_checkpoint = store
+        .load_current_checkpoint(&tenant_id, run_id)
+        .await
+        .unwrap()
+        .unwrap();
+    let initial_activation = NodeActivation::for_ready_root(
+        &initial_checkpoint,
+        initial_checkpoint
+            .ready_nodes()
+            .iter()
+            .next()
+            .unwrap()
+            .clone(),
+    )
+    .unwrap();
     // Bound the first drive to exactly one physical node attempt. The policy
     // retry delay is intentionally short in production, so a slow CI worker
     // may otherwise make the retry due before the driver observes it and
@@ -3607,6 +3811,30 @@ async fn qualify_provider_native_with_store(store: &PostgresStore, durable_budge
         .await
         .unwrap();
     let (outcome, report) = second.into_parts();
+    if !priced {
+        assert!(matches!(outcome, GraphDriveOutcome::Blocked(_)));
+        assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
+        assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+        assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 2);
+        let history = store
+            .load_node_attempt_history_page(
+                &initial_activation,
+                None,
+                NodeAttemptHistoryPageSize::new(2).unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(history.records().len(), 2);
+        assert!(!history.has_more());
+        let original = history.records()[0].completion().unwrap().usage();
+        let recovered = history.records()[1].completion().unwrap().usage();
+        assert_eq!(recovered, original);
+        assert_eq!(recovered.unpriced_cost_events(), ExecutionCount::new(1));
+        let run = store.load_run(&tenant_id, run_id).await.unwrap();
+        assert_eq!(run.lifecycle().status(), RunStatus::Active);
+        assert!(run.lifecycle().terminal_usage().is_none());
+        return recovered.clone();
+    }
     let handoff = match outcome {
         GraphDriveOutcome::LifecycleBarrierReady(handoff) => handoff,
         other => {
@@ -3621,6 +3849,54 @@ async fn qualify_provider_native_with_store(store: &PostgresStore, durable_budge
     if durable_budget {
         assert_eq!(*fixture.remaining_model_turns.lock().await, vec![12, 11]);
     }
+
+    let recovered_attempts = store
+        .load_node_attempt_history_page(
+            &initial_activation,
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(recovered_attempts.records().len(), 2);
+    assert!(!recovered_attempts.has_more());
+    let failed = recovered_attempts.records()[0].completion().unwrap();
+    let recovered = recovered_attempts.records()[1].completion().unwrap();
+    assert_eq!(failed.usage().model_attempts(), ExecutionCount::new(1));
+    assert_eq!(failed.usage().model_turns(), ExecutionCount::new(1));
+    assert_eq!(
+        recovered.usage(),
+        &BudgetUsage::zero(),
+        "reusing an already charged model response performs no new physical I/O"
+    );
+
+    let terminal_base = store
+        .load_checkpoint(
+            &tenant_id,
+            run_id,
+            handoff.plan().barrier().base_checkpoint().checkpoint_id(),
+        )
+        .await
+        .unwrap();
+    let terminal_activation = NodeActivation::for_ready_root(
+        &terminal_base,
+        terminal_base.ready_nodes().iter().next().unwrap().clone(),
+    )
+    .unwrap();
+    let fresh = store
+        .load_node_attempt_history_page(
+            &terminal_activation,
+            None,
+            NodeAttemptHistoryPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(fresh.records().len(), 1);
+    assert!(!fresh.has_more());
+    let fresh_usage = fresh.records()[0].completion().unwrap().usage();
+    assert_eq!(fresh_usage.model_attempts(), ExecutionCount::new(1));
+    assert_eq!(fresh_usage.model_turns(), ExecutionCount::new(1));
+    assert_eq!(fresh_usage.known_costs(), failed.usage().known_costs());
 
     let lifecycle = DurableGraphLifecycle::new(
         store.clone(),
@@ -3648,6 +3924,7 @@ async fn qualify_provider_native_with_store(store: &PostgresStore, durable_budge
     assert_eq!(result.usage().model_attempts(), ExecutionCount::new(2));
     assert_eq!(result.usage().model_turns(), ExecutionCount::new(2));
     assert_eq!(result.usage().tool_calls(), ExecutionCount::new(1));
+    result.usage().clone()
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -3657,7 +3934,42 @@ async fn provider_native_graph_reconciles_unknown_tool_without_repeating_busines
     let Some(store) = test_store().await else {
         return;
     };
-    let fixture = provider_native_reconciliation_fixture(store.clone());
+    Box::pin(qualify_provider_native_tool_recovery(&store, 1)).await;
+    store.close().await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn provider_native_partial_tool_retry_charges_only_newly_reconciled_usage() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    Box::pin(qualify_provider_native_tool_recovery(&store, 2)).await;
+    store.close().await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn qualify_provider_native_tool_recovery(store: &PostgresStore, tool_count: usize) {
+    let fixture = if tool_count == 1 {
+        provider_native_reconciliation_fixture(store.clone())
+    } else {
+        provider_native_fixture_with_accounting(
+            store.clone(),
+            false,
+            false,
+            true,
+            None,
+            NativeBudgetMode::StaticFixture,
+            Arc::new(PricedInvocationAccounting {
+                unpriced: false,
+                reference: AgentInvocationAccountingReference::new(
+                    capability("provider-native-priced-tool-recovery"),
+                    Digest::sha256(b"provider-native partial tool recovery USD micros v1"),
+                ),
+            }),
+            tool_count,
+        )
+    };
     let tenant_id = tenant("runtime-provider-native-reconciliation");
     let ids = AgentRunIds::generate();
     let run_id = ids.run_id();
@@ -3697,15 +4009,70 @@ async fn provider_native_graph_reconciles_unknown_tool_without_repeating_busines
         first.outcome()
     );
     assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 1);
-    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), tool_count);
     assert_eq!(fixture.tool_probes.load(Ordering::SeqCst), 1);
-    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), tool_count);
     assert!(
         store
             .load_run(&tenant_id, run_id)
             .await
             .unwrap()
             .lease()
+            .is_none()
+    );
+
+    let tool_checkpoint = store
+        .load_current_checkpoint(&tenant_id, run_id)
+        .await
+        .unwrap()
+        .unwrap();
+    let tool_activation = NodeActivation::for_ready_root(
+        &tool_checkpoint,
+        tool_checkpoint.ready_nodes().iter().next().unwrap().clone(),
+    )
+    .unwrap();
+    let state = fixture
+        .definition
+        .restore_state(tool_checkpoint.state())
+        .unwrap();
+    let ProviderNativeAgentPhase::Tools { plans, .. } = state.phase() else {
+        panic!("an unresolved external effect must retain its Tools checkpoint");
+    };
+    let uncertain = store
+        .load_tool_invocation(&tenant_id, run_id, plans.last().unwrap().invocation_id())
+        .await
+        .unwrap();
+    assert!(matches!(
+        uncertain.state(),
+        ToolInvocationState::Unknown { .. }
+    ));
+    let prior = store
+        .load_node_attempt_history_page(
+            &tool_activation,
+            None,
+            NodeAttemptHistoryPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(prior.records().len(), 1);
+    let prior_usage = prior.records()[0].completion().unwrap().usage();
+    assert_eq!(
+        prior_usage.tool_calls(),
+        ExecutionCount::new(u64::try_from(tool_count - 1).unwrap())
+    );
+    if tool_count == 2 {
+        assert_eq!(
+            prior_usage.known_costs().get("USD".parse().unwrap()),
+            Some(Money::new("USD".parse().unwrap(), 11))
+        );
+    }
+    assert!(
+        store
+            .load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .lifecycle()
+            .terminal_usage()
             .is_none()
     );
 
@@ -3726,10 +4093,30 @@ async fn provider_native_graph_reconciles_unknown_tool_without_repeating_busines
     };
 
     assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
-    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), tool_count);
     assert_eq!(fixture.tool_probes.load(Ordering::SeqCst), 2);
-    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 1);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), tool_count);
     assert_eq!(*fixture.transcript_lengths.lock().await, vec![0, 1]);
+
+    let attempts = store
+        .load_node_attempt_history_page(
+            &tool_activation,
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(attempts.records().len(), 2);
+    assert!(!attempts.has_more());
+    let recovered_usage = attempts.records()[1].completion().unwrap().usage();
+    assert_eq!(recovered_usage.tool_calls(), ExecutionCount::new(1));
+    assert_eq!(recovered_usage.write_calls(), ExecutionCount::new(1));
+    if tool_count == 2 {
+        assert_eq!(
+            recovered_usage.known_costs().get("USD".parse().unwrap()),
+            Some(Money::new("USD".parse().unwrap(), 11))
+        );
+    }
 
     let lifecycle = DurableGraphLifecycle::new(
         store.clone(),
@@ -3749,9 +4136,19 @@ async fn provider_native_graph_reconciles_unknown_tool_without_repeating_busines
     assert_eq!(run.lifecycle().status(), RunStatus::Succeeded);
     assert_eq!(
         run.lifecycle().result().unwrap().usage().tool_calls(),
-        ExecutionCount::new(1)
+        ExecutionCount::new(u64::try_from(tool_count).unwrap())
     );
-    store.close().await;
+    if tool_count == 2 {
+        assert_eq!(
+            run.lifecycle()
+                .result()
+                .unwrap()
+                .usage()
+                .known_costs()
+                .get("USD".parse().unwrap()),
+            Some(Money::new("USD".parse().unwrap(), 36))
+        );
+    }
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
@@ -5194,6 +5591,7 @@ async fn provider_probe_persists_pending_then_commits_once_and_recovers_without_
             calls: Arc::clone(&calls),
             probes: Arc::clone(&probes),
             retry_after: DurationMillis::new(25).unwrap(),
+            known_first_call: false,
         }))
         .unwrap();
     let executor = DurableInvocationExecutor::with_clock(

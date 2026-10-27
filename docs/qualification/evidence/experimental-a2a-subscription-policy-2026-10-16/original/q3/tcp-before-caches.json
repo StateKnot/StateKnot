@@ -1,0 +1,39 @@
+{
+  "caches": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15",
+      "logical_kib": 665400
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36",
+      "logical_kib": 1076548
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+      "logical_kib": 2755928
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint-nightly",
+      "logical_kib": 427292
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+      "logical_kib": 2081528
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1-nightly",
+      "logical_kib": 427288
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+      "logical_kib": 2820140
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base-nightly",
+      "logical_kib": 427588
+    }
+  ],
+  "total_logical_kib": 10681712,
+  "logical_sizes_are_not_APFS_reclaimable_space": true,
+  "cleanup_performed": false
+}

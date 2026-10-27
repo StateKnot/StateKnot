@@ -1,0 +1,7 @@
+{
+  "classification": "review helper assertion, not product execution",
+  "exit_code": 1,
+  "cause": "Incorrectly compared complete initial/final resource observation documents. Their caches and total_logical_kib legitimately differ; source identity fields match.",
+  "original_exception": "AssertionError at initial==final",
+  "fix": "Compare exact source identity/count fields and preserve distinct resource observation bodies; no source, logs or docs changed."
+}

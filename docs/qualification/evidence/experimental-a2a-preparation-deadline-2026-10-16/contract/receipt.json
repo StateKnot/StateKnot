@@ -1,0 +1,21 @@
+{
+  "classification": "owner-confirmed frozen proposed contract, source audit only; not independent contract review or implementation result",
+  "observed_UTC": "2026-10-16T05:13:14.400181+00:00",
+  "main_HEAD_at_final_observation": "1638f5adb597f5cafdcb2923608ca63ed75eccfe",
+  "production_source_sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+  "selected_slice": "A2A post-auth JSON input plus initial authorization/admission same absolute deadline",
+  "contract_bytes_frozen": true,
+  "all11_operations_2bindings_6bodyclasses_read": true,
+  "future_acceptance_cases": 21,
+  "actual_Cargo_TCP_Native_DB_Docker_CI_or_cache_operation": false,
+  "actual_product_red_or_green_claimed": false,
+  "new_production_Native_fullCI_stdio_R1_qualification": false,
+  "independent_review_claimed": false,
+  "main_and_v2_unchanged": true,
+  "static_validation_command": "python3 .local-verification/2026-10-16/r1-next-implementation-audit-v3/verify.py --draft",
+  "static_validation_exit": 0,
+  "limits_or_authn_backend_budget_increase": false,
+  "root_draft_implementation_observed_but_not_frozen_reviewed_or_qualified": true,
+  "REST_push_JsonValue_syntax400_not422": true,
+  "operation_permit_final_guard_immediate_retirement_distinct_from_never_acquiring_during_pending_policy": true
+}

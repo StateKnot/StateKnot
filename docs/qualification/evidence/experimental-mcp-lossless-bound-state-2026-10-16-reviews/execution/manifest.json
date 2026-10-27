@@ -1,0 +1,50 @@
+{
+  "schema": "mcp-lossless-execution-appendix-review-files/v1",
+  "files": [
+    {
+      "path": "input-audit.json",
+      "bytes": 1518,
+      "sha256": "c66c3ab64070459e55be37b00fbfd8bef427240094c6a46157075014221197f6"
+    },
+    {
+      "path": "offline.receipt.json",
+      "bytes": 627,
+      "sha256": "d1ab0e71df6e7a39ca69c4e3d640ab598990f1a5828fa98fd5b65d7f7a919659"
+    },
+    {
+      "path": "offline.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "offline.stdout",
+      "bytes": 416,
+      "sha256": "7c339ebcd7f4741c7031fc039356f95a5be077f041169723f3b16311e4882871"
+    },
+    {
+      "path": "receipt.json",
+      "bytes": 1423,
+      "sha256": "c783a858184672b7fa3b365bb98c6d9261a5d0f99fdf619f16e27ea49e564353"
+    },
+    {
+      "path": "review.md",
+      "bytes": 1933,
+      "sha256": "c73d621ba4f885bbd692295236919177750948eeb55fd60c968f02a252d5674d"
+    },
+    {
+      "path": "workspace.receipt.json",
+      "bytes": 646,
+      "sha256": "380216c848f0c67b7cc3ac39eb12a9fd63b42aeac43b4fbfdd074225ec3f89f0"
+    },
+    {
+      "path": "workspace.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "workspace.stdout",
+      "bytes": 1019,
+      "sha256": "2de3a40cc7192c810aeb68bda25905e2eba8ad75c37a592f5d76d62502440a5f"
+    }
+  ]
+}

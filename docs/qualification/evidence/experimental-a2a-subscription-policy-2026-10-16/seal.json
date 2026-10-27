@@ -1,0 +1,9 @@
+{
+  "schema_version": 1,
+  "manifest_sha256": "af5c515f06572f89f930b03d00d88abc52c927d963f382bfb8a4cc0a6c7e7e17",
+  "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "compiled_canonical_sha256": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "qualification_profile_sha256": "3e172fae4711a9fdaa9d601e9e9a2ab56151d7e958a0222a95a9071bca1c524f",
+  "independent_final_review_claimed": false,
+  "Native_fullCI_stdio_R1_qualification": false
+}

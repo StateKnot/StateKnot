@@ -1,0 +1,14 @@
+{
+  "step": "list-runtime",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/runtime",
+    "--list"
+  ],
+  "runner_pid": 68288,
+  "pid": 76276,
+  "started_unix": 1792070229.817827,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 0.6470768451690674,
+  "log_sha256": "3d51a5b528d5f447268d33b6c276c5399701d7a807f597cf1c35c8a7d4005706"
+}

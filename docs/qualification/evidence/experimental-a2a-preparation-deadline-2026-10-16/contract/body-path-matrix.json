@@ -1,0 +1,44 @@
+{
+  "classification": "static actual path analysis; not runtime red or green",
+  "classes": [
+    {
+      "route_class": "REST SendMessage/SendStreamingMessage",
+      "actual_body_reader": "boundary canonicalize_request_payload Limited.collect followed by canonicalize_native<SendMessageRequest>; locked SDK Json<Value> consumes normalized in-memory bytes then parse_send_message_request",
+      "existing_boundary_body_buffered": true,
+      "new_requirement": "timeout/shutdown select plus actual clock check on existing bounded collection; same canonicalized body bytes"
+    },
+    {
+      "route_class": "JSON-RPC all methods",
+      "actual_body_reader": "boundary Limited.collect/canonicalize_jsonrpc_request followed by locked SDK Json<JsonRpcRequest>",
+      "existing_boundary_body_buffered": true,
+      "new_requirement": "same absolute D guards collection and later decoded prepare; RPC method chosen only by actual decoded body"
+    },
+    {
+      "route_class": "REST CreatePushConfig POST /tasks/{id}/pushNotificationConfigs",
+      "actual_body_reader": "locked SDK rest.rs handle_create_push_config Json(raw_config): Json<Value>; boundary currently returns request without collection",
+      "existing_boundary_body_buffered": false,
+      "new_requirement": "same-D Bytes::from_request with original configured DefaultBodyLimit already applied outside middleware; original JsonRejection::BytesRejection errors plus old allowed-Origin response headers; preserve original parts/request headers/Content-Length/raw bytes and defer parsing to SDK"
+    },
+    {
+      "route_class": "REST Subscribe/Cancel POST task actions",
+      "actual_body_reader": "locked SDK Path/task operation does not read a JSON body",
+      "existing_boundary_body_buffered": false,
+      "new_requirement": "preserve ignored-body behavior; no unconditional collection; prepare gets server-created D"
+    },
+    {
+      "route_class": "REST GET/DELETE task/list/config/extended operations",
+      "actual_body_reader": "locked SDK Path/Query/headers, no JSON body extractor",
+      "existing_boundary_body_buffered": false,
+      "new_requirement": "preserve no-body-read semantics; prepare gets server-created D"
+    },
+    {
+      "route_class": "Agent Card discovery",
+      "actual_body_reader": "immutable card, no authentication or prepare",
+      "existing_boundary_body_buffered": false,
+      "new_requirement": "unchanged original path"
+    }
+  ],
+  "all_post_unconditional_collection_rejected_as_unnecessary_compatibility_change": true,
+  "outer_timeout_over_next_run_rejected_because_backend_budget_is_independent": true,
+  "no_new_public_API_or_input_deadline_authority": true
+}

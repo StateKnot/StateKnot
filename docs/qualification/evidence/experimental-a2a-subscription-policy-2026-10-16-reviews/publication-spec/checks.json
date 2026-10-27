@@ -1,0 +1,442 @@
+{
+  "candidate178_exact": true,
+  "stored_bytes": 1002668,
+  "indexed_raw_artifacts": 169,
+  "actual_original_or_finalsource_rows_exact": 163,
+  "derived_rows": [
+    {
+      "path": "source/base-references.json",
+      "origin": "derived hash-bound existing source refs",
+      "raw_sha256": "077bb660257d3b2f65ca42be3ddb65cf7967b5edb181ecba497cb61fa3aa9d9b"
+    },
+    {
+      "path": "source/candidate.patch.gz",
+      "origin": "derived baseline31a to final v5 exact three-file diff",
+      "raw_sha256": "12984e433a39c59d053293ff59016620bb65a7b1da5a8111f488b72655a0a61f"
+    },
+    {
+      "path": "source/compiled-inputs.json.gz",
+      "origin": "original/q5 compiled-inputs.json",
+      "raw_sha256": "4c1eadd1290662fd615000d3ba3c561010d9286763945987dd43193fce764ef4"
+    },
+    {
+      "path": "source/final-source-manifest.json.gz",
+      "origin": "original/q5 frozen-source-manifest.json",
+      "raw_sha256": "7401cb72b22d1a44094c6954697149057d5e3b98eaeb00d0f05a059cb0a6366f"
+    },
+    {
+      "path": "source/provenance.json",
+      "origin": "derived exact production and source identity",
+      "raw_sha256": "097cdd1b2d03373a76fc9bca6120cd6b7e4f818e06cf87960caf546d7124b57b"
+    },
+    {
+      "path": "source/reconstruction.json",
+      "origin": "derived final three-path source delta",
+      "raw_sha256": "962d9722c453bc0e8f7126ebf60f78ea17ab1760d4a87e4923925a07cedc62f6"
+    }
+  ],
+  "all_original_helpers_preserved": [
+    "original/q1/execute-targeted.py",
+    "original/q1/run-gate.py",
+    "original/q2/execute-targeted.py",
+    "original/q2/run-gate.py",
+    "original/q3/execute-six.py",
+    "original/q3/execute-targeted.py",
+    "original/q3/run-gate.py",
+    "original/q4/execute-six.py",
+    "original/q4/run-gate.py",
+    "original/q5-network-enabled-retry-v1/execute-remaining.py",
+    "original/q5-network-enabled-retry-v1/run-gate.py",
+    "original/q5/execute-six.py",
+    "original/q5/run-gate.py"
+  ],
+  "actual_gate_receipt_count": 16,
+  "gate_receipts": [
+    {
+      "path": "original/q1/fmt.receipt.json",
+      "gate": "fmt",
+      "exit_code": 0,
+      "raw_sha256": "facf77602a6ac2151ad6318ad176672835af9800aac20fd28434c87721903d9e",
+      "runner_sha256": "a07db837ba73d6fd7d96b27cc6c1f4aa5212199efd87a871408df1f9a94f4690",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "51efb718783e9ee4c742935fe24d55100d9fb622d785f2dc899b0a72e8918b15"
+    },
+    {
+      "path": "original/q1/unit.receipt.json",
+      "gate": "unit",
+      "exit_code": 101,
+      "raw_sha256": "16743810a897d25f99e080fc18a89b8fcdef2e8bad0e0bed38925b5c219dbe23",
+      "runner_sha256": "a07db837ba73d6fd7d96b27cc6c1f4aa5212199efd87a871408df1f9a94f4690",
+      "log_sha256": "56e2408a1f06fc83f06d238812fe3b0d137ba19062dff49cf01cc569f3b8a067",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "51efb718783e9ee4c742935fe24d55100d9fb622d785f2dc899b0a72e8918b15"
+    },
+    {
+      "path": "original/q2/fmt.receipt.json",
+      "gate": "fmt",
+      "exit_code": 0,
+      "raw_sha256": "570971dd4b176fa5d274fc23f60a857873aa6d5e3f9006cf37ecd194770552e8",
+      "runner_sha256": "def4636e9c365c64ac862ee5a205932fc6a2048a404a289f495cfd73441e81b3",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "81098cf022f35564c70153c640d06bad5909916e9e3f30cce9e079d32a18ef2e"
+    },
+    {
+      "path": "original/q2/tcp.receipt.json",
+      "gate": "tcp",
+      "exit_code": 101,
+      "raw_sha256": "c9f426054ef2a0f5af84675f9712f31427701564d52f136c8b7e9aeb8d6a41af",
+      "runner_sha256": "def4636e9c365c64ac862ee5a205932fc6a2048a404a289f495cfd73441e81b3",
+      "log_sha256": "ecbcd9e5ca1adf5b68dfdefec86f474152a020effa3e69b849691880fa4f8eed",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "81098cf022f35564c70153c640d06bad5909916e9e3f30cce9e079d32a18ef2e"
+    },
+    {
+      "path": "original/q2/unit.receipt.json",
+      "gate": "unit",
+      "exit_code": 0,
+      "raw_sha256": "decb52a5cb87c1195e2efebdacc743b3f46f87141b5a5d9a964cd23871199370",
+      "runner_sha256": "def4636e9c365c64ac862ee5a205932fc6a2048a404a289f495cfd73441e81b3",
+      "log_sha256": "1b6fbc69e6d521d80dea365212b5fa9daa1725bb68adf049e6f55f9725109884",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "81098cf022f35564c70153c640d06bad5909916e9e3f30cce9e079d32a18ef2e"
+    },
+    {
+      "path": "original/q3/clippy.receipt.json",
+      "gate": "clippy",
+      "exit_code": 101,
+      "raw_sha256": "ba103fd9823c4a39dbbdc31163e9a0b8d9ac89164aa9d51a249aa43d96757b91",
+      "runner_sha256": "82e3489b76b367bc5e0ee0aec9aaba7aaac6f139886306b0c4ecfb2a289788a4",
+      "log_sha256": "9152d15ed966317e7173b8e82a8048eaff4f5f8bcc3eb3fec24ccebab6d77e1a",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "d994771b87e580ef6b15e28dc101e35e52c2a97f9b9984ded83c060bc7968b56"
+    },
+    {
+      "path": "original/q3/fmt.receipt.json",
+      "gate": "fmt",
+      "exit_code": 0,
+      "raw_sha256": "45a5ed6c455ac5667814c3f859069fb8b1dd38fdc600c599c995f07cc8c1698b",
+      "runner_sha256": "82e3489b76b367bc5e0ee0aec9aaba7aaac6f139886306b0c4ecfb2a289788a4",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "d994771b87e580ef6b15e28dc101e35e52c2a97f9b9984ded83c060bc7968b56"
+    },
+    {
+      "path": "original/q3/tcp.receipt.json",
+      "gate": "tcp",
+      "exit_code": 0,
+      "raw_sha256": "a7d76648e4aa6bc80ff5c87717fe71192d7cf2ddc0ed6747dc1635f120e3215b",
+      "runner_sha256": "82e3489b76b367bc5e0ee0aec9aaba7aaac6f139886306b0c4ecfb2a289788a4",
+      "log_sha256": "20a380eb8012421c393cde145738d7b10f2025336ea130b91d76710ab01f245e",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "d994771b87e580ef6b15e28dc101e35e52c2a97f9b9984ded83c060bc7968b56"
+    },
+    {
+      "path": "original/q4/fmt.receipt.json",
+      "gate": "fmt",
+      "exit_code": 1,
+      "raw_sha256": "0ba0c25972addbef19cb98d015538f63b5ac72525198e91c727281c7f4921fc4",
+      "runner_sha256": "c3ac6bb6339dc3679c9d7cd3a86edf75c0a26c5e21b375f7688fdb9a415a17ba",
+      "log_sha256": "475a484e5a45083a1040f4e7b9575a0e483c5bf2763e93aa1c71efc67625cd45",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "bb156a58ea6d3e8e03579dc56f7d6f0c6805ea537ef6ccfe15937ff5674c4e94"
+    },
+    {
+      "path": "original/q5-network-enabled-retry-v1/doctests.receipt.json",
+      "gate": "doctests",
+      "exit_code": 0,
+      "raw_sha256": "75eb2b4b5653063762331e82955b02de668a5e165dcb0b069a3c8c9cda499ea4",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "log_sha256": "a85263da7a94817406e2f4c1763aa109729dc2cecfcb65c4eef37da681245122",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad"
+    },
+    {
+      "path": "original/q5-network-enabled-retry-v1/nightly.receipt.json",
+      "gate": "nightly",
+      "exit_code": 0,
+      "raw_sha256": "c8d60208f624df5913b213c7aea47df544e79d30628263c4ceda64d95052a6f2",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "log_sha256": "0eb5f0e50d020d84a0f1e32a1464d843fe7a1cab8209f666231ae8e1e41c0e29",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base-nightly",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad"
+    },
+    {
+      "path": "original/q5-network-enabled-retry-v1/rustdoc.receipt.json",
+      "gate": "rustdoc",
+      "exit_code": 0,
+      "raw_sha256": "965f6d98e8d10c5f4f3fc3ab146ab3215d598ec571c20228a443badc354a0c16",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "log_sha256": "a45d8ae9d361046dfc13af4c60bd0a8d2e16725e2338e53a7618037da4b4c857",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad"
+    },
+    {
+      "path": "original/q5-network-enabled-retry-v1/workspace.receipt.json",
+      "gate": "workspace",
+      "exit_code": 0,
+      "raw_sha256": "52f30d26517880719f277f13f10558121743234ebc03e8f7d814aa465c7a9336",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "log_sha256": "629dce8cd9a88b7422e81ab8997068315cc6d61023fceae7e7d161babcc6086e",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad"
+    },
+    {
+      "path": "original/q5/clippy.receipt.json",
+      "gate": "clippy",
+      "exit_code": 0,
+      "raw_sha256": "5b0317e5818f29662ec828629a02eb95bb7ab8bc7c57846bf01a3fa5bb8b692d",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "log_sha256": "7fd9a4a64ac444b1a2504a10b0a2d6d8ef183a1fcb339ec20eb45054a3a5ce4e",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad"
+    },
+    {
+      "path": "original/q5/fmt.receipt.json",
+      "gate": "fmt",
+      "exit_code": 0,
+      "raw_sha256": "8798b3593398a1571dc60c3e33dcb119df9f4e8771b2bf144e3a449288de3989",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad"
+    },
+    {
+      "path": "original/q5/workspace.receipt.json",
+      "gate": "workspace",
+      "exit_code": 101,
+      "raw_sha256": "b56df81dcfae90211f0469fd449822cf12440f5ed95243fab86d57fb4123ab5d",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "log_sha256": "3c86354f4c567db99f5038a833a0cbe2c7a3aa35667744814498459e529a61a0",
+      "actual_profile_allowlist": {
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+        "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_TEST_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+        "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+        "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+        "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+        "RUSTDOCFLAGS": "-D warnings",
+        "RUSTFLAGS": "-D warnings"
+      },
+      "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad"
+    }
+  ],
+  "reused_public_source_refs": 23,
+  "new_source_payloads": 3,
+  "full_source930_and_compiled538_and_history_reconstruction_by_actual_offline_verifier": true,
+  "whole_source_archive_or_binary_or_cache_copied": false,
+  "source536_old_qualification_transfer": false,
+  "prose_EN_CN_JSON_facts_and_limits_read": true,
+  "qualification_links_validated_by_actual_outer_verifier": true,
+  "actual_offline": {
+    "outer": 0,
+    "direct": 0,
+    "fixed_source_workspace": 0,
+    "main_before_adoption_workspace": 1
+  },
+  "all_three_report_targets_present": true,
+  "final_independent_source_and_docs_reviews_exist_as_external_appendices": true,
+  "package_does_not_retroactively_claim_them_inside_original_seal": true,
+  "reader_authored_package": false,
+  "reader_executed_gate_helpers_Rust_TCP_Native_CI": false
+}

@@ -1,0 +1,9 @@
+{
+  "v2_directory": ".local-verification/2026-10-16/r1-next-implementation-audit-v2",
+  "v2_manifest_sha256": "7015fe1e1341a94c1e47ace16fb4352750e13238f2366cf51f4d45c67cf5b668",
+  "v2_seal_sha256": "3ae4f81a2d5c64d015a5a0bc002c6c1d588bad71e0927862e0113cf619e0e438",
+  "v2_scope": "afterdecode initial policy phase only; not a complete finite request promise",
+  "v2_unchanged": true,
+  "v3_classification": "frozen owner-confirmed post-auth body+initial-policy contract only; no source implementation or runtime result",
+  "v2_error_proposal_is_not_v3_policy_timeout": "v3 uses generic wire internal A2A operation timed out, not phase-specific availability mapping"
+}

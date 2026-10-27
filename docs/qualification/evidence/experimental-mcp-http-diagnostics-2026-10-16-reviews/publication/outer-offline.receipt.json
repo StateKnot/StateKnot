@@ -1,0 +1,10 @@
+{
+  "command": [
+    "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-publication-preparation-v1/verify.py"
+  ],
+  "exit_code": 0,
+  "stdout_sha256": "ac49ca1b421ccb6b5ed1210c3e6b232f9578cf4c8f61774f1877b4d6ac75afb5",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "read_only_saved_evidence_verification": true
+}

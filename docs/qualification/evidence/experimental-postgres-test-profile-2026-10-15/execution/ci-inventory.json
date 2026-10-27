@@ -1,0 +1,450 @@
+{
+  "workflow_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004",
+  "job_id": "postgres",
+  "runs_on": "ubuntu-latest",
+  "timeout_minutes": 30,
+  "matrix_postgres": [
+    "16",
+    "17"
+  ],
+  "line_range": [
+    332,
+    959
+  ],
+  "steps": [
+    {
+      "ordinal": 1,
+      "name": "Check out repository",
+      "workflow_start_line": 358,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "dd2bce9d202260db44db02e6a20405f8a9017bc62acb86803a576f0107d43f11"
+    },
+    {
+      "ordinal": 2,
+      "name": "Install pinned Rust toolchain",
+      "workflow_start_line": 361,
+      "kind": "run",
+      "run_script": "rustup toolchain install 1.88.0 --profile minimal",
+      "raw_sha256": "ca0d34da3c267ce823098336bbaebe692ece9d76ac4814e5a85e1a48d76211ab"
+    },
+    {
+      "ordinal": 3,
+      "name": "Run mandatory PostgreSQL integration tests",
+      "workflow_start_line": 364,
+      "kind": "run",
+      "run_script": "cargo test -p stateknot-store-postgres --test postgres --locked -- --test-threads=1",
+      "raw_sha256": "8b9ae89985d79fd93bd7b136197cc171de6131bb5cc35806ef0eed326d2e0e8b"
+    },
+    {
+      "ordinal": 4,
+      "name": "Run durable Graph Driver integration tests",
+      "workflow_start_line": 373,
+      "kind": "run",
+      "run_script": "cargo test -p stateknot-runtime --test postgres --locked -- --test-threads=1",
+      "raw_sha256": "a7721e1de46cf36904bc4f1a19b33bd6418ad53b280636dfeeae7df3e86a9043"
+    },
+    {
+      "ordinal": 5,
+      "name": "Qualify real model adapter, pricing, and exact-key authorization",
+      "workflow_start_line": 379,
+      "kind": "run",
+      "run_script": "cargo test -p stateknot-integrations --test provider_native_postgres --locked -- --test-threads=1",
+      "raw_sha256": "cfbc9425e8a5abfee44413c37bfa6acec78f159439fda9eccfc2af05306a52a2"
+    },
+    {
+      "ordinal": 6,
+      "name": "Execute recoverable DeepSeek Agent example against PostgreSQL",
+      "workflow_start_line": 385,
+      "kind": "run",
+      "run_script": "cargo test -p stateknot --example deepseek_agent --locked -- --test-threads=1",
+      "raw_sha256": "4c45540f88a7b2af3b3bd2aab246c2b3a36f421680f95608c705d834bd0da872"
+    },
+    {
+      "ordinal": 7,
+      "name": "Record process-kill qualification environment",
+      "workflow_start_line": 391,
+      "kind": "run",
+      "run_script": "{\n  git rev-parse HEAD\n  git rev-parse 'HEAD^{tree}'\n  sha256sum Cargo.lock\n  rustc -Vv\n  uname -a\n  lscpu\n  free -b\n  df -T .\n  printenv STATEKNOT_QUALIFICATION_POSTGRES_IMAGE\n} | tee failure-close-process-environment.log",
+      "raw_sha256": "b32477cbbc3393594cbf1fde48a7dec5163b948346b53ea216f7f23be1c6f8bf"
+    },
+    {
+      "ordinal": 8,
+      "name": "Qualify committed failure-close process-kill boundaries",
+      "workflow_start_line": 407,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::process::failure_close_survives_os_kill_at_each_committed_drain_boundary \\\n  --nocapture --test-threads=1 | tee failure-close-process-qualification.log\n# Rust's test harness exits successfully even when a filter matches zero\n# tests. Require all six machine-readable checkpoints as well as exit 0.\ntest \"$(grep -c '^STATEKNOT_PROCESS_KILL_EVIDENCE=' failure-close-process-qualification.log)\" = 6",
+      "raw_sha256": "2d3a43d08e2d4b50a471d608b4c34aaa0b2b5a984fa224c66d329abd4d1529ab"
+    },
+    {
+      "ordinal": 9,
+      "name": "Qualify commit loss and expired-fence takeover",
+      "workflow_start_line": 420,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::commit_loss::failure_close_commit_loss_and_fence_takeover_are_recoverable \\\n  --nocapture --test-threads=1 | tee failure-close-commit-loss.log\ntest \"$(grep -c '^STATEKNOT_COMMIT_LOSS_EVIDENCE=' failure-close-commit-loss.log)\" = 2",
+      "raw_sha256": "8b70978f29764ab48e002753a2a8ed582d2f8b0d9d9a91ef5d34a4e30dcf9030"
+    },
+    {
+      "ordinal": 10,
+      "name": "Qualify Join and deadline COMMIT loss",
+      "workflow_start_line": 431,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::transaction_commit_loss::join_and_deadline_commit_loss_are_recoverable \\\n  --nocapture --test-threads=1 | tee join-deadline-commit-loss.log\n# Registration, publication and deadline cancellation each require\n# both the unforwarded-COMMIT and withheld-response cut.\ntest \"$(grep -c '^STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE=' join-deadline-commit-loss.log)\" = 6",
+      "raw_sha256": "261f3587fb64b3f19bd97cc29a991b59b95d0b08c05b105c99ff7dc6bb53f297"
+    },
+    {
+      "ordinal": 11,
+      "name": "Qualify child-admission COMMIT loss",
+      "workflow_start_line": 444,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_admission_commit_loss::child_admission_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-admission-commit-loss.log\n# Atomic admission requires both an unforwarded COMMIT rollback and\n# committed-response-loss recovery from a separate process.\ntest \"$(grep -c '^STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE=' child-admission-commit-loss.log)\" = 2",
+      "raw_sha256": "8525ef98f046d6ce862692d53d06f7e0de6ad30c86cf92f11ea1569b9d8d8534"
+    },
+    {
+      "ordinal": 12,
+      "name": "Upload child-admission COMMIT-loss evidence",
+      "workflow_start_line": 457,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "da04d3d64fc5fb1260a0ae2477169b5e65d29657874b95ca985bf3add53b0753"
+    },
+    {
+      "ordinal": 13,
+      "name": "Qualify child-cancellation delivery COMMIT loss",
+      "workflow_start_line": 468,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_cancellation_commit_loss::child_cancellation_delivery_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-cancellation-commit-loss.log\n# Delivery must prove both full rollback and original receipt recovery,\n# including atomic cleanup of the real outstanding wait set.\ntest \"$(grep -c '^STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE=' child-cancellation-commit-loss.log)\" = 2",
+      "raw_sha256": "70addbb771cd1da99bb946a4ca6e8f57ec8988c3d21153489462dec7605e93f2"
+    },
+    {
+      "ordinal": 14,
+      "name": "Upload child-cancellation COMMIT-loss evidence",
+      "workflow_start_line": 481,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "24f9303e61835fbee524ba0e6424d6d61a8e41871a70fc69c372753d2e9e84ad"
+    },
+    {
+      "ordinal": 15,
+      "name": "Qualify child-settlement COMMIT loss",
+      "workflow_start_line": 492,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::child_settlement_commit_loss::child_settlement_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-settlement-commit-loss.log\n# Require rollback and original-event recovery, not a vacuous filter.\ntest \"$(grep -c '^STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE=' child-settlement-commit-loss.log)\" = 2",
+      "raw_sha256": "853285e81cc8f3deb5ea027aa0a9f08d5028a33a592d54bcf6e786f77eee3d8c"
+    },
+    {
+      "ordinal": 16,
+      "name": "Upload child-settlement COMMIT-loss evidence",
+      "workflow_start_line": 504,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "3c3d90478dee1e2e50fbc1aba4114bb4f557369eeae17e8ab35141fae5678bd8"
+    },
+    {
+      "ordinal": 17,
+      "name": "Qualify parent-finalization COMMIT loss",
+      "workflow_start_line": 515,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::completion_commit_loss::failure_close_completion_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee parent-finalization-commit-loss.log\n# Require both exact cuts, not a successful zero-test filter.\ntest \"$(grep -c '^STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE=' parent-finalization-commit-loss.log)\" = 2",
+      "raw_sha256": "8a5e42b52df9b9049f3f260f42c73641150135253ed24216f76d084ae44c07d3"
+    },
+    {
+      "ordinal": 18,
+      "name": "Upload parent-finalization COMMIT-loss evidence",
+      "workflow_start_line": 527,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "5dfdca84a391a36180286cc012f4e1ac9cd8ff2a41d5393886706e538a3fa299"
+    },
+    {
+      "ordinal": 19,
+      "name": "Qualify child-join consumption COMMIT loss",
+      "workflow_start_line": 538,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::consumption_commit_loss::child_join_consumption_commit_loss_is_recoverable \\\n  --nocapture --test-threads=1 | tee child-join-consumption-commit-loss.log\n# Both cut positions must yield independently verified evidence.\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE=' child-join-consumption-commit-loss.log)\" = 2",
+      "raw_sha256": "ef9839a0f9547703d2c771db78819de6a48d05b26453ab3a0ea16a5c781a3915"
+    },
+    {
+      "ordinal": 20,
+      "name": "Upload child-join consumption COMMIT-loss evidence",
+      "workflow_start_line": 550,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "096d7d6eef2d1dcf5c26c502d7b156e3b28e7160315e98bcc0f9d71968ecaf40"
+    },
+    {
+      "ordinal": 21,
+      "name": "Qualify isolated child-join logical backup restore",
+      "workflow_start_line": 561,
+      "kind": "run",
+      "run_script": "set -o pipefail\ntest -n \"$STATEKNOT_TEST_POSTGRES_CONTAINER\"\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore \\\n  --nocapture --test-threads=1 | tee child-join-backup-restore.log\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_BACKUP_RESTORE_EVIDENCE=' child-join-backup-restore.log)\" = 1",
+      "raw_sha256": "16a5cf71355c88693329f776302eefc8775b6df39998b73ca17a17ef96fd5b89"
+    },
+    {
+      "ordinal": 22,
+      "name": "Upload child-join logical restore evidence",
+      "workflow_start_line": 575,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "6c04517d8c40b50f5f9a40d8ea62bd7483bcd25df8f86dd98972c45ede9daa8e"
+    },
+    {
+      "ordinal": 23,
+      "name": "Upload Join and deadline COMMIT-loss evidence",
+      "workflow_start_line": 586,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "714793ddbda18b9aef3db9af166c0c504d5c8fc4dce0473ac54f5267bf98f4ae"
+    },
+    {
+      "ordinal": 24,
+      "name": "Qualify committed child-join process-loss boundaries",
+      "workflow_start_line": 597,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::join::process::child_join_survives_process_loss_and_rejects_retained_stale_worker \\\n  --nocapture --test-threads=1 | tee child-join-process-qualification.log\n# A successful filtered test with partial or missing process evidence\n# is not a passing qualification profile.\ntest \"$(grep -c '^STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE=' child-join-process-qualification.log)\" = 8",
+      "raw_sha256": "e5a9024753318c18537032f143bb708ce039eb2d9418267b7eb789089c9886ee"
+    },
+    {
+      "ordinal": 25,
+      "name": "Qualify deadline cancel-and-join process-loss boundaries",
+      "workflow_start_line": 610,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::deadlines::process::deadline_join_survives_process_loss_and_rejects_retained_stale_worker \\\n  --nocapture --test-threads=1 | tee deadline-join-process-qualification.log\n# Both inherited-deadline candidates and every committed recovery\n# boundary are mandatory; a partial matrix fails closed.\ntest \"$(grep -c '^STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE=' deadline-join-process-qualification.log)\" = 9",
+      "raw_sha256": "b7c7a89b989ea5f8ae56de0db4c738b223c2107e1c4cb92cfed225805f47deeb"
+    },
+    {
+      "ordinal": 26,
+      "name": "Upload child-join process qualification evidence",
+      "workflow_start_line": 623,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "0815cd44d98d28d559f3adb261061e750fc2ae71d07f31926912621353441de2"
+    },
+    {
+      "ordinal": 27,
+      "name": "Upload deadline cancel-and-join qualification evidence",
+      "workflow_start_line": 634,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "d0765dfaafb20cbbe2a49ae000a8f61aff737e0d303c243c4700e5f400d2f2af"
+    },
+    {
+      "ordinal": 28,
+      "name": "Upload process-kill qualification evidence",
+      "workflow_start_line": 645,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "2dbf2abbe65ade1ad6413748302045f50f195a6d56d931fd272a2f69f9ad3f09"
+    },
+    {
+      "ordinal": 29,
+      "name": "Run durable protocol integration tests",
+      "workflow_start_line": 656,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-integrations --test mcp_durable --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-authorization-qualification.log\ntest \"$(grep -c '^STATEKNOT_MCP_AUTHORIZATION_EVIDENCE=' mcp-authorization-qualification.log)\" = 2",
+      "raw_sha256": "7063908c4e1c0b5fe0df5d93bbb524e672a10ccfb74583fb6c6e88e1f56f272c"
+    },
+    {
+      "ordinal": 30,
+      "name": "Upload MCP call authorization evidence",
+      "workflow_start_line": 666,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "9846218746a67c1879717e25b26ce16dfbf3a988a36d7d5367078cded3902318"
+    },
+    {
+      "ordinal": 31,
+      "name": "Qualify authenticated MCP result and known-error reconciliation",
+      "workflow_start_line": 677,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot --test mcp_reconciliation --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-reconciliation-qualification.log\ntest \"$(grep -c '^STATEKNOT_MCP_RECONCILIATION_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE=' mcp-reconciliation-qualification.log)\" = 1",
+      "raw_sha256": "c9de55b662a3cc0cb56cc25ffb3eb7fdf1378bde5f0589099aa8438fe5108e9c"
+    },
+    {
+      "ordinal": 32,
+      "name": "Upload MCP outcome reconciliation evidence",
+      "workflow_start_line": 689,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "da8ead519da07f83fdabf9f1879efd09678d0efeb09dcaa333010882f69d03e9"
+    },
+    {
+      "ordinal": 33,
+      "name": "Qualify trusted SQL role profile",
+      "workflow_start_line": 700,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked -- \\\n  --exact child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work \\\n  --nocapture --test-threads=1 | tee trusted-role-profile-qualification.log\ntest \"$(grep -c '^STATEKNOT_ROLE_PROFILE_EVIDENCE=' trusted-role-profile-qualification.log)\" = 1",
+      "raw_sha256": "a8b10bd71fb07cfded53162c97f0c49734ae06088ddb2e14e4dc1c6a6d24744a"
+    },
+    {
+      "ordinal": 34,
+      "name": "Upload trusted SQL role evidence",
+      "workflow_start_line": 711,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "3b71368c0c848594f53a65510261078ab35490cb999d1aea023e074ea310fd5b"
+    },
+    {
+      "ordinal": 35,
+      "name": "Qualify MCP compute Worker isolation and recovery",
+      "workflow_start_line": 722,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot --test mcp_compute --locked -- \\\n  --nocapture --test-threads=1 | tee mcp-compute-worker-qualification.log\ntest \"$(grep -c '^STATEKNOT_COMPUTE_WORKER_EVIDENCE=' mcp-compute-worker-qualification.log)\" = 1",
+      "raw_sha256": "d3fbe5c1f8d51ba5f12994960faaf95fe1fb1c01643eb0ac8d3cb1f1d7f33868"
+    },
+    {
+      "ordinal": 36,
+      "name": "Upload MCP compute Worker evidence",
+      "workflow_start_line": 732,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "239ae9a4431a21499095e461210cc2d6bce7d3ad3351856915cd3a755a644991"
+    },
+    {
+      "ordinal": 37,
+      "name": "Qualify Agent HTTP ingress and lost-response recovery",
+      "workflow_start_line": 743,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot --test agent_http --locked -- \\\n  --nocapture --test-threads=1 | tee agent-http-qualification.log\ntest \"$(grep -c '^STATEKNOT_AGENT_HTTP_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_AGENT_SSE_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_AGENT_SERVER_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_RESOURCE_POLICY_EVIDENCE=' agent-http-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_JWT_JWKS_EVIDENCE=' agent-http-qualification.log)\" = 1",
+      "raw_sha256": "dd757531640386907d8e184aad0a57dc35b1be3841561f06890a3d1afbf16f09"
+    },
+    {
+      "ordinal": 38,
+      "name": "Upload Agent HTTP evidence",
+      "workflow_start_line": 757,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "4c5fb1438394a91c400acf17fc70d0fd15fdd5557aaa1f8191d1f526d12dbdf6"
+    },
+    {
+      "ordinal": 39,
+      "name": "Qualify owned durable scheduling Worker",
+      "workflow_start_line": 768,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked -- \\\n  --nocapture --test-threads=1 --skip host:: --skip operations:: --skip qualification:: | tee agent-worker-qualification.log\ntest \"$(grep -c '^STATEKNOT_WORKER_EXECUTION_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_RECOVERY_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_FAILSTOP_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_FAIR_EVIDENCE=' agent-worker-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_WORKER_MAINTENANCE_EVIDENCE=' agent-worker-qualification.log)\" = 1",
+      "raw_sha256": "855aab433328f956d11548bc3f287c340950c907b8bf56982ce6ac3051eb580b"
+    },
+    {
+      "ordinal": 40,
+      "name": "Qualify exact-key in-process Agent execution and recovery",
+      "workflow_start_line": 782,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot --test in_process_agent --locked -- \\\n  --nocapture --test-threads=1 | tee in-process-agent-qualification.log\ngrep -Fq 'test postgres_typed_run_accepts_exact_submission_key_read_without_tenant_wide_access ... ok' in-process-agent-qualification.log\ntest \"$(grep -c '^STATEKNOT_IN_PROCESS_AGENT_EVIDENCE=' in-process-agent-qualification.log)\" = 1",
+      "raw_sha256": "64dea3fbbc1a33872e896b3fa0999e261ba57fc208191cac0d0f9dddbafa54be"
+    },
+    {
+      "ordinal": 41,
+      "name": "Upload owned Worker evidence",
+      "workflow_start_line": 793,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "979e5b1f35d30c255a8297f69b26cace046e4416d5cbd4150fc5b22924c6ef31"
+    },
+    {
+      "ordinal": 42,
+      "name": "Qualify co-located Agent host",
+      "workflow_start_line": 805,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked host:: -- \\\n  --nocapture --test-threads=1 | tee agent-host-qualification.log\nfor marker in ADMISSION STARTUP FAILURE DRAIN DROP; do\n  test \"$(grep -c \"^STATEKNOT_HOST_${marker}_EVIDENCE=\" agent-host-qualification.log)\" = 1\ndone",
+      "raw_sha256": "747fcbb1aa33c4e57a72ce33de58df6bd3ec4a987f5be7ed2e27c17b21097baa"
+    },
+    {
+      "ordinal": 43,
+      "name": "Upload co-located host evidence",
+      "workflow_start_line": 817,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "66815e6dee0d29b2e1b9a7622a9ecf9a6bf84b55587710076d7aa1dda14be113"
+    },
+    {
+      "ordinal": 44,
+      "name": "Qualify protected host operations",
+      "workflow_start_line": 828,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked operations:: -- \\\n  --nocapture --test-threads=1 | tee agent-operations-qualification.log\nfor marker in AUTHORIZATION LIFECYCLE INPUT BOUNDS TRANSPORT; do\n  test \"$(grep -c \"^STATEKNOT_OPERATIONS_${marker}_EVIDENCE=\" agent-operations-qualification.log)\" = 1\ndone",
+      "raw_sha256": "3c37b9ff40625f71a8d6e8da9149e3a6d603ad3669673ab11b245e8b848508fa"
+    },
+    {
+      "ordinal": 45,
+      "name": "Upload protected operations evidence",
+      "workflow_start_line": 840,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "5a5cdb9c6109d9bc7ebbbfcaecff5fd57bfb831063c1563df2edfcb877c76efb"
+    },
+    {
+      "ordinal": 46,
+      "name": "Record reduced host qualification metadata",
+      "workflow_start_line": 851,
+      "kind": "run",
+      "run_script": "set -euo pipefail\nsource_commit=\"$(git rev-parse HEAD)\"\nsource_tree=\"$(git rev-parse 'HEAD^{tree}')\"\ncargo_lock_sha256=\"$(sha256sum Cargo.lock | cut -d ' ' -f 1)\"\ndataset_sha256=\"$(sha256sum docs/scenarios/README.md | cut -d ' ' -f 1)\"\nconfiguration_sha256=\"$(printf '%s\\n' \\\n  'profile=ci_reduced' \\\n  \"postgres_image=${STATEKNOT_QUALIFICATION_POSTGRES_IMAGE}\" \\\n  'synchronous_commit=on' \\\n  'topology=1,1,1,1' | sha256sum | cut -d ' ' -f 1)\"\nlogical_cpus=\"$(nproc)\"\ncpu_model=\"$(lscpu | awk -F: '/Model name:/ { sub(/^[[:space:]]+/, \"\", $2); print $2; exit }')\"\ntest -n \"$cpu_model\"\nmemory_bytes=\"$(awk '/MemTotal:/ { print $2 * 1024 }' /proc/meminfo | cut -d . -f 1)\"\nkernel=\"$(uname -sr)\"\n{\n  echo \"STATEKNOT_QUALIFICATION_SOURCE_COMMIT=${source_commit}\"\n  echo \"STATEKNOT_QUALIFICATION_SOURCE_TREE=${source_tree}\"\n  echo \"STATEKNOT_QUALIFICATION_CARGO_LOCK_SHA256=${cargo_lock_sha256}\"\n  echo \"STATEKNOT_QUALIFICATION_DATASET_SHA256=${dataset_sha256}\"\n  echo \"STATEKNOT_QUALIFICATION_CONFIGURATION_SHA256=${configuration_sha256}\"\n  echo \"STATEKNOT_QUALIFICATION_LOGICAL_CPUS=${logical_cpus}\"\n  echo \"STATEKNOT_QUALIFICATION_CPU_MODEL=${cpu_model}\"\n  echo \"STATEKNOT_QUALIFICATION_MEMORY_BYTES=${memory_bytes}\"\n  echo \"STATEKNOT_QUALIFICATION_KERNEL=${kernel}\"\n  echo \"STATEKNOT_QUALIFICATION_POSTGRES_MAJOR=${STATEKNOT_QUALIFICATION_POSTGRES_MAJOR}\"\n} | tee -a \"$GITHUB_ENV\" > reduced-host-qualification-environment.log\nprintf '%s\\n' \"postgres_image=${STATEKNOT_QUALIFICATION_POSTGRES_IMAGE}\" \\\n  >> reduced-host-qualification-environment.log",
+      "raw_sha256": "3903291c805e300ed2709f71c36b6918cf8d0dfe42ead877d704f7398c42405e"
+    },
+    {
+      "ordinal": 47,
+      "name": "Run reduced host capacity and recovery qualification",
+      "workflow_start_line": 886,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot --test agent_worker --locked -- \\\n  --exact qualification::postgres_reduced_host_qualification_emits_verified_non_release_evidence \\\n  --nocapture --test-threads=1 | tee reduced-host-qualification.log\ntest \"$(grep -c '^STATEKNOT_HOST_QUALIFICATION_REPORT=' reduced-host-qualification.log)\" = 1",
+      "raw_sha256": "f566658334f0fa26478d3015d93b5c13f3f858a2123ceed69fec60c237ce2a0f"
+    },
+    {
+      "ordinal": 48,
+      "name": "Upload reduced host qualification evidence",
+      "workflow_start_line": 897,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "8cab078a05c3df3384d3b477458a2eb9db5c744525e4ffb0c1c56224575ba272"
+    },
+    {
+      "ordinal": 49,
+      "name": "Qualify owned Agent maintenance",
+      "workflow_start_line": 908,
+      "kind": "run",
+      "run_script": "set -o pipefail\ncargo test -p stateknot-runtime --test postgres --locked \\\n  child_admission::ownership::failure_close::maintenance:: -- \\\n  --nocapture --test-threads=1 | tee agent-maintenance-qualification.log\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE=' agent-maintenance-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE=' agent-maintenance-qualification.log)\" = 1",
+      "raw_sha256": "7160109b6ec7392ad6504f4ffb409d992fe7fb21eeb56194b2197d9fc5cb8c23"
+    },
+    {
+      "ordinal": 50,
+      "name": "Upload owned maintenance evidence",
+      "workflow_start_line": 922,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "07d331a1b8a0fc41c5f85b9200d4d10e421da9068657415dac17fb3203234f1a"
+    },
+    {
+      "ordinal": 51,
+      "name": "Run durable artifact storage integration tests",
+      "workflow_start_line": 933,
+      "kind": "run",
+      "run_script": "cargo test -p stateknot-artifact-store --test artifact_store --locked -- --test-threads=1",
+      "raw_sha256": "48634e7070d405637b32a30d5670f08f983594ed0d6ddd1edcc65cc7b79c2f39"
+    },
+    {
+      "ordinal": 52,
+      "name": "Qualify real TLS identity, rotation, revocation and ingress",
+      "workflow_start_line": 939,
+      "kind": "run",
+      "run_script": "set -o pipefail\nbash conformance/agent-identity/run.sh | tee agent-identity-qualification.log\ntest \"$(grep -c '^STATEKNOT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_JWT_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_HOST_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1\ntest \"$(grep -c '^STATEKNOT_OPERATIONS_IDENTITY_EVIDENCE=' agent-identity-qualification.log)\" = 1",
+      "raw_sha256": "3cf38ee891ba8cded8f0dd641b2cce43c3151ab43257fa62c1380a18aa7bb719"
+    },
+    {
+      "ordinal": 53,
+      "name": "Upload real identity qualification evidence",
+      "workflow_start_line": 950,
+      "kind": "action",
+      "run_script": "",
+      "raw_sha256": "71d2943baab385d13f4082b344d476e2de16d311542dd96c08a9e28c9d716852"
+    }
+  ],
+  "local_four_suites_are_not_this_complete_job": true,
+  "original_four_suites": [
+    "store/postgres",
+    "runtime/postgres",
+    "integrations/provider_native_postgres",
+    "stateknot/example/deepseek_agent"
+  ],
+  "separate_facts_suite": "integrations/mcp_durable",
+  "separate_pitr_job_timeout_minutes": 20,
+  "workflow_has_no_global_or_postgres_profile_debug_env": true
+}

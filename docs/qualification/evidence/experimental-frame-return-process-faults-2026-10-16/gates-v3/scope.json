@@ -1,0 +1,38 @@
+{
+  "source_directory": "graph-frame-return-process-fault-source-v3",
+  "source_tree_sha256": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "compiled_inputs_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "source_count": 932,
+  "compiled_count": 541,
+  "origin_commit": "a544ad9bfcb516a1ac7a6b8232c66019b46ad1f5",
+  "parent_source_tree_sha256": "9a98cd929c10698f8cb866b99b3fd00a9b0f69dd840a68da1d01f5b30817f49d",
+  "parent_compiled_inputs_sha256": "c3c5ed5bb8f102d9b1b31bf1afbb21e75e1e05d4e2b37d523f4ba4ca2bc80edc",
+  "changed_paths": [
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs"
+  ],
+  "new_test_names_source_only": [
+    "nested_driver::frame_return_process_faults::return_commit_loss_worker",
+    "nested_driver::frame_return_process_faults::frame_return_commit_loss_survives_real_kill_and_cold_higher_fence_driver"
+  ],
+  "Native_inventory_measured": false,
+  "production_Root_SQL_API_migrations_or_business_budgets_changed": false,
+  "Native_CI_or_performance_qualification": false,
+  "parent_and_main_540_input_maps_before_after_exact": true,
+  "copied_gate_runners_unchanged": true,
+  "prior_attempt": "v1 preserved: E0369 NodeAttemptCompletion has no PartialEq",
+  "only_v1_change": [
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs"
+  ],
+  "complete_completion_wire_comparison": true,
+  "prior_attempts": "v1 E0369 and v2 large_futures failures preserved",
+  "only_v2_changes": [
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs"
+  ],
+  "middle_fixture_parent_manifest_sha256": "6c17515d8f8c64fd10d75c94587604d35d692386a43d203572e451f524057df5",
+  "middle_fixture_sha256": "ad11c5ae9ddb37adebe87f0d7f8620606b6f22832ebfddbae15369636732450d",
+  "single_walk_production_refactor_included": false
+}

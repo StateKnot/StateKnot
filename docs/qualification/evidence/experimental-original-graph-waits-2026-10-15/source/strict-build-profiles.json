@@ -1,0 +1,66 @@
+{
+  "original_debug_assertions_preserved": true,
+  "original_overflow_checks_preserved": true,
+  "events": [
+    {
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "target": "postgres",
+      "kind": [
+        "test"
+      ],
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "fresh": false
+    },
+    {
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot#0.1.0-alpha.1",
+      "target": "deepseek_agent",
+      "kind": [
+        "example"
+      ],
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "fresh": false
+    },
+    {
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot-integrations#0.1.0-alpha.1",
+      "target": "provider_native_postgres",
+      "kind": [
+        "test"
+      ],
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "fresh": false
+    },
+    {
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot-runtime#0.1.0-alpha.1",
+      "target": "postgres",
+      "kind": [
+        "test"
+      ],
+      "profile": {
+        "opt_level": "0",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "fresh": false
+    }
+  ]
+}

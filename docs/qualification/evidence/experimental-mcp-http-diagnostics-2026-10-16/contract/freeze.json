@@ -1,0 +1,6 @@
+{
+  "frozen_before_source_edits_utc": "2026-10-16T02:49:18.329157+00:00",
+  "manifest_sha256": "571e11968858a1c973c20aefc7278398f4ef95ec5222d53108a2497531699bd8",
+  "basis_source_tree": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+  "qualification": "requirements only; no compile/test/Native execution"
+}

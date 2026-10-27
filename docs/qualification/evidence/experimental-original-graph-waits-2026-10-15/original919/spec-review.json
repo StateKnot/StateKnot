@@ -1,0 +1,176 @@
+{
+  "axis": "Spec only",
+  "reviewer": "/root/validate_cleanup_sql37",
+  "fixed_commit": "1fccf1816a2549d8ca7296b635434b52b30140e9",
+  "candidate_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "ready_parent_tree_sha256": "c9e6ed1a81da511246e36d16fb277d958e146f747b59109854a4644e18d5875c",
+  "findings": [],
+  "new_actionable_source_findings": 0,
+  "checks": [
+    {
+      "invariant": "absolute_deadline",
+      "spec_reference": "docs/rfcs/0022-namespaced-graph-frames.md:846",
+      "source_reference": "crates/stateknot-store-postgres/src/graph_waits.rs:111",
+      "observed": "Original full result/control inventory; due<=original event gives distinct elapsed evidence; future-only registration otherwise; expired Interrupt rejected."
+    },
+    {
+      "invariant": "real_root_source",
+      "spec_reference": "docs/trusted-root-dispositions.md:13",
+      "source_reference": "crates/stateknot-store-postgres/src/root_graph_barriers.rs:1281",
+      "observed": "Complete original checkpoint and trusted_graph authentication; AgentSource positive admission binding or original trusted Creation; fresh/read authenticate full source."
+    },
+    {
+      "invariant": "inventory_identity",
+      "spec_reference": "docs/rfcs/0022-namespaced-graph-frames.md:920",
+      "source_reference": "crates/stateknot-store-postgres/src/graph_waits/database.rs:292",
+      "observed": "Full physical fields and canonical condition bytes compare; source/successor/owner/index/count/ordinal retained. Migration36 has tenant-wide PK and old/new insert arbitration."
+    },
+    {
+      "invariant": "cached_return_physical_components",
+      "spec_reference": "docs/rfcs/0022-namespaced-graph-frames.md:923",
+      "source_reference": "crates/stateknot-store-postgres/src/graph_frames/returns.rs:728",
+      "observed": "Cache hit still authenticates anchored row and physically reloads complete caller completion/result/bindings through verify_application_components."
+    },
+    {
+      "invariant": "ready_creation_and_lease_updates",
+      "spec_reference": "docs/elapsed-graph-waits.md:13",
+      "source_reference": "crates/stateknot-store-postgres/migrations/0036_elapsed_graph_waits.sql:611",
+      "observed": "Only new-journal lease/scheduler equality/liveness subblock gated. Lifecycle/revision/wait-index and original open-frame/Waiting/discharge guards stay active; ordinary lease methods exact1fcc."
+    },
+    {
+      "invariant": "fresh_postguard",
+      "spec_reference": "docs/rfcs/0022-namespaced-graph-frames.md:898",
+      "source_reference": "crates/stateknot-store-postgres/src/root_graph_barriers.rs:1759",
+      "observed": "Deferred constraints flush before actual parent/successor/results/whole edge/currentRun reload and original saved authority final clock. Scoped physical whole edge+Wait set+stored lease equality+original deadline/budget repeated."
+    },
+    {
+      "invariant": "ready_runtime",
+      "spec_reference": "docs/rfcs/0022-namespaced-graph-frames.md:887",
+      "source_reference": "crates/stateknot-runtime/src/driver/barrier.rs:73",
+      "observed": "Committed/idempotent receipt determines Waiting/Ready; durable observation advances, next iteration retains quantum and new claimed plan. Root ReadyReleased uses original fence and stale-fence release=None."
+    },
+    {
+      "invariant": "a_combination",
+      "spec_reference": "docs/rfcs/0022-namespaced-graph-frames.md:251",
+      "source_reference": "crates/stateknot-store-postgres/src/store.rs:5874",
+      "observed": "A proof issued only to public readonly repeatable-read load, exact ordinary nonRoot start activation; all generic/mutation/postguard paths use None and full checks. All Ready-specific files exact parent, no B/37 or limits changes."
+    }
+  ],
+  "inputs": [
+    {
+      "path": "docs/rfcs/0022-namespaced-graph-frames.md",
+      "sha256": "141c2f55cfa422bfabda58d9e918ac60757851ad69d310bc0246f375544c883c"
+    },
+    {
+      "path": "docs/elapsed-graph-waits.md",
+      "sha256": "bfc05953f200c74924674d2409085972eb8966bf5c4d5d5a4d30129001196b21"
+    },
+    {
+      "path": "docs/trusted-root-dispositions.md",
+      "sha256": "5c13d1bc403d10bc3780a45d93053a295fd259520c394db2de6c9d8712a62e55"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/store.rs",
+      "sha256": "78835132253e71ad070dfc26b86d6b2d57b819f7498006cf1dfa631530d21c80"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_waits.rs",
+      "sha256": "bb5cdd5320af08f41586c1ef3a3d7acf68084ecc906c99b9ef770d34fc669c53"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_waits/database.rs",
+      "sha256": "7e6b8c45bcb58cda53e99d1834050e67c0027fb58497ea958eb42c19c7aec040"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barriers.rs",
+      "sha256": "8ef0700e76f65bd778eb9b3575a64314ca0be24dff4bebbac7ec85ad188ac56b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barriers/elapsed.rs",
+      "sha256": "98fef1bcd95d5e327acc5bcb1639d48392d74bf5445da24ab4bdc55dd8917c17"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/trusted_graph_root.rs",
+      "sha256": "c94ea20859fb64e034e29148c682a69b55802b42e135be150e8e50dcde28c715"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/barriers.rs",
+      "sha256": "f5a8bc46e5b2544c988cbd2e1db35804ef8c772cb010de525c8ebd9a809dedfd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/barriers/elapsed.rs",
+      "sha256": "2be8498a756934c06fa87667f1b89c118096de1cec9f43be92dd43bc22eabb17"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/returns.rs",
+      "sha256": "b1dbee165ee311c3a38f228045e302937af9dcb50f672d9b54419d05ba9d223b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/application_replay.rs",
+      "sha256": "f585b948552e7096f4d1d6aec13f104166b8c4563382dd087eedb1a5da80cdfc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0036_elapsed_graph_waits.sql",
+      "sha256": "2b0c29bff090abf8c946a44b3a8c5a2c25748f2ad3d39ee7ac9dc96c50ab7a30"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/barrier.rs",
+      "sha256": "6ec98b0f9a88631075662ee6eb4b3cd2c467a6d079127cb95767b94a36c0dcbb"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/frame.rs",
+      "sha256": "5c95b1453baf55347dc1dbbf3ddb82ec573c1e906290288e398be4e762f7b6bf"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/lifecycle.rs",
+      "sha256": "52950a0a18d9b53cda74c509da24550e59e07ab25690b9b2ce6b075a9dc97e79"
+    }
+  ],
+  "no_code_or_main_mutation": true,
+  "no_database_or_compile_execution": true,
+  "prior_native_evidence": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/elapsed36-ready-v2-handoff/receipt.json",
+    "sha256": "85ac5974c8517f86be4b9ff47e86860213455ec9b59188a0c7da83ea70a45b09",
+    "source_tree": "c9e6ed1a81da511246e36d16fb277d958e146f747b59109854a4644e18d5875c",
+    "tests": 28,
+    "passed": 25,
+    "failed": 3,
+    "failures": [
+      {
+        "label": "elapsed36-ready-v2-scoped-wait-pg16",
+        "test": "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "postgres_major": "16",
+        "exit_code": 101,
+        "pass": false,
+        "seconds": 119.94666624069214,
+        "binary_sha256": "88167b0c84f01f4293d5240b5de1067be3bf1e21f6fb0a2579f1d8a240ed6519",
+        "log_sha256": "6340e71bda1fd3e23da06e66022fcf517af0cb8beaeeb66f13c5e291c165d79d"
+      },
+      {
+        "label": "elapsed36-ready-v2-sql-role-pg16",
+        "test": "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "postgres_major": "16",
+        "exit_code": 101,
+        "pass": false,
+        "seconds": 192.74269890785217,
+        "binary_sha256": "88167b0c84f01f4293d5240b5de1067be3bf1e21f6fb0a2579f1d8a240ed6519",
+        "log_sha256": "8f486d52f8ffdc57c8af8f39109593611a75cda78c77879dfdf85286eb812275"
+      },
+      {
+        "label": "elapsed36-ready-v2-sql-role-pg17",
+        "test": "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "postgres_major": "17",
+        "exit_code": 101,
+        "pass": false,
+        "seconds": 208.5801031589508,
+        "binary_sha256": "88167b0c84f01f4293d5240b5de1067be3bf1e21f6fb0a2579f1d8a240ed6519",
+        "log_sha256": "98fca7457325e071a62ff1875518ad24ba391e073f073ef8fbef340876bd3ca0"
+      }
+    ],
+    "inherited_by_combination": false
+  },
+  "scope_limits": [
+    "Source inspection does not qualify performance, default-stack runtime, Native, upgrade, roles, restore or R1.",
+    "The standalone Ready-based snapshot omits11 later1fcc driver qualification artifacts; integrate reviewed changes as a patch without deleting committed evidence."
+  ]
+}

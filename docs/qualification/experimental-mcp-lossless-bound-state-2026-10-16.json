@@ -1,0 +1,220 @@
+{
+  "format": 2,
+  "date": "2026-10-16",
+  "status": "bounded_MCP_lossless_bound_state_component_record",
+  "component_six_gates_and_dual_serial15_passed": true,
+  "old_eedd_adoptable": false,
+  "source": {
+    "tree_sha256": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+    "files": 928,
+    "base_tree_sha256": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+    "only_source_files_to_adopt": 12,
+    "production_files": 8,
+    "external_test_files": 4,
+    "new_files": 5,
+    "conservative_supplied_inputs": 536,
+    "canonical_supplied_input_sha256": "cfd0f2f8b48e062567fb591be2e5c427781cb7db616ee20b942cc2174a775b2d",
+    "canonical_order": "relative path strings sorted",
+    "original_manifest_order_sha256": "ded1a866797889ed38df63f59f671c8a2c34a5b7373a688932cc714eae582794",
+    "same536_path_byte_hash_map": true,
+    "compiler_read_closure_claimed": false,
+    "whole_frozen928_equals_actual_main_claimed": false,
+    "parent_A2A923_and_published_PITR_helper_reused": true,
+    "new_binary_cache_or_complete_source_archive_copied": false
+  },
+  "correction": {
+    "strict_operation_AD_domain": "v3",
+    "cursor_version": "v2 unchanged",
+    "envelope_version": 1,
+    "legacy_no_profile_AD_unchanged": true,
+    "encoding": "clone admitted serde_json::Value; sort_all_objects; serde_json::to_vec",
+    "decoded_number_representation_and_array_order_preserved": true,
+    "object_key_order_is_ignored": true,
+    "verbatim_wire_lexemes_whitespace_duplicate_members_arbitrary_precision_claimed": false,
+    "global_Core_or_general_canonicalization_contract_changed": false,
+    "numeric_correction_adds_further_public_API": false,
+    "overall_new_profile_has_public_types_relative_to_main85": true,
+    "old_strict_v2_state_rejected_without_fallback": true,
+    "public_Prompt_numeric_arguments_admitted": false
+  },
+  "strict": {
+    "workspace": {
+      "suites": 99,
+      "passed": 2098,
+      "failed": 0,
+      "ignored": 6,
+      "filtered": 0
+    },
+    "doctests": {
+      "suites": 10,
+      "passed": 48,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0
+    },
+    "gates": 6,
+    "all_exit_zero": true,
+    "profile": "original opt0/incremental0/dev+test debug0, unchanged assertion/overflow settings and defaultstack",
+    "DB_environment_cleared": true,
+    "workspace_conditional_returns_are_Native": false
+  },
+  "Native": {
+    "state": "passed",
+    "source_tree": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+    "source_files": 928,
+    "postgres": [
+      {
+        "major": 16,
+        "actual_version": "16.15 (Debian 16.15-1.pgdg13+2)",
+        "suite_passed": 15,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "unique_marker": "STATEKNOT_MCP_BOUND_STATE_POSTGRES: consumers=3 positive_commits=6 refused_rebinds=12 tenant_ledgers=2 complete_journals=true",
+        "binary_sha256": "0751e63128bf2fc1a28342f4e05bf62d7fd1416e9ae991032fa4136cf22bc8ed",
+        "database_retained": "stateknot_r1_mcp_bound_20261016v4",
+        "scope": "three protocol consumers, six real fixture commits, twelve refused rebinds; two full fixture Run/Journal ledgers, not all DB tables"
+      },
+      {
+        "major": 17,
+        "actual_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+        "suite_passed": 15,
+        "failed": 0,
+        "ignored": 0,
+        "filtered": 0,
+        "unique_marker": "STATEKNOT_MCP_BOUND_STATE_POSTGRES: consumers=3 positive_commits=6 refused_rebinds=12 tenant_ledgers=2 complete_journals=true",
+        "binary_sha256": "0751e63128bf2fc1a28342f4e05bf62d7fd1416e9ae991032fa4136cf22bc8ed",
+        "database_retained": "stateknot_r1_mcp_bound_20261016v4",
+        "scope": "three protocol consumers, six real fixture commits, twelve refused rebinds; two full fixture Run/Journal ledgers, not all DB tables"
+      }
+    ],
+    "binary_sha256": "0751e63128bf2fc1a28342f4e05bf62d7fd1416e9ae991032fa4136cf22bc8ed",
+    "profile": "original opt0; default stack, assertions, overflow checks and fixture resources preserved",
+    "cache_reused": "target/r1-oct15-proof-base",
+    "new_database_cleanup_performed": false,
+    "complete_CI_or_R1_qualified": false,
+    "binary_bytes": 78813328,
+    "compiler_fresh": false,
+    "features": "per-package actual defaults, not workspace union",
+    "actual_args": [
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "inventory": 15,
+    "TCP_cases": 13,
+    "construction_configuration_cases": 1,
+    "durable_test_functions": 1,
+    "numeric_TCP_families": 1,
+    "numeric_pairs": 8,
+    "new_exact_case": "network::lossless_numeric_argument_binding_is_enforced_over_tcp",
+    "complete_fixture_StoredRun_and_all_paged_JournalEvents": true,
+    "whole_DB_snapshot_claimed": false,
+    "other_task_DBs_dropped": false
+  },
+  "history": {
+    "old_publication_files_preserved_verbatim_under_history": 224,
+    "old_publication_manifest_also_preserved": true,
+    "old14_greens_and_review_zeroes_do_not_override_counterexample": true,
+    "numeric_actual_red": {
+      "source": "byte-identical eedd production8; only networkfixture added",
+      "exact_case": "network::continuation_refuses_an_adjacent_wide_integer_argument",
+      "exit_code": 101,
+      "HTTP_status": 200,
+      "business_counter_before": 2,
+      "business_counter_after": 3,
+      "summary": [
+        0,
+        1,
+        0,
+        14
+      ],
+      "log_sha256": "5428660fd12dc58c3f872c96917fd80fe254cc28991f4232c6452c299582bb0b",
+      "old_binary_SHA_not_archived": true,
+      "actual_database_side_effect_proven": false
+    },
+    "a87_unit_lifetime_clippy_exit": 101,
+    "a87_error": "E0597 in new unit closure",
+    "69af_correction": "explicit test closure parameter reference type only",
+    "same69af_sandbox_workspace": {
+      "exit_code": 101,
+      "passed": 29,
+      "failed": 5,
+      "reason": "five existing loopback fixtures OS1 PermissionDenied"
+    },
+    "authorized_same69af_network_retry_six_gates_exit0": true,
+    "older_lint_HTTPfixture_eventkind_serialmarker_reds_preserved_in_old_history": true,
+    "collector_digest_order_and_filename_errors_are_tooling_not_product_failures": true
+  },
+  "reviews": {
+    "source_Standards": {
+      "findings": 0,
+      "receipt_sha256": "6a6684a029e28d291d7e0c7242ed64e2818a5c4821e4305873b225b3720223db"
+    },
+    "numeric_implementation_and_test_Spec": {
+      "findings": 0,
+      "receipt_sha256": "c74e772b848ed2209aeaf6ce2da8e27fa3a9a10de5a264cf0d8340c11b1f2763",
+      "reviewer_authored_revised_contract": true,
+      "not_independent_contract_review": true
+    },
+    "seven_docs_and_CI_Standards": {
+      "findings": 0,
+      "receipt_sha256": "6605e56cfd7ae3b5db163b80bff431afdb070e032d3722fa161a867b0304f590"
+    },
+    "seven_docs_and_CI_Spec": {
+      "findings": 0,
+      "receipt_sha256": "f3f73d29b52a88a634f12b729518a01c41b62044e1f8f258a946189e9d5299fc"
+    },
+    "collector_authored_external_tests_not_independent_code_test_Spec": true,
+    "public_bundle_non_author_independent_offline_review": "pending after seal",
+    "Markdown_example_individually_compiled": false
+  },
+  "CI_candidate": {
+    "sha256": "2c69f7e78b0b4c9b703e52864cdfd029b3cfc74d9ecceb31510768195b0e45ad",
+    "parent_MCP14_candidate_sha256": "6568a90f4de078ef9f4bc7469e7891b72af7b00619301ee645dced64fea14fd9",
+    "original_steps": 53,
+    "original_run_commands": 31,
+    "candidate_steps": 55,
+    "candidate_run_commands": 32,
+    "timeout_minutes": 30,
+    "six_original_opt1_env_all_old_commands_resources_markers_preserved": true,
+    "increment": "two exactinventory/summary counts14to15 only",
+    "old14_negative_predicate_exits": [
+      1,
+      1
+    ],
+    "actual_new15_positive_predicate_exits": [
+      0,
+      0
+    ],
+    "offline_replay_is_GitHub_CI": false
+  },
+  "actual_CI_Ubuntu_opt1_full_job_qualified": false,
+  "resource_observation": {
+    "only_three_named_program_cache_paths": true,
+    "lsof_exit1_empty": true,
+    "cache_tags_valid_and_locks_free_at_observation": true,
+    "df_available_kib": 315550848,
+    "task_logical_cache_kib": 11458960,
+    "logical_sizes_not_APFS_reclaimable": true,
+    "cleanup_or_DB_lifecycle_performed_by_observation": false,
+    "caches_and_task_databases_retained": true,
+    "whole_machine_or_DB_audit_claimed": false
+  },
+  "artifacts": {
+    "indexed_total": 431,
+    "copied_existing": 412,
+    "derived_payloads_and_patch": 19,
+    "artifact_index_sha256": "639e28db481f1fe234ae11ec53cc5c012f4cb6c8152c751415b941be44a71c8b",
+    "old_complete_publication_history_only": true
+  },
+  "claim_limits": {
+    "host_mapping_provenance_persistence_nonreuse_and_postqueue_current_policy_host_owned": true,
+    "strong_profile_opt_in_legacy_no_profile_not_upgraded": true,
+    "Public_resource_contents_not_reclassified": true,
+    "bad_incoming_no_business_but_outgoing_refusal_can_follow_business": true,
+    "automatic_retry_singleuse_encryption_zero_window_revocation_qualified": false,
+    "old_fullStore_Runtime_A2A_916_or_opt1union_transferred": false,
+    "new_fullNative_or_actual_main_sixgates_claimed": false,
+    "post_docs_whole_tree_fullCI_release_capacity_performance_Supported_RFC_R1_qualified": false
+  }
+}

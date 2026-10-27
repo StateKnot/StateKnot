@@ -1,0 +1,54 @@
+{
+  "argv": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-native-v3/build-candidate-runtime/binaries/runtime-postgres",
+    "nested_driver::frame_return_process_faults::frame_return_commit_loss_survives_real_kill_and_cold_higher_fence_driver",
+    "--exact",
+    "--test-threads=1",
+    "--nocapture"
+  ],
+  "cwd": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v3",
+  "pid": 37568,
+  "runner_pid": 37550,
+  "start_unix": 1792139466.011468,
+  "runner_sha256": "5971de42998a1505ae81abc13d2cd7523f77ecd3b9fa08e2fe9da2b74cd52bab",
+  "shared_build_module_sha256": "b1436d0d38e705c124c1bf16d2b25998f6288dd90c7b798bf4a29a8d6522ff4c",
+  "role": "candidate",
+  "leg": "B",
+  "case": "runtime_exact",
+  "source_tree": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "compiled_inputs_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "binary_sha256": "51d2eeeedaa430e44d2bab1ba673c2dc5bdf39c369d3b2f0cd96e34aa1287100",
+  "profile_build_receipt_sha256": "9e64d61e7f07eab350caa80e4915457a7f3c60ed610fde6a4ba219d3062c971a",
+  "environment_allowlist": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+    "RUSTDOCFLAGS": "-D warnings",
+    "RUSTFLAGS": "-D warnings"
+  },
+  "mandatory_database_env_present": true,
+  "overrides_present": {
+    "RUST_MIN_STACK": false,
+    "CARGO_ENCODED_RUSTFLAGS": false,
+    "RUSTC_WRAPPER": false,
+    "RUSTC_WORKSPACE_WRAPPER": false,
+    "RUSTC_BOOTSTRAP": false,
+    "RUSTC": false
+  },
+  "database": {
+    "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+    "image_id": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+    "port": 55417,
+    "name": "stateknot_r1_returnfaultv4_20261016_pg17_runtime_b",
+    "URL_credentials_not_logged": true
+  },
+  "full_inventory_count": 191,
+  "expected_filtered": 190,
+  "external_observation_watchdog_seconds": 600,
+  "original_business_budgets_unchanged": true,
+  "diagnostic_markers_required": false
+}

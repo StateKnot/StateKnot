@@ -1,0 +1,20 @@
+{
+  "started_unix": 1792141910.283842,
+  "runner_sha256": "66a53bff1bff2590e2a45dd9cc6e8507f6c0976b8935997af6f535c4f5527316",
+  "actual_results": [
+    {
+      "major": 16,
+      "actual_runner_exit_code": 0,
+      "two_markers_all_fields_verified": true
+    },
+    {
+      "major": 17,
+      "actual_runner_exit_code": 0,
+      "two_markers_all_fields_verified": true
+    }
+  ],
+  "both_actual_cases_and_all_markers_passed": true,
+  "seconds": 37.56578588485718,
+  "orchestrator_sha256": "a1a71b07cdae01257e4466af4e16aad3634a4186dca2a79fb6e4479093a081eb",
+  "full_Native_CI_capacity_or_R1_qualification": false
+}

@@ -1,0 +1,37 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source",
+  "binary_sha256": "2dc582601ae7471a87b1b85ac5c90dddd92c7665be71adfd05dd974996f585ab",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased-runtime-v1/stateknot-runtime-postgres",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "postgres_major": "16",
+  "database": "stateknot_r1_a_runtime_20261015v1",
+  "exit_code": 0,
+  "expected_tests": 185,
+  "summary": [
+    [
+      "ok",
+      "185",
+      "0",
+      "0"
+    ]
+  ],
+  "all_expected_tests_passed": true,
+  "seconds": 1732.8479008674622,
+  "default_stack": true,
+  "log_sha256": "ebb5fdfa84a0ab8dded911f1d4889167c7c315773e12068fd60b5627d89b402b",
+  "environment": {
+    "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+    "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+    "task_label": "r1-oct15",
+    "database": "stateknot_r1_a_runtime_20261015v1",
+    "postgres_major": "16",
+    "host": "Darwin",
+    "server": {
+      "server_version": "16.15 (Debian 16.15-1.pgdg13+2)",
+      "database": "stateknot_r1_a_runtime_20261015v1"
+    }
+  }
+}

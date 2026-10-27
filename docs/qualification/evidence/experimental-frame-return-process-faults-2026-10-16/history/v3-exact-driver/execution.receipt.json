@@ -1,0 +1,22 @@
+{
+  "started_unix": 1792139010.598349,
+  "case_runner_sha256": "10d37cb3583def862427473c4bbdfd673bb48fe9dec208f6f5e260c8b08469fc",
+  "actual_results": [
+    {
+      "major": 16,
+      "package": "store",
+      "runner_exit_code": 0
+    },
+    {
+      "major": 16,
+      "package": "runtime",
+      "runner_exit_code": 1
+    }
+  ],
+  "all_four_cases_and_return_markers_passed": false,
+  "failure": {
+    "type": "AssertionError",
+    "message": "actual exact case failed; remaining cases not launched"
+  },
+  "seconds": 47.27364492416382
+}

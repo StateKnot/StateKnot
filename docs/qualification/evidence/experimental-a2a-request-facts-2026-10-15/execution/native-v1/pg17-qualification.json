@@ -1,0 +1,60 @@
+{
+  "major": 17,
+  "database": {
+    "container": "stateknot-r1-oct15-pg17",
+    "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+    "image_id": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+    "major": 17,
+    "host": "127.0.0.1",
+    "port": 55417,
+    "database": "stateknot_r1_a2a_auth_facts_20261015v1",
+    "user": "postgres",
+    "server_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+    "database_oid": "378541"
+  },
+  "binary_sha256": "3b0b104b80456e70b1ebe3202cb608f49f648d764478e27a513525fb1d5be687",
+  "summary": [
+    "ok",
+    "6",
+    "0",
+    "0",
+    "0",
+    "0"
+  ],
+  "markers": {
+    "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+      {
+        "case": "denial",
+        "durable_before_authorization": true,
+        "calls": 0,
+        "policy_calls": 1,
+        "duplicate_ledger_unchanged": true
+      },
+      {
+        "case": "lost_response",
+        "durable_before_authorization": true,
+        "calls": 1,
+        "policy_calls": 1,
+        "reconciliation_idempotent": true
+      }
+    ],
+    "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+      {
+        "case": "denial",
+        "durable_start_verified": true,
+        "payload_from_full_input": true,
+        "calls": 0,
+        "policy_calls": 1,
+        "duplicate_ledger_unchanged": true
+      },
+      {
+        "case": "lost_response",
+        "durable_start_verified": true,
+        "payload_from_full_input": true,
+        "calls": 1,
+        "policy_calls": 1,
+        "duplicate_ledger_unchanged": true
+      }
+    ]
+  }
+}

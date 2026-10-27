@@ -1,0 +1,1402 @@
+{
+  "format_version": 2,
+  "profile": "experimental-scoped-join-owner-stop-2026-10-18",
+  "snapshot_utc": "2026-10-19T02:20:12.110757+00:00",
+  "publication_status": "QUALIFIED_EXPERIMENTAL_STORE_CONTRACT_AND_EXACT_CANDIDATE_CI; DOCUMENTATION_ADOPTION_SEPARATE",
+  "scope": "selected experimental registered-unpublished scoped Join cancellation in public Store",
+  "runtime_code_binding": {
+    "commit": "bbd9dcf833a3446b822e8e1398c53d19cf3b9a72",
+    "tree": "126d95b5a80c703b781e270a157c5b81a4a3ad39",
+    "parent": "e372184fb1c80ffb9903ac0d9feb8380db51253e",
+    "selected_source_count": 936,
+    "selected_source_sha256": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+    "compiled_count": 544,
+    "compiled_canonical_sha256": "30d6c10fd88118297131a28c0e3b78420f51dec17206a718948a348c7424de81",
+    "official_blobs": 4088,
+    "exact_publication_payloads": 38,
+    "CI_files": 5,
+    "selected_and_new_CI_helpers_separate": true,
+    "repository": "StateKnot/StateKnot",
+    "branch": "codex/ci-postgres-shards-20261019-v1",
+    "run_id": 39185847363,
+    "attempt": 1,
+    "native_source_manifest_sha256": "841e361656a401d3e49944257970f75daec61b3d96ac7559d728e0bb60fbf6c1",
+    "selected936_is_pre_CI_manifest_with_separate_five_file_overlay": true,
+    "selected_plus_four_added_CI_helpers_count": 940,
+    "official_tree_entries": 4604,
+    "other_4050_final_blobs_identical_to_official_parent_mode_type_sha_size": true,
+    "content_SHA256_only_for_read_selected936_five_CI_and_exact38_payload_bytes": true,
+    "Cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+  },
+  "documentation_binding": {
+    "new_documentation_commit": null,
+    "runtime_measured_commit_remains": "bbd9dcf833a3446b822e8e1398c53d19cf3b9a72",
+    "this_three_document_update_and_four_evidence_files_outside_selected936": true,
+    "measured_commit_contains_historical_pending_V2_qdocs": true,
+    "documentation_commit_does_not_relabel_runtime_CI_head": true
+  },
+  "contract": {
+    "unique_latest_current_leaf_registered_unpublished_ordinary_owner": true,
+    "complete_Root_bound_lifetime_account_all_terminal_and_settled": true,
+    "complete_priced_Run_wide_DIRECT_required": true,
+    "owner_retains_Executing_without_completion": true,
+    "no_ordinary_result_Join_publication_consumption_lease_or_launch": true,
+    "whole_owning_Root_frame_history_fence_Join_and_account_proof_required": true,
+    "failure_close_strict_checks_unchanged": true,
+    "committed_original_ACK_authentication_precedes_candidate_checks": true
+  },
+  "migration": {
+    "version": 37,
+    "new_tables": 0,
+    "backfill": false,
+    "ACL_expansion": false,
+    "current_business_table_inventory": 54,
+    "exact_graph_frame_catalog_sha256": "cc9ddd58510822215dfa18cab1a956eacf2dd707860270da63f0b8d707ee0ad7",
+    "schema37_sqlx_checksum_sha384": "b5f2096c0247028c680d5b086cd7e0531e74f25e5fde9648654b45d2f69016c36cac366a948acc2649eeeb58483407a4",
+    "normal_SQLx_Migrator_required": true,
+    "raw_guard_replacement_is_not_deployment": true,
+    "retained_v2_test_revert_refused": true
+  },
+  "schemas": {
+    "v1": {
+      "id": "https://stknot.com/schemas/store/graph-frame-closure-event/1.0.0",
+      "version": "1.0.0",
+      "digest": "sha256:453045e205133eb10d3cd58f0242ee2ebbd26dd78051b0888cd6a95f8a53e520"
+    },
+    "v2": {
+      "id": "https://stknot.com/schemas/store/graph-frame-closure-event/2.0.0",
+      "version": "2.0.0",
+      "digest": "sha256:aec9b96de74a4185f288e1425a59a7fb8d8eb4363378bbd5522b2500a261ea5f"
+    }
+  },
+  "CI": {
+    "run_url": "https://github.com/StateKnot/StateKnot/actions/runs/39185847363",
+    "run_status": "completed",
+    "run_conclusion": "success",
+    "full_CI_success_verified": true,
+    "full_CI_qualification": true,
+    "analysis_errors": [],
+    "analysis_receipt_sha256": "a620e83e809322de4ee5f691739fc0634628e36676e39129ec5bd2a3b86d89da",
+    "analysis_observed_utc": "2026-10-19T02:09:53.820908+00:00",
+    "strict_bundle_manifest_sha256": "60fab0ff4c2cfee052da0353c0757e49acc780ca7b6d42c9ff0f6fa95c0dddf6",
+    "raw_verification": {
+      "all_indexed_files": 1525,
+      "all_archive_digests": 54,
+      "all_official_GETs": 99,
+      "terminal_index_sha256": "315b008bf2b49a8864ed7167e56ce1777e1570fa99563b0be33e8d8c35ec420a"
+    },
+    "job_states": [
+      {
+        "id": 117848010973,
+        "name": "Release packages",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011061,
+        "name": "PostgreSQL Protocol qualification (16)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011085,
+        "name": "PostgreSQL Native (16)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011087,
+        "name": "Quality",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011113,
+        "name": "PostgreSQL PITR (17)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011128,
+        "name": "Website",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011151,
+        "name": "PostgreSQL Native (17)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011154,
+        "name": "A2A 1.0 Conformance",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011157,
+        "name": "MCP Conformance",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011160,
+        "name": "PostgreSQL Process qualification (16)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011161,
+        "name": "Core bounded fuzz",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011173,
+        "name": "PostgreSQL Protocol qualification (17)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011183,
+        "name": "Test (ubuntu-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011203,
+        "name": "PostgreSQL PITR (16)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011210,
+        "name": "PostgreSQL Process qualification (17)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011301,
+        "name": "Test (windows-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011337,
+        "name": "PostgreSQL Host and identity qualification (16)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011407,
+        "name": "PostgreSQL Host and identity qualification (17)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117848011468,
+        "name": "Test (macos-latest)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117853041492,
+        "name": "PostgreSQL (16)",
+        "status": "completed",
+        "conclusion": "success"
+      },
+      {
+        "id": 117853041571,
+        "name": "PostgreSQL (17)",
+        "status": "completed",
+        "conclusion": "success"
+      }
+    ],
+    "all_60_original_PG_steps_per_major_verified_success": true,
+    "original_PG_step_mapping_rows": 120,
+    "Native": {
+      "16": {
+        "verified": true,
+        "roles": {
+          "store": {
+            "passed": 267,
+            "suite_exit": 0,
+            "test_seconds": 505.98,
+            "build_seconds": 156.412821324,
+            "binary_sha256": "ed81c46b5b9a96b10a2aa4809e7ecca299ca85d9ad43d25e132c89a7a9c287a0"
+          },
+          "runtime": {
+            "passed": 194,
+            "suite_exit": 0,
+            "test_seconds": 803.05,
+            "build_seconds": 159.27440295599996,
+            "binary_sha256": "3575b2e82d7a2319bcaed052e72665ac644b980432bed95c8ca55c3f9d265a1c"
+          }
+        },
+        "actual_native_overlap": true,
+        "both_live_owners_retired": true,
+        "monitor_exit": 0,
+        "default_features_stack_profile": true,
+        "all544_inputs_exact": true
+      },
+      "17": {
+        "verified": true,
+        "roles": {
+          "store": {
+            "passed": 267,
+            "suite_exit": 0,
+            "test_seconds": 620.48,
+            "build_seconds": 175.829592796,
+            "binary_sha256": "ed81c46b5b9a96b10a2aa4809e7ecca299ca85d9ad43d25e132c89a7a9c287a0"
+          },
+          "runtime": {
+            "passed": 194,
+            "suite_exit": 0,
+            "test_seconds": 969.8,
+            "build_seconds": 182.249337234,
+            "binary_sha256": "3575b2e82d7a2319bcaed052e72665ac644b980432bed95c8ca55c3f9d265a1c"
+          }
+        },
+        "actual_native_overlap": true,
+        "both_live_owners_retired": true,
+        "monitor_exit": 0,
+        "default_features_stack_profile": true,
+        "all544_inputs_exact": true
+      }
+    },
+    "Return_and_Wait_real_cut_validation": {
+      "16": {
+        "return": {
+          "verified": true,
+          "cut_count": 2,
+          "seconds": 27.99,
+          "log_sha256": "d4222fd81f57924eb53ac09f597684373d163feb96a2c222f5e6d2bb3e7f94fe",
+          "linux_x86_64_actual_marker_fields_verified": true
+        },
+        "scoped-wait": {
+          "verified": true,
+          "cut_count": 2,
+          "seconds": 22.35,
+          "log_sha256": "9a2ac0d01cf4e6d737ec70fee81ea50d737bac6a7ea0103d34c265b41bf96059",
+          "linux_x86_64_actual_marker_fields_verified": true
+        }
+      },
+      "17": {
+        "return": {
+          "verified": true,
+          "cut_count": 2,
+          "seconds": 14.13,
+          "log_sha256": "63b8aeda81e6eada66f1d7a68c77011f378c00238ec9498f1cacd1d8abe03710",
+          "linux_x86_64_actual_marker_fields_verified": true
+        },
+        "scoped-wait": {
+          "verified": true,
+          "cut_count": 2,
+          "seconds": 11.6,
+          "log_sha256": "a832dce1c2e64bcc99eecfb4389199ea4122364e8d3e82c0b7dade4f92c33646",
+          "linux_x86_64_actual_marker_fields_verified": true
+        }
+      }
+    },
+    "marker_harness_coverage": {
+      "per_major_workflow_marker_contracts": 48,
+      "per_major_raw_harness_logs": 24,
+      "mandatory_MCP_actual_tests": 15,
+      "real_TLS_pinned_identity_verified": true,
+      "role_profile_schema": 37,
+      "logical_backup_and_named_PITR_actual_both_majors": true,
+      "reduced_host_release_qualified": false
+    },
+    "Native_build_profile": {
+      "rust": "1.88.0",
+      "target": "x86_64-unknown-linux-gnu",
+      "features": "default",
+      "test_opt_level": 1,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "debuginfo": 0,
+      "default_thread_stack": true,
+      "two_actual_live_owners_per_major": true,
+      "third_compilation_owner": false,
+      "source_544_all_exact": true,
+      "store_binary_sha256": "ed81c46b5b9a96b10a2aa4809e7ecca299ca85d9ad43d25e132c89a7a9c287a0",
+      "runtime_binary_sha256": "3575b2e82d7a2319bcaed052e72665ac644b980432bed95c8ca55c3f9d265a1c"
+    },
+    "observer_revision": {
+      "prior_analysis_actual_exit": 1,
+      "prior_errors": [
+        "pg16_all_process_host_protocol_TLS_backup_PITR_markers: failed/ignored/empty harness: mcp-compute-worker-qualification.log",
+        "pg17_all_process_host_protocol_TLS_backup_PITR_markers: failed/ignored/empty harness: mcp-compute-worker-qualification.log"
+      ],
+      "raw_or_product_test_results_rewritten": false,
+      "V5_strict_analysis_actual_exit": 0,
+      "only_three_source_bound_child_helpers_may_have_their_exact_original_ignored_counts": true,
+      "child_helpers": [
+        "postgres::compute_worker_child",
+        "postgres_worker_child",
+        "sse::postgres_sse_restart_child"
+      ],
+      "all_other_ignored_failed_empty_harnesses_still_refused": true
+    }
+  },
+  "six_V3_local_gates": [
+    {
+      "gate": "fmt",
+      "exit_code": 0,
+      "seconds": 1.5633950233459473,
+      "source_tree": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+      "source_before_after_exact": true,
+      "native_database_execution": false,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "gate": "clippy",
+      "exit_code": 0,
+      "seconds": 26.490185976028442,
+      "source_tree": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+      "source_before_after_exact": true,
+      "native_database_execution": false,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "log_sha256": "2f1faa44957c8ca6c033e30e73adb92bdec41246efdffef50d4144337bc5a0ba"
+    },
+    {
+      "gate": "workspace",
+      "exit_code": 0,
+      "seconds": 184.50702500343323,
+      "source_tree": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+      "source_before_after_exact": true,
+      "native_database_execution": false,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "log_sha256": "87365799341f76d25dd7cc059c6d1fdcd55a36c533686199c3dc0e5474392fbd",
+      "harness_summaries": 100,
+      "totals": {
+        "passed": 2128,
+        "failed": 0,
+        "ignored": 6,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    },
+    {
+      "gate": "doctests",
+      "exit_code": 0,
+      "seconds": 8.319707870483398,
+      "source_tree": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+      "source_before_after_exact": true,
+      "native_database_execution": false,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked"
+      ],
+      "log_sha256": "a6b5f91296b6e9a8aa7576a8a9e6d0d96937beb64437099a4d427cdb7341dfd3",
+      "harness_summaries": 10,
+      "totals": {
+        "passed": 48,
+        "failed": 0,
+        "ignored": 0,
+        "measured": 0,
+        "filtered_out": 0
+      }
+    },
+    {
+      "gate": "rustdoc",
+      "exit_code": 0,
+      "seconds": 14.041822910308838,
+      "source_tree": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+      "source_before_after_exact": true,
+      "native_database_execution": false,
+      "argv": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ],
+      "log_sha256": "a04c4525cfdb8d5961053c98dbfe30f10d14551e4662300f3207d02a5682cf92"
+    },
+    {
+      "gate": "nightly",
+      "exit_code": 0,
+      "seconds": 23.48953080177307,
+      "source_tree": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+      "source_before_after_exact": true,
+      "native_database_execution": false,
+      "argv": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "log_sha256": "4c48f49002906c70d9152ce869414072e29a6a28ec9d63e2d7524436a7853d3f"
+    }
+  ],
+  "history": {
+    "original_pending_V2_snapshot": "history/qualification-v2-snapshot/experimental-scoped-join-owner-stop-2026-10-18.json",
+    "V2_source": {
+      "source_count": 936,
+      "compiled_count": 544,
+      "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+      "origin_commit": "e372184fb1c80ffb9903ac0d9feb8380db51253e"
+    },
+    "V2_Store_binary": {
+      "binary_sha256": "c7c5daf1e2c9606d57f2fdf5c4791b2eacffc65e37b7b50c50de60465a63d474",
+      "binary_bytes": 42514864,
+      "inventory_count": 267,
+      "source_tree": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+      "inventory_sha256": "13a20e59b31cf61d89830f9f1b6478ed1450d1c2e8d8e2386169a2432c93acea",
+      "build_receipt_sha256": "1d50e9dfb057c751d7bd906dd02cfce71e31febe1ca54b8847cbff113abbf465"
+    },
+    "V2_Runtime_binary": {
+      "binary_sha256": "6f633c5883ccdba9308d7ba408c044653ec4c3a95c9a3c27469ae15e0dda4e7e",
+      "binary_bytes": 51251552,
+      "inventory_count": 194,
+      "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+      "source_tree": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+      "inventory_sha256": "9f77d4abbb59c54aadeaa1c5c0d4a7b6bbd539b88eb93bdb2c411f43b71f56a8",
+      "build_receipt_sha256": "f19acab8621dc3c341defd0622d8600dcdabc642d5c8cdf6c167ecb306279865"
+    },
+    "V3_local_Runtime_binary": {
+      "binary_sha256": "b28ccd6c3c158453cfe2af995802a3dc042e23f47dfbc0e965cba34f4cd72354",
+      "binary_bytes": 51251552,
+      "inventory_count": 194,
+      "compiled_inputs_sha256": "30d6c10fd88118297131a28c0e3b78420f51dec17206a718948a348c7424de81",
+      "source_tree": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+      "inventory_sha256": "9f77d4abbb59c54aadeaa1c5c0d4a7b6bbd539b88eb93bdb2c411f43b71f56a8",
+      "build_receipt_sha256": "d130836d05156c28c2c90adee97ca786aa473224c140b49c96ff19d14b36f9a2"
+    },
+    "V2_Store_full": [
+      {
+        "postgres_major": 16,
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "outer_wall_seconds": 476.9528729915619,
+        "summary": {
+          "passed": 267,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0,
+          "libtest_seconds": 476.9
+        },
+        "receipt": "scoped-join-owner-stop-composed-native-v2/pg16-store-full-v1/test.receipt.json",
+        "source_and_binary_before_after_exact": true,
+        "container_and_durability_settings_unchanged": true
+      },
+      {
+        "postgres_major": 17,
+        "actual_exit_code": 0,
+        "timed_out": false,
+        "outer_wall_seconds": 471.71791911125183,
+        "summary": {
+          "passed": 267,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0,
+          "libtest_seconds": 471.67
+        },
+        "receipt": "scoped-join-owner-stop-composed-native-v2/pg17-store-full-v1/test.receipt.json",
+        "source_and_binary_before_after_exact": true,
+        "container_and_durability_settings_unchanged": true
+      }
+    ],
+    "V2_Runtime_full_failed": [
+      {
+        "postgres_major": 16,
+        "actual_exit_code": 101,
+        "timed_out": false,
+        "outer_wall_seconds": 858.8058841228485,
+        "summary": {
+          "passed": 193,
+          "failed": 1,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0,
+          "libtest_seconds": 858.74
+        },
+        "receipt": "scoped-join-owner-stop-composed-native-v2/pg16-runtime-full-v1/test.receipt.json",
+        "source_and_binary_before_after_exact": true,
+        "container_and_durability_settings_unchanged": true,
+        "failed_cases": [
+          "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work"
+        ],
+        "role_assertion": {
+          "actual_schema": 37,
+          "stale_expected_schema": 36,
+          "source_line": 1052
+        }
+      },
+      {
+        "postgres_major": 17,
+        "actual_exit_code": 101,
+        "timed_out": false,
+        "outer_wall_seconds": 858.4914829730988,
+        "summary": {
+          "passed": 193,
+          "failed": 1,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0,
+          "libtest_seconds": 858.45
+        },
+        "receipt": "scoped-join-owner-stop-composed-native-v2/pg17-runtime-full-v1/test.receipt.json",
+        "source_and_binary_before_after_exact": true,
+        "container_and_durability_settings_unchanged": true,
+        "failed_cases": [
+          "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work"
+        ],
+        "role_assertion": {
+          "actual_schema": 37,
+          "stale_expected_schema": 36,
+          "source_line": 1052
+        }
+      }
+    ],
+    "V3_local_Runtime_full_failed": [
+      {
+        "postgres_major": 16,
+        "actual_exit_code": 101,
+        "timed_out": false,
+        "outer_wall_seconds": 20993.418929815292,
+        "summary": {
+          "passed": 183,
+          "failed": 11,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0,
+          "libtest_seconds": 912.54
+        },
+        "receipt": "scoped-join-owner-stop-composed-native-v3/pg16-runtime-full-v1/test.receipt.json",
+        "source_and_binary_before_after_exact": true,
+        "container_and_durability_settings_unchanged": true,
+        "failed_cases": [
+          "child_admission::ownership::join::driver::join_publisher_pages_past_failure_recovers_after_restart_and_keeps_tenant_scope",
+          "graph_composition::bounded_composition_exhaustion_runs_the_explicit_failure_exit",
+          "nested_driver::frame_return_process_faults::frame_return_commit_loss_survives_real_kill_and_cold_higher_fence_driver",
+          "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+          "nested_driver::recovery_guardian::recovery_guardian_failure_stops_dispatch_while_original_fence_is_live",
+          "nested_driver::scoped_cancellation_renewal_commit_ack_outlives_original_expiry_without_dropping_sql",
+          "nested_driver::scoped_safe_after_releases_exact_gate_and_retries_under_higher_fence",
+          "nested_driver::serial_siblings_finish_in_distinct_namespaces_before_root_terminal",
+          "nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay",
+          "ordinary_root::trusted_root_final_clock_rejects_slow_deferred_terminal_and_rolls_back",
+          "provider_native_higher_fence_wins_stale_policy_race_without_external_redispatch"
+        ],
+        "role37_observed_subcase_marker": {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "graph_wait_elapsed_and_registered_real_runtime_login": true,
+          "graph_wait_runtime_update_delete_and_retention_rejected": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 37,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        }
+      },
+      {
+        "postgres_major": 17,
+        "actual_exit_code": 101,
+        "timed_out": false,
+        "outer_wall_seconds": 19557.520327091217,
+        "summary": {
+          "passed": 182,
+          "failed": 12,
+          "ignored": 0,
+          "measured": 0,
+          "filtered_out": 0,
+          "libtest_seconds": 859.25
+        },
+        "receipt": "scoped-join-owner-stop-composed-native-v3/pg17-runtime-full-v1/test.receipt.json",
+        "source_and_binary_before_after_exact": true,
+        "container_and_durability_settings_unchanged": true,
+        "failed_cases": [
+          "child_admission::ownership::join::driver::join_preparation_timeout_never_dispatches_or_fabricates_a_node_completion",
+          "long_running_node_renews_its_lease_until_completion",
+          "nested_driver::frame_return_process_faults::frame_return_commit_loss_survives_real_kill_and_cold_higher_fence_driver",
+          "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+          "nested_driver::recovery_guardian::recovery_guardian_failure_stops_dispatch_while_original_fence_is_live",
+          "nested_driver::scoped_cancellation_renewal_commit_ack_outlives_original_expiry_without_dropping_sql",
+          "nested_driver::scoped_safe_after_releases_exact_gate_and_retries_under_higher_fence",
+          "nested_driver::serial_siblings_finish_in_distinct_namespaces_before_root_terminal",
+          "nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay",
+          "nested_driver::slow_cancellation_direct_evidence_maintains_original_fence_past_original_lease",
+          "provider_native_budget_recovers_prior_model_and_tool_usage_from_postgres",
+          "provider_native_higher_fence_wins_stale_policy_race_without_external_redispatch"
+        ],
+        "role37_observed_subcase_marker": {
+          "agent_service_submission": true,
+          "compound_frame_entry_race": 24,
+          "compound_frame_entry_reload": true,
+          "concurrent_submission_and_completion": 24,
+          "drift_rejected": true,
+          "effective_acl_audit": true,
+          "fixture_cleaned": true,
+          "framework_caller_rebind_retry_reload": true,
+          "graph_wait_elapsed_and_registered_real_runtime_login": true,
+          "graph_wait_runtime_update_delete_and_retention_rejected": true,
+          "invariants": "passed",
+          "isolated_retention": true,
+          "join_checkpoint_recovery": true,
+          "owner_is_non_superuser": true,
+          "populated_reapply": true,
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "privilege_rejections": true,
+          "profile": "trusted-server-roles-v1",
+          "provider_native_recovery": true,
+          "runtime_failure_close": true,
+          "schema": 37,
+          "scoped_barrier_commit_retry_reload": true,
+          "scoped_node_start_success_reload": true,
+          "separate_login_connections": true,
+          "skill_acting_window_authorization": true,
+          "whole_frame_closure_retry_reload_terminal": true,
+          "whole_frame_return_retry_reload": true,
+          "whole_frame_wait_resolve_resume": true
+        }
+      }
+    ],
+    "sleep_correlation_only": {
+      "bounded_start_local": "2026-10-18 19:47:02",
+      "bounded_end_local": "2026-10-19 01:36:56",
+      "power_event_rows": 120,
+      "sleep_events": 30,
+      "clamshell_events": 1,
+      "power_log_sha256": "3db212946a7813f2f81006b06fd73577466daa795f6c8013954a23728bcd69d0",
+      "actual_native_exits_preserved": [
+        {
+          "major": 16,
+          "receipt": ".local-verification/2026-10-18/scoped-join-owner-stop-composed-native-v3/pg16-runtime-full-v1/test.receipt.json",
+          "receipt_sha256": "9ddc05803287fdbbf48656c3d25ef4c8701c935e49fdec69e15df4e96b0280c0",
+          "exit": 101,
+          "wall_seconds": 20993.418929815292,
+          "summary": "test result: FAILED. 183 passed; 11 failed; 0 ignored; 0 measured; 0 filtered out; finished in 912.54s",
+          "timed_out": false
+        },
+        {
+          "major": 17,
+          "receipt": ".local-verification/2026-10-18/scoped-join-owner-stop-composed-native-v3/pg17-runtime-full-v1/test.receipt.json",
+          "receipt_sha256": "41a69b508042ecbf67d195914826c92c61ce70afa890f1f78d1db0d5c74bcf2a",
+          "exit": 101,
+          "wall_seconds": 19557.520327091217,
+          "summary": "test result: FAILED. 182 passed; 12 failed; 0 ignored; 0 measured; 0 filtered out; finished in 859.25s",
+          "timed_out": false
+        }
+      ],
+      "source_or_test_budgets_changed": false,
+      "causality_claim": "Correlation only; no controlled awake same-source successful rerun. Original actual101 and all failed cases remain failures."
+    },
+    "selected_exact_V2_Store_and_COMMIT_loss_runs": [
+      {
+        "major": 16,
+        "package": "store",
+        "mode": "exact",
+        "actual_exit_code": 0,
+        "seconds": 2.6120479106903076,
+        "exact_case": "frame_children::cancellation::registered_scoped_join_close_requires_child_settlement_before_stopping_owner",
+        "libtest_summary": [
+          [
+            1,
+            0,
+            0,
+            0,
+            266
+          ]
+        ],
+        "inventory": 267,
+        "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+        "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+        "binary_sha256": "c7c5daf1e2c9606d57f2fdf5c4791b2eacffc65e37b7b50c50de60465a63d474",
+        "database": {
+          "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+          "image_id": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+          "port": 55416,
+          "name": "stateknot_r1_joincomposed_20261018_pg16_store_b",
+          "URL_credentials_not_logged": true
+        },
+        "environment_allowlist": {
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_PROFILE_DEV_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+          "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+          "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+          "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+          "RUSTDOCFLAGS": "-D warnings",
+          "RUSTFLAGS": "-D warnings"
+        },
+        "overrides_present": {
+          "RUST_MIN_STACK": false,
+          "CARGO_ENCODED_RUSTFLAGS": false,
+          "RUSTC_WRAPPER": false,
+          "RUSTC_WORKSPACE_WRAPPER": false,
+          "RUSTC_BOOTSTRAP": false,
+          "RUSTC": false
+        },
+        "raw_stdout_sha256": "585323faad6e1706f2bc63aef391a5375f7a93a7c1dd38a91a54c774b1725816",
+        "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "capture_redactions": 0,
+        "original_observer_green": true,
+        "whole_suite_CI_or_R1_qualified": false,
+        "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg16-store-exact-v1/test.receipt.json"
+      },
+      {
+        "major": 16,
+        "package": "runtime",
+        "mode": "exact",
+        "actual_exit_code": 0,
+        "seconds": 3.8833279609680176,
+        "exact_case": "scoped_join_close_process_faults::registered_scoped_join_close_lost_commit_ack_survives_real_kill_and_cold_retry",
+        "libtest_summary": [
+          [
+            1,
+            0,
+            0,
+            0,
+            193
+          ]
+        ],
+        "inventory": 194,
+        "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+        "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+        "binary_sha256": "6f633c5883ccdba9308d7ba408c044653ec4c3a95c9a3c27469ae15e0dda4e7e",
+        "database": {
+          "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+          "image_id": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+          "port": 55416,
+          "name": "stateknot_r1_joincomposed_20261018_pg16_runtime_b",
+          "URL_credentials_not_logged": true
+        },
+        "environment_allowlist": {
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_PROFILE_DEV_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+          "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+          "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+          "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+          "RUSTDOCFLAGS": "-D warnings",
+          "RUSTFLAGS": "-D warnings"
+        },
+        "overrides_present": {
+          "RUST_MIN_STACK": false,
+          "CARGO_ENCODED_RUSTFLAGS": false,
+          "RUSTC_WRAPPER": false,
+          "RUSTC_WORKSPACE_WRAPPER": false,
+          "RUSTC_BOOTSTRAP": false,
+          "RUSTC": false
+        },
+        "raw_stdout_sha256": "b2212405b83c44ea770ee031aab1db4f6fefa266ea499d13fed9e206ae607e15",
+        "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "capture_redactions": 0,
+        "original_observer_green": false,
+        "whole_suite_CI_or_R1_qualified": false,
+        "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg16-runtime-exact-v1/test.receipt.json",
+        "marker_fields": 22,
+        "marker": {
+          "arch": "aarch64",
+          "closure_bytes_digest": "sha256:057f45407ed54bbe345e558a86e3a76cefa19b3fcb6da304bf3014325687d794",
+          "closure_digest": "sha256:200ac443530c648c4810af31ecd6cc8df0247029205b084df28d99dc18a88567",
+          "closure_version": 2,
+          "cold_process_success": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "driver_exercised": false,
+          "invariants": "passed",
+          "join_consumed": false,
+          "original_closure_recovered": true,
+          "os": "macos",
+          "owner_completion": false,
+          "owner_status": "Executing",
+          "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "profile": "scoped-join-close-commit-loss-v1",
+          "qualification": "public-store-only",
+          "termination": "SIGKILL",
+          "whole_tenant_unchanged_after_commit": true,
+          "writer_exit": "signal: 9 (SIGKILL)",
+          "writer_killed_and_reaped": true
+        },
+        "independent_validator_actual_exit_code": 0,
+        "independent_validator_receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-commit-loss-root-validation-v1/pg16/validation.receipt.json",
+        "independent_validator_receipt_sha256": "58cb75113ffdd53463472e135bb977e61adecc50be748a7a147a86c48ffc0459",
+        "original_wrapper_actual_exit_code": 1,
+        "outer_receipt_provenance": "root-observed-tool-execution-result",
+        "wrapper_observer_error_preserved": true,
+        "qualification": "public Store only; Driver not exercised"
+      },
+      {
+        "major": 17,
+        "package": "store",
+        "mode": "exact",
+        "actual_exit_code": 0,
+        "seconds": 6.53252100944519,
+        "exact_case": "frame_children::cancellation::registered_scoped_join_close_requires_child_settlement_before_stopping_owner",
+        "libtest_summary": [
+          [
+            1,
+            0,
+            0,
+            0,
+            266
+          ]
+        ],
+        "inventory": 267,
+        "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+        "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+        "binary_sha256": "c7c5daf1e2c9606d57f2fdf5c4791b2eacffc65e37b7b50c50de60465a63d474",
+        "database": {
+          "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+          "image_id": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+          "port": 55417,
+          "name": "stateknot_r1_joincomposed_20261018_pg17_store_b",
+          "URL_credentials_not_logged": true
+        },
+        "environment_allowlist": {
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_PROFILE_DEV_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+          "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+          "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+          "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+          "RUSTDOCFLAGS": "-D warnings",
+          "RUSTFLAGS": "-D warnings"
+        },
+        "overrides_present": {
+          "RUST_MIN_STACK": false,
+          "CARGO_ENCODED_RUSTFLAGS": false,
+          "RUSTC_WRAPPER": false,
+          "RUSTC_WORKSPACE_WRAPPER": false,
+          "RUSTC_BOOTSTRAP": false,
+          "RUSTC": false
+        },
+        "raw_stdout_sha256": "41dd6df606700e2c911ac44217d78de4d3101859366f5bc19d1dc2e0b0a48387",
+        "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "capture_redactions": 0,
+        "original_observer_green": true,
+        "whole_suite_CI_or_R1_qualified": false,
+        "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg17-store-exact-v1/test.receipt.json"
+      },
+      {
+        "major": 17,
+        "package": "runtime",
+        "mode": "exact",
+        "actual_exit_code": 0,
+        "seconds": 3.936113119125366,
+        "exact_case": "scoped_join_close_process_faults::registered_scoped_join_close_lost_commit_ack_survives_real_kill_and_cold_retry",
+        "libtest_summary": [
+          [
+            1,
+            0,
+            0,
+            0,
+            193
+          ]
+        ],
+        "inventory": 194,
+        "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+        "compiled_inputs_sha256": "acc2f7706a60201874a2dec4de5c690fcee4bf7a04409822bf409f72ca7f1c16",
+        "binary_sha256": "6f633c5883ccdba9308d7ba408c044653ec4c3a95c9a3c27469ae15e0dda4e7e",
+        "database": {
+          "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+          "image_id": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+          "port": 55417,
+          "name": "stateknot_r1_joincomposed_20261018_pg17_runtime_b",
+          "URL_credentials_not_logged": true
+        },
+        "environment_allowlist": {
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_PROFILE_DEV_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+          "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+          "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+          "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+          "RUSTDOCFLAGS": "-D warnings",
+          "RUSTFLAGS": "-D warnings"
+        },
+        "overrides_present": {
+          "RUST_MIN_STACK": false,
+          "CARGO_ENCODED_RUSTFLAGS": false,
+          "RUSTC_WRAPPER": false,
+          "RUSTC_WORKSPACE_WRAPPER": false,
+          "RUSTC_BOOTSTRAP": false,
+          "RUSTC": false
+        },
+        "raw_stdout_sha256": "d45c762c297a1ae3f442b54dd0bc1d6d5d47647a98eb81bd30edb4de310595e9",
+        "raw_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "capture_redactions": 0,
+        "original_observer_green": true,
+        "whole_suite_CI_or_R1_qualified": false,
+        "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-native-v2/pg17-runtime-exact-v1/test.receipt.json",
+        "marker_fields": 22,
+        "marker": {
+          "arch": "aarch64",
+          "closure_bytes_digest": "sha256:49092d6f656912912f73a9f8d7fba7b612edec792cd8c5d162228c184289406b",
+          "closure_digest": "sha256:fe3b6e6cf94dcbbcd1be7c72ece00f078ffd8697a49b2e99fdbce886037d2a13",
+          "closure_version": 2,
+          "cold_process_success": true,
+          "commit_forwarded": true,
+          "commit_response_forwarded": false,
+          "cut": "commit_response_withheld",
+          "driver_exercised": false,
+          "invariants": "passed",
+          "join_consumed": false,
+          "original_closure_recovered": true,
+          "os": "macos",
+          "owner_completion": false,
+          "owner_status": "Executing",
+          "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "profile": "scoped-join-close-commit-loss-v1",
+          "qualification": "public-store-only",
+          "termination": "SIGKILL",
+          "whole_tenant_unchanged_after_commit": true,
+          "writer_exit": "signal: 9 (SIGKILL)",
+          "writer_killed_and_reaped": true
+        },
+        "independent_validator_actual_exit_code": 0,
+        "independent_validator_receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-commit-loss-root-validation-v1/pg17/validation.receipt.json",
+        "independent_validator_receipt_sha256": "d3c8343860e7f6ac0d069561e0f8035ad82fdff56061b96b7c161b62d7aee43d",
+        "original_wrapper_actual_exit_code": 0,
+        "outer_receipt_provenance": "captured-tool-execution-result",
+        "wrapper_observer_error_preserved": false,
+        "qualification": "public Store only; Driver not exercised"
+      }
+    ],
+    "two_CANCELLED_CI": [
+      {
+        "run": 39113329120,
+        "head": "6d170f9d39382eb3c142c8fd8ac7ed22cc85a8c0",
+        "success": 11,
+        "cancelled": 2,
+        "Native_inventory": [
+          264,
+          193
+        ],
+        "live_owners": 2,
+        "original_timeout_minutes": 30,
+        "raw": "artifacts/evidence/ci-native-6d170f9/terminal-or-progress-v5",
+        "full_CI_qualification": false
+      },
+      {
+        "run": 39120579635,
+        "head": "dc13238b766eef98783f05cabb896e840a723be6",
+        "success": 11,
+        "cancelled": 2,
+        "Native_inventory": [
+          264,
+          193
+        ],
+        "live_owners": 3,
+        "original_timeout_minutes": 30,
+        "raw": "artifacts/evidence/ci-native-dc13238/terminal-or-progress-v3",
+        "full_CI_qualification": false
+      }
+    ],
+    "earlier_failures": [
+      {
+        "kind": "Version local declaration lint",
+        "actual_exit_code": 101,
+        "source_tree_sha256": "3d8de3dff0929d666783b44ed69f2ee0a4a8fda89e7c78561768f348f012afc2",
+        "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-ack-clippy-preflight-v1/clippy.receipt.json",
+        "receipt_sha256": "010f6b509ec79074a69dd6d2122ee92e15fab2ce2fbd6a0cf4f5314105d92174",
+        "original_retained": true
+      },
+      {
+        "kind": "Runtime controller too_many_lines",
+        "actual_exit_code": 101,
+        "source_tree_sha256": "dae0ca2b4a5bfd901c647e80e1e881e63cad52cf24ec3f06072697a54334d909",
+        "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v1/clippy.receipt.json",
+        "receipt_sha256": "ce984c268026066b55ffb6ff644a2b59acb060302fafb121aaffdec7f6b91c08",
+        "original_retained": true
+      },
+      {
+        "kind": "five loopback bind permission failures",
+        "actual_exit_code": 101,
+        "source_tree_sha256": "e8f3b8a1c93cbbd8ad00fa3622657be032a98fc775ea9580337c27c1d8ad77db",
+        "receipt": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifacts/scoped-join-owner-stop-composed-gates-v2/workspace.receipt.json",
+        "receipt_sha256": "02364c3cf1de6defe978beb91bb7c6ddc3aa553d5084d7e58bbd8ad6511fc850",
+        "original_retained": true
+      }
+    ],
+    "other_retained_original_failures": [
+      "baseline PostgreSQL16/17 exact tracer test101 InvalidRunFailureClose with no-write snapshot",
+      "manifest string-order preflight1 before Cargo",
+      "initial sandbox Docker permission wrapper1 before DB/test execution",
+      "PG16 actual test0 with wrapper observer1; original observations false and transcription provenance retained"
+    ],
+    "no_source_or_binary_qualification_transferred": true
+  },
+  "V3_existing_consumed_Join_recovery": {
+    "source_tree": "21c32c1446377a9691d63d835bb732b8d8cc6259e236c9cd0575dc13369f7a44",
+    "binary": "b28ccd6c3c158453cfe2af995802a3dc042e23f47dfbc0e965cba34f4cd72354",
+    "rows": [
+      {
+        "major": 16,
+        "profile": "backup",
+        "actual_exit": 0,
+        "seconds": 5.100951671600342,
+        "receipt": ".local-verification/2026-10-18/scoped-join-owner-stop-composed-backup-native-v2/pg16/observations.json",
+        "receipt_sha256": "9f06c52f7663ed4416fe4d2d695726a737d1f6d8675e32a06ac6485e772de13e",
+        "current_source_binary_verified": true
+      },
+      {
+        "major": 16,
+        "profile": "pitr",
+        "actual_exit": 0,
+        "seconds": 7.530844211578369,
+        "receipt": ".local-verification/2026-10-18/scoped-join-owner-stop-composed-pitr-native-v2/pg16/observation.receipt.json",
+        "receipt_sha256": "1e49f49082eedea215c5b55ea31b2e4cebccc86e78bd6d6d646bf22b7ae47384",
+        "current_source_binary_verified": true
+      },
+      {
+        "major": 17,
+        "profile": "backup",
+        "actual_exit": 0,
+        "seconds": 2.724853038787842,
+        "receipt": ".local-verification/2026-10-18/scoped-join-owner-stop-composed-backup-native-v2/pg17/observations.json",
+        "receipt_sha256": "bcd11deaef3d54500c81b438c9c049ba2c34f45290eb3aea9af16a259e12281f",
+        "current_source_binary_verified": true
+      },
+      {
+        "major": 17,
+        "profile": "pitr",
+        "actual_exit": 0,
+        "seconds": 7.3319151401519775,
+        "receipt": ".local-verification/2026-10-18/scoped-join-owner-stop-composed-pitr-native-v2/pg17/observation.receipt.json",
+        "receipt_sha256": "8e433ed31e933c0c7702593d730a7b37c76009d9974ffa501dc69080bdb659d2",
+        "current_source_binary_verified": true
+      }
+    ],
+    "all_four_actual_pass": true,
+    "scope": "Existing consumed child Join logical and physical restore only; not owner-stop-specific restore, Driver, complete Runtime, full CI, R1 or R6"
+  },
+  "separate_prior_public_consumer": {
+    "exact_product_and_consumer_sources": {
+      "product_tree": "bf329a3da4eacc9ccd9c34e681a1d53c8c9eab662e2c0a4b1831aac8f8266509",
+      "product_compiled_inputs": "30a3126e0f1e743192b69b80a6049a96e55b9eeca79a2d75f6b50648042013d3",
+      "consumer_tree": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+      "consumer_compiled_inputs": "625def171e1b8f43de7bff2a55115a29d7751f7c5d44dde07081a28007aa35c5",
+      "all_935_product_files_and_543_product_inputs_byte_exact": true,
+      "consumer_only_additions": [
+        "crates/stateknot-runtime/tests/fixtures/join_stop_closure_schema_v1.json",
+        "crates/stateknot-runtime/tests/fixtures/join_stop_closure_schema_v2.json",
+        "crates/stateknot-runtime/tests/join_stop_public_qualification.rs"
+      ],
+      "consumer_file_count": 938,
+      "consumer_compiled_count": 546,
+      "Cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+    },
+    "actual_binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+    "selected_cases": [
+      {
+        "major": 16,
+        "mode": "v2-schema",
+        "actual_exit_code": 0,
+        "libtest": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1
+        },
+        "source_tree_sha256": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+        "binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+        "closure_count": 1,
+        "migration_versions_before": 37,
+        "migration_versions_after": 37,
+        "retained_business_and_Root_bytes_exact": true
+      },
+      {
+        "major": 16,
+        "mode": "v1-upgrade",
+        "actual_exit_code": 0,
+        "libtest": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1
+        },
+        "source_tree_sha256": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+        "binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+        "closure_count": 1,
+        "migration_versions_before": 36,
+        "migration_versions_after": 37,
+        "retained_business_and_Root_bytes_exact": true
+      },
+      {
+        "major": 17,
+        "mode": "v2-schema",
+        "actual_exit_code": 0,
+        "libtest": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1
+        },
+        "source_tree_sha256": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+        "binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+        "closure_count": 1,
+        "migration_versions_before": 37,
+        "migration_versions_after": 37,
+        "retained_business_and_Root_bytes_exact": true
+      },
+      {
+        "major": 17,
+        "mode": "v1-upgrade",
+        "actual_exit_code": 0,
+        "libtest": {
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "measured": 0,
+          "filtered": 1
+        },
+        "source_tree_sha256": "5d77326d5cce4988506b7acb549cedb37eba5be62c14b857502736eeffaa806d",
+        "binary_sha256": "7c174940e83c9435e66ed7675b5faba4af3c8302c79732a648553b609350b30b",
+        "closure_count": 1,
+        "migration_versions_before": 36,
+        "migration_versions_after": 37,
+        "retained_business_and_Root_bytes_exact": true
+      }
+    ],
+    "qualifies_only": "Actual saved default-feature Native public-consumer executions on PostgreSQL16/17: persisted v2 offline-schema/cold-read seam and retained source-v1 schema36→37 public SQLx migration/cold-read seam.",
+    "automatically_qualifies_later_source": false,
+    "published_N_minus_1_N_minus_2_or_rolling_upgrade_qualification": false
+  },
+  "static_review": {
+    "Standards": {
+      "hard_violations": 0,
+      "existing_heuristic_findings": 1,
+      "worst": "P3 possible Duplicated Code in unchanged ordinary-work SQL predicates",
+      "v2_delta_new_findings": 0
+    },
+    "Spec": {
+      "v1_actionable_findings": 0,
+      "v2_delta_actionable_findings": 0
+    },
+    "static_review_confers_execution_qualification": false
+  },
+  "local_adoption": {
+    "actual_qualified_commit_adopted": true,
+    "head": "bbd9dcf833a3446b822e8e1398c53d19cf3b9a72",
+    "tree": "126d95b5a80c703b781e270a157c5b81a4a3ad39",
+    "parent": "e372184fb1c80ffb9903ac0d9feb8380db51253e",
+    "local_branch": "refs/heads/codex/r1-nested-frame-contract",
+    "exact38_staged_and_all_primary_bytes_verified": true,
+    "index_and_worktree_clean": true,
+    "DCO_preserved": true,
+    "qualification_receipt_sha256": "a620e83e809322de4ee5f691739fc0634628e36676e39129ec5bd2a3b86d89da",
+    "commands_sha256": "663bf4b1cf9b836f9e1602b911a9d6f68ea3eef97f87cd8b5b6ef733ca3ee89c",
+    "index_backup_sha256": "59081ee42b502f3d2f4a8fd0be09103c3caaf98d77c3d295aeb7a71c51950c75",
+    "remote_PR_or_main_updated": false,
+    "F2_later_sources_adopted": false
+  },
+  "qualification": {
+    "experimental_selected_public_Store_owner_stop_contract": true,
+    "complete_exact_candidate_CI": true,
+    "Driver_enabled": false,
+    "Driver_exercised_by_new_COMMIT_loss_case": false,
+    "Root_ConfirmCancellation": false,
+    "R1_complete": false,
+    "R6_complete": false,
+    "complete_fault_matrix": false,
+    "published_compatibility_window": false,
+    "capacity": false,
+    "production_deployment": false,
+    "RFC_0022_accepted": false,
+    "Supported": false,
+    "remote_PR_or_main_updated_by_local_adoption": false
+  },
+  "remaining_gates": [
+    "published-but-unconsumed Join cancellation",
+    "spawn-before-registration cancellation",
+    "later-resumed physical-owner cancellation",
+    "broader negatives and deferred-guard/fault matrices",
+    "Root ConfirmCancellation and terminal proof",
+    "all three scoped Driver guards and complete Driver profile",
+    "published-version compatibility and owner-stop-v2-specific restore windows",
+    "required PR checks and review/merge",
+    "capacity, independent security, real deployment and release gates"
+  ],
+  "future_work": "Later ignored F2 slices (including 197/198 inventories) remain independent and confer no qualification on measured bbd9.",
+  "raw_evidence_delivery": {
+    "status": "PORTABLE_ARCHIVE_AUTHORED_FROM_ACTUAL_IMMUTABLE_RECEIPTS",
+    "README": "evidence/experimental-scoped-join-owner-stop-2026-10-18/README.md",
+    "index": "evidence/experimental-scoped-join-owner-stop-2026-10-18/artifact-index.json",
+    "index_sha256": "825ccd9d31f6a9792c7c626fd3439ea9002867a3333f9c7041cc1fb9ed1c2c8f",
+    "archive": "evidence/experimental-scoped-join-owner-stop-2026-10-18/review-originals.tar.gz",
+    "archive_bytes": 40108591,
+    "archive_sha256": "c34956fbea17a1e9abe408f555c425ec62033d9dbb07cd24d5e400097a80537c",
+    "archive_members": 7837,
+    "uncompressed_file_bytes": 139439640,
+    "verify": "evidence/experimental-scoped-join-owner-stop-2026-10-18/verify.py",
+    "verify_sha256": "6895edd2dc38571a6049b8867f4ab7593a0bacd0789af762f30b318e05b65cbe",
+    "binary_bodies_target_source_trees_pycache_active_logs_included": false,
+    "original_receipt_absolute_paths_rewritten": false,
+    "historical_failures_and_two_CANCELLED_runs_retained": true,
+    "all_original806_members_retained": true,
+    "all_previous_qdoc_source_references_retained": true,
+    "superseded_v2_portable_package_bytes_retained": true,
+    "package_hash_verification_does_not_grant_new_execution_qualification": true
+  },
+  "source_evidence_references": [
+    {
+      "path": "artifacts/ci-postgres-shards-run39185847363-analysis-v2/receipt.json",
+      "bytes": 414330,
+      "sha256": "a620e83e809322de4ee5f691739fc0634628e36676e39129ec5bd2a3b86d89da"
+    },
+    {
+      "path": "artifacts/ci-postgres-shards-run39185847363-terminal-v2/files.json",
+      "bytes": 390578,
+      "sha256": "315b008bf2b49a8864ed7167e56ce1777e1570fa99563b0be33e8d8c35ec420a"
+    },
+    {
+      "path": "artifacts/ci-postgres-shards-run39185847363-terminal-v2/collection.receipt.json",
+      "bytes": 381,
+      "sha256": "dde58a800942ba1c24deca573b189f853fa67c35fc1c2b4c4b1fdc1e26158f06"
+    },
+    {
+      "path": "artifacts/ci-postgres-shards-run39185847363-bundle-v4/manifest.json",
+      "bytes": 15604,
+      "sha256": "60fab0ff4c2cfee052da0353c0757e49acc780ca7b6d42c9ff0f6fa95c0dddf6"
+    },
+    {
+      "path": "artifacts/ci-postgres-shards-run39185847363-bundle-v4/binding.json",
+      "bytes": 1553967,
+      "sha256": "2b71ad17689697427b947321d2373263977d186de99ec8a7b725ae133f733f27"
+    },
+    {
+      "path": "artifacts/ci-postgres-shards-adoption-actual-v1/receipt.json",
+      "bytes": 750,
+      "sha256": "c2c53a0bf0b53aea8d92244445ab08f40b6267d94f772e6cb8d3d927df8b4b5b"
+    },
+    {
+      "path": "artifacts/ci-postgres-shards-adoption-actual-v1/commands.json",
+      "bytes": 27937,
+      "sha256": "663bf4b1cf9b836f9e1602b911a9d6f68ea3eef97f87cd8b5b6ef733ca3ee89c"
+    },
+    {
+      "path": "artifacts/ci-postgres-shards-run39185847363-analysis-v1/receipt.json",
+      "bytes": 262282,
+      "sha256": "1ecc4d677528d1e6cbb0d22815014839ac3b45f1d734fde29d610fe6e69b966f"
+    },
+    {
+      "path": "artifacts/ci-postgres-shards-terminal-analyzer-v5/version-delta.json",
+      "bytes": 930,
+      "sha256": "e7aae7512ec1e74b3ee18be073ade1c16e12a8b621a5ecbb32d6aee7311567d5"
+    },
+    {
+      "path": "artifacts/scoped-join-owner-stop-schema37-role-delta-review-v1/receipt.json",
+      "bytes": 1288,
+      "sha256": "99a50d01a666c3096d259546bd48f6a4156c4bbeee80b286c3984a255be87fc8"
+    },
+    {
+      "path": "artifacts/scoped-join-owner-stop-composed-qualification-v3/frozen-source-manifest.json",
+      "bytes": 170529,
+      "sha256": "1862e1971d1cb91362eaef4f3584df0ce18f8c12de01b3a89a6d3eadf468ac74"
+    },
+    {
+      "path": "artifacts/scoped-join-owner-stop-composed-qualification-v3/compiled-inputs.json",
+      "bytes": 103079,
+      "sha256": "b3266f64163a7df6709c6e071f9b4acd8b1044ae43393e9f24b95264f67be540"
+    },
+    {
+      "path": "artifacts/scoped-join-owner-stop-composed-gates-v4/all-gates.execution.json",
+      "bytes": 670,
+      "sha256": "58b9ca0f91bb53eeb8977c9ed0301c9295048ccc966d707ea48e469d384175f8"
+    },
+    {
+      "path": "artifacts/scoped-join-owner-stop-composed-recovery-root-v1/receipt.json",
+      "bytes": 1894,
+      "sha256": "13ec316a33bdeaeddc8a9a612a94a52dc48c771d30a95d4d0cf50923fa6eba67"
+    },
+    {
+      "path": "artifacts/scoped-join-owner-stop-native-v3-suspension-diagnosis-v1/facts.json",
+      "bytes": 1275,
+      "sha256": "1ad35f82f86c5edb34dd81953500deb1cecd2adc7e9a817268f77f32215dfc4c"
+    },
+    {
+      "path": "artifacts/scoped-join-owner-stop-commit-loss-root-validation-v1/pg16/validation.receipt.json",
+      "bytes": 4587,
+      "sha256": "58cb75113ffdd53463472e135bb977e61adecc50be748a7a147a86c48ffc0459"
+    },
+    {
+      "path": "artifacts/scoped-join-owner-stop-commit-loss-root-validation-v1/pg17/validation.receipt.json",
+      "bytes": 7103,
+      "sha256": "d3c8343860e7f6ac0d069561e0f8035ad82fdff56061b96b7c161b62d7aee43d"
+    },
+    {
+      "path": "artifacts/evidence/ci-native-6d170f9/root-independent-review-v1/receipt.json",
+      "bytes": 2345,
+      "sha256": "e1a81a1976f919aceb2d663de53a9bf2cfee08bb7b461074a083af7836276b28"
+    },
+    {
+      "path": "artifacts/evidence/ci-native-dc13238/root-independent-review-v1/receipt.json",
+      "bytes": 41739,
+      "sha256": "35138f8d06952e1a59e595fda7829007d7ffc19e7070b486b725349166cb0ec8"
+    }
+  ],
+  "author_no_build_DB_Docker_network_Git_execution": true
+}

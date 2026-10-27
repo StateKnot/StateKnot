@@ -1,0 +1,18 @@
+{
+  "A2A_source_archive": {
+    "path": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/source.tar.gz",
+    "sha256": "5a882322c32b5ec165d1a37bf84f087f0c5afc8811b805c07cc4ac7a590e75e3"
+  },
+  "PITR_artifact_manifest": {
+    "path": "docs/qualification/evidence/experimental-pitr-cleanup-confirmation-2026-10-15/artifact-manifest.json",
+    "sha256": "0fea589c3fa9d716086c9cfff72592d8a25d31211466d6bb03a97952eb55f077"
+  },
+  "PITR_seal": {
+    "path": "docs/qualification/evidence/experimental-pitr-cleanup-confirmation-2026-10-15/seal.json",
+    "sha256": "95196c31a3b6f56eb0984512c18a4e1c3003c90545b0b546e45c1bc7b2487720"
+  },
+  "PITR_candidate_key": "candidate/child_join_pitr.rs",
+  "PITR_patch_key": "candidate.patch",
+  "changed_path": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+  "scope": "--workspace reconstructs only531 conservative compiled inputs from already-published A2A923 source plus exact PITR one-file patch; no full Git-tree equivalence or old Native transfer"
+}

@@ -1,0 +1,7 @@
+{
+  "binary": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+  "sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+  "exact_test": "root_graph_barriers::trusted_upgrade::populated_source35_upgrade_preserves_registration_bytes_and_legacy_identity",
+  "selection": "original binary --list verified exactly one matching test",
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45"
+}

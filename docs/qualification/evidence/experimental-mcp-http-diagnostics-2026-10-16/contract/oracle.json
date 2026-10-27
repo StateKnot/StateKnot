@@ -1,0 +1,41 @@
+{
+  "classification": "required real TCP assertions, not execution result",
+  "transports": [
+    "HTTP JSON",
+    "fragmented SSE"
+  ],
+  "outcomes": [
+    "Complete isError=false",
+    "Complete isError=true",
+    "InputRequired then explicit resume",
+    "Remote JSON-RPC error"
+  ],
+  "formatting": [
+    "Debug",
+    "pretty Debug"
+  ],
+  "direct_types": [
+    "McpNotification",
+    "McpCompleteToolResult",
+    "McpRemoteError"
+  ],
+  "protected_outer_types": [
+    "McpToolCallResponse",
+    "StatelessMcpClientError::Remote",
+    "McpToolCall::Complete"
+  ],
+  "excluded_direct_formatting": [
+    "McpInputRequired",
+    "McpToolCall::InputRequired"
+  ],
+  "positive_controls": [
+    "raw/value/serialized bytes remain exact",
+    "Clone/PartialEq retained",
+    "complete isError/content/structured positive",
+    "notification method/params/raw positive",
+    "remote code/message/data positive",
+    "actual resume wire state/arguments/response-key equality",
+    "no implicit request replay"
+  ],
+  "executed": false
+}

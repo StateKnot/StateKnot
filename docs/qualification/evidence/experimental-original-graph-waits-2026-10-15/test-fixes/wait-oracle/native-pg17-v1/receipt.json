@@ -1,0 +1,35 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-wait-oracle-source",
+  "source_files": 919,
+  "source_tree_sha256": "7c95defc78ea3d9829d30139baea143bb49ba10d2eafdec9586b8396b70de5b7",
+  "source_unchanged": true,
+  "binary": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/wait-oracle-v2/strict-store-build-v2/stateknot-store-postgres-postgres",
+  "binary_sha256": "019e6d61f94872aa04150a2b710aa1bfa3dabcbdcae982292b635fdb7ff23029",
+  "exact_test": "frame_application_replay::scoped_interrupt_and_timer_resume_replay_original_wait_without_an_extra_transition",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/wait-oracle-v2/strict-store-build-v2/stateknot-store-postgres-postgres",
+    "frame_application_replay::scoped_interrupt_and_timer_resume_replay_original_wait_without_an_extra_transition",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "database": "stateknot_r1_a36_wait_oracle_oct15v1",
+  "postgres_major": 17,
+  "server_version_num": 170011,
+  "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+  "default_stack": true,
+  "original_config_fixture_and_assertions": true,
+  "exit_code": 0,
+  "seconds": 5.221458911895752,
+  "summary": [
+    [
+      "ok",
+      "1",
+      "0",
+      "0"
+    ]
+  ],
+  "exact_candidate_success": true,
+  "concurrent_host_full_native_chains": true,
+  "log_sha256": "e8cc993bfcbc76641f6ea229f4ab8ab5613b304008ea5916bf7b6bb16c2fe1e7"
+}

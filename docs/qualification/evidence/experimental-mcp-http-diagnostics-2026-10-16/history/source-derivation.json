@@ -1,0 +1,8 @@
+{
+  "final_source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "initial_fixed_v2_source_tree": "99861ea4d92e931a28608411f3611144d468c0c3d514ec880589a4e0752c8774",
+  "old_production_canary_red_source_tree": "262754645fd0265a31fd1da53dd3150079b1a2bf31f6fd27768cda574e263300",
+  "v2_test_derivation": "reverse only the preserved id-reference fixture patch; verify complete928 manifest",
+  "red_derivation": "published69af production and same v2 newtest; verify complete928 manifest",
+  "additional_history_complete_source_archive_or_payload_copied": false
+}

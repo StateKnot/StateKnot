@@ -1,0 +1,26 @@
+[
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_integrations-1db863904d2b1ed7.rlib",
+    "bytes": 20165688,
+    "sha256": "fd376fb2c91ceb06d6ed25b4e4819515e6c4427a7c34d14476545840c438777a",
+    "mtime_ns": 1792125085749588755,
+    "preparation_context_marker": false,
+    "preparation_timeout_marker": false
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_integrations-a758980bf479ec0a.rlib",
+    "bytes": 20024792,
+    "sha256": "520cd0d589793618244d0db81bc3c7cb73a327276468fbb16bc2a9437183d6a3",
+    "mtime_ns": 1792121434617698743,
+    "preparation_context_marker": false,
+    "preparation_timeout_marker": false
+  },
+  {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/libstateknot_integrations-c5c82148e087bc76.rlib",
+    "bytes": 20177088,
+    "sha256": "ff1e0aa8747a73aa704b5ffe2878c361eb47b39fb8b39c3f1a79f375cfe182ee",
+    "mtime_ns": 1792128643754143659,
+    "preparation_context_marker": false,
+    "preparation_timeout_marker": false
+  }
+]

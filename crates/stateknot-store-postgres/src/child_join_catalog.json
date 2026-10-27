@@ -408,6 +408,20 @@
       "UNIQUE (tenant_id, parent_run_id, request_digest)",
       true,
       false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_scoped_attempt_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, node_attempt_id, base_checkpoint_id, graph_namespace, node_id) REFERENCES stateknot.node_attempts(tenant_id, run_id, attempt_id, base_checkpoint_id, graph_namespace, node_id) ON DELETE RESTRICT",
+      true,
+      false
+    ],
+    [
+      "child_run_joins",
+      "child_run_joins_scoped_checkpoint_fk",
+      "FOREIGN KEY (tenant_id, parent_run_id, graph_namespace, base_checkpoint_id) REFERENCES stateknot.run_checkpoints(tenant_id, run_id, graph_namespace, checkpoint_id) ON DELETE RESTRICT",
+      true,
+      false
     ]
   ]
 }

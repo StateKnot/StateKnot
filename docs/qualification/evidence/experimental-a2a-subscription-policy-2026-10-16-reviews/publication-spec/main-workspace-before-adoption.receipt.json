@@ -1,0 +1,17 @@
+{
+  "argv": [
+    "python3",
+    "-B",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/candidate/docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/verify.py",
+    "--repository-root",
+    "/Users/jiawy/Documents/RustAgentFramework",
+    "--workspace"
+  ],
+  "started_at_unix": 1792126136.556552,
+  "elapsed_seconds": 0.21691608428955078,
+  "actual_exit_code": 1,
+  "expected_exit_code": 1,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "3b363ffa9f8718748bcf98a2eab3a21fc5320b8fe08f2ff4a5f4919f3e0a87bf",
+  "actual_Rust_network_DB_Docker_CI_or_cache_execution": false
+}

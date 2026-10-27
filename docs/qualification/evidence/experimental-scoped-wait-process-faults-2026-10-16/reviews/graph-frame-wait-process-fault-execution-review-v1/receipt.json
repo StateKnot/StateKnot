@@ -1,0 +1,815 @@
+{
+  "schema": "stateknot-wait-source-v2-execution-independent-review-v1",
+  "reviewer": "/root/ci_monitor_review_oct16b/linux_monitor_semantics",
+  "reviewed_at_utc": "2026-10-16T09:18:54.885545+00:00",
+  "result": {
+    "actionable_findings": 0,
+    "blocking_findings": 0,
+    "remaining_findings": []
+  },
+  "fixed_subject": {
+    "source_directory": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-source-v2",
+    "source_tree_sha256": "b286803afacf84278ffa579e8f898610e9474378bd982897e90f1c3c0f0c718c",
+    "compiled_inputs_sha256": "43877dc8d16584c5a957356a1d0310ac4faea1525b743c05c4a159178780c305",
+    "source_count": 933,
+    "compiled_count": 542,
+    "all_actual_bytes_and_per_file_hashes_and_canonical_manifest_digests_checked": true,
+    "manifest_bindings": [
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/scope.json",
+        "bytes": 847,
+        "sha256": "84a22591a46a808c94c43e34f422407d4c519bbe87e02e75b91c002dbbdc2d0d"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/frozen-source-manifest.json",
+        "bytes": 169956,
+        "sha256": "89d079225fd45a235fc0bb629c1dcdee2e2bf727b0230dcf59890cbb73d185c3"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/compiled-inputs.json",
+        "bytes": 102652,
+        "sha256": "762821f3103bf1e504dd2337c1cac0caebef4a5b1a1ac8df0dc48c404e020925"
+      }
+    ],
+    "authoritative_three_test_payloads": [
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-source-v2/crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+        "bytes": 14414,
+        "sha256": "eec8eb79475501045f1542e45cb80f9fe8fae8a592aa85f3cad17ee6859ad19e"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-source-v2/crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs",
+        "bytes": 27846,
+        "sha256": "e41ee78898c7fbe7fbc75e3e4f82cbd5b45bceff9b69b6cdf70eb12baf3bff4e"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-source-v2/crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+        "bytes": 137986,
+        "sha256": "f8b6f5f043beed350e63d9ad56e54a8f14a43e7bfad077e143f99736708eff87"
+      }
+    ],
+    "prior_raw_and_increment_review_preserved": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/graph-frame-wait-process-fault-v2-extractor-increment-review-v1/receipt.json",
+      "bytes": 11381,
+      "sha256": "70a3753108ab7cacb1f0a179df1bb2e196a07fd059aa6c6ef749d8f272ced8e7"
+    }
+  },
+  "six_gates": {
+    "driver": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/six-gates-driver.receipt.json",
+      "bytes": 657,
+      "sha256": "732c7d2436cf2f657afa9dbb484a82ed8f3f8893d14534176304de87fdb55741"
+    },
+    "actual_driver_all_six_zero": true,
+    "gates": [
+      {
+        "gate": "fmt",
+        "actual_exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.88.0",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "source_before_after_exact": true,
+        "receipt": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/fmt.receipt.json",
+          "bytes": 1477,
+          "sha256": "9145abbcb83ea65003cf312af8d65e1d9417ae303838dc2bcbe0155e4c946d46"
+        },
+        "raw_log": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/fmt.log",
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      },
+      {
+        "gate": "clippy",
+        "actual_exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.88.0",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "source_before_after_exact": true,
+        "receipt": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/clippy.receipt.json",
+          "bytes": 1569,
+          "sha256": "00c63c1591aaf6cd583e990dd66684fa7629bb4801a84602b7143b28053620a8"
+        },
+        "raw_log": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/clippy.log",
+          "bytes": 1386,
+          "sha256": "a6c782e5c124ffb9cf8a3954628ea4b1ae48a7a90f5977409eea8f54c2204c51"
+        }
+      },
+      {
+        "gate": "workspace",
+        "actual_exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.88.0",
+          "test",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "source_before_after_exact": true,
+        "receipt": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/workspace.receipt.json",
+          "bytes": 1534,
+          "sha256": "768990f1da6189a4faf1e0f8fd0e36be6d550be679aafa8bd177c7233b56bb04"
+        },
+        "raw_log": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/workspace.log",
+          "bytes": 188392,
+          "sha256": "720b40720623faf138035955738f3bb17a7ee2b17ee016301de4f386e6aaa3c7"
+        }
+      },
+      {
+        "gate": "doctests",
+        "actual_exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.88.0",
+          "test",
+          "--workspace",
+          "--doc",
+          "--all-features",
+          "--locked"
+        ],
+        "source_before_after_exact": true,
+        "receipt": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/doctests.receipt.json",
+          "bytes": 1524,
+          "sha256": "fa120621947b85092c653dd19bb33b685d1d4b2067d49885ef3bbf3b1101e0ba"
+        },
+        "raw_log": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/doctests.log",
+          "bytes": 6234,
+          "sha256": "54a2eb38bdfe2627e173600723cf39418bd941b3a4f6d37d66316d8890c800b8"
+        }
+      },
+      {
+        "gate": "rustdoc",
+        "actual_exit_code": 0,
+        "argv": [
+          "cargo",
+          "+1.88.0",
+          "doc",
+          "--workspace",
+          "--all-features",
+          "--no-deps",
+          "--locked"
+        ],
+        "source_before_after_exact": true,
+        "receipt": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/rustdoc.receipt.json",
+          "bytes": 1528,
+          "sha256": "7d95b5a967d73300633f1f9dce4a3998e3a3216a064778ab413e17d398d32bbe"
+        },
+        "raw_log": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/rustdoc.log",
+          "bytes": 2478,
+          "sha256": "7439548edb4338d4f3f506b48dd1860bea170b5921e92adc78882bc4d888cd90"
+        }
+      },
+      {
+        "gate": "nightly",
+        "actual_exit_code": 0,
+        "argv": [
+          "cargo",
+          "+nightly-2026-10-07",
+          "check",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "source_before_after_exact": true,
+        "receipt": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/nightly.receipt.json",
+          "bytes": 1552,
+          "sha256": "c68f322f7b465b5f2af3e0c07e0326ba03cb21fd598b2bd078d23282a2e7c240"
+        },
+        "raw_log": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-qualification-v2/nightly.log",
+          "bytes": 1386,
+          "sha256": "de0931f662792fa08dc623004c400359c8ebb189cfb2e26939da88055fd92ac6"
+        }
+      }
+    ],
+    "workspace": {
+      "summaries": 100,
+      "passed": 2123,
+      "failed": 0,
+      "original_ignored": 6
+    },
+    "doctests": {
+      "groups": 10,
+      "passed": 48,
+      "failed": 0,
+      "ignored": 0
+    }
+  },
+  "Native_build": {
+    "actual_build_exit_code": 0,
+    "build_receipt": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/build.receipt.json",
+      "bytes": 2402,
+      "sha256": "5c2bd81e2e533512e35c4f7035c967d2f2b8990a6be216cf9c711d20f2aad670"
+    },
+    "build_summary": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/build-summary.json",
+      "bytes": 7116,
+      "sha256": "174f5594a88d154f889e75b08723b032f8f2b17ae40c3dc85785dfd72463f7a3"
+    },
+    "all_raw_Cargo_JSON_and_stderr_hashes_match_receipt": true,
+    "compiler_artifacts": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/compiler-artifacts.json",
+      "bytes": 246284,
+      "sha256": "0f5eede8ba8e56b2c7393719d356dd2f789f25c7436b5ac81ea1669cb3005a26"
+    },
+    "all_artifacts_reparsed_from_actual_build_jsonl_exact": true,
+    "four_selected_artifacts": [
+      {
+        "target": "stateknot_core",
+        "kind": [
+          "lib"
+        ],
+        "fresh": false,
+        "features": [],
+        "profile": {
+          "opt_level": "1",
+          "debuginfo": 0,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": false
+        }
+      },
+      {
+        "target": "stateknot_store_postgres",
+        "kind": [
+          "lib"
+        ],
+        "fresh": false,
+        "features": [],
+        "profile": {
+          "opt_level": "1",
+          "debuginfo": 0,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": false
+        }
+      },
+      {
+        "target": "stateknot_runtime",
+        "kind": [
+          "lib"
+        ],
+        "fresh": false,
+        "features": [],
+        "profile": {
+          "opt_level": "1",
+          "debuginfo": 0,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": false
+        }
+      },
+      {
+        "target": "postgres",
+        "kind": [
+          "test"
+        ],
+        "fresh": false,
+        "features": [],
+        "profile": {
+          "opt_level": "1",
+          "debuginfo": 0,
+          "debug_assertions": true,
+          "overflow_checks": true,
+          "test": true
+        }
+      }
+    ],
+    "freshness": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/freshness.json",
+      "bytes": 140672,
+      "sha256": "2cf25ea76792aee6e64c53f5707b25331a43b16dc63916fd4ffe74057aba7d38"
+    },
+    "all542_historical_mtimes_after_exact_previous_compile_and_hashes_match_source": true,
+    "source_and_compiled_manifest_before_after_exact": true,
+    "saved_binary": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/binaries/runtime-postgres",
+      "bytes": 50408400,
+      "sha256": "ade87f1b40b8a1b28da07d1908e73114e40d77f0595a9d6e919ae6dc8306a1f8"
+    },
+    "actual_inventory193": true,
+    "inventory": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/inventory.stdout",
+      "bytes": 19253,
+      "sha256": "2385e81d56a29afda8997a83dc0db00647cdc53d69cd5b53f01578fdc62676d6"
+    },
+    "cache_TAG_exists_recorded": false,
+    "cache_TAG_not_fabricated_no_cleanup_recorded": true
+  },
+  "Native_pair": {
+    "orchestrator": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/run-pair-v1.py",
+      "bytes": 4799,
+      "sha256": "a1a71b07cdae01257e4466af4e16aad3634a4186dca2a79fb6e4479093a081eb"
+    },
+    "orchestrator_receipt": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pair-execution-v1/execution.receipt.json",
+      "bytes": 614,
+      "sha256": "2ffdee537535c3b7e8a37453f4a33833047b424f73682a178cfab1209c401ec9"
+    },
+    "both_actual_wrapper_exits_zero": true,
+    "both_19_key_two_cut_marker_sets_revalidated_with_strict_types": true,
+    "runner": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-runner-v1/run-case.py",
+      "bytes": 11458,
+      "sha256": "66a53bff1bff2590e2a45dd9cc6e8507f6c0976b8935997af6f535c4f5527316"
+    },
+    "shared_build_helper": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-runner-v1/build.py",
+      "bytes": 11041,
+      "sha256": "1edc9ea863bf220b2bc165f3d7c5557f7aeed48e00ea9a9ffd4ee610c3fc9d66"
+    },
+    "cases": [
+      {
+        "major": 16,
+        "actual_test_exit_code": 0,
+        "actual_wrapper_exit_code": 0,
+        "seconds": 17.161200761795044,
+        "libtest_counts": [
+          [
+            1,
+            0,
+            0,
+            0,
+            192
+          ]
+        ],
+        "mandatory_DB_env": true,
+        "default_stack_compiler_overrides_absent": true,
+        "environment_allowlist": {
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_PROFILE_DEV_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+          "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+          "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+          "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+          "RUSTDOCFLAGS": "-D warnings",
+          "RUSTFLAGS": "-D warnings"
+        },
+        "database": {
+          "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+          "image_id": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+          "port": 55416,
+          "name": "stateknot_r1_waitfaultv1_20261016_pg16_runtime_b",
+          "URL_credentials_not_logged": true
+        },
+        "test_receipt": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/test.receipt.json",
+          "bytes": 3063,
+          "sha256": "4fb0d506ff8bc3db6898d432b607feea54aa702ff64493619debb9ef6e0c8fe8"
+        },
+        "observations": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/observations.json",
+          "bytes": 422,
+          "sha256": "8098ea3752d7b5b7687aefe2f0ae2ff9655a8e87c334f75b6f60495d27cfe7e8"
+        },
+        "raw_streams": {
+          "test.stderr": {
+            "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "redactions": 0,
+            "saved_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "saved_is_raw": true
+          },
+          "test.stdout": {
+            "raw_sha256": "81a7faa11a5b4e8aa44d744e97bc2762cf3954aba391b7ccb92200426228cc87",
+            "redactions": 0,
+            "saved_sha256": "81a7faa11a5b4e8aa44d744e97bc2762cf3954aba391b7ccb92200426228cc87",
+            "saved_is_raw": true
+          }
+        },
+        "two_strict_marker_rows": [
+          {
+            "arch": "aarch64",
+            "cold_driver_after_authorized_resolution": true,
+            "commit_forwarded": false,
+            "commit_response_forwarded": false,
+            "condition_count": 2,
+            "cut": "commit_not_forwarded",
+            "fresh_old_fence_wait_refused": true,
+            "invariants": "passed",
+            "original_request_ack_after_return_verified": false,
+            "original_wait_recovered": false,
+            "os": "macos",
+            "parent_application_calls": 1,
+            "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+            "profile": "scoped-wait-commit-loss-v1",
+            "scoped_successor_calls": 1,
+            "snapshot_tables": 22,
+            "termination": "SIGKILL",
+            "wait_application_redispatches": 0,
+            "writer_killed_and_reaped": true
+          },
+          {
+            "arch": "aarch64",
+            "cold_driver_after_authorized_resolution": true,
+            "commit_forwarded": true,
+            "commit_response_forwarded": false,
+            "condition_count": 2,
+            "cut": "commit_response_withheld",
+            "fresh_old_fence_wait_refused": null,
+            "invariants": "passed",
+            "original_request_ack_after_return_verified": true,
+            "original_wait_recovered": true,
+            "os": "macos",
+            "parent_application_calls": 1,
+            "postgres": "16.15 (Debian 16.15-1.pgdg13+2)",
+            "profile": "scoped-wait-commit-loss-v1",
+            "scoped_successor_calls": 1,
+            "snapshot_tables": 22,
+            "termination": "SIGKILL",
+            "wait_application_redispatches": 0,
+            "writer_killed_and_reaped": true
+          }
+        ],
+        "markers_file": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/verified-wait-markers.json",
+          "bytes": 1402,
+          "sha256": "1c893b1e6a47b7c9ece910110bfc5f6d1fba413b592b70e78d335a1277010b22"
+        },
+        "all_auxiliary_command_receipts_actual_zero_and_both_stream_hashes_checked": [
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/container-after.receipt.json",
+            "bytes": 525,
+            "sha256": "1d795dd32a9fc9f16d87df847878ce1e48a0996ee91d95abc703415a962297e6"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/container-before.receipt.json",
+            "bytes": 525,
+            "sha256": "8310281f38490bb2318fa803db5e5729cb0fc366fbf73a8c809a5a509ff23485"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/create-database.receipt.json",
+            "bytes": 486,
+            "sha256": "2fce45e14cd8acb8c5e68a45efb04790559beae82e1c87175c84e005bbf6be92"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/database-absent.receipt.json",
+            "bytes": 571,
+            "sha256": "3ec550db086e57491e10c68e07a4d3f2e1a0ad5ced56ec2821df989049acfee3"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/database-created.receipt.json",
+            "bytes": 539,
+            "sha256": "2a4b4af92211be39bb3b74bf06284e9669f3b2767aaafdfba1e0f956b88b9f1a"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/database-settings-after.receipt.json",
+            "bytes": 869,
+            "sha256": "3ea597048aaad451ba6576aeeaf94a25606c14b811d62da478c99604309638e3"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/database-settings-before.receipt.json",
+            "bytes": 871,
+            "sha256": "16f143dd8717968b5cb4ae5568651ba237b576964cf6bbd5768911351b536633"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/full-inventory.receipt.json",
+            "bytes": 467,
+            "sha256": "b3cf25f709049ee8a12e31b88e9b9f85381593b14903ff1f162957b64a354a47"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/server-settings-after.receipt.json",
+            "bytes": 829,
+            "sha256": "02c384e3168f6726594d0647312c5aa2f5ecb3823e1b7e28010586bffac11c1a"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/server-settings-before.receipt.json",
+            "bytes": 829,
+            "sha256": "4ba402c1e00e6e22488afd13f7553aee9db1ce6c54134e9a53ff4a9380647b7b"
+          }
+        ],
+        "container_settings_source_binary_before_after_exact": true,
+        "actual_container_and_settings_snapshots": [
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/container-before.stdout",
+            "bytes": 275,
+            "sha256": "1fb5404f880468ea00b47e7981897aa6e46075c4a533da5693c707f6c2cdb87d"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/container-after.stdout",
+            "bytes": 275,
+            "sha256": "1fb5404f880468ea00b47e7981897aa6e46075c4a533da5693c707f6c2cdb87d"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/server-settings-before.stdout",
+            "bytes": 299,
+            "sha256": "2c72fe053fd51ff20981da513f55c4a2697f6af6e9b07ccd4922bc696b0e917e"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/server-settings-after.stdout",
+            "bytes": 299,
+            "sha256": "2c72fe053fd51ff20981da513f55c4a2697f6af6e9b07ccd4922bc696b0e917e"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/database-settings-before.stdout",
+            "bytes": 299,
+            "sha256": "2c72fe053fd51ff20981da513f55c4a2697f6af6e9b07ccd4922bc696b0e917e"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/database-settings-after.stdout",
+            "bytes": 299,
+            "sha256": "2c72fe053fd51ff20981da513f55c4a2697f6af6e9b07ccd4922bc696b0e917e"
+          }
+        ],
+        "database_retained_no_cleanup": true
+      },
+      {
+        "major": 17,
+        "actual_test_exit_code": 0,
+        "actual_wrapper_exit_code": 0,
+        "seconds": 17.56702995300293,
+        "libtest_counts": [
+          [
+            1,
+            0,
+            0,
+            0,
+            192
+          ]
+        ],
+        "mandatory_DB_env": true,
+        "default_stack_compiler_overrides_absent": true,
+        "environment_allowlist": {
+          "CARGO_INCREMENTAL": "0",
+          "CARGO_PROFILE_DEV_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG": "0",
+          "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+          "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+          "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+          "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+          "RUSTDOCFLAGS": "-D warnings",
+          "RUSTFLAGS": "-D warnings"
+        },
+        "database": {
+          "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+          "image_id": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+          "port": 55417,
+          "name": "stateknot_r1_waitfaultv1_20261016_pg17_runtime_b",
+          "URL_credentials_not_logged": true
+        },
+        "test_receipt": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/test.receipt.json",
+          "bytes": 3062,
+          "sha256": "ba2d8d1fc615752a8259bd164100a9268e736e9f9896eaff6ef3d2408b485d2b"
+        },
+        "observations": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/observations.json",
+          "bytes": 422,
+          "sha256": "2357870eb3d7f216d378ad2e1bc2eabbaab03d41a4d4fbe1b1288c0d0de8f8e7"
+        },
+        "raw_streams": {
+          "test.stderr": {
+            "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "redactions": 0,
+            "saved_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "saved_is_raw": true
+          },
+          "test.stdout": {
+            "raw_sha256": "9beb5e5c6d0f503cf73e7275954e48615f4f32bd0cef9c9a612e986e7a50f9b4",
+            "redactions": 0,
+            "saved_sha256": "9beb5e5c6d0f503cf73e7275954e48615f4f32bd0cef9c9a612e986e7a50f9b4",
+            "saved_is_raw": true
+          }
+        },
+        "two_strict_marker_rows": [
+          {
+            "arch": "aarch64",
+            "cold_driver_after_authorized_resolution": true,
+            "commit_forwarded": false,
+            "commit_response_forwarded": false,
+            "condition_count": 2,
+            "cut": "commit_not_forwarded",
+            "fresh_old_fence_wait_refused": true,
+            "invariants": "passed",
+            "original_request_ack_after_return_verified": false,
+            "original_wait_recovered": false,
+            "os": "macos",
+            "parent_application_calls": 1,
+            "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+            "profile": "scoped-wait-commit-loss-v1",
+            "scoped_successor_calls": 1,
+            "snapshot_tables": 22,
+            "termination": "SIGKILL",
+            "wait_application_redispatches": 0,
+            "writer_killed_and_reaped": true
+          },
+          {
+            "arch": "aarch64",
+            "cold_driver_after_authorized_resolution": true,
+            "commit_forwarded": true,
+            "commit_response_forwarded": false,
+            "condition_count": 2,
+            "cut": "commit_response_withheld",
+            "fresh_old_fence_wait_refused": null,
+            "invariants": "passed",
+            "original_request_ack_after_return_verified": true,
+            "original_wait_recovered": true,
+            "os": "macos",
+            "parent_application_calls": 1,
+            "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+            "profile": "scoped-wait-commit-loss-v1",
+            "scoped_successor_calls": 1,
+            "snapshot_tables": 22,
+            "termination": "SIGKILL",
+            "wait_application_redispatches": 0,
+            "writer_killed_and_reaped": true
+          }
+        ],
+        "markers_file": {
+          "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/verified-wait-markers.json",
+          "bytes": 1402,
+          "sha256": "c90f120774c0a0a32e68904742caf4e1a871897648f9a75428ec2ef200bfb3a3"
+        },
+        "all_auxiliary_command_receipts_actual_zero_and_both_stream_hashes_checked": [
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/container-after.receipt.json",
+            "bytes": 524,
+            "sha256": "b541536bbe70bbfa37a6b9753dfdae0c098c51b06e689d060a56ae08edda163f"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/container-before.receipt.json",
+            "bytes": 526,
+            "sha256": "75f23b635c013bfde615aa175fe689971c911bc56ebe367b0a05ace8657537aa"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/create-database.receipt.json",
+            "bytes": 486,
+            "sha256": "0341a6d44b7b6403bb955ba6c6b6b17c6f5d08c3aca02b25e4d0308281f66631"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/database-absent.receipt.json",
+            "bytes": 571,
+            "sha256": "7424ba2614500a35aa5daf268b27770bd491f43ac7bcdf715991f8a1b8d6e1ef"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/database-created.receipt.json",
+            "bytes": 540,
+            "sha256": "bcd4f4e3e257e42081a1a9985be11e8d046afc96210db4f1e05b82d3a93ee3e9"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/database-settings-after.receipt.json",
+            "bytes": 868,
+            "sha256": "367f018e559aa2692346e96ef918f055dbcc4bcd8a30ef11e4dc18bc7482e4b1"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/database-settings-before.receipt.json",
+            "bytes": 869,
+            "sha256": "8659038802bd00c0a6ad4e8d017b2011ad458894a2e3afbeb932272f2ada2e8f"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/full-inventory.receipt.json",
+            "bytes": 466,
+            "sha256": "4cfbd45f8dd0933c359d7918b00b1ddbc26b890f2014251a812625839ee57604"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/server-settings-after.receipt.json",
+            "bytes": 829,
+            "sha256": "2ae00ed31d852082bf167a4c1ce27efd8b2c73d212547d6f488c55406352ca77"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/server-settings-before.receipt.json",
+            "bytes": 830,
+            "sha256": "de159df777c444e7896e3ba77c6ea05bae264d716bef61e639d06f6ccce6bfef"
+          }
+        ],
+        "container_settings_source_binary_before_after_exact": true,
+        "actual_container_and_settings_snapshots": [
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/container-before.stdout",
+            "bytes": 275,
+            "sha256": "2ec66f4f601aac49b77527a5284ed11c0b1fb32749c0c19433c5ea22dc8a8758"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/container-after.stdout",
+            "bytes": 275,
+            "sha256": "2ec66f4f601aac49b77527a5284ed11c0b1fb32749c0c19433c5ea22dc8a8758"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/server-settings-before.stdout",
+            "bytes": 299,
+            "sha256": "0cf482a5fe1b5e7415e4e2ce1e4d7ddf01495103d5548f4c3d923e5c79fe3a2b"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/server-settings-after.stdout",
+            "bytes": 299,
+            "sha256": "0cf482a5fe1b5e7415e4e2ce1e4d7ddf01495103d5548f4c3d923e5c79fe3a2b"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/database-settings-before.stdout",
+            "bytes": 299,
+            "sha256": "0cf482a5fe1b5e7415e4e2ce1e4d7ddf01495103d5548f4c3d923e5c79fe3a2b"
+          },
+          {
+            "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/database-settings-after.stdout",
+            "bytes": 299,
+            "sha256": "0cf482a5fe1b5e7415e4e2ce1e4d7ddf01495103d5548f4c3d923e5c79fe3a2b"
+          }
+        ],
+        "database_retained_no_cleanup": true
+      }
+    ]
+  },
+  "runtime_claim_scope": {
+    "owned_child_real_SIGKILL_reap_and_backend_disappearance_source_assertions_reached": true,
+    "cold_OS_worker_and_public_owning_readers_and_fresh_higher_fence_claim_verified": true,
+    "Before_fresh_old_fence_new_write_refused_only_Before": true,
+    "After_original_ACK_Idempotent_and_physical_no_write_checks_only_After": true,
+    "two_principal_and_scope_bound_interrupts_authorized_then_resumed": true,
+    "wrong_principal_scope_are_constructor_negatives_not_SQL_authorization_negatives": true,
+    "zero_Wait_application_redispatches_successor_once_parent_once_fixture_only": true,
+    "full_Root_authentication_lease_fence_quantum_business_budgets_and_original_elapsed_ReadyReleased_not_replaced": true
+  },
+  "cache_observations": {
+    "existing_six_native_build_run_snapshots": [
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/before-caches.json",
+        "bytes": 1154,
+        "sha256": "35e68669acf7fef7e22baf777510e5874a4bf37dbc6e5fe3d43e0dd036ffba4f"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/build-candidate-runtime/after-caches.json",
+        "bytes": 1154,
+        "sha256": "926ffcce51d8b7653d97d63ca4ca118efa94e088ddcc7482611b0eddace636af"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/before-caches.json",
+        "bytes": 1154,
+        "sha256": "926ffcce51d8b7653d97d63ca4ca118efa94e088ddcc7482611b0eddace636af"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg16-runtime-exact/after-caches.json",
+        "bytes": 1154,
+        "sha256": "926ffcce51d8b7653d97d63ca4ca118efa94e088ddcc7482611b0eddace636af"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/before-caches.json",
+        "bytes": 1154,
+        "sha256": "926ffcce51d8b7653d97d63ca4ca118efa94e088ddcc7482611b0eddace636af"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-native-v1/pg17-runtime-exact/after-caches.json",
+        "bytes": 1154,
+        "sha256": "926ffcce51d8b7653d97d63ca4ca118efa94e088ddcc7482611b0eddace636af"
+      }
+    ],
+    "all_recorded_cleanup_false": true,
+    "all_recorded_cache_directories_currently_exist": true,
+    "retained_paths": [
+      "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15",
+      "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36",
+      "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+      "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint-nightly",
+      "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1",
+      "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-native-opt1-nightly",
+      "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+      "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base-nightly"
+    ],
+    "historical_external_cleanup_absence_claimed": false
+  },
+  "reviewer_actions": {
+    "only_writes": "this new ignored execution-review directory",
+    "Rust_fmt_Clippy_DB_Docker_network_remote_or_cache_cleanup_executed": false,
+    "original_sources_artifacts_reports_or_main_tree_modified": false
+  },
+  "qualification_limits": [
+    "Exact source-v2 with 933 files/542 compiled inputs only.",
+    "Native profile uses macOS/aarch64 harness and owned Linux-container PostgreSQL16/17; not full Linux Runtime.",
+    "193 inventory includes a conditional worker; only one controller with two cuts executed per major.",
+    "No full Native Store/Runtime suite or whole CI from this evidence.",
+    "No transfer from the separate current CI head with 541 compiled inputs.",
+    "No whole frame fault-matrix, G4/R1/R2–R7/capacity/security/production/release completion."
+  ],
+  "report": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/graph-frame-wait-process-fault-execution-review-v1/REVIEW.zh-CN.md",
+    "bytes": 2128,
+    "sha256": "63b9ad7efe6b6aab55727a209d6fdf144fe677516593a3cc3983d2b7f77e3d08"
+  }
+}

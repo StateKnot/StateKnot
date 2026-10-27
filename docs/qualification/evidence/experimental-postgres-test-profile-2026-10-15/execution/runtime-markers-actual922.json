@@ -1,0 +1,55 @@
+{
+  "state": "offline counts of original922 full Runtime logs; source/binary qualification not transferred to new experiment",
+  "logs": [
+    {
+      "major": 16,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg16/stateknot-runtime/native.log",
+      "log_sha256": "4ef66c8c02efe383e5ef528fdc2d3786ddef94c2697d6a34de8f34de35a53024",
+      "markers": {
+        "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8,
+        "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9,
+        "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6,
+        "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+        "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_PROCESS_KILL_EVIDENCE": 6,
+        "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1
+      },
+      "test_summary": [
+        "test result: ok. 189 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1703.27s"
+      ]
+    },
+    {
+      "major": 17,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg17/stateknot-runtime/native.log",
+      "log_sha256": "cab9e47592df1d2a50e25a7785891ec709e85cf744e3bbb88d76b11466283f0d",
+      "markers": {
+        "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8,
+        "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9,
+        "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6,
+        "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1,
+        "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+        "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2,
+        "STATEKNOT_PROCESS_KILL_EVIDENCE": 6,
+        "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1
+      },
+      "test_summary": [
+        "test result: ok. 189 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1690.25s"
+      ]
+    }
+  ]
+}

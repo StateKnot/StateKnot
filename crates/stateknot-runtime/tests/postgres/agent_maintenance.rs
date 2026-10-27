@@ -3,8 +3,9 @@
 
 use super::*;
 use stateknot_runtime::{
-    agent_maintenance::*, register_standard_agent_deadline_event_schema,
-    register_standard_child_join_event_schema, register_standard_child_reconciliation_event_schema,
+    agent_maintenance::*, register_standard_agent_cancellation_event_schema,
+    register_standard_agent_deadline_event_schema, register_standard_child_join_event_schema,
+    register_standard_child_reconciliation_event_schema,
 };
 use std::sync::atomic::AtomicUsize;
 use tokio::time::{sleep, timeout};
@@ -25,12 +26,17 @@ impl AgentMaintenanceReadiness for Host {
         })
     }
 }
-fn schemas() -> JsonSchemaRegistry {
+fn four_schema_builder() -> JsonSchemaRegistryBuilder {
     let mut schemas = JsonSchemaRegistryBuilder::with_default_limits();
     register_standard_agent_deadline_event_schema(&mut schemas).unwrap();
     register_standard_child_reconciliation_event_schema(&mut schemas).unwrap();
     register_standard_child_join_event_schema(&mut schemas).unwrap();
     register_standard_run_failure_close_event_schema(&mut schemas).unwrap();
+    schemas
+}
+fn schemas() -> JsonSchemaRegistry {
+    let mut schemas = four_schema_builder();
+    register_standard_agent_cancellation_event_schema(&mut schemas).unwrap();
     schemas.build().unwrap()
 }
 fn binding(store: &PostgresStore, tenants: Vec<TenantId>) -> AgentMaintenanceBinding {
@@ -206,6 +212,11 @@ async fn owned_maintenance_drives_all_jobs_and_excludes_unauthorized_tenants() {
     );
     timeout(Duration::from_secs(30), async {
         loop {
+            let report = role.health().report();
+            let other = replica.health().report();
+            let all_jobs_completed = AgentMaintenanceJob::ALL
+                .iter()
+                .all(|job| report.job(*job).completed_ticks + other.job(*job).completed_ticks > 0);
             if store
                 .load_child_join(join.activation())
                 .await
@@ -213,6 +224,7 @@ async fn owned_maintenance_drives_all_jobs_and_excludes_unauthorized_tenants() {
                 .unwrap()
                 .head()
                 .is_some()
+                && all_jobs_completed
             {
                 break;
             }
@@ -238,7 +250,16 @@ async fn owned_maintenance_drives_all_jobs_and_excludes_unauthorized_tenants() {
     assert_eq!(report.failure, None);
     assert_eq!(other.failure, None);
     for job in AgentMaintenanceJob::ALL {
-        assert!(report.job(job).items + other.job(job).items > 0);
+        assert!(report.job(job).completed_ticks + other.job(job).completed_ticks > 0);
+        if job == AgentMaintenanceJob::FrameCancellation {
+            // This fixture has no whole-frame closure; cold continuation covers its effect.
+            assert_eq!(
+                report.job(job).item_failures + other.job(job).item_failures,
+                0
+            );
+        } else {
+            assert!(report.job(job).items + other.job(job).items > 0);
+        }
     }
     assert_eq!(role.health().active_ticks(), 0);
     assert_eq!(role.health().status(), AgentMaintenanceStatus::Stopped);
@@ -342,6 +363,7 @@ async fn owned_maintenance_advances_past_a_full_failed_page_and_restart_revisits
 }
 
 #[tokio::test]
+#[allow(clippy::too_many_lines)]
 async fn owned_maintenance_readiness_wait_drop_and_startup_fail_closed() {
     let _guard = DATABASE_TEST_MUTEX.lock().await;
     let Some(store) = test_store().await else {
@@ -373,6 +395,16 @@ async fn owned_maintenance_readiness_wait_drop_and_startup_fail_closed() {
         AgentMaintenanceBinding::new(
             store.clone(),
             incomplete.build().unwrap(),
+            vec![tenant.clone()],
+            AgentMaintenanceMutationOptions::default()
+        ),
+        Err(AgentMaintenanceError::SchemaUnavailable)
+    ));
+    // The original four schemas alone cannot authorize frame cancellation.
+    assert!(matches!(
+        AgentMaintenanceBinding::new(
+            store.clone(),
+            four_schema_builder().build().unwrap(),
             vec![tenant.clone()],
             AgentMaintenanceMutationOptions::default()
         ),

@@ -1,0 +1,48 @@
+{
+  "gate": "clippy",
+  "argv": [
+    "cargo",
+    "+1.88.0",
+    "clippy",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "cwd": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-source-v2",
+  "pid": 22140,
+  "runner_pid": 22130,
+  "runner_sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658",
+  "start_unix": 1792137553.285283,
+  "source_tree": "a92d20842f48ddf78edf8ac6f5009878ecf585aaedee29ebf8ed731b114eecbd",
+  "environment_allowlist": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_DEV_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_DEV_OPT_LEVEL": "0",
+    "CARGO_PROFILE_DEV_OVERFLOW_CHECKS": "true",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "0",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+    "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+    "RUSTDOCFLAGS": "-D warnings",
+    "RUSTFLAGS": "-D warnings"
+  },
+  "override_presence": {
+    "RUST_MIN_STACK": false,
+    "CARGO_ENCODED_RUSTFLAGS": false,
+    "RUSTC_WRAPPER": false,
+    "RUSTC_WORKSPACE_WRAPPER": false,
+    "RUSTC_BOOTSTRAP": false,
+    "RUSTC": false
+  },
+  "native_database_execution": false,
+  "exit_code": 101,
+  "seconds": 31.9999737739563,
+  "log_sha256": "ed165439a8e948f9ce6e1a842cea991b2f3a37953be395b0044d21da468d33ae",
+  "source_before_after_exact": true
+}

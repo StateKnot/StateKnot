@@ -1,0 +1,2385 @@
+{
+  "normalizations": "Only Box::new allocation wrappers, borrowing of the same values across private phases, ReplayContinuation qualification, continuation mutable-reference assignment, and explicit private outcome/continue adapters. Function-call trailing commas are ignored only at callable argument lists; tuple commas are retained. Literal/error/numeric and untouched method comparisons do not use semantic normalization.",
+  "checks": [
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:1:signature",
+      "equal": true,
+      "old_token_count": 36,
+      "new_token_count": 36,
+      "old_sha256": "bda6c913c59643a42cde197ebb13095eab1bf0d02e5381c47c0efa4e6624d86e",
+      "new_sha256": "bda6c913c59643a42cde197ebb13095eab1bf0d02e5381c47c0efa4e6624d86e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:1:body",
+      "equal": true,
+      "old_token_count": 187,
+      "new_token_count": 187,
+      "old_sha256": "8f77af50365060b0d4096ed96e7aca44e58a475fc3c6c04edbcc3a9fdfba0ff9",
+      "new_sha256": "8f77af50365060b0d4096ed96e7aca44e58a475fc3c6c04edbcc3a9fdfba0ff9"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:with_cancellation_timing:1:signature",
+      "equal": true,
+      "old_token_count": 23,
+      "new_token_count": 23,
+      "old_sha256": "94f3b0be0e4b3e2cdfc8d4f227eb80fcc32ea245d22b57094a7589bcba0334d6",
+      "new_sha256": "94f3b0be0e4b3e2cdfc8d4f227eb80fcc32ea245d22b57094a7589bcba0334d6"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:with_cancellation_timing:1:body",
+      "equal": true,
+      "old_token_count": 91,
+      "new_token_count": 91,
+      "old_sha256": "73f94ebd8b7690d763564c499761c8eb011d54fc2aa3901e1a7e5dc6a85e518d",
+      "new_sha256": "73f94ebd8b7690d763564c499761c8eb011d54fc2aa3901e1a7e5dc6a85e518d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:with_parallel_node_limit:1:signature",
+      "equal": true,
+      "old_token_count": 19,
+      "new_token_count": 19,
+      "old_sha256": "e84f46e408ead0f92e6863b9e7b2725376cb8546ee372fcd323e9be074ab752b",
+      "new_sha256": "e84f46e408ead0f92e6863b9e7b2725376cb8546ee372fcd323e9be074ab752b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:with_parallel_node_limit:1:body",
+      "equal": true,
+      "old_token_count": 34,
+      "new_token_count": 34,
+      "old_sha256": "626fd70526d91395eb7829b36eaacb2ec2f42ef4cb71e266fe9aff8c5208524e",
+      "new_sha256": "626fd70526d91395eb7829b36eaacb2ec2f42ef4cb71e266fe9aff8c5208524e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:replay_limits:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "36978c84019fc8c03e69c2bd8e0987d492e188db87927caaabe278b69e3352bf",
+      "new_sha256": "36978c84019fc8c03e69c2bd8e0987d492e188db87927caaabe278b69e3352bf"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:replay_limits:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "c5767b65cffd8d821e3e18ad21f43d88324e43782689dbf59c253dc958476dc7",
+      "new_sha256": "c5767b65cffd8d821e3e18ad21f43d88324e43782689dbf59c253dc958476dc7"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_durable_events:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "282e50833a140e0553c08793b500dc094c97c03d05398953b246a96631e1516a",
+      "new_sha256": "282e50833a140e0553c08793b500dc094c97c03d05398953b246a96631e1516a"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_durable_events:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "9a3cde795d8d2687f77dbc3f38bd46ca356bc971d145acefcc93bdd8eea38c23",
+      "new_sha256": "9a3cde795d8d2687f77dbc3f38bd46ca356bc971d145acefcc93bdd8eea38c23"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease_renewal_interval:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "ae4e0f78cf5adf8b829bbfc792421c57ac1a735a6ea349858abcec0c4c2c29b1",
+      "new_sha256": "ae4e0f78cf5adf8b829bbfc792421c57ac1a735a6ea349858abcec0c4c2c29b1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease_renewal_interval:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "af63abcceb9877eae79cb24268e433252fee7babf2da09c9a18a16f8432ac453",
+      "new_sha256": "af63abcceb9877eae79cb24268e433252fee7babf2da09c9a18a16f8432ac453"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_execution_timeout:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "8a2ba380ee4cf7720af0198bef4786fef83e64cb8e8346674d43c9cc97d64ac6",
+      "new_sha256": "8a2ba380ee4cf7720af0198bef4786fef83e64cb8e8346674d43c9cc97d64ac6"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_execution_timeout:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "0477832f77ca4472dffc42d965c7e692a71b37d7b99ec3eac98fca1acaff000c",
+      "new_sha256": "0477832f77ca4472dffc42d965c7e692a71b37d7b99ec3eac98fca1acaff000c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancellation_poll_interval:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "f26be7e5bcc3a4c4deb67f818d67174e04592f68d682e36243e70c810ee421b6",
+      "new_sha256": "f26be7e5bcc3a4c4deb67f818d67174e04592f68d682e36243e70c810ee421b6"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancellation_poll_interval:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "9bb0e6766952746b091d58b92517d74fccb0ef0b15e8f7732d6fcc060a51a4a2",
+      "new_sha256": "9bb0e6766952746b091d58b92517d74fccb0ef0b15e8f7732d6fcc060a51a4a2"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancellation_grace_period:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "3927533e2a373230cc4013d4f2b8aa4cc6e2f7620a04b2d9d3f07755d3a1566d",
+      "new_sha256": "3927533e2a373230cc4013d4f2b8aa4cc6e2f7620a04b2d9d3f07755d3a1566d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancellation_grace_period:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "96d42b43d38c7e654fedee6c4f7002ed14f065c25720e1a99e4be6f739cd3427",
+      "new_sha256": "96d42b43d38c7e654fedee6c4f7002ed14f065c25720e1a99e4be6f739cd3427"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_parallel_nodes:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "24f979d0f842f4f682e798610bf0e89006de5248871ba3be22206f2fe0075c72",
+      "new_sha256": "24f979d0f842f4f682e798610bf0e89006de5248871ba3be22206f2fe0075c72"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_parallel_nodes:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "35ee5c5563a2f65b6320e73f0208bc5469cbc32bcbf8ba459ea6f102e32da68f",
+      "new_sha256": "35ee5c5563a2f65b6320e73f0208bc5469cbc32bcbf8ba459ea6f102e32da68f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_mutation_attempts:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "e71ec3070eefe51a7ac1ed7263800e2cfae6ca349026020bcc5c8c7fa95f3359",
+      "new_sha256": "e71ec3070eefe51a7ac1ed7263800e2cfae6ca349026020bcc5c8c7fa95f3359"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_mutation_attempts:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "9d3837c12a65ec87b0354526c84471656c11f4a60a837738255963b2bb727dbe",
+      "new_sha256": "9d3837c12a65ec87b0354526c84471656c11f4a60a837738255963b2bb727dbe"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:mutation_retry_initial_delay:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "81af7be3a1f58b33d77abab1c7916a19e84b1d7f168bf44c2de60dca75c1d6b7",
+      "new_sha256": "81af7be3a1f58b33d77abab1c7916a19e84b1d7f168bf44c2de60dca75c1d6b7"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:mutation_retry_initial_delay:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "97792e08f6fe5bc0681c0a6738c3fe0d577fceeab8c13b319f99070f4a043a0e",
+      "new_sha256": "97792e08f6fe5bc0681c0a6738c3fe0d577fceeab8c13b319f99070f4a043a0e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:default:1:signature",
+      "equal": true,
+      "old_token_count": 7,
+      "new_token_count": 7,
+      "old_sha256": "23bc58be75e4f86dde560e3a9973a83c9e02b28c3efde378c8ff3cfddc8e8117",
+      "new_sha256": "23bc58be75e4f86dde560e3a9973a83c9e02b28c3efde378c8ff3cfddc8e8117"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:default:1:body",
+      "equal": true,
+      "old_token_count": 76,
+      "new_token_count": 76,
+      "old_sha256": "d7d9ed91ce8fedafba47e809a0874ea25e59bf66ce8fc34617e614d2b86f2f51",
+      "new_sha256": "d7d9ed91ce8fedafba47e809a0874ea25e59bf66ce8fc34617e614d2b86f2f51"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:2:signature",
+      "equal": true,
+      "old_token_count": 24,
+      "new_token_count": 24,
+      "old_sha256": "223bd7f8b11f82d66c61760e39e9375882bfada92def114265069644894a2822",
+      "new_sha256": "223bd7f8b11f82d66c61760e39e9375882bfada92def114265069644894a2822"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:2:body",
+      "equal": true,
+      "old_token_count": 130,
+      "new_token_count": 130,
+      "old_sha256": "99f832712edd13c11b2adfabd46f1dd98a89d0901dc6ff4bb0ea8ba2f04e817d",
+      "new_sha256": "99f832712edd13c11b2adfabd46f1dd98a89d0901dc6ff4bb0ea8ba2f04e817d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:with_direct_usage_evidence:1:signature",
+      "equal": true,
+      "old_token_count": 18,
+      "new_token_count": 18,
+      "old_sha256": "c5ded023940a2500d6d73c8ddf532077164a2ac30528d9f72d117e82414bf50e",
+      "new_sha256": "c5ded023940a2500d6d73c8ddf532077164a2ac30528d9f72d117e82414bf50e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:with_direct_usage_evidence:1:body",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "776f49b0d560e64bb4672b3fec8c26cc32ecbb124ab2d5d7f518d9ceae5a58c3",
+      "new_sha256": "776f49b0d560e64bb4672b3fec8c26cc32ecbb124ab2d5d7f518d9ceae5a58c3"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:execution_activity:1:signature",
+      "equal": true,
+      "old_token_count": 12,
+      "new_token_count": 12,
+      "old_sha256": "2be50eb5c9de6ae95e5196574e81c98b9db701de0d1e1334567732677eafecc5",
+      "new_sha256": "2be50eb5c9de6ae95e5196574e81c98b9db701de0d1e1334567732677eafecc5"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:execution_activity:1:body",
+      "equal": true,
+      "old_token_count": 7,
+      "new_token_count": 7,
+      "old_sha256": "f43416c8df2893056eb13ec02eb68ae15ba6c55331d49279528edcd3084fe8fa",
+      "new_sha256": "f43416c8df2893056eb13ec02eb68ae15ba6c55331d49279528edcd3084fe8fa"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:options:1:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "051373ba99e2772bd4dc938c6895dbe6787dc20aaf167a4e2063bacfcaa8449c",
+      "new_sha256": "051373ba99e2772bd4dc938c6895dbe6787dc20aaf167a4e2063bacfcaa8449c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:options:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "a32d699d8b3b4fecf9ee06e6aa609624a1afbb69d44737141da851302b921de8",
+      "new_sha256": "a32d699d8b3b4fecf9ee06e6aa609624a1afbb69d44737141da851302b921de8"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:drive:1:signature",
+      "equal": true,
+      "old_token_count": 28,
+      "new_token_count": 28,
+      "old_sha256": "9102777f585046e8baefe140d67c484aa3eee5e86800d24053c1f16a04372934",
+      "new_sha256": "9102777f585046e8baefe140d67c484aa3eee5e86800d24053c1f16a04372934"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:drive:1:body",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "ea6d9404d22ae8239a3b952595ad39d407b18cdca6619cc79ce2c275ddb8aa11",
+      "new_sha256": "ea6d9404d22ae8239a3b952595ad39d407b18cdca6619cc79ce2c275ddb8aa11"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:begin_recovery:1:signature",
+      "equal": true,
+      "old_token_count": 27,
+      "new_token_count": 27,
+      "old_sha256": "239cd311ce67c307890ee3b8912bcc7c0fc1d01cc34015ad85b289586e11dcdb",
+      "new_sha256": "239cd311ce67c307890ee3b8912bcc7c0fc1d01cc34015ad85b289586e11dcdb"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:begin_recovery:1:body",
+      "equal": true,
+      "old_token_count": 136,
+      "new_token_count": 136,
+      "old_sha256": "36bbd09d073caa0b73e9001b07eb397f8a8726f52c66e14075c85650d09de7fc",
+      "new_sha256": "36bbd09d073caa0b73e9001b07eb397f8a8726f52c66e14075c85650d09de7fc"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:refresh_near_expiry_lease:1:signature",
+      "equal": true,
+      "old_token_count": 24,
+      "new_token_count": 24,
+      "old_sha256": "b646c15f37a30768b53ddb25ba28f5c8c5c068b8811930e2c5dba92e810157ab",
+      "new_sha256": "b646c15f37a30768b53ddb25ba28f5c8c5c068b8811930e2c5dba92e810157ab"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:refresh_near_expiry_lease:1:body",
+      "equal": true,
+      "old_token_count": 283,
+      "new_token_count": 283,
+      "old_sha256": "a179180bee42cf69a36c9b21515103172ab1a9d6aeef52d7b125e95f9851a8ef",
+      "new_sha256": "a179180bee42cf69a36c9b21515103172ab1a9d6aeef52d7b125e95f9851a8ef"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:load_barrier_results:1:signature",
+      "equal": true,
+      "old_token_count": 39,
+      "new_token_count": 39,
+      "old_sha256": "0f457705a1be2960fd112664f5bfd60e3f6ad812efc4721791e88b35671bf595",
+      "new_sha256": "0f457705a1be2960fd112664f5bfd60e3f6ad812efc4721791e88b35671bf595"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:load_barrier_results:1:body",
+      "equal": true,
+      "old_token_count": 368,
+      "new_token_count": 368,
+      "old_sha256": "e3c9ed72d3a5132741258cdcd02fb5c7541a0e2646d91a1ceec1b01692c92d75",
+      "new_sha256": "e3c9ed72d3a5132741258cdcd02fb5c7541a0e2646d91a1ceec1b01692c92d75"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:commit_continue_barrier:1:signature",
+      "equal": true,
+      "old_token_count": 43,
+      "new_token_count": 43,
+      "old_sha256": "432b44626b74a2bbf2473e858f6bea0fb166b6610ba6caa142884c9e549e6b48",
+      "new_sha256": "432b44626b74a2bbf2473e858f6bea0fb166b6610ba6caa142884c9e549e6b48"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:commit_continue_barrier:1:body",
+      "equal": true,
+      "old_token_count": 348,
+      "new_token_count": 348,
+      "old_sha256": "a55ab05ac378020caa5b7630b7825915d8418810a9032b0c1c76ab4b2db37ba9",
+      "new_sha256": "a55ab05ac378020caa5b7630b7825915d8418810a9032b0c1c76ab4b2db37ba9"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:resolve_node_executor:1:signature",
+      "equal": true,
+      "old_token_count": 32,
+      "new_token_count": 32,
+      "old_sha256": "c2533b35486e733348d78839fc096816f558971e58dd22562391b0a80134d7d8",
+      "new_sha256": "c2533b35486e733348d78839fc096816f558971e58dd22562391b0a80134d7d8"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:resolve_node_executor:1:body",
+      "equal": true,
+      "old_token_count": 46,
+      "new_token_count": 46,
+      "old_sha256": "1c1fe79c18b6fed9470a0f22d33e724817dff8374895ef35732b14a6ff1aa27d",
+      "new_sha256": "1c1fe79c18b6fed9470a0f22d33e724817dff8374895ef35732b14a6ff1aa27d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:execute_started_nodes:1:signature",
+      "equal": true,
+      "old_token_count": 54,
+      "new_token_count": 54,
+      "old_sha256": "9eb6c6805519fded5743e9bf5450d70eaac677dca992368e49228879b8c731c0",
+      "new_sha256": "9eb6c6805519fded5743e9bf5450d70eaac677dca992368e49228879b8c731c0"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:execute_started_nodes:1:body",
+      "equal": true,
+      "old_token_count": 1277,
+      "new_token_count": 1277,
+      "old_sha256": "119066a88f540e7b36e5ebb3e2d0f6dc6cc3da006eb8e621faac37f954972d39",
+      "new_sha256": "119066a88f540e7b36e5ebb3e2d0f6dc6cc3da006eb8e621faac37f954972d39"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:observe_run_cancellation:1:signature",
+      "equal": true,
+      "old_token_count": 20,
+      "new_token_count": 20,
+      "old_sha256": "edfe236eaf05ee4f770944591ad8e0909f73464d1f01367ee950101d2af5fd83",
+      "new_sha256": "edfe236eaf05ee4f770944591ad8e0909f73464d1f01367ee950101d2af5fd83"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:observe_run_cancellation:1:body",
+      "equal": true,
+      "old_token_count": 108,
+      "new_token_count": 108,
+      "old_sha256": "04c444a68b85c6ab847a3da8894ce3d0c3b709e4ad1391fc3d9326dd183be4bf",
+      "new_sha256": "04c444a68b85c6ab847a3da8894ce3d0c3b709e4ad1391fc3d9326dd183be4bf"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:prepare_execution_lease:1:signature",
+      "equal": true,
+      "old_token_count": 26,
+      "new_token_count": 26,
+      "old_sha256": "9289bb6ca1115b2fa60499bed4dca3392654c443bcb60dc0bea7d870e7b7b567",
+      "new_sha256": "9289bb6ca1115b2fa60499bed4dca3392654c443bcb60dc0bea7d870e7b7b567"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:prepare_execution_lease:1:body",
+      "equal": true,
+      "old_token_count": 132,
+      "new_token_count": 132,
+      "old_sha256": "4347781c06603892edec35a6683b6b36ac19a339d2e397b1cc3ca8d329011e29",
+      "new_sha256": "4347781c06603892edec35a6683b6b36ac19a339d2e397b1cc3ca8d329011e29"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maintain_execution_lease:1:signature",
+      "equal": true,
+      "old_token_count": 61,
+      "new_token_count": 61,
+      "old_sha256": "5505450c8471c29e5ff7ed5e4fbc983df0d51ab6cb9d3ecb8d5815b52afe456f",
+      "new_sha256": "5505450c8471c29e5ff7ed5e4fbc983df0d51ab6cb9d3ecb8d5815b52afe456f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maintain_execution_lease:1:body",
+      "equal": true,
+      "old_token_count": 272,
+      "new_token_count": 272,
+      "old_sha256": "99776e644bc8a6a43aafd4a22b4b333787b2f67f08b459d66760cd197c1e870f",
+      "new_sha256": "99776e644bc8a6a43aafd4a22b4b333787b2f67f08b459d66760cd197c1e870f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:commit_node_execution:1:signature",
+      "equal": true,
+      "old_token_count": 53,
+      "new_token_count": 53,
+      "old_sha256": "d8a6dd4399e0e729c623c305bda0ae77453bf66ae58829871b2a9db5aa7f9fdb",
+      "new_sha256": "d8a6dd4399e0e729c623c305bda0ae77453bf66ae58829871b2a9db5aa7f9fdb"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:commit_node_execution:1:body",
+      "equal": true,
+      "old_token_count": 765,
+      "new_token_count": 765,
+      "old_sha256": "32da19f5742e2a6ce0d655ab02084c27696cbe4cfd527570f2963b6a7677adba",
+      "new_sha256": "32da19f5742e2a6ce0d655ab02084c27696cbe4cfd527570f2963b6a7677adba"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:register_child_join_with_retry:1:signature",
+      "equal": true,
+      "old_token_count": 40,
+      "new_token_count": 40,
+      "old_sha256": "fcc96f729e27a5d029de8fe339fd0895369125ad13cb7dd27abb2735843a5d50",
+      "new_sha256": "fcc96f729e27a5d029de8fe339fd0895369125ad13cb7dd27abb2735843a5d50"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:register_child_join_with_retry:1:body",
+      "equal": true,
+      "old_token_count": 249,
+      "new_token_count": 249,
+      "old_sha256": "0d0b882b09d48b985251768c161928c4dcd175adf6f812ed99c3f70fea9f5ad1",
+      "new_sha256": "0d0b882b09d48b985251768c161928c4dcd175adf6f812ed99c3f70fea9f5ad1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:run_cancellation_requested:1:signature",
+      "equal": true,
+      "old_token_count": 19,
+      "new_token_count": 19,
+      "old_sha256": "b938fd98dbd798f22abc5a62e72cfa4c28a6ca34d19e6d8466d9031482f52eb9",
+      "new_sha256": "b938fd98dbd798f22abc5a62e72cfa4c28a6ca34d19e6d8466d9031482f52eb9"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:run_cancellation_requested:1:body",
+      "equal": true,
+      "old_token_count": 52,
+      "new_token_count": 52,
+      "old_sha256": "ebc032c489f53e5d7eb7fc78b213c19ce116ad2160bb32ece104376fa54d4ce3",
+      "new_sha256": "ebc032c489f53e5d7eb7fc78b213c19ce116ad2160bb32ece104376fa54d4ce3"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:start_node_with_retry:1:signature",
+      "equal": true,
+      "old_token_count": 42,
+      "new_token_count": 42,
+      "old_sha256": "414f7cbbfbe6be9ece9a8f3f8e44627235ce43c2dcbba93569ca875193d5cf77",
+      "new_sha256": "414f7cbbfbe6be9ece9a8f3f8e44627235ce43c2dcbba93569ca875193d5cf77"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:start_node_with_retry:1:body",
+      "equal": true,
+      "old_token_count": 150,
+      "new_token_count": 150,
+      "old_sha256": "612e5c556b982dd16b913925cc0f2e04d0552d64f3290a8ce02560ac54664edb",
+      "new_sha256": "612e5c556b982dd16b913925cc0f2e04d0552d64f3290a8ce02560ac54664edb"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:succeed_node_with_retry:1:signature",
+      "equal": true,
+      "old_token_count": 49,
+      "new_token_count": 49,
+      "old_sha256": "5a4f698e2fedcaec973dde45337633bf3f30a8f7c16bedcae0ebffbadcd8e953",
+      "new_sha256": "5a4f698e2fedcaec973dde45337633bf3f30a8f7c16bedcae0ebffbadcd8e953"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:succeed_node_with_retry:1:body",
+      "equal": true,
+      "old_token_count": 127,
+      "new_token_count": 127,
+      "old_sha256": "734aa08d1f4a0dc69b7ea20a1cb36e3c338d61aee70071037887074ff24a271a",
+      "new_sha256": "734aa08d1f4a0dc69b7ea20a1cb36e3c338d61aee70071037887074ff24a271a"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:fail_node_with_retry:1:signature",
+      "equal": true,
+      "old_token_count": 49,
+      "new_token_count": 49,
+      "old_sha256": "1b625c1f36915675e1d4f824d97ca581eb385f6ee7692917d056227d6721589f",
+      "new_sha256": "1b625c1f36915675e1d4f824d97ca581eb385f6ee7692917d056227d6721589f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:fail_node_with_retry:1:body",
+      "equal": true,
+      "old_token_count": 127,
+      "new_token_count": 127,
+      "old_sha256": "7086c58388459c149bd6b1e920303364bdb11abf17d0246ec702d59321243a04",
+      "new_sha256": "7086c58388459c149bd6b1e920303364bdb11abf17d0246ec702d59321243a04"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:renew_with_retry:1:signature",
+      "equal": true,
+      "old_token_count": 30,
+      "new_token_count": 30,
+      "old_sha256": "1fdeb8944f61d03698aee6931d9a2c72c778a08cc4fdc86b6cf9ce61994ee378",
+      "new_sha256": "1fdeb8944f61d03698aee6931d9a2c72c778a08cc4fdc86b6cf9ce61994ee378"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:renew_with_retry:1:body",
+      "equal": true,
+      "old_token_count": 217,
+      "new_token_count": 217,
+      "old_sha256": "f810f929864ec34a361eaf2dbc2d37715211deba29dae2127decb4df2e457c95",
+      "new_sha256": "f810f929864ec34a361eaf2dbc2d37715211deba29dae2127decb4df2e457c95"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:schedule_deferred_with_retry:1:signature",
+      "equal": true,
+      "old_token_count": 26,
+      "new_token_count": 26,
+      "old_sha256": "925b2366fa85dc433f506f62225488478c60a50adbfc9e9db84118ace60e2a04",
+      "new_sha256": "925b2366fa85dc433f506f62225488478c60a50adbfc9e9db84118ace60e2a04"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:schedule_deferred_with_retry:1:body",
+      "equal": true,
+      "old_token_count": 129,
+      "new_token_count": 129,
+      "old_sha256": "d08d6c42c0d988fb507f77c2e4d7b3d9269293c7dde00304bc71aa43cd149448",
+      "new_sha256": "d08d6c42c0d988fb507f77c2e4d7b3d9269293c7dde00304bc71aa43cd149448"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:release_with_retry:1:signature",
+      "equal": true,
+      "old_token_count": 26,
+      "new_token_count": 26,
+      "old_sha256": "8bf7de09a43d187d298531d96a0aa9f7eea7f4297f403289771f760c805a70d0",
+      "new_sha256": "8bf7de09a43d187d298531d96a0aa9f7eea7f4297f403289771f760c805a70d0"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:release_with_retry:1:body",
+      "equal": true,
+      "old_token_count": 99,
+      "new_token_count": 99,
+      "old_sha256": "b830adf56a50d9baf361451b0ad722ad3fcae3499b21a2f6560a9b7aabd28247",
+      "new_sha256": "b830adf56a50d9baf361451b0ad722ad3fcae3499b21a2f6560a9b7aabd28247"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:can_retry_mutation:1:signature",
+      "equal": true,
+      "old_token_count": 18,
+      "new_token_count": 18,
+      "old_sha256": "29af25ce7f4b0bc6969b5fc2dc959a82138001503e1426bb7c048c842b55e20e",
+      "new_sha256": "29af25ce7f4b0bc6969b5fc2dc959a82138001503e1426bb7c048c842b55e20e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:can_retry_mutation:1:body",
+      "equal": true,
+      "old_token_count": 14,
+      "new_token_count": 14,
+      "old_sha256": "54fb26f9293a3db9148591352e47f71057fe5d8182e5d35f7d4226d46cd74310",
+      "new_sha256": "54fb26f9293a3db9148591352e47f71057fe5d8182e5d35f7d4226d46cd74310"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:mutation_backoff:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "d13abd2fc734ad099ac951be82255a7d0f8aae891164b7311a5690aa07aa36af",
+      "new_sha256": "d13abd2fc734ad099ac951be82255a7d0f8aae891164b7311a5690aa07aa36af"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:mutation_backoff:1:body",
+      "equal": true,
+      "old_token_count": 66,
+      "new_token_count": 66,
+      "old_sha256": "44cbea699a97a0dc311a52d2d8aed86bb57c97009ee5e4e4f9e5c9328db90f8f",
+      "new_sha256": "44cbea699a97a0dc311a52d2d8aed86bb57c97009ee5e4e4f9e5c9328db90f8f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_started_payload:1:signature",
+      "equal": true,
+      "old_token_count": 37,
+      "new_token_count": 37,
+      "old_sha256": "a28dfa1e6aa3b22eda59d5a09d696060dcfc8ab7b9820c9d6fac3b90e58d94ea",
+      "new_sha256": "a28dfa1e6aa3b22eda59d5a09d696060dcfc8ab7b9820c9d6fac3b90e58d94ea"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_started_payload:1:body",
+      "equal": true,
+      "old_token_count": 72,
+      "new_token_count": 72,
+      "old_sha256": "fd323ba2767deb91f1889979e705b61dcb32372b8e834cfecbd1c133150ced4b",
+      "new_sha256": "fd323ba2767deb91f1889979e705b61dcb32372b8e834cfecbd1c133150ced4b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_succeeded_payload:1:signature",
+      "equal": true,
+      "old_token_count": 29,
+      "new_token_count": 29,
+      "old_sha256": "531b01a9417416223206f79a1ab3a2acc32edef0f7878a4645142d69ecc72856",
+      "new_sha256": "531b01a9417416223206f79a1ab3a2acc32edef0f7878a4645142d69ecc72856"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_succeeded_payload:1:body",
+      "equal": true,
+      "old_token_count": 104,
+      "new_token_count": 104,
+      "old_sha256": "d02cd0a8f3c98378e0f17a9baaf8b9d7a12875e0a9950c4d62f8a26f13b66b0c",
+      "new_sha256": "d02cd0a8f3c98378e0f17a9baaf8b9d7a12875e0a9950c4d62f8a26f13b66b0c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_failed_payload:1:signature",
+      "equal": true,
+      "old_token_count": 29,
+      "new_token_count": 29,
+      "old_sha256": "0aeed2bbaf98fee3f01a5ece34ad4b40d95c7e5510891506f55ad709c0bef89b",
+      "new_sha256": "0aeed2bbaf98fee3f01a5ece34ad4b40d95c7e5510891506f55ad709c0bef89b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_failed_payload:1:body",
+      "equal": true,
+      "old_token_count": 105,
+      "new_token_count": 105,
+      "old_sha256": "6198e969385df86c4d0292e1dcf45dd32de9b18c5c939f19add2fe466e855f23",
+      "new_sha256": "6198e969385df86c4d0292e1dcf45dd32de9b18c5c939f19add2fe466e855f23"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:event_payload:1:signature",
+      "equal": true,
+      "old_token_count": 25,
+      "new_token_count": 25,
+      "old_sha256": "3a208ecaa5b3296d34a8a663e89f3a6769b9c684e89a055041275af4d367d5bb",
+      "new_sha256": "3a208ecaa5b3296d34a8a663e89f3a6769b9c684e89a055041275af4d367d5bb"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:event_payload:1:body",
+      "equal": true,
+      "old_token_count": 105,
+      "new_token_count": 105,
+      "old_sha256": "78928a1656d3400badb72896136eb3ef2a9e5973aa06c278bc2a5de0044f9e70",
+      "new_sha256": "78928a1656d3400badb72896136eb3ef2a9e5973aa06c278bc2a5de0044f9e70"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_timeout_failure:1:signature",
+      "equal": true,
+      "old_token_count": 12,
+      "new_token_count": 12,
+      "old_sha256": "b3809642e0877cd63f7999efa5aa7de3377003814f7f77883318b72dcbabaaf6",
+      "new_sha256": "b3809642e0877cd63f7999efa5aa7de3377003814f7f77883318b72dcbabaaf6"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_timeout_failure:1:body",
+      "equal": true,
+      "old_token_count": 49,
+      "new_token_count": 49,
+      "old_sha256": "a1f19f9d505596bd0eac12a0a02ff1326b4ad6c173f13852931ee35c78a532c8",
+      "new_sha256": "a1f19f9d505596bd0eac12a0a02ff1326b4ad6c173f13852931ee35c78a532c8"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_panic_failure:1:signature",
+      "equal": true,
+      "old_token_count": 17,
+      "new_token_count": 17,
+      "old_sha256": "7d577a2ed4b4126f2f688d52da28f429f203cc7ef3c98e830b977da040751886",
+      "new_sha256": "7d577a2ed4b4126f2f688d52da28f429f203cc7ef3c98e830b977da040751886"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_panic_failure:1:body",
+      "equal": true,
+      "old_token_count": 61,
+      "new_token_count": 61,
+      "old_sha256": "b2fc7c5802e99a1fe6abe21f4b0467745c52e934a9443d529000a997d56c5d0f",
+      "new_sha256": "b2fc7c5802e99a1fe6abe21f4b0467745c52e934a9443d529000a997d56c5d0f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:fmt:1:signature",
+      "equal": true,
+      "old_token_count": 24,
+      "new_token_count": 24,
+      "old_sha256": "b204dd691233ea992f13baab2dc6d1b93d8b09420fb8fe927392719102ddaa11",
+      "new_sha256": "b204dd691233ea992f13baab2dc6d1b93d8b09420fb8fe927392719102ddaa11"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:fmt:1:body",
+      "equal": true,
+      "old_token_count": 40,
+      "new_token_count": 40,
+      "old_sha256": "6d2e95ae58e11b2990944a82e7115f5d2462ba33a93d506dff525ccabf005509",
+      "new_sha256": "6d2e95ae58e11b2990944a82e7115f5d2462ba33a93d506dff525ccabf005509"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:empty:1:signature",
+      "equal": true,
+      "old_token_count": 7,
+      "new_token_count": 7,
+      "old_sha256": "d2d6ed5f5cd65d61ca3a0c993b1cf81ca3a862a58a40f643ab32f254b48bfd2c",
+      "new_sha256": "d2d6ed5f5cd65d61ca3a0c993b1cf81ca3a862a58a40f643ab32f254b48bfd2c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:empty:1:body",
+      "equal": true,
+      "old_token_count": 43,
+      "new_token_count": 43,
+      "old_sha256": "38965b077744dca125040989469b377fe0eafd2c6a195f96805c07877a2d3b19",
+      "new_sha256": "38965b077744dca125040989469b377fe0eafd2c6a195f96805c07877a2d3b19"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:from_completed:1:signature",
+      "equal": true,
+      "old_token_count": 14,
+      "new_token_count": 14,
+      "old_sha256": "bd17191fbb0cda34fbc688581333577412f824eee74f7aa7cff2af0ff43a2de0",
+      "new_sha256": "bd17191fbb0cda34fbc688581333577412f824eee74f7aa7cff2af0ff43a2de0"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:from_completed:1:body",
+      "equal": true,
+      "old_token_count": 83,
+      "new_token_count": 83,
+      "old_sha256": "402bcf7210ec956bd40269c43f88f6f27e9872abe76085d2f0935268491d606f",
+      "new_sha256": "402bcf7210ec956bd40269c43f88f6f27e9872abe76085d2f0935268491d606f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:root_checkpoints_validated:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "1c5fc4dc1596284cb6ec3db8defce63c433ca44f214701e1731da13f8b149eab",
+      "new_sha256": "1c5fc4dc1596284cb6ec3db8defce63c433ca44f214701e1731da13f8b149eab"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:root_checkpoints_validated:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "aee488285fe1166ab98af03b1f16e7804dd56b92384eaddf951c82c0128ca6ea",
+      "new_sha256": "aee488285fe1166ab98af03b1f16e7804dd56b92384eaddf951c82c0128ca6ea"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_checkpoints_validated:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "65baf381b630bfc140d21f9bf85056773375be6305246b08fbea21872ed774da",
+      "new_sha256": "65baf381b630bfc140d21f9bf85056773375be6305246b08fbea21872ed774da"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_checkpoints_validated:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "6c90f71794386f9f3f3549945f8321baab14c4728223e71a0cc57dfff2d8400d",
+      "new_sha256": "6c90f71794386f9f3f3549945f8321baab14c4728223e71a0cc57dfff2d8400d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:barriers_replayed:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "52b3a300c943369a5fbdb7e26a2c6301f5a9e4491c066f951adf4b1d13678b1c",
+      "new_sha256": "52b3a300c943369a5fbdb7e26a2c6301f5a9e4491c066f951adf4b1d13678b1c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:barriers_replayed:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "d9b63ae07fb6be28fc5c55e704879373de3be550e47cce8578f95f621df0c16b",
+      "new_sha256": "d9b63ae07fb6be28fc5c55e704879373de3be550e47cce8578f95f621df0c16b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:results_replayed:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "401ce079d6eafad1465df34341c8d36f955a84e2fa085dd0c2a24f0ae3b37c66",
+      "new_sha256": "401ce079d6eafad1465df34341c8d36f955a84e2fa085dd0c2a24f0ae3b37c66"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:results_replayed:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "0bfe2336889d000b3622498bca0297d177b901f0bd2bc2479e52542e1abb41d6",
+      "new_sha256": "0bfe2336889d000b3622498bca0297d177b901f0bd2bc2479e52542e1abb41d6"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frames_validated:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "8098ba12a51b2226b7ca4d7f12a10728539c8a13ce4171356508ff54c6ff1b85",
+      "new_sha256": "8098ba12a51b2226b7ca4d7f12a10728539c8a13ce4171356508ff54c6ff1b85"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frames_validated:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "b3a8c72424c7a0658cab0bc9d067c506e6b270c12a4165ae9fbbf92ff23e0835",
+      "new_sha256": "b3a8c72424c7a0658cab0bc9d067c506e6b270c12a4165ae9fbbf92ff23e0835"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:returns_validated:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "2a2254ddc6cb18e4814c169d09fee46e4c65fba85ca16d41ae43017d3ee89af8",
+      "new_sha256": "2a2254ddc6cb18e4814c169d09fee46e4c65fba85ca16d41ae43017d3ee89af8"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:returns_validated:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "c358c237c5db7fa8f2c2e303967a7877877e0a6b8b12b6cc42f0eb0f756ba209",
+      "new_sha256": "c358c237c5db7fa8f2c2e303967a7877877e0a6b8b12b6cc42f0eb0f756ba209"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:waits_validated:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "33c0ceda30d8e488a071a40a6fdf5b2a3cc15c57330722dc790b90b37962d5c3",
+      "new_sha256": "33c0ceda30d8e488a071a40a6fdf5b2a3cc15c57330722dc790b90b37962d5c3"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:waits_validated:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "05570dc117ba4a6814198febc968998cd1c4b6b03be90332592277f476a8b607",
+      "new_sha256": "05570dc117ba4a6814198febc968998cd1c4b6b03be90332592277f476a8b607"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_barrier_result_bytes:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "51c224560dbe163e177276fa326f7d2dba8effb0523669a47ab20ee4054d8970",
+      "new_sha256": "51c224560dbe163e177276fa326f7d2dba8effb0523669a47ab20ee4054d8970"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_barrier_result_bytes:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "4ccdae4e3f957c6b3434620247091f42e274cecb0c7379686d69103b679d1425",
+      "new_sha256": "4ccdae4e3f957c6b3434620247091f42e274cecb0c7379686d69103b679d1425"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:manifest_bytes:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "253852a06b14950456b93ed26ade8e6661581c7115c9eb0df858106b98aa3e0b",
+      "new_sha256": "253852a06b14950456b93ed26ade8e6661581c7115c9eb0df858106b98aa3e0b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:manifest_bytes:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "f0271dc84a4a576832cd1a0418bddce4c042b2dcfc69ee8132ec99d575c4d66f",
+      "new_sha256": "f0271dc84a4a576832cd1a0418bddce4c042b2dcfc69ee8132ec99d575c4d66f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:structural_edges_verified:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "085da712ba82e5e1ad10a53239cc057f9f47b607bcce10acc53685cb7b73d635",
+      "new_sha256": "085da712ba82e5e1ad10a53239cc057f9f47b607bcce10acc53685cb7b73d635"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:structural_edges_verified:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "c3f51de077deeee2ed185a61509fae5944539597785b6454bd62e7986bdbefac",
+      "new_sha256": "c3f51de077deeee2ed185a61509fae5944539597785b6454bd62e7986bdbefac"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:3:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "7a44fee360b2a1b503e52952b4d2f9049a9358bad0a8e6943a4efc48d0dff061",
+      "new_sha256": "7a44fee360b2a1b503e52952b4d2f9049a9358bad0a8e6943a4efc48d0dff061"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:3:body",
+      "equal": true,
+      "old_token_count": 66,
+      "new_token_count": 66,
+      "old_sha256": "d5524c8e66391ad37970554292233f8e2d305fe96d050e99049da160ce2fc26f",
+      "new_sha256": "d5524c8e66391ad37970554292233f8e2d305fe96d050e99049da160ce2fc26f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:replay:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "839f65e7bf300d890bb65e4306b6b33154151f81faf6d4f33c82432530601501",
+      "new_sha256": "839f65e7bf300d890bb65e4306b6b33154151f81faf6d4f33c82432530601501"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:replay:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "33a93bd5fa6c86776b2d42c211aebca571a939c3af557f737839b19fcebc43d3",
+      "new_sha256": "33a93bd5fa6c86776b2d42c211aebca571a939c3af557f737839b19fcebc43d3"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:whole_replay:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "35b0dee1af9a763ca731fbddfbfaf40b740ffdc8545c10cf3fdc464c3bca5d94",
+      "new_sha256": "35b0dee1af9a763ca731fbddfbfaf40b740ffdc8545c10cf3fdc464c3bca5d94"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:whole_replay:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "554bcf8d8967f34a695dffff0299365fc0858cc64d86a56dd056c0b5537b3785",
+      "new_sha256": "554bcf8d8967f34a695dffff0299365fc0858cc64d86a56dd056c0b5537b3785"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:whole_replay_passes:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "58c0b9f1f648e6e2dda465077701b196d1977dc8e71a65fb9d48e5927f346426",
+      "new_sha256": "58c0b9f1f648e6e2dda465077701b196d1977dc8e71a65fb9d48e5927f346426"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:whole_replay_passes:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "cec36badc05017c998c11501ca17142b4e5b1c8ec0a925867be707b02bb9f332",
+      "new_sha256": "cec36badc05017c998c11501ca17142b4e5b1c8ec0a925867be707b02bb9f332"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_entries_committed:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "b2ee43d6c09a208bd12811f6b19cbd5b7dcbc4dfa3349ddd70e03b84364951f4",
+      "new_sha256": "b2ee43d6c09a208bd12811f6b19cbd5b7dcbc4dfa3349ddd70e03b84364951f4"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_entries_committed:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "cd33019fb7bc3da1503aba5eabaecf8d6cb7074e5e93d1ef9ed9cc095e59b0a2",
+      "new_sha256": "cd33019fb7bc3da1503aba5eabaecf8d6cb7074e5e93d1ef9ed9cc095e59b0a2"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_barriers_committed:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "78ba01d896ff6452f8bc7d4f5153b3f899dd05b6b06d2059a29a38374f3e30cb",
+      "new_sha256": "78ba01d896ff6452f8bc7d4f5153b3f899dd05b6b06d2059a29a38374f3e30cb"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_barriers_committed:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "1568e04ae03fdb57106aeab911389d825496f5639e4d6416520b09739547d37c",
+      "new_sha256": "1568e04ae03fdb57106aeab911389d825496f5639e4d6416520b09739547d37c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_returns_committed:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "4f73cfb7b2dfa67fbc73c5ca7fe03c02860220036594b7564d49d5ea8d59d037",
+      "new_sha256": "4f73cfb7b2dfa67fbc73c5ca7fe03c02860220036594b7564d49d5ea8d59d037"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_returns_committed:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "60643709fa7fa288d79bb42fb835badee68bfed45ca93a9cb70cf4909b464294",
+      "new_sha256": "60643709fa7fa288d79bb42fb835badee68bfed45ca93a9cb70cf4909b464294"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_callers_rebound:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "3d034141830269cd051ba12fd8f8c8eb08affd34f7f61ad266b5f8f08da274d0",
+      "new_sha256": "3d034141830269cd051ba12fd8f8c8eb08affd34f7f61ad266b5f8f08da274d0"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:frame_callers_rebound:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "ac2032d7ec5ff2f4aa2243e29ead185c6efe1ec31354e2c59ad5052a857f3d60",
+      "new_sha256": "ac2032d7ec5ff2f4aa2243e29ead185c6efe1ec31354e2c59ad5052a857f3d60"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:durable_events:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "13393dee2fd9e13e7bcb80da8ce42aefd713cf66d1ab21c6ac0df404f087c06f",
+      "new_sha256": "13393dee2fd9e13e7bcb80da8ce42aefd713cf66d1ab21c6ac0df404f087c06f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:durable_events:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "c169dcb30232589e559ecb96b6aeeec31c03a73827f839ea41ce94d3dd87539c",
+      "new_sha256": "c169dcb30232589e559ecb96b6aeeec31c03a73827f839ea41ce94d3dd87539c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_attempts_started:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "f653f8e310e8cd44607cbae6c093608c127f3cc7b0ee63c61b278965ec2d1726",
+      "new_sha256": "f653f8e310e8cd44607cbae6c093608c127f3cc7b0ee63c61b278965ec2d1726"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_attempts_started:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "bf9dc2a335d0baf9660e36af1d865deae4681ee6b0dcc16f482010f530b5bf45",
+      "new_sha256": "bf9dc2a335d0baf9660e36af1d865deae4681ee6b0dcc16f482010f530b5bf45"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_attempts_completed:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "9c029ccdf4bb78a871fddf19e12a325aea6e274be49347db4e3cd4f9b4f2ef40",
+      "new_sha256": "9c029ccdf4bb78a871fddf19e12a325aea6e274be49347db4e3cd4f9b4f2ef40"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_attempts_completed:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "5cd8911c505c4e058333d2286fa07cadc935837b84f51d5d6877e2059dd995e0",
+      "new_sha256": "5cd8911c505c4e058333d2286fa07cadc935837b84f51d5d6877e2059dd995e0"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_batches_started:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "eb6ca4ad4ab4d1ba598705dccee49eb4e138470ae0df1642516b848b40fde5fd",
+      "new_sha256": "eb6ca4ad4ab4d1ba598705dccee49eb4e138470ae0df1642516b848b40fde5fd"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:node_batches_started:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "afc4aab077940dfa010c8e3b51142356dfd66476eb19c74a69af2c3d59069334",
+      "new_sha256": "afc4aab077940dfa010c8e3b51142356dfd66476eb19c74a69af2c3d59069334"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_nodes_in_batch:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "2837830f0ccef5a325b645183fe329c93a1ff45c93d25149a31d277f9b1f3dc0",
+      "new_sha256": "2837830f0ccef5a325b645183fe329c93a1ff45c93d25149a31d277f9b1f3dc0"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:maximum_nodes_in_batch:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "4f34cf446cd0c660445c45252c7938280a9bd16d4c47dab066d45ff2bf83d89a",
+      "new_sha256": "4f34cf446cd0c660445c45252c7938280a9bd16d4c47dab066d45ff2bf83d89a"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:barriers_committed:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "057aa5dd03e94ea271a287607825efaa683c2d387c4fe91902d513d4376107f9",
+      "new_sha256": "057aa5dd03e94ea271a287607825efaa683c2d387c4fe91902d513d4376107f9"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:barriers_committed:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "114b379018ae9877e8940ff7c3a9a6f5811b41ddb8d72e17f769a6e67be8ccc3",
+      "new_sha256": "114b379018ae9877e8940ff7c3a9a6f5811b41ddb8d72e17f769a6e67be8ccc3"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease_renewals:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "a92dd7bad494e8e192498d1c074758111fb1cf8d4c04c8f3f556b36d889ad798",
+      "new_sha256": "a92dd7bad494e8e192498d1c074758111fb1cf8d4c04c8f3f556b36d889ad798"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease_renewals:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "3a6d56150eae5255fe8e17d4e6d8248f4ce9a683cfca70fea24a28dc94822a3c",
+      "new_sha256": "3a6d56150eae5255fe8e17d4e6d8248f4ce9a683cfca70fea24a28dc94822a3c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:mutation_retries:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "d6f3c014ebff6d6dafa9f785f068e3af86075948798e81f9c8fc968820072623",
+      "new_sha256": "d6f3c014ebff6d6dafa9f785f068e3af86075948798e81f9c8fc968820072623"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:mutation_retries:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "e507ca99ef7bbc9b82b3080b77994b28bc88ba1e3f3268f5b053ca0d39635324",
+      "new_sha256": "e507ca99ef7bbc9b82b3080b77994b28bc88ba1e3f3268f5b053ca0d39635324"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:4:signature",
+      "equal": true,
+      "old_token_count": 14,
+      "new_token_count": 14,
+      "old_sha256": "bff64c61a22fa25489047c894e58ccacd35e9f335a713e35810243830472c41e",
+      "new_sha256": "bff64c61a22fa25489047c894e58ccacd35e9f335a713e35810243830472c41e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:4:body",
+      "equal": true,
+      "old_token_count": 6,
+      "new_token_count": 6,
+      "old_sha256": "0f49b8c90842985b63fc863f1342f7bd8c4a2b0f92a73228b49f2bf1318ee945",
+      "new_sha256": "0f49b8c90842985b63fc863f1342f7bd8c4a2b0f92a73228b49f2bf1318ee945"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:outcome:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "4f46c5560709c25be6a948596e16efd33d285e70b026e4331584a9a93015d803",
+      "new_sha256": "4f46c5560709c25be6a948596e16efd33d285e70b026e4331584a9a93015d803"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:outcome:1:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "8f8315da508fdfb481c2010e242f07913d9b7b4d767c90b4c36c8fcf2a9d73db",
+      "new_sha256": "8f8315da508fdfb481c2010e242f07913d9b7b4d767c90b4c36c8fcf2a9d73db"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:report:1:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "08426cc8a61821fb06784e2acede253f2d27c2295ef3ae383178551cd9f000c6",
+      "new_sha256": "08426cc8a61821fb06784e2acede253f2d27c2295ef3ae383178551cd9f000c6"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:report:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "29c32092101378737152a811d5c739b03fbb1c6b29b8aa219ac47858f093253d",
+      "new_sha256": "29c32092101378737152a811d5c739b03fbb1c6b29b8aa219ac47858f093253d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:into_parts:1:signature",
+      "equal": true,
+      "old_token_count": 12,
+      "new_token_count": 12,
+      "old_sha256": "ece9c30a15a4e85f319b5f1f6cd8e758889fed8c45cdad1fc32232913dd30367",
+      "new_sha256": "ece9c30a15a4e85f319b5f1f6cd8e758889fed8c45cdad1fc32232913dd30367"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:into_parts:1:body",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "e7fbfc76ee1644a8cfa16388ebda3a644e9dc69992f5e4fbe25ab30db34b474c",
+      "new_sha256": "e7fbfc76ee1644a8cfa16388ebda3a644e9dc69992f5e4fbe25ab30db34b474c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:quarantine_context:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "d7bef20714a1626581bfd580f95793009dea683c944bdb6da0616e24fe93e1e9",
+      "new_sha256": "d7bef20714a1626581bfd580f95793009dea683c944bdb6da0616e24fe93e1e9"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:quarantine_context:1:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "0407f46c594f2ec37f61709d9d04ebe6d44bc0f223ce540035fb263df5ddfb88",
+      "new_sha256": "0407f46c594f2ec37f61709d9d04ebe6d44bc0f223ce540035fb263df5ddfb88"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:leaf:1:signature",
+      "equal": true,
+      "old_token_count": 16,
+      "new_token_count": 16,
+      "old_sha256": "befa244ac4025d3af35e7075b395bc5d5002d603e3ca71e08771d547d6201a97",
+      "new_sha256": "befa244ac4025d3af35e7075b395bc5d5002d603e3ca71e08771d547d6201a97"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:leaf:1:body",
+      "equal": true,
+      "old_token_count": 7,
+      "new_token_count": 7,
+      "old_sha256": "2843f0a0110922e18818b5650841447db20642da605604931df2cb6ef4323107",
+      "new_sha256": "2843f0a0110922e18818b5650841447db20642da605604931df2cb6ef4323107"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:checkpoint:1:signature",
+      "equal": true,
+      "old_token_count": 13,
+      "new_token_count": 13,
+      "old_sha256": "443fac68049e60ec038aa1c0a463ad03d6fcab66d9c273f3e20b813e92fccab1",
+      "new_sha256": "443fac68049e60ec038aa1c0a463ad03d6fcab66d9c273f3e20b813e92fccab1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:checkpoint:1:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "c8ed38ebe8f167eb8f18fd78766f9ebb181138fa9fb24c6d9d89329886623ffc",
+      "new_sha256": "c8ed38ebe8f167eb8f18fd78766f9ebb181138fa9fb24c6d9d89329886623ffc"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:journal_head:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "8df04959012f16c467143d66dde5e5439e63b5eca586068febbc1b7f7e57908d",
+      "new_sha256": "8df04959012f16c467143d66dde5e5439e63b5eca586068febbc1b7f7e57908d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:journal_head:1:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "4b1ec28ff1380b9c281efdffc46a59c7ff92f1af6ce3a1be8b2565b3fe4e4647",
+      "new_sha256": "4b1ec28ff1380b9c281efdffc46a59c7ff92f1af6ce3a1be8b2565b3fe4e4647"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:event_id:1:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "938c6dd5b41e220a0436a60c0940a174a527ef59f054df75e8a44e12e5dc800f",
+      "new_sha256": "938c6dd5b41e220a0436a60c0940a174a527ef59f054df75e8a44e12e5dc800f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:event_id:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "d6e97de83230b9c85fb0da3b91523b04f0fdfef0ebf1a8e5d67708dc171e1bd1",
+      "new_sha256": "d6e97de83230b9c85fb0da3b91523b04f0fdfef0ebf1a8e5d67708dc171e1bd1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:expected_revision:1:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "bbcaafd113a815bf8d426a855d5097459e535ce0e1a318e59c199719859802ce",
+      "new_sha256": "bbcaafd113a815bf8d426a855d5097459e535ce0e1a318e59c199719859802ce"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:expected_revision:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "7f839437370fab9baca0230f8d365faffc825f311215515e49977c09a0d28b0e",
+      "new_sha256": "7f839437370fab9baca0230f8d365faffc825f311215515e49977c09a0d28b0e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "c02cd3b9dfdb73bb1f905d47d6ab3c31877c56de0c0c9e6d2c6c781f2ce9b22d",
+      "new_sha256": "c02cd3b9dfdb73bb1f905d47d6ab3c31877c56de0c0c9e6d2c6c781f2ce9b22d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease:1:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "771a87be4f23045cfc0d59f5dfe23540eba914c9297f584c512749341af84f94",
+      "new_sha256": "771a87be4f23045cfc0d59f5dfe23540eba914c9297f584c512749341af84f94"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:failure_id:1:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "53ba7c51c48f1d2287cd2f682a0b3828f08e4ca0b0e2e3eae7f735f27be00f73",
+      "new_sha256": "53ba7c51c48f1d2287cd2f682a0b3828f08e4ca0b0e2e3eae7f735f27be00f73"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:failure_id:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "731e8c8719b890ea56a718d5c884813906381104a187c7753099a230116b352a",
+      "new_sha256": "731e8c8719b890ea56a718d5c884813906381104a187c7753099a230116b352a"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:into_parts:2:signature",
+      "equal": true,
+      "old_token_count": 25,
+      "new_token_count": 25,
+      "old_sha256": "bfce9ab0f81538e79e6af74805846511f25f848f94a03afb57454539e97b253e",
+      "new_sha256": "bfce9ab0f81538e79e6af74805846511f25f848f94a03afb57454539e97b253e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:into_parts:2:body",
+      "equal": true,
+      "old_token_count": 26,
+      "new_token_count": 26,
+      "old_sha256": "8d4aa93dfc11b019470a077ecd191edd697e496df2f72ee1681570b27b461b68",
+      "new_sha256": "8d4aa93dfc11b019470a077ecd191edd697e496df2f72ee1681570b27b461b68"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:original_lifecycle:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "db680a573b3541d9cf398e0e7531d0f13fea0c64b0f4d7bff4f6812746f857ae",
+      "new_sha256": "db680a573b3541d9cf398e0e7531d0f13fea0c64b0f4d7bff4f6812746f857ae"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:original_lifecycle:1:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "91604758c6152ea6bd61846c9f14d2876ffa5748221af136d64e55f87cb0a0b7",
+      "new_sha256": "91604758c6152ea6bd61846c9f14d2876ffa5748221af136d64e55f87cb0a0b7"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:plan:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "695ad69799d139a42869474d02ff95caac92d6898e2144253fc09da106dcfaf3",
+      "new_sha256": "695ad69799d139a42869474d02ff95caac92d6898e2144253fc09da106dcfaf3"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:plan:1:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "6cddb247ba07786358157bf9994f1e54f4982f20b7290c88c9f9156627f69e04",
+      "new_sha256": "6cddb247ba07786358157bf9994f1e54f4982f20b7290c88c9f9156627f69e04"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:journal_head:2:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "8df04959012f16c467143d66dde5e5439e63b5eca586068febbc1b7f7e57908d",
+      "new_sha256": "8df04959012f16c467143d66dde5e5439e63b5eca586068febbc1b7f7e57908d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:journal_head:2:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "4b1ec28ff1380b9c281efdffc46a59c7ff92f1af6ce3a1be8b2565b3fe4e4647",
+      "new_sha256": "4b1ec28ff1380b9c281efdffc46a59c7ff92f1af6ce3a1be8b2565b3fe4e4647"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:event_id:2:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "938c6dd5b41e220a0436a60c0940a174a527ef59f054df75e8a44e12e5dc800f",
+      "new_sha256": "938c6dd5b41e220a0436a60c0940a174a527ef59f054df75e8a44e12e5dc800f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:event_id:2:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "d6e97de83230b9c85fb0da3b91523b04f0fdfef0ebf1a8e5d67708dc171e1bd1",
+      "new_sha256": "d6e97de83230b9c85fb0da3b91523b04f0fdfef0ebf1a8e5d67708dc171e1bd1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:expected_revision:2:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "bbcaafd113a815bf8d426a855d5097459e535ce0e1a318e59c199719859802ce",
+      "new_sha256": "bbcaafd113a815bf8d426a855d5097459e535ce0e1a318e59c199719859802ce"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:expected_revision:2:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "7f839437370fab9baca0230f8d365faffc825f311215515e49977c09a0d28b0e",
+      "new_sha256": "7f839437370fab9baca0230f8d365faffc825f311215515e49977c09a0d28b0e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease:2:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "c02cd3b9dfdb73bb1f905d47d6ab3c31877c56de0c0c9e6d2c6c781f2ce9b22d",
+      "new_sha256": "c02cd3b9dfdb73bb1f905d47d6ab3c31877c56de0c0c9e6d2c6c781f2ce9b22d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease:2:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "771a87be4f23045cfc0d59f5dfe23540eba914c9297f584c512749341af84f94",
+      "new_sha256": "771a87be4f23045cfc0d59f5dfe23540eba914c9297f584c512749341af84f94"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:into_parts:3:signature",
+      "equal": true,
+      "old_token_count": 20,
+      "new_token_count": 20,
+      "old_sha256": "56b7cb4a234936e4bb66c6c33b3b5df2997bc62bfdeee17f1dd269f25094f7c9",
+      "new_sha256": "56b7cb4a234936e4bb66c6c33b3b5df2997bc62bfdeee17f1dd269f25094f7c9"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:into_parts:3:body",
+      "equal": true,
+      "old_token_count": 22,
+      "new_token_count": 22,
+      "old_sha256": "ce297d4bb16fdac2c9260b06dc1a98519a65cc829540596262e5cf9c5c783943",
+      "new_sha256": "ce297d4bb16fdac2c9260b06dc1a98519a65cc829540596262e5cf9c5c783943"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:from_plan:1:signature",
+      "equal": true,
+      "old_token_count": 11,
+      "new_token_count": 11,
+      "old_sha256": "ac29bda1467ce280f15fbb068becb0e9f3019335a06a2a5ebdbe44cae9e6db4b",
+      "new_sha256": "ac29bda1467ce280f15fbb068becb0e9f3019335a06a2a5ebdbe44cae9e6db4b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:from_plan:1:body",
+      "equal": true,
+      "old_token_count": 129,
+      "new_token_count": 129,
+      "old_sha256": "7f671405b606efeab333ad481f4f8315fa2fd231bc7364b18219b126b9ef36c1",
+      "new_sha256": "7f671405b606efeab333ad481f4f8315fa2fd231bc7364b18219b126b9ef36c1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:in_flight:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "2563ba9b24debc8cee851ffd1ddef826f04f02e2eabe346527b720b76e5d9093",
+      "new_sha256": "2563ba9b24debc8cee851ffd1ddef826f04f02e2eabe346527b720b76e5d9093"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:in_flight:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "e7c3a2c43647be979bcfbd93e8a36a4c33353ec8d2348fdbfc194e72f7fa6723",
+      "new_sha256": "e7c3a2c43647be979bcfbd93e8a36a4c33353ec8d2348fdbfc194e72f7fa6723"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:failed:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "86ad44baa10bbac9e621da3df754a9eeb94e2200308ddcaec7b77bd7c172b1af",
+      "new_sha256": "86ad44baa10bbac9e621da3df754a9eeb94e2200308ddcaec7b77bd7c172b1af"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:failed:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "092cad5584b387aafaf1b8ce4ace16e96cfd26428656a60380c9a09f43da3748",
+      "new_sha256": "092cad5584b387aafaf1b8ce4ace16e96cfd26428656a60380c9a09f43da3748"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:exhausted:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "0f511fb66be8af9848d6e4007d416c815bb98ddb4d1732504bf64cea673ca132",
+      "new_sha256": "0f511fb66be8af9848d6e4007d416c815bb98ddb4d1732504bf64cea673ca132"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:exhausted:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "5ed981e495860184c3f8ab09e1a3cce7c549e8bbc70c95753b2f837594a4c481",
+      "new_sha256": "5ed981e495860184c3f8ab09e1a3cce7c549e8bbc70c95753b2f837594a4c481"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:unsupported:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "8d13be4098141bd5247e9dd77428b0f481f1c531e37c2cf5be38246cef8df22a",
+      "new_sha256": "8d13be4098141bd5247e9dd77428b0f481f1c531e37c2cf5be38246cef8df22a"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:unsupported:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "1e778a27493a9af192b201250cbca0bd64a6fb27a571c08bd91f1cd5139eba87",
+      "new_sha256": "1e778a27493a9af192b201250cbca0bd64a6fb27a571c08bd91f1cd5139eba87"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:superstep_limit_reached:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "51dad9879ce45f6ef9b1756ea30b4b0dbd29f62ce6bc6db795faf30f39d978db",
+      "new_sha256": "51dad9879ce45f6ef9b1756ea30b4b0dbd29f62ce6bc6db795faf30f39d978db"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:superstep_limit_reached:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "132ae30df8eab01798b691e6b97d2051fc08e8b93dd06ac2d365e0a403b4043b",
+      "new_sha256": "132ae30df8eab01798b691e6b97d2051fc08e8b93dd06ac2d365e0a403b4043b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:is_empty:1:signature",
+      "equal": true,
+      "old_token_count": 8,
+      "new_token_count": 8,
+      "old_sha256": "0d48e032cfd5ad8d6009ff15792747d3c53139b4a8b546cc4fdc2b385d51db82",
+      "new_sha256": "0d48e032cfd5ad8d6009ff15792747d3c53139b4a8b546cc4fdc2b385d51db82"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:is_empty:1:body",
+      "equal": true,
+      "old_token_count": 36,
+      "new_token_count": 36,
+      "old_sha256": "060684772868fc1401ba8d687f00c490595f89a3122b40a756de5383ade07c90",
+      "new_sha256": "060684772868fc1401ba8d687f00c490595f89a3122b40a756de5383ade07c90"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:quarantine_context:2:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "d7bef20714a1626581bfd580f95793009dea683c944bdb6da0616e24fe93e1e9",
+      "new_sha256": "d7bef20714a1626581bfd580f95793009dea683c944bdb6da0616e24fe93e1e9"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:quarantine_context:2:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "0407f46c594f2ec37f61709d9d04ebe6d44bc0f223ce540035fb263df5ddfb88",
+      "new_sha256": "0407f46c594f2ec37f61709d9d04ebe6d44bc0f223ce540035fb263df5ddfb88"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:root_checkpoint:1:signature",
+      "equal": true,
+      "old_token_count": 13,
+      "new_token_count": 13,
+      "old_sha256": "ad4572b4115fd6462a75f2420bfe7188accdabd927bfdb525b211400abddac4b",
+      "new_sha256": "ad4572b4115fd6462a75f2420bfe7188accdabd927bfdb525b211400abddac4b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:root_checkpoint:1:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "79dd73f744a88c153e4a71e657e0d3127981b216167f0a47c4e526a0e214c9c2",
+      "new_sha256": "79dd73f744a88c153e4a71e657e0d3127981b216167f0a47c4e526a0e214c9c2"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:leaf:2:signature",
+      "equal": true,
+      "old_token_count": 16,
+      "new_token_count": 16,
+      "old_sha256": "befa244ac4025d3af35e7075b395bc5d5002d603e3ca71e08771d547d6201a97",
+      "new_sha256": "befa244ac4025d3af35e7075b395bc5d5002d603e3ca71e08771d547d6201a97"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:leaf:2:body",
+      "equal": true,
+      "old_token_count": 7,
+      "new_token_count": 7,
+      "old_sha256": "2843f0a0110922e18818b5650841447db20642da605604931df2cb6ef4323107",
+      "new_sha256": "2843f0a0110922e18818b5650841447db20642da605604931df2cb6ef4323107"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:plan:2:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "60ee6190ad076b7d357bcb869a430efbf0bd4f04f48fd66043e2b0ceb529a5cf",
+      "new_sha256": "60ee6190ad076b7d357bcb869a430efbf0bd4f04f48fd66043e2b0ceb529a5cf"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:plan:2:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "6cddb247ba07786358157bf9994f1e54f4982f20b7290c88c9f9156627f69e04",
+      "new_sha256": "6cddb247ba07786358157bf9994f1e54f4982f20b7290c88c9f9156627f69e04"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease:3:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "c02cd3b9dfdb73bb1f905d47d6ab3c31877c56de0c0c9e6d2c6c781f2ce9b22d",
+      "new_sha256": "c02cd3b9dfdb73bb1f905d47d6ab3c31877c56de0c0c9e6d2c6c781f2ce9b22d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:lease:3:body",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "771a87be4f23045cfc0d59f5dfe23540eba914c9297f584c512749341af84f94",
+      "new_sha256": "771a87be4f23045cfc0d59f5dfe23540eba914c9297f584c512749341af84f94"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:event_id:3:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "938c6dd5b41e220a0436a60c0940a174a527ef59f054df75e8a44e12e5dc800f",
+      "new_sha256": "938c6dd5b41e220a0436a60c0940a174a527ef59f054df75e8a44e12e5dc800f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:event_id:3:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "d6e97de83230b9c85fb0da3b91523b04f0fdfef0ebf1a8e5d67708dc171e1bd1",
+      "new_sha256": "d6e97de83230b9c85fb0da3b91523b04f0fdfef0ebf1a8e5d67708dc171e1bd1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:expected_revision:3:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "bbcaafd113a815bf8d426a855d5097459e535ce0e1a318e59c199719859802ce",
+      "new_sha256": "bbcaafd113a815bf8d426a855d5097459e535ce0e1a318e59c199719859802ce"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:expected_revision:3:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "7f839437370fab9baca0230f8d365faffc825f311215515e49977c09a0d28b0e",
+      "new_sha256": "7f839437370fab9baca0230f8d365faffc825f311215515e49977c09a0d28b0e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:blockers:1:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "79c7b3f9eb9bf75141ddd1e4065210d0e842756db757ddf1590794d79f9b78cf",
+      "new_sha256": "79c7b3f9eb9bf75141ddd1e4065210d0e842756db757ddf1590794d79f9b78cf"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:blockers:1:body",
+      "equal": true,
+      "old_token_count": 3,
+      "new_token_count": 3,
+      "old_sha256": "c6a12f9f8e3fa130c331c596d1c998a609cd9e39cf64c4ad96c7fc01b79595e2",
+      "new_sha256": "c6a12f9f8e3fa130c331c596d1c998a609cd9e39cf64c4ad96c7fc01b79595e2"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:into_parts:4:signature",
+      "equal": true,
+      "old_token_count": 20,
+      "new_token_count": 20,
+      "old_sha256": "427c862dfb3cddb0ce2ccbb436e71d5744988e72e3c6131117ea7220af51926b",
+      "new_sha256": "427c862dfb3cddb0ce2ccbb436e71d5744988e72e3c6131117ea7220af51926b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:into_parts:4:body",
+      "equal": true,
+      "old_token_count": 22,
+      "new_token_count": 22,
+      "old_sha256": "74ea27cac9242e5aded0976f26b94f8d43db740dc764e24ab7d6cbed62bc399d",
+      "new_sha256": "74ea27cac9242e5aded0976f26b94f8d43db740dc764e24ab7d6cbed62bc399d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:graph_plan:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "2494bd635d1b80d95af17041fe1da5ea6609d4379a97c5f67e22cb5599d22e69",
+      "new_sha256": "2494bd635d1b80d95af17041fe1da5ea6609d4379a97c5f67e22cb5599d22e69"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:graph_plan:1:body",
+      "equal": true,
+      "old_token_count": 16,
+      "new_token_count": 16,
+      "old_sha256": "64629de2fb1ae73f1d2782abe73a1eb0b5207964971d366a030bf9253921e86f",
+      "new_sha256": "64629de2fb1ae73f1d2782abe73a1eb0b5207964971d366a030bf9253921e86f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:from:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "b6174aa5e29a7351886775fa77a21fda484b6e476dd8f6003bb76f36d324f872",
+      "new_sha256": "b6174aa5e29a7351886775fa77a21fda484b6e476dd8f6003bb76f36d324f872"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:from:1:body",
+      "equal": true,
+      "old_token_count": 16,
+      "new_token_count": 16,
+      "old_sha256": "303be84e305dc80863881e83df153a1f872096cdb27ad884fedca48a73b98f1d",
+      "new_sha256": "303be84e305dc80863881e83df153a1f872096cdb27ad884fedca48a73b98f1d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:without_join:1:signature",
+      "equal": true,
+      "old_token_count": 15,
+      "new_token_count": 15,
+      "old_sha256": "2a42e28592d6ef392251545958e02b9c3f0056c7ebdcb248d2c89a599f6a45af",
+      "new_sha256": "2a42e28592d6ef392251545958e02b9c3f0056c7ebdcb248d2c89a599f6a45af"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:without_join:1:body",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "03f20ef09ca0da4451c5ca9809d18883249d63a55f2d1cd90215ebd9fb831658",
+      "new_sha256": "03f20ef09ca0da4451c5ca9809d18883249d63a55f2d1cd90215ebd9fb831658"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:guarded_run_lease:1:signature",
+      "equal": true,
+      "old_token_count": 24,
+      "new_token_count": 24,
+      "old_sha256": "cd25f8ef505f77648b07afcce0e0eaa552e78a978577991588f533717074083d",
+      "new_sha256": "cd25f8ef505f77648b07afcce0e0eaa552e78a978577991588f533717074083d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:guarded_run_lease:1:body",
+      "equal": true,
+      "old_token_count": 119,
+      "new_token_count": 119,
+      "old_sha256": "ee363032537c9bca6785313af53bf344b1c5f43ae29862cc35a208c1996c30f7",
+      "new_sha256": "ee363032537c9bca6785313af53bf344b1c5f43ae29862cc35a208c1996c30f7"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:exact_live_lease:1:signature",
+      "equal": true,
+      "old_token_count": 28,
+      "new_token_count": 28,
+      "old_sha256": "0c2fa7eb3bd97990ae16ae31fe0e9064e7e3a7ed2cfaf59482081f719d813974",
+      "new_sha256": "0c2fa7eb3bd97990ae16ae31fe0e9064e7e3a7ed2cfaf59482081f719d813974"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:exact_live_lease:1:body",
+      "equal": true,
+      "old_token_count": 67,
+      "new_token_count": 67,
+      "old_sha256": "21614fced3ef579c759ed87e80b2f220185cffc04149937a20927b458367db7f",
+      "new_sha256": "21614fced3ef579c759ed87e80b2f220185cffc04149937a20927b458367db7f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:graph_error_is_run_not_runnable:1:signature",
+      "equal": true,
+      "old_token_count": 11,
+      "new_token_count": 11,
+      "old_sha256": "40bc277035ea7f1302a93318b0dfde516284baa6c91525809b88e2eb6a52948d",
+      "new_sha256": "40bc277035ea7f1302a93318b0dfde516284baa6c91525809b88e2eb6a52948d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:graph_error_is_run_not_runnable:1:body",
+      "equal": true,
+      "old_token_count": 28,
+      "new_token_count": 28,
+      "old_sha256": "5b4efc6fba3a61e379be05cddb1b75490ddeb97b9217471aa3c02594b6dddc8f",
+      "new_sha256": "5b4efc6fba3a61e379be05cddb1b75490ddeb97b9217471aa3c02594b6dddc8f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:recovery_evidence_digest:1:signature",
+      "equal": true,
+      "old_token_count": 21,
+      "new_token_count": 21,
+      "old_sha256": "d3908c208674ef314992b3a3cfa98ba5edf8193f8984c6c3638445cb3a2b1e2d",
+      "new_sha256": "d3908c208674ef314992b3a3cfa98ba5edf8193f8984c6c3638445cb3a2b1e2d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:recovery_evidence_digest:1:body",
+      "equal": true,
+      "old_token_count": 149,
+      "new_token_count": 149,
+      "old_sha256": "2c3605f25aabb8007ec52da4563a5aed9742082aa5cd39f9bd395830b28db764",
+      "new_sha256": "2c3605f25aabb8007ec52da4563a5aed9742082aa5cd39f9bd395830b28db764"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:worker_append:1:signature",
+      "equal": true,
+      "old_token_count": 29,
+      "new_token_count": 29,
+      "old_sha256": "06fc832aaa5053bfc35423c0db8a89b4e1f14e5e210c1865dc13ffd1bc7fa89a",
+      "new_sha256": "06fc832aaa5053bfc35423c0db8a89b4e1f14e5e210c1865dc13ffd1bc7fa89a"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:worker_append:1:body",
+      "equal": true,
+      "old_token_count": 74,
+      "new_token_count": 74,
+      "old_sha256": "7b4ef27896bb19a1ed83be4a1754a445ab93fa3445c4f822e046f653e699d907",
+      "new_sha256": "7b4ef27896bb19a1ed83be4a1754a445ab93fa3445c4f822e046f653e699d907"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:extend_timestamp:1:signature",
+      "equal": true,
+      "old_token_count": 20,
+      "new_token_count": 20,
+      "old_sha256": "51f546a01cf43d58a45bd22a8639d742866dde19023e1e8a14901b26784652f6",
+      "new_sha256": "51f546a01cf43d58a45bd22a8639d742866dde19023e1e8a14901b26784652f6"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:extend_timestamp:1:body",
+      "equal": true,
+      "old_token_count": 68,
+      "new_token_count": 68,
+      "old_sha256": "06ae8d8983b16bb2278c0aa96240368f05628d43a217e46255943f250b763ea0",
+      "new_sha256": "06ae8d8983b16bb2278c0aa96240368f05628d43a217e46255943f250b763ea0"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:digest_hex:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "04cdf7862da46ffe88e65e32fd02457400ec604b009dbc6925eec3a1bacac1b0",
+      "new_sha256": "04cdf7862da46ffe88e65e32fd02457400ec604b009dbc6925eec3a1bacac1b0"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:digest_hex:1:body",
+      "equal": true,
+      "old_token_count": 90,
+      "new_token_count": 90,
+      "old_sha256": "1b80066712b60e36484e86697285b6821fa580a0647afadc16d01e3c533e18a2",
+      "new_sha256": "1b80066712b60e36484e86697285b6821fa580a0647afadc16d01e3c533e18a2"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:runtime_failure:1:signature",
+      "equal": true,
+      "old_token_count": 55,
+      "new_token_count": 55,
+      "old_sha256": "6a8c020ede4dc5636f15333747b032777c30c64c9b0b778f98a01264f4191f68",
+      "new_sha256": "6a8c020ede4dc5636f15333747b032777c30c64c9b0b778f98a01264f4191f68"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:runtime_failure:1:body",
+      "equal": true,
+      "old_token_count": 135,
+      "new_token_count": 135,
+      "old_sha256": "ded9127e01e7aa6181785bc9c99d9dfed15b8467d5b17264b58042a6aac6e1ce",
+      "new_sha256": "ded9127e01e7aa6181785bc9c99d9dfed15b8467d5b17264b58042a6aac6e1ce"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancel_node_batch:1:signature",
+      "equal": true,
+      "old_token_count": 10,
+      "new_token_count": 10,
+      "old_sha256": "353581aa0411e6997ed55ae4f312c7d7dac4b9d6518bb1b3a62923d139e6c0f1",
+      "new_sha256": "353581aa0411e6997ed55ae4f312c7d7dac4b9d6518bb1b3a62923d139e6c0f1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancel_node_batch:1:body",
+      "equal": true,
+      "old_token_count": 12,
+      "new_token_count": 12,
+      "old_sha256": "7051153e6326207e483f5ef627ca2e3e14253c7058578c725f7f85ac3c30e8d1",
+      "new_sha256": "7051153e6326207e483f5ef627ca2e3e14253c7058578c725f7f85ac3c30e8d1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:abort_node_batch:1:signature",
+      "equal": true,
+      "old_token_count": 22,
+      "new_token_count": 22,
+      "old_sha256": "74a1a0ec4e17098489dc684b55edcb376472c1d94dbc5be2dcf6afc6be81f11c",
+      "new_sha256": "74a1a0ec4e17098489dc684b55edcb376472c1d94dbc5be2dcf6afc6be81f11c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:abort_node_batch:1:body",
+      "equal": true,
+      "old_token_count": 20,
+      "new_token_count": 20,
+      "old_sha256": "5d7754e28c2a2d4319dbf472dc73b45e12915ba0b9abfc9a4a69cb920639286f",
+      "new_sha256": "5d7754e28c2a2d4319dbf472dc73b45e12915ba0b9abfc9a4a69cb920639286f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:drain_node_batch_until:1:signature",
+      "equal": true,
+      "old_token_count": 26,
+      "new_token_count": 26,
+      "old_sha256": "23db253abf44b227d16130c5e40626bb8ed91758a7eb1403c644de69d1a9edca",
+      "new_sha256": "23db253abf44b227d16130c5e40626bb8ed91758a7eb1403c644de69d1a9edca"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:drain_node_batch_until:1:body",
+      "equal": true,
+      "old_token_count": 70,
+      "new_token_count": 70,
+      "old_sha256": "6ed1e5e6ef3c9640a302f2aac8132c2adce7556d6ecd9e186d37145313b0dcdb",
+      "new_sha256": "6ed1e5e6ef3c9640a302f2aac8132c2adce7556d6ecd9e186d37145313b0dcdb"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:write:1:signature",
+      "equal": true,
+      "old_token_count": 26,
+      "new_token_count": 26,
+      "old_sha256": "00e23298df6f463f96e435be95c515e40968910aff2dca3b0fbc8b644216db6e",
+      "new_sha256": "00e23298df6f463f96e435be95c515e40968910aff2dca3b0fbc8b644216db6e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:write:1:body",
+      "equal": true,
+      "old_token_count": 25,
+      "new_token_count": 25,
+      "old_sha256": "492927efb7d137b0daf5aa946e6e517b3a9aea496154c81eccf333bb5221c3ac",
+      "new_sha256": "492927efb7d137b0daf5aa946e6e517b3a9aea496154c81eccf333bb5221c3ac"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:flush:1:signature",
+      "equal": true,
+      "old_token_count": 20,
+      "new_token_count": 20,
+      "old_sha256": "4d025250b308c7b3e51ad25677a2990dbdebf5074c748838e1e96632344972e1",
+      "new_sha256": "4d025250b308c7b3e51ad25677a2990dbdebf5074c748838e1e96632344972e1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:flush:1:body",
+      "equal": true,
+      "old_token_count": 5,
+      "new_token_count": 5,
+      "old_sha256": "69a7ee48a38c4ece459d133fb82fb3fffe0daac062e3cd6c88aa889d762f0f70",
+      "new_sha256": "69a7ee48a38c4ece459d133fb82fb3fffe0daac062e3cd6c88aa889d762f0f70"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:5:signature",
+      "equal": true,
+      "old_token_count": 7,
+      "new_token_count": 7,
+      "old_sha256": "5736ba35f4d0f621e361e45ba7f5ebe22f4d60bfd5616b4ee6d623023f6849e1",
+      "new_sha256": "5736ba35f4d0f621e361e45ba7f5ebe22f4d60bfd5616b4ee6d623023f6849e1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:new:5:body",
+      "equal": true,
+      "old_token_count": 34,
+      "new_token_count": 34,
+      "old_sha256": "7222910c413c8eb6fb7a5d1752284c541a6598fc3b393f65f2945a23f3dad6c8",
+      "new_sha256": "7222910c413c8eb6fb7a5d1752284c541a6598fc3b393f65f2945a23f3dad6c8"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:signal:1:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "055a0922f49f333d9515d56386c38222c7cb8212ee96e1f8f1be59f49b7a5947",
+      "new_sha256": "055a0922f49f333d9515d56386c38222c7cb8212ee96e1f8f1be59f49b7a5947"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:signal:1:body",
+      "equal": true,
+      "old_token_count": 11,
+      "new_token_count": 11,
+      "old_sha256": "a42e7ae1dd14bb9f5328213ed0f5d85728f786ff38a73841cfb0e3b03220c30c",
+      "new_sha256": "a42e7ae1dd14bb9f5328213ed0f5d85728f786ff38a73841cfb0e3b03220c30c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancel:1:signature",
+      "equal": true,
+      "old_token_count": 6,
+      "new_token_count": 6,
+      "old_sha256": "ebf76ef75d51ae6ddec6c2edac4b8c86f753d795c37dd775970988399df2f14d",
+      "new_sha256": "ebf76ef75d51ae6ddec6c2edac4b8c86f753d795c37dd775970988399df2f14d"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancel:1:body",
+      "equal": true,
+      "old_token_count": 29,
+      "new_token_count": 29,
+      "old_sha256": "695008fdf63f0972b1b9b75d6d32b9e90cf0586be74f0bcedde164b89ac5c51e",
+      "new_sha256": "695008fdf63f0972b1b9b75d6d32b9e90cf0586be74f0bcedde164b89ac5c51e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:is_cancelled:1:signature",
+      "equal": true,
+      "old_token_count": 9,
+      "new_token_count": 9,
+      "old_sha256": "fb0ab2b9c240fd251fafc3ad91f757dd7053e948d3696e4979f58c0fd493570c",
+      "new_sha256": "fb0ab2b9c240fd251fafc3ad91f757dd7053e948d3696e4979f58c0fd493570c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:is_cancelled:1:body",
+      "equal": true,
+      "old_token_count": 13,
+      "new_token_count": 13,
+      "old_sha256": "5fcd5350402e9bd722c64fc2db31f0163210bf8c0dca643910ecef275bdad5cd",
+      "new_sha256": "5fcd5350402e9bd722c64fc2db31f0163210bf8c0dca643910ecef275bdad5cd"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancelled:1:signature",
+      "equal": true,
+      "old_token_count": 15,
+      "new_token_count": 15,
+      "old_sha256": "32bd9b0c703fd18dbe80fc6895078d5ac55c10a95d779c857245b6240beaa971",
+      "new_sha256": "32bd9b0c703fd18dbe80fc6895078d5ac55c10a95d779c857245b6240beaa971"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancelled:1:body",
+      "equal": true,
+      "old_token_count": 40,
+      "new_token_count": 40,
+      "old_sha256": "384a1b6dfbf56718f090c6e3eb826e815294678538d33d6cb2dc93c3b1030b3b",
+      "new_sha256": "384a1b6dfbf56718f090c6e3eb826e815294678538d33d6cb2dc93c3b1030b3b"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:options_reject_unsafe_local_bounds:1:signature",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "ca2781e08a3858282d7b63af5eab0a97f320b31a9ebbb2533d39bba2e9fd4fb8",
+      "new_sha256": "ca2781e08a3858282d7b63af5eab0a97f320b31a9ebbb2533d39bba2e9fd4fb8"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:options_reject_unsafe_local_bounds:1:body",
+      "equal": true,
+      "old_token_count": 335,
+      "new_token_count": 335,
+      "old_sha256": "f69236127bdad3e4055b8df1ddbcec8180f979933c1893e917fb313ec6caf68c",
+      "new_sha256": "f69236127bdad3e4055b8df1ddbcec8180f979933c1893e917fb313ec6caf68c"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancellation_is_monotonic_and_race_safe:1:signature",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "7c177bf7675b322c94e074fa4f6f18919063a56f3590ecda7fb6bf116781bf11",
+      "new_sha256": "7c177bf7675b322c94e074fa4f6f18919063a56f3590ecda7fb6bf116781bf11"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:cancellation_is_monotonic_and_race_safe:1:body",
+      "equal": true,
+      "old_token_count": 100,
+      "new_token_count": 100,
+      "old_sha256": "ce7cf62a3d77e31128f0569d7e8dd7cdda62378d8a6701b977d56f712e8cb6bd",
+      "new_sha256": "ce7cf62a3d77e31128f0569d7e8dd7cdda62378d8a6701b977d56f712e8cb6bd"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:digest_data_uses_schema_hex_without_algorithm_prefix:1:signature",
+      "equal": true,
+      "old_token_count": 4,
+      "new_token_count": 4,
+      "old_sha256": "76a066c794d4e2c215ed09d237aca8deb50d2a08ba0a7b6480cc97af7c3b1244",
+      "new_sha256": "76a066c794d4e2c215ed09d237aca8deb50d2a08ba0a7b6480cc97af7c3b1244"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver.rs:digest_data_uses_schema_hex_without_algorithm_prefix:1:body",
+      "equal": true,
+      "old_token_count": 61,
+      "new_token_count": 61,
+      "old_sha256": "9ec0b494b625806d43fb282845fc6dca936557e2554e5bf791ca76f28bc247b1",
+      "new_sha256": "9ec0b494b625806d43fb282845fc6dca936557e2554e5bf791ca76f28bc247b1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:matches:1:signature",
+      "equal": true,
+      "old_token_count": 19,
+      "new_token_count": 19,
+      "old_sha256": "d5203fa08e26cedaa92d053ce9b24b5143124a4aafb5adba980c27f395d8430f",
+      "new_sha256": "d5203fa08e26cedaa92d053ce9b24b5143124a4aafb5adba980c27f395d8430f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:matches:1:body",
+      "equal": true,
+      "old_token_count": 40,
+      "new_token_count": 40,
+      "old_sha256": "fbfe026620b1de178158b228f1101ccc89d3be91b131f03a110756838628d97e",
+      "new_sha256": "fbfe026620b1de178158b228f1101ccc89d3be91b131f03a110756838628d97e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:leaf:1:signature",
+      "equal": true,
+      "old_token_count": 15,
+      "new_token_count": 15,
+      "old_sha256": "7a4cb222ec6e9eb2320a42611d20a3b1b79db8676d6c278194740be52cc793a1",
+      "new_sha256": "7a4cb222ec6e9eb2320a42611d20a3b1b79db8676d6c278194740be52cc793a1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:leaf:1:body",
+      "equal": true,
+      "old_token_count": 23,
+      "new_token_count": 23,
+      "old_sha256": "631aba03e62f0fec7bd8cc3e17e9bf1642ed7691bbddf39a9a1b30cf2faaedc7",
+      "new_sha256": "631aba03e62f0fec7bd8cc3e17e9bf1642ed7691bbddf39a9a1b30cf2faaedc7"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:validate_frame_dispatch_profile:1:signature",
+      "equal": true,
+      "old_token_count": 21,
+      "new_token_count": 21,
+      "old_sha256": "8cebbfa19e7cd4aacada7833aca16cc53ce2bd9b14a94c30bd87e001e5e9c840",
+      "new_sha256": "8cebbfa19e7cd4aacada7833aca16cc53ce2bd9b14a94c30bd87e001e5e9c840"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:validate_frame_dispatch_profile:1:body",
+      "equal": true,
+      "old_token_count": 226,
+      "new_token_count": 226,
+      "old_sha256": "7ecc43b07f9af1b84a9f5a56f08c0edbb188ba58762f3e97e6020b4ca630211e",
+      "new_sha256": "7ecc43b07f9af1b84a9f5a56f08c0edbb188ba58762f3e97e6020b4ca630211e"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:enter_declared_frame:1:signature",
+      "equal": true,
+      "old_token_count": 66,
+      "new_token_count": 66,
+      "old_sha256": "e1063efe1153a6550cc5e2339362bad321eaf1fbc9c27aaf20b81388ea072690",
+      "new_sha256": "e1063efe1153a6550cc5e2339362bad321eaf1fbc9c27aaf20b81388ea072690"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:enter_declared_frame:1:body",
+      "equal": true,
+      "old_token_count": 529,
+      "new_token_count": 529,
+      "old_sha256": "67d0a723bfbee9c9f56e4b5967f075cab43eff163f13b08115193967e3ca3c51",
+      "new_sha256": "67d0a723bfbee9c9f56e4b5967f075cab43eff163f13b08115193967e3ca3c51"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:return_terminal_frame:1:signature",
+      "equal": true,
+      "old_token_count": 54,
+      "new_token_count": 54,
+      "old_sha256": "06334f9a27142bff09aa46432060ef76a366f065fb1872ffd8778c72a30e84cf",
+      "new_sha256": "06334f9a27142bff09aa46432060ef76a366f065fb1872ffd8778c72a30e84cf"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:return_terminal_frame:1:body",
+      "equal": true,
+      "old_token_count": 994,
+      "new_token_count": 994,
+      "old_sha256": "78c2ef92da718f054e59db96460fbf36a52e4a6a691c709d61b1b3a9d3bfb278",
+      "new_sha256": "78c2ef92da718f054e59db96460fbf36a52e4a6a691c709d61b1b3a9d3bfb278"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:historical_plan_error:1:signature",
+      "equal": true,
+      "old_token_count": 11,
+      "new_token_count": 11,
+      "old_sha256": "fe9ccea12183477a5cacdebf60e210361c31e6f28373bcbbc730f763346275b5",
+      "new_sha256": "fe9ccea12183477a5cacdebf60e210361c31e6f28373bcbbc730f763346275b5"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:historical_plan_error:1:body",
+      "equal": true,
+      "old_token_count": 78,
+      "new_token_count": 78,
+      "old_sha256": "ed76844430d352f250ad9c8e65a9d148ea99e354e27503f112ac7b5a5ffa3df1",
+      "new_sha256": "ed76844430d352f250ad9c8e65a9d148ea99e354e27503f112ac7b5a5ffa3df1"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:rebind_current_caller:1:signature",
+      "equal": true,
+      "old_token_count": 53,
+      "new_token_count": 53,
+      "old_sha256": "b9d7e2961583a4a6cedde951e9a99f744ded68f035a57ed8e24659046568854f",
+      "new_sha256": "b9d7e2961583a4a6cedde951e9a99f744ded68f035a57ed8e24659046568854f"
+    },
+    {
+      "name": "crates/stateknot-runtime/src/driver/frame.rs:rebind_current_caller:1:body",
+      "equal": true,
+      "old_token_count": 358,
+      "new_token_count": 358,
+      "old_sha256": "d351d0f8b91d1375e8dcbd81494cd4e13bac47009b764a5689abd3a3f155bf41",
+      "new_sha256": "d351d0f8b91d1375e8dcbd81494cd4e13bac47009b764a5689abd3a3f155bf41"
+    },
+    {
+      "name": "moved_startup_complete_body",
+      "equal": true,
+      "old_token_count": 299,
+      "new_token_count": 299,
+      "old_sha256": "b626ac0b3d795364c075445d562739715a8512497285fac1a8462f7aff97552c",
+      "new_sha256": "b626ac0b3d795364c075445d562739715a8512497285fac1a8462f7aff97552c"
+    },
+    {
+      "name": "moved_iteration_complete_read",
+      "equal": true,
+      "old_token_count": 232,
+      "new_token_count": 232,
+      "old_sha256": "6aea6120c3e46ce609246d9b34c59a6883bd236c5d040791a00abd4a865e5005",
+      "new_sha256": "6aea6120c3e46ce609246d9b34c59a6883bd236c5d040791a00abd4a865e5005"
+    },
+    {
+      "name": "moved_barrier_complete_body",
+      "equal": true,
+      "old_token_count": 416,
+      "new_token_count": 416,
+      "old_sha256": "163bc92bcdd9ae5a56edaa73659e584442201f860a698e04553118be58855c64",
+      "new_sha256": "163bc92bcdd9ae5a56edaa73659e584442201f860a698e04553118be58855c64"
+    },
+    {
+      "name": "moved_node_batch_complete_body",
+      "equal": true,
+      "old_token_count": 893,
+      "new_token_count": 893,
+      "old_sha256": "39c251625b25717d206f98e990166dbe34cdeafb95aae2eb3813ba3c02b3d7f0",
+      "new_sha256": "39c251625b25717d206f98e990166dbe34cdeafb95aae2eb3813ba3c02b3d7f0"
+    },
+    {
+      "name": "direct_complete_deadline_admission_body",
+      "equal": true,
+      "old_token_count": 227,
+      "new_token_count": 227,
+      "old_sha256": "56028d7a9440555def49e01f239567d5e8798689a024c5e3018e0f9ed4492470",
+      "new_sha256": "56028d7a9440555def49e01f239567d5e8798689a024c5e3018e0f9ed4492470"
+    },
+    {
+      "name": "direct_complete_provider_select_validation_body",
+      "equal": true,
+      "old_token_count": 270,
+      "new_token_count": 270,
+      "old_sha256": "de6afb7381d8158b5786ece561253989a4860c529b156e21748945f59f24bb63",
+      "new_sha256": "de6afb7381d8158b5786ece561253989a4860c529b156e21748945f59f24bb63"
+    },
+    {
+      "name": "direct_release_on_error_and_result_body",
+      "equal": true,
+      "old_token_count": 25,
+      "new_token_count": 25,
+      "old_sha256": "42d442812fa4547d32dc07ba58862907de930db424a625634a26fc644ae501ba",
+      "new_sha256": "42d442812fa4547d32dc07ba58862907de930db424a625634a26fc644ae501ba"
+    },
+    {
+      "name": "scoped_barrier_complete_mutation_body",
+      "equal": true,
+      "old_token_count": 463,
+      "new_token_count": 463,
+      "old_sha256": "07937616be0854ad2b134baebca9223d8672e19d3dca004be87bd7dd189ff3f0",
+      "new_sha256": "07937616be0854ad2b134baebca9223d8672e19d3dca004be87bd7dd189ff3f0"
+    },
+    {
+      "name": "scope_all_head_pin_live_checks_and_output",
+      "equal": true,
+      "old_token_count": 222,
+      "new_token_count": 222,
+      "old_sha256": "e80d19e0d8506cc768d95af19e252b27a2529d9d1061fc841ba66dd8055bbc44",
+      "new_sha256": "e80d19e0d8506cc768d95af19e252b27a2529d9d1061fc841ba66dd8055bbc44"
+    },
+    {
+      "name": "drive_inner_complete_control_body_with_verified_phases",
+      "equal": true,
+      "old_token_count": 1022,
+      "new_token_count": 1022,
+      "old_sha256": "deedb8403376cddd4283e7832258680c84ffd654ec7d1bff410d0aeb2456353d",
+      "new_sha256": "deedb8403376cddd4283e7832258680c84ffd654ec7d1bff410d0aeb2456353d"
+    },
+    {
+      "name": "scope_complete_method_except_exact_owning_reader_adapters",
+      "equal": true,
+      "old_token_count": 259,
+      "new_token_count": 259,
+      "old_sha256": "9ef3a84c7365356558bce40292b19777ca8aa5945aa18ab97caf3d4b02e10c96",
+      "new_sha256": "9ef3a84c7365356558bce40292b19777ca8aa5945aa18ab97caf3d4b02e10c96"
+    },
+    {
+      "name": "scope_complete_owning_load_checkpoint_arguments",
+      "equal": true,
+      "old_token_count": 26,
+      "new_token_count": 26,
+      "old_sha256": "1525362c85d51d8cd3b716765278fce8e51931a1e62d81342a9fa3faeb1f33ef",
+      "new_sha256": "1525362c85d51d8cd3b716765278fce8e51931a1e62d81342a9fa3faeb1f33ef"
+    },
+    {
+      "name": "scope_complete_owning_load_active_graph_frame_arguments",
+      "equal": true,
+      "old_token_count": 20,
+      "new_token_count": 20,
+      "old_sha256": "9f03dc702c218235b51671a773677e47c19292027d5ec607588ad8e7bb33ceb4",
+      "new_sha256": "9f03dc702c218235b51671a773677e47c19292027d5ec607588ad8e7bb33ceb4"
+    },
+    {
+      "name": "direct_complete_original_context",
+      "equal": true,
+      "old_token_count": 78,
+      "new_token_count": 78,
+      "old_sha256": "3908eee5812b9ea9453f9bc86e4d6030a7d9438cf31549b4ea7d66875b9171a9",
+      "new_sha256": "3908eee5812b9ea9453f9bc86e4d6030a7d9438cf31549b4ea7d66875b9171a9"
+    },
+    {
+      "name": "all_string_literals_error_and_SQL_counts",
+      "equal": true,
+      "old_token_count": 100,
+      "new_token_count": 100,
+      "old_sha256": "0001a84d4c014c2d329628a6f50671bb88cb458ee9262e4f954b157dca908f25",
+      "new_sha256": "0001a84d4c014c2d329628a6f50671bb88cb458ee9262e4f954b157dca908f25"
+    },
+    {
+      "name": "all_numeric_literal_counts",
+      "equal": true,
+      "old_token_count": 176,
+      "new_token_count": 176,
+      "old_sha256": "185c8c7284e76ebd8c9e0dd5fc8a59a674a57d5faf2fe64fe0dd55ad869962a4",
+      "new_sha256": "185c8c7284e76ebd8c9e0dd5fc8a59a674a57d5faf2fe64fe0dd55ad869962a4"
+    }
+  ],
+  "protected_files_identical": {
+    "crates/stateknot-runtime/src/driver/lease.rs": true,
+    "crates/stateknot-runtime/src/lifecycle.rs": true,
+    "crates/stateknot-runtime/src/registry.rs": true,
+    "crates/stateknot-runtime/src/lifecycle/frame.rs": true,
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs": true,
+    "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs": true,
+    "crates/stateknot-store-postgres/src/root_graph_barriers.rs": true,
+    "crates/stateknot-store-postgres/src/trusted_graph_root.rs": true
+  },
+  "failures": [],
+  "passed": true
+}

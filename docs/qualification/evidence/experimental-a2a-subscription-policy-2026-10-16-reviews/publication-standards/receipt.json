@@ -1,0 +1,47 @@
+{
+  "reviewer": "root, not author of publication package; production author role distinct",
+  "scope": "independent publication Standards/delivery review; not independent review of own implementation",
+  "candidate_manifest_sha256": "739688ef10fe7f01579d1cb4ba0174ea3e257a0fc6782f82dc5a64f3cb90939c",
+  "freeze_sha256": "64288482f4feecec8c8e847f42a22f727450a7397c11d1a1b000a9ec76437eb7",
+  "candidate_files": 178,
+  "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "compiled538": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "commands": [
+    {
+      "argv": [
+        "python3",
+        ".local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/verify-candidate.py",
+        "--repository-root",
+        "/Users/jiawy/Documents/RustAgentFramework"
+      ],
+      "exit_code": 0
+    },
+    {
+      "argv": [
+        "python3",
+        ".local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/verify-candidate.py",
+        "--repository-root",
+        "/Users/jiawy/Documents/RustAgentFramework",
+        "--workspace",
+        "--workspace-root",
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v5"
+      ],
+      "exit_code": 0
+    }
+  ],
+  "seconds": 0.48448896408081055,
+  "blocking_findings": [],
+  "reviewed": [
+    "178 exact path/byte/hash inventory; deterministic gzip with raw/stored digests",
+    "930 source reconstruction using 3 new payloads and23 old source-only refs; safe in-memory archive handling",
+    "538 input STRING order and narrow workspace check; no whole Git/compiler-read closure claim",
+    "16 original gate receipts with raw logs and complete original runners/drivers; six actual0 on fixed source",
+    "all original Q1 illegal EOF repoll/Q2 time oracle/Q3 test lints/Q4 edition format/Q5 sandbox EPERM retained and classified",
+    "100 suites2108/0/6oldignored and48docs; 8direct+1TCPfamily17matrixIDs by2bindings",
+    "no Native DB/IdP/durableTask/fullCI/stdio/R1 transfer; independent Spec pending internal package metadata remains historical",
+    "report JSON/English/Chinese consistent, candidate relative links16 checked",
+    "no binaries/cache/full source archive/credentials added; original raw patch artifacts gzip avoids Git whitespace exceptions"
+  ],
+  "main_adoption_and_final_workspace_check": false,
+  "Cargo_network_DB_CI_execution_performed": false
+}

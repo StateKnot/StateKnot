@@ -1,0 +1,18 @@
+{
+  "findings": [
+    {
+      "priority": "P2",
+      "classification": "wording/technical identity ambiguity; no production-code defect",
+      "file": "docs/mcp-client.md",
+      "line": 237,
+      "quoted_text": "Earlier bound-state PostgreSQL15-case results",
+      "problem": "PostgreSQL15-case reads as PostgreSQL major15. Actual earlier bound-state evidence is PostgreSQL16/17 with15 tests per major.",
+      "minimal_fix": "Earlier bound-state PostgreSQL 16/17 full 15-test serial-suite results",
+      "paired_CN_suggestion": "此前bound-state PostgreSQL16/17每版15项",
+      "basis": "CONTRIBUTING.md Chinese terminology rule: preserve technical meaning and do not broaden implementation/recovery/production qualification; review expectation of accurate compatibility and scope.",
+      "status": "open pending separate immutable docs revision"
+    }
+  ],
+  "other_documented_standard_findings": 0,
+  "heuristic_smell_findings": 0
+}

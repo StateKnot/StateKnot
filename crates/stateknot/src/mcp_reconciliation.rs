@@ -231,57 +231,59 @@ impl McpToolReconciler {
                 }}))
     }
 
-    async fn reconcile(
+    fn reconcile(
         &self,
         principal: McpServerPrincipal,
         request: McpReconciliationRequest,
-    ) -> Result<Value, McpReconciliationError> {
-        if !principal.has_scope(SCOPE) {
-            return Err(McpReconciliationError::Denied);
-        }
-        let grant = self
-            .authorizer
-            .authorize(principal.clone(), request.clone())
-            .await?;
-        let tenant = grant.caller.tenant_id();
-        let request_digest = Digest::sha256(serde_json_canonicalizer::to_vec(&json!({
+    ) -> BoxFuture<'_, Result<Value, McpReconciliationError>> {
+        Box::pin(async move {
+            if !principal.has_scope(SCOPE) {
+                return Err(McpReconciliationError::Denied);
+            }
+            let grant = self
+                .authorizer
+                .authorize(principal.clone(), request.clone())
+                .await?;
+            let tenant = grant.caller.tenant_id();
+            let request_digest = Digest::sha256(serde_json_canonicalizer::to_vec(&json!({
             "subject":principal.subject(), "tenant":tenant, "principal":grant.caller.principal(), "request":request
         })).map_err(|_| McpReconciliationError::Invalid)?);
-        let target = ReconciliationTarget {
-            event_id: request.event_id,
-            run_id: request.run_id,
-            invocation_id: request.invocation_id,
-            attempt_id: request.attempt_id,
-            expected_revision: request.expected_revision,
-            expected_digest: request.expected_digest,
-        };
-        let expected = self.backend.load(&grant, &target).await?;
-        let result = ToolResult::new(
-            ToolResultProvenance::new(
-                request.invocation_id,
-                request.attempt_id,
-                expected.intent().descriptor().metadata().identity().clone(),
-            ),
-            expected.intent().descriptor().output_schema().clone(),
-            request.output.clone(),
-            ToolArtifacts::empty(),
-        );
-        expected
-            .validate_reconciliation_result(&result)
-            .map_err(|_| McpReconciliationError::Invalid)?;
-        self.backend
-            .schemas
-            .validate_bounded(result.output_schema(), result.output())
-            .map_err(|_| McpReconciliationError::Invalid)?;
-        self.backend
-            .apply(
-                &grant,
-                &target,
-                &expected,
-                ReconciledOutcome::Result(result),
-                request_digest,
-            )
-            .await
+            let target = ReconciliationTarget {
+                event_id: request.event_id,
+                run_id: request.run_id,
+                invocation_id: request.invocation_id,
+                attempt_id: request.attempt_id,
+                expected_revision: request.expected_revision,
+                expected_digest: request.expected_digest,
+            };
+            let expected = self.backend.load(&grant, &target).await?;
+            let result = ToolResult::new(
+                ToolResultProvenance::new(
+                    request.invocation_id,
+                    request.attempt_id,
+                    expected.intent().descriptor().metadata().identity().clone(),
+                ),
+                expected.intent().descriptor().output_schema().clone(),
+                request.output.clone(),
+                ToolArtifacts::empty(),
+            );
+            expected
+                .validate_reconciliation_result(&result)
+                .map_err(|_| McpReconciliationError::Invalid)?;
+            self.backend
+                .schemas
+                .validate_bounded(result.output_schema(), result.output())
+                .map_err(|_| McpReconciliationError::Invalid)?;
+            self.backend
+                .apply(
+                    &grant,
+                    &target,
+                    &expected,
+                    ReconciledOutcome::Result(result),
+                    request_digest,
+                )
+                .await
+        })
     }
 }
 

@@ -1788,7 +1788,7 @@ struct ToolInvocationRecordDigestWire<'a> {
     transition_digest: Option<Digest>,
 }
 
-fn compute_ready_node_input_digest(
+pub(crate) fn compute_ready_node_input_digest(
     base_checkpoint_digest: Digest,
     graph_namespace: &GraphNamespace,
     node_id: &NodeId,

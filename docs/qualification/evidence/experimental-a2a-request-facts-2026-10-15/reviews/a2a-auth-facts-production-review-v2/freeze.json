@@ -1,0 +1,13 @@
+{
+  "baseline_path": ".local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot-integrations/src/a2a_client.rs",
+  "baseline_sha256": "b0397e995e9fea861a7a160344d2a9ead07605705752b6c9e1ff2fe9cd5120e4",
+  "candidate_path": ".local-verification/2026-10-15/elapsed36-a2a-auth-facts-source/crates/stateknot-integrations/src/a2a_client.rs",
+  "candidate_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "patch_sha256": "326059c0a90c9a469fa98ac93d65876a51d813f87c47737322a9829356d4367e",
+  "review_head": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "previous_review_basis_sha256": "3537dece34a33f6bc4059257361f39cc75305da3633868426f4487da066d0767",
+  "rustdoc_only_delta_sha256": "204f8fd86d29b75ce45083c9bce78c78b3e0c15c13b53294310e06fb47a6e471",
+  "non_doc_lines_exactly_unchanged": true,
+  "production_file_only": true,
+  "status": "frozen-for-read-only-review"
+}

@@ -2100,17 +2100,21 @@ fn map_activation_store_error(
 }
 
 fn allocate_monotonic_id(counter: &AtomicU64) -> Option<u64> {
-    counter
-        .fetch_update(Ordering::AcqRel, Ordering::Acquire, |current| {
-            (current != u64::MAX).then_some(current + 1)
-        })
-        .ok()
+    crate::atomic_counter::allocate(counter, u64::MAX, Ordering::AcqRel, Ordering::Acquire)
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn activation_id_exhaustion_fails_closed_without_wrapping() {
+        let counter = AtomicU64::new(u64::MAX - 1);
+        assert_eq!(allocate_monotonic_id(&counter), Some(u64::MAX - 1));
+        assert_eq!(allocate_monotonic_id(&counter), None);
+        assert_eq!(counter.load(Ordering::Acquire), u64::MAX);
+    }
 
     #[test]
     fn static_entry_rejects_dynamic_and_manifest_escape() {

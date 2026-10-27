@@ -1,0 +1,73 @@
+{
+  "reviewer": "/root/resume_proof_base_oct15; one independent reviewer, two axes; not two independent reviews",
+  "state": "read-only review complete; candidate not adopted; native trial still active",
+  "base_commit": "686c42739e9f128db9d90fcb4e9d1aefd36942d8",
+  "baseline_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004",
+  "candidate_sha256": "6bead2659391392d43076624c56473b5cfae366d63efc5d985559009ed76336a",
+  "patch_sha256": "c25a965cbdea6f3a37c603c49f43b6765d937e322e8d649e40fe4782a704c4c8",
+  "proposal_sha256": "ed68bc82701f5b6c5dd5e5417096e0521ea6533477688640c74f1c3002b3e584",
+  "standards_findings": [],
+  "spec_findings": [],
+  "checks": {
+    "exact_nine_additions_only": true,
+    "only_postgres_job_changed": true,
+    "steps": 53,
+    "run_steps": 31,
+    "timeout_minutes": 30,
+    "all_original_job_and_other_workflow_bytes_preserved": true,
+    "Cargo_manifests_and_toolchain_unchanged": true,
+    "all_existing_cargo_commands_and_default_feature_flags_preserved": true,
+    "local_union_not_transferred_to_CI_default": true,
+    "debug_assertions_and_overflow_checks_explicit_true": true,
+    "no_build_database_or_network_execution_for_review": true,
+    "full_CI_qualification": false,
+    "new_test_profile_requires_fresh_CI_execution": true
+  },
+  "sources": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-test-profile-ci-candidate-v1/candidate.patch",
+      "bytes": 646,
+      "sha256": "c25a965cbdea6f3a37c603c49f43b6765d937e322e8d649e40fe4782a704c4c8"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-test-profile-ci-candidate-v1/proposal.json",
+      "bytes": 763,
+      "sha256": "ed68bc82701f5b6c5dd5e5417096e0521ea6533477688640c74f1c3002b3e584"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/CONTRIBUTING.md",
+      "bytes": 3407,
+      "sha256": "eced710f5f2f5e5408576ddd5ff3720ec41ab0283270c0c984edadbda01ac523"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/Cargo.toml",
+      "bytes": 3624,
+      "sha256": "d73912078dd7ea3c34ff854cebc84088b6c1dade7a675ddfc6b3a23c3643a622"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/rust-toolchain.toml",
+      "bytes": 165,
+      "sha256": "2f441c124b2cfabc1558c8b3f990f44fde197b62c3aa3e36b7d8d79d330af858"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/conformance/agent-identity/run.sh",
+      "bytes": 3909,
+      "sha256": "e0b9e8517477b79eb1189b11743c77c627cd33cc9b6c75d4f149c53956e1bcdd"
+    },
+    {
+      "path": "/Users/jiawy/.rustup/toolchains/1.88.0-aarch64-apple-darwin/share/doc/rust/html/cargo/reference/profiles.html",
+      "bytes": 33408,
+      "sha256": "0720e234c6d18b0218d6bd635cba34807e91ac6b7fb8cff9179c56e1aeb8e6e4"
+    },
+    {
+      "path": "/Users/jiawy/.rustup/toolchains/1.88.0-aarch64-apple-darwin/share/doc/rust/html/cargo/reference/environment-variables.html",
+      "bytes": 43475,
+      "sha256": "972ec059e7374b836f5820fd0a8d9572b20a02a508b85dd3ad52ede6ef24a2a2"
+    },
+    {
+      "path": "/Users/jiawy/.rustup/toolchains/1.88.0-aarch64-apple-darwin/share/doc/rust/html/cargo/reference/config.html",
+      "bytes": 84127,
+      "sha256": "d4095be9f289832bfd5273edcf70b3f1a0c75e6d63e269a31aab0b0fbf9e3030"
+    }
+  ]
+}

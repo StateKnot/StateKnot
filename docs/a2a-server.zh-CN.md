@@ -44,6 +44,45 @@ Authentication 的路由。启动时，Card 声明的 Capability 和 Interface U
 与可选浏览器 Origin 必须逐项精确配置。没有 `Origin` 的 Server-to-server
 请求仍然有效。格式错误或重复的 Bearer Credential 会在 Body Decode 前失败。
 
+## 请求准备期限
+
+`with_timeouts(request_timeout, stream_idle_timeout)` 同时约束初始请求准备。
+认证成功后，Server 按单调时钟只采样一次期限，覆盖请求体收集、规范化、基于
+已解码操作的授权和跨副本准入。授权与准入共享剩余预算，不会在进入下一个
+Callback 时重新获得完整超时。认证保留原有独立预算；准备成功后，Backend
+执行或 Stream 创建才开始各自原有的独立预算。
+
+此期限适用于两种 Binding 的全部十一种已解码操作。请求体只在 SDK 实际读取
+它的路径收集：REST Send/Stream 与 JSON-RPC 保留原有规范化；REST 创建
+Push Config 在配置的 Body 上限内缓冲原始字节。其他路由不会新增 Body 读取。
+Push Request 保留原始 Method、URI、HTTP Version、Header（含 Content-Length）
+与 Extension 实例。高于 Axum 默认 2 MiB 的显式上限仍然有效。
+
+请求体等待超时返回纯文本 HTTP 408 `request timed out`；观察到 Shutdown 时
+返回纯文本 HTTP 503 `service unavailable`。准备 Callback 超时使用既有 A2A
+Internal Error `A2A operation timed out`，Shutdown 使用
+`A2A service is shutting down`，按各 Binding 的普通流前错误 Envelope 返回。
+按时完成的策略拒绝与不可用保留原映射。REST Push 的 Body Buffer 失败保留
+固定 SDK 完整的纯文本 400/413 与允许 Origin 的响应头；REST Send、JSON-RPC
+保留各自原有早期 Body 错误映射。多个缺陷同时存在的输入会在 Backend 派发前
+拒绝，但其错误优先级不作为兼容保证。
+
+边界在等待后重新检查真实时钟和 Shutdown。迟到的授权结果不能开始准入，
+准备失败不能调用 Backend。请求拥有并释放正在等待的工作，不创建后台 Policy
+Task。等待 Policy 时不占 Operation Permit；最后一道检查可能在取得 Permit
+后立即观察到期限或 Shutdown，此时会在 Backend 前释放。准备错误 Response
+返回前释放 Request 容量。
+
+宿主认证、策略与准入 Future 必须有界且不阻塞。Rust 无法抢占同步阻塞的
+Callback 或 Decode；准备阶段在控制权返回后拒绝迟到的有效规范化、已解码授权
+或准入结果。这不承诺硬性
+墙钟响应时限、外部配额回滚、即时发现客户端断开或持久化 Task Cancellation。
+下述可选订阅复核仍使用每次步骤独立的 Idle 预算。
+
+[限定执行记录](qualification/experimental-a2a-preparation-deadline-2026-10-16.zh-CN.md)
+保留原累计期限失败、源码/缓存绑定问题、夹具修正与最终本地门禁。这些检查不
+授予部署身份提供方、持久化 Task Backend、完整 CI 或 R1 资格。
+
 ## 已实现 Operation
 
 | Capability | HTTP+JSON | JSON-RPC | Backend 要求 |
@@ -148,6 +187,55 @@ axum::serve(listener, server.router())
 TLS 与可信 Proxy Termination 位于 Router 外层。Allowlist 应配置应用实际看到的
 Authority；除非外层可信组件已经替换 Request Authority，否则不要信任客户端
 提供的 Forwarding Header。
+
+## 实验性订阅当前策略复核
+
+对只读 `SubscribeToTask` SSE，在上方组装示例把 Options 传给
+`A2aServer::new` 前显式启用：
+
+```rust,ignore
+let options = options.with_subscription_authorization_rechecks();
+```
+
+默认关闭。此 consuming 方法幂等，Clone 和其他 Options 方法会保留开关与原有
+数值限额。它不会开启缺失的 Streaming Capability，也不改变
+`SendStreamingMessage`、Unary、原有 Admission、Retry 或持久化 Task Cancellation。
+
+原 Authentication、Decoded Authorization、Admission 和 Backend Subscription
+创建完成后，每个被 poll 的 next-step 在 poll Backend 前，以及取得正常 Event 后，
+调用现有 `A2aServerAuthorizer`。两次检查都保留最初完整 Principal、Canonical
+Scopes、`SubscribeToTask`、原解码 Task ID 和空 Config ID。宿主必须查询当前权威
+Tenant/Resource Policy 并拒绝失效绑定；恒定允许的 Authorizer 不会因为打开开关
+而获得撤销能力。Adapter 不保留 Bearer 做重新认证，也不自行重新校验 Credential
+Expiry 或 Revocation。
+
+每一步只建立一个原 Stream-idle 绝对期限，覆盖 Pre-check、Backend 等待和
+Post-check。每次 Callback 的期限还取该 Idle Deadline 与本阶段开始加原
+Request Timeout 的较早值；await 后实际检查时钟与 Shutdown，阻止晚到 Event
+交付。宿主 Callback 必须有界且不阻塞：Rust Timeout 无法抢占同步阻塞工作，
+事后时钟检查不会把此类 Callback 变成具有有界延迟的实现。
+
+被 poll 的步骤观察到拒绝、不可用、超时、Shutdown、Backend Error/EOF 或 Event
+Cap 耗尽时，会在返回终结输出前 drop 自有 Backend Stream 和 Operation Permit。
+获准 Terminal Event 先通过 Post-check，再于交付前退役这些资源。Headers 已提交
+后，错误沿用 SDK 原有 REST/RPC Stream Envelope，不改变 HTTP Status。
+Pre-check 拒绝发生在原 Backend 创建之后，不能据此声称从未创建 Backend。
+
+最后成功的 Post-check 是该 Event 的策略线性化点，不是与 TCP 发送原子化的撤销
+边界。已经交给 SDK、Transport 或 Proxy 的字节无法收回。未被 poll 的 next-step
+不会启动后台策略任务、周期复核或到期计时器。真实连接清理依赖 HTTP 栈观察关闭
+并 drop Body；Rust Stream Drop 不代表 Durable Task 已取消或 Backend 已清理。
+下方更广的部署门禁仍然必需。
+
+冻结的 v5 共 930 文件，在原 opt0/default stack 下六项本地门禁通过：100 个
+Workspace Suite，2,108 passed、0 failed、6 个原有 ignored；10 组 Doctest 共
+48 passed。包含 8 个 Direct Ownership Test，以及一个真实 TCP Family 经
+REST/RPC 两条 Binding 执行 17 个矩阵 ID；这是可控 Policy/Stream 证据，不是
+34 个独立 Test Family。Fmt/Clippy 在首轮 v5 通过，其余四项在源码不变、获得
+Loopback 授权后通过。原 Fixture/Format 红与 Sandbox Listener Denial 保留于
+[限定执行记录](qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md)。
+这不新增 Native 数据库、独立 Server TCK、完整 CI、部署中的 Identity/Policy
+Backend、Durable A2A Backend 或 R1 资格。
 
 ## 部署门禁
 

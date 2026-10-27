@@ -1,0 +1,17 @@
+{
+  "command": [
+    "cargo",
+    "clean",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-pitr-cleanup-source/Cargo.toml",
+    "--target-dir",
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+    "-p",
+    "stateknot-runtime"
+  ],
+  "exit_code": 0,
+  "seconds": 0.13106393814086914,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "d60365cf08bad61ca9104308ca5d637a9891b385ff6d61a337a7f08b2566b36b",
+  "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d"
+}

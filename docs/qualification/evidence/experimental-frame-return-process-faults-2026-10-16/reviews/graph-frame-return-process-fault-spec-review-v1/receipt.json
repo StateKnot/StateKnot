@@ -1,0 +1,42 @@
+{
+  "kind": "independent_read_only_Spec_review",
+  "reviewer_not_test_author": true,
+  "Standards_review_claimed": false,
+  "baseline_commit": "a544ad9bfcb516a1ac7a6b8232c66019b46ad1f5",
+  "actionable_findings": 0,
+  "source_execution_qualified": false,
+  "performance_or_CI_qualified": false,
+  "actual_inventory_qualified": false,
+  "offline_predicates": {
+    "three_candidate_hashes_match": true,
+    "two_preimages_equal_exact_baseline_git_blobs": true,
+    "mechanical_removal_restores_two_originals": true,
+    "raw_and_gzip_patch_hashes_match": true
+  },
+  "scope_limits": [
+    "forced supersession, not natural expiry",
+    "fresh StaleFence negative is renewal; fresh whole Return remains existing separate Store coverage",
+    "14 fixture table JSON views, not all database rows or physical tuples",
+    "two cuts, one controller plus one conditional worker; not two independent business libtests",
+    "no Rust/Cargo/DB/CI/Docker execution"
+  ],
+  "inputs": [
+    {
+      "path": ".local-verification/2026-10-16/graph-frame-return-process-fault-authoring-v1/candidate/crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+      "bytes": 14303,
+      "sha256": "271296c418b3d2ba7c48a39ab515dc410fa2f2aca26e82a6712faa11c4aade77"
+    },
+    {
+      "path": ".local-verification/2026-10-16/graph-frame-return-process-fault-authoring-v1/candidate/crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+      "bytes": 18380,
+      "sha256": "6ee5d279683aeb296efe10f7262609ed997f6ba030777d1686730ae457504a33"
+    },
+    {
+      "path": ".local-verification/2026-10-16/graph-frame-return-process-fault-authoring-v1/candidate/crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "bytes": 137913,
+      "sha256": "17ef6c6bb5fc546bc3d2bc21e80d028b9e48237c8850ad378cd06fa5c8ec1845"
+    }
+  ],
+  "author_receipt_sha256": "451dd45e27d1acea50ea22d5e31ddfedde46fa3b3cd17bcadb2f3758988f37bb",
+  "report_sha256": "86adc4c219cd2a72f001765c6510af527323b0c0a0e7be658ff05074c0afe5cf"
+}

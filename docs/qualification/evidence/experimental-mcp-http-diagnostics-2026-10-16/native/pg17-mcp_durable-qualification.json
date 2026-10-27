@@ -1,0 +1,47 @@
+{
+  "binary_sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+  "database": "stateknot_r1_mcp_debug_20261016v3",
+  "failed": 0,
+  "filtered": 0,
+  "ignored": 0,
+  "major": 17,
+  "markers": {
+    "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+      {
+        "calls": 0,
+        "case": "denial",
+        "duplicate_ledger_unchanged": true,
+        "durable_start_verified": true,
+        "payload_from_full_input": true,
+        "policy_calls": 1
+      },
+      {
+        "calls": 1,
+        "case": "lost_response",
+        "duplicate_ledger_unchanged": true,
+        "durable_start_verified": true,
+        "payload_from_full_input": true,
+        "policy_calls": 1
+      }
+    ],
+    "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+      {
+        "calls": 0,
+        "case": "denial",
+        "duplicate_ledger_unchanged": true,
+        "durable_before_authorization": true,
+        "policy_calls": 1
+      },
+      {
+        "calls": 1,
+        "case": "lost_response",
+        "durable_before_authorization": true,
+        "policy_calls": 1,
+        "reconciliation_idempotent": true
+      }
+    ]
+  },
+  "measured": 0,
+  "passed": 6,
+  "target": "mcp_durable"
+}

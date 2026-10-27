@@ -1,0 +1,44 @@
+{
+  "metadata_correction": {
+    "field": "pg16/environment.json and pg17/environment.json original_node_timeout_seconds",
+    "recorded_value": 30,
+    "label_is_incorrect": true,
+    "no_runtime_option_was_set_by_this_field": true,
+    "actual_default_node_execution_timeout_seconds": 900,
+    "actual_default_store_lease_seconds": 30,
+    "actual_role_pool_acquire_timeout_seconds": 30
+  },
+  "original_configuration": {
+    "role_PostgresStore_pool_min_max": [
+      1,
+      8
+    ],
+    "role_auxiliary_pools_max": 4,
+    "role_concurrent_submission_and_completion": 24,
+    "role_compound_entry_race": 24,
+    "role_lock_statement_seconds": [
+      5,
+      20
+    ],
+    "default_stack": true,
+    "no_env_resource_overrides": true
+  },
+  "source_files": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-store-postgres/src/config.rs",
+      "sha256": "f2039152c46fa6884fe80b96fee7532f9c2098e859c3165b4bb9c87d46cfa0b0"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime/src/driver.rs",
+      "sha256": "ff17ee321eec475865c3094a1b8d95fdcfec1a78952046d9a2c94798d9d61969"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime/tests/postgres/role_profile.rs",
+      "sha256": "a09417101545c0c40baba62f49cb6e31733a43cbd0d06d3e3a6ad6f18e58910f"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime/tests/postgres/elapsed_graph_waits.rs",
+      "sha256": "8fe8a7412110028d061cb1b767291b8d2c53af1ed1177c77c8d6d6a01c2cede9"
+    }
+  ]
+}

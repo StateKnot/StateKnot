@@ -1,0 +1,34 @@
+{
+  "audited_unix": 1792067720.527118,
+  "scope": "post-execution read-only audit; no Docker, compilation, deletion or cleanup",
+  "recorded_task_PIDs": [
+    58866,
+    58993,
+    58996,
+    59263,
+    59512
+  ],
+  "recorded_task_PIDs_absent": true,
+  "execution_sessions_waited_exit_zero": [
+    16807,
+    10019
+  ],
+  "free_KiB": 322714632,
+  "retained_task_cache_realpath": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+  "retained_task_cache_KiB": 2755928,
+  "Cargo_CACHEDIR_TAG_sha256": "6d9d1d216e0f83abc5e5662ca62c92b4f23009466b54fa27321a69acdb778bb2",
+  "git_tracked_cache_files": 0,
+  "lsof_exit": 1,
+  "cache_no_open_files": true,
+  "cargo_lock_nonblocking_acquired_released": true,
+  "cache_cleaned": false,
+  "cache_retained_for": "root composed validation follow-up; do not infer cache ownership if another stage later starts",
+  "source_files": 922,
+  "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+  "source_all_bytes_unchanged": true,
+  "saved_binary_sha256": "994be9d00fe567660a847627c82b96a5e51c45e9ded56b0ba54e6760b75f0a32",
+  "saved_binary_rehashed": true,
+  "old_WAL_retained_by_before_after_Native_inventory": true,
+  "manual_stop_rm_prune_or_historical_volume_cleanup": false,
+  "main_or_candidate_source_modified_by_verification": false
+}

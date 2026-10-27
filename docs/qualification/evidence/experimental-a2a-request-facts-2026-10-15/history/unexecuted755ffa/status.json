@@ -1,0 +1,42 @@
+{
+  "source_manifest": {
+    "file_count": 923,
+    "tree_sha256": "755ffa939c9bf6650c8e55b9e6289cf68c6e1c26d8516581f9c68e6a339c7eb4"
+  },
+  "files": [
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "sha256": "c722f75a3f38626bf736d0ac408f07b7dfded5c0726c2f786245a10900e6d4b5"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract/authorization_facts.rs",
+      "sha256": "17c1ffcd1b26875f743795331178027b5bf59a4fb5a159e671c0ba870e4e37da"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    }
+  ],
+  "production_a2a_client_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "production_unchanged_since_durable_delegation": true,
+  "previous_network_raw_seal_still_valid": true,
+  "new_network_test_count": 7,
+  "new_durable_test_names": [
+    "a2a_authorized_send_reads_the_durable_start_and_recovery_does_not_send_again",
+    "a2a_authorized_denial_commits_once_without_business_send_or_policy_repeat"
+  ],
+  "coverage_scope": {
+    "durable_binding": "HTTP+JSON only",
+    "shared_provider_destination_policy": "same provider, two independently preconfigured loopback fixture URLs; both bindings; same body",
+    "network_replay": "HTTP+JSON attested only; no RPC replay claim"
+  },
+  "actual_checks": {
+    "rustfmt_exit_code": 0,
+    "compilation": "NOT RUN",
+    "strict_clippy": "NOT RUN",
+    "network_tests": "NOT RUN",
+    "mandatory_pg16_pg17_durable_tests": "NOT RUN",
+    "runtime_red_green": "NOT RUN"
+  },
+  "main_git_status": ""
+}
