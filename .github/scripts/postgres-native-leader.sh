@@ -7,12 +7,18 @@ work=$1
 control=$2
 expected_parent=$3
 shift 3
-[[ $# == 4 && $1 == python3 && $3 == run && ( $4 == store || $4 == runtime ) ]]
+if [[ $# == 4 && $1 == python3 && $3 == run && ( $4 == store || $4 == runtime ) ]]; then
+  : # Original fixed single-full command policy.
+elif [[ $# == 4 && $1 == python3 && $3 == run-runtime-shard && ( $4 == 0 || $4 == 1 ) ]]; then
+  : # Explicit two-shard successor; no arbitrary executable or filter arguments.
+else
+  exit 94
+fi
 
 # The parent's inherited O_RDWR bootstrap descriptor prevents an open/EOF race.
 # Open a read-only endpoint, then close every inherited writer before any child.
 exec 3< "$control"
-exec 8>&- 9>&-
+exec 7>&- 8>&- 9>&-
 [[ $PPID == "$expected_parent" ]]
 IFS= read -r stat < "/proc/$$/stat"
 read -r -a fields <<< "${stat##*) }"

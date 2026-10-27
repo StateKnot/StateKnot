@@ -10,10 +10,11 @@ script_dir=$(cd -- "$(dirname -- "$0")" && pwd)
 leader=$script_dir/postgres-native-leader.sh
 binary_helper=$script_dir/postgres-native-binaries.py
 declare -A worker_pid worker_start worker_state worker_fd suite_code
-worker_fd[store]=8
-worker_fd[runtime]=9
-worker_state[store]=unstarted
-worker_state[runtime]=unstarted
+lanes=(store runtime-0 runtime-1)
+worker_fd[store]=7
+worker_fd[runtime-0]=8
+worker_fd[runtime-1]=9
+for role in "${lanes[@]}"; do worker_state[$role]=unstarted; done
 
 identity_alive() {
   local role=$1 stat
@@ -57,6 +58,7 @@ record_status() {
   if [[ -z ${suite_code[$role]:-} ]]; then
     suite_code[$role]=$code
     printf '%s\t%s\n' "$role" "$code" >> "$out/suite-exits.tsv"
+    printf '%s\t%s\n' "$role" "$(date +%s%N)" >> "$out/lane-completions.tsv"
   fi
 }
 
@@ -92,7 +94,7 @@ retire() {
   if group_present_readonly "${worker_pid[$role]}"; then result=1; fi
   printf '%s\t%s\t%s\n' "$role" "${worker_pid[$role]}" "$result" >> "$out/retired.tsv"
   worker_state[$role]=retired
-  case ${worker_fd[$role]} in 8) exec 8>&- ;; 9) exec 9>&- ;; esac
+  case ${worker_fd[$role]} in 7) exec 7>&- ;; 8) exec 8>&- ;; 9) exec 9>&- ;; esac
   if [[ -p "$out/$role-owner/control" ]]; then rm -- "$out/$role-owner/control" || result=1; fi
   unset "worker_pid[$role]" "worker_start[$role]"
   return "$result"
@@ -102,17 +104,23 @@ finish() {
   local status=$? role
   trap - EXIT
   trap '' INT TERM
-  for role in store runtime; do
+  for role in "${lanes[@]}"; do
     if ! retire "$role" monitor-exit; then
       if [[ $status == 0 ]]; then status=1; fi
     fi
   done
   # Closing every writer also handles parent death via the leaders' read EOF.
-  exec 8>&- 9>&-
-  for role in store runtime; do
+  exec 7>&- 8>&- 9>&-
+  for role in "${lanes[@]}"; do
     if [[ -p "$out/$role-owner/control" ]]; then rm -- "$out/$role-owner/control" || status=1; fi
   done
   printf 'monitor_exit\t%s\n' "$status" >> "$out/cleanup.tsv"
+  if [[ $status == 0 ]]; then
+    if ! python3 "$binary_helper" verify-sharded; then
+      status=1
+      printf 'monitor_verification_failed\t1\n' >> "$out/cleanup.tsv"
+    fi
+  fi
   exit "$status"
 }
 trap finish EXIT
@@ -153,42 +161,53 @@ settings="SELECT current_setting('server_version_num'),current_setting('fsync'),
 psql_in_service "$settings" > "$out/settings-before.tsv"
 IFS='|' read -r version fsync synchronous_commit full_page_writes < "$out/settings-before.tsv"
 [[ $((version / 10000)) == "$major" && "$fsync" == on && "$synchronous_commit" == on && "$full_page_writes" == on ]]
-[[ $(psql_in_service "SELECT count(*) FROM pg_database WHERE datname IN ('stateknot_store_native','stateknot_runtime_native');") == 0 ]]
-for database in stateknot_store_native stateknot_runtime_native; do
+[[ $(psql_in_service "SELECT count(*) FROM pg_database WHERE datname IN ('stateknot_store_native','stateknot_runtime_native_0','stateknot_runtime_native_1');") == 0 ]]
+for database in stateknot_store_native stateknot_runtime_native_0 stateknot_runtime_native_1; do
   docker exec "$container" createdb -U postgres --template=template0 --encoding=UTF8 "$database"
   printf '%s\n' "$database" >> "$out/created-databases.txt"
 done
 
+python3 "$binary_helper" plan-runtime-shards
 date -u +%Y-%m-%dT%H:%M:%SZ > "$out/pair-started.txt"
-for role in store runtime; do
+pair_deadline=$((SECONDS + 1800))
+for role in "${lanes[@]}"; do
   mkdir "$out/$role-owner"
   mkfifo "$out/$role-owner/control"
 done
-exec 8<> "$out/store-owner/control"
-exec 9<> "$out/runtime-owner/control"
+exec 7<> "$out/store-owner/control"
+exec 8<> "$out/runtime-0-owner/control"
+exec 9<> "$out/runtime-1-owner/control"
 printf '%s\n' 'python3 .github/scripts/postgres-native-binaries.py run store' > "$out/store-command.txt"
-printf '%s\n' 'python3 .github/scripts/postgres-native-binaries.py run runtime' > "$out/runtime-command.txt"
+printf '%s\n' 'python3 .github/scripts/postgres-native-binaries.py run-runtime-shard 0' > "$out/runtime-0-command.txt"
+printf '%s\n' 'python3 .github/scripts/postgres-native-binaries.py run-runtime-shard 1' > "$out/runtime-1-command.txt"
 STATEKNOT_TEST_DATABASE_URL="${base%/stateknot_test}/stateknot_store_native" \
   setsid bash "$leader" "$out/store-owner" "$out/store-owner/control" "$$" \
   python3 "$binary_helper" run store \
-  9>&- > "$out/store.stdout" 2> "$out/store.stderr" &
+  8>&- 9>&- > "$out/store.stdout" 2> "$out/store.stderr" &
 worker_pid[store]=$!
 worker_state[store]=active
-STATEKNOT_TEST_DATABASE_URL="${base%/stateknot_test}/stateknot_runtime_native" \
-  setsid bash "$leader" "$out/runtime-owner" "$out/runtime-owner/control" "$$" \
-  python3 "$binary_helper" run runtime \
-  8>&- > "$out/runtime.stdout" 2> "$out/runtime.stderr" &
-worker_pid[runtime]=$!
-worker_state[runtime]=active
-printf 'store\t%s\nruntime\t%s\n' "${worker_pid[store]}" "${worker_pid[runtime]}" > "$out/pids.tsv"
-for role in store runtime; do
+STATEKNOT_TEST_DATABASE_URL="${base%/stateknot_test}/stateknot_runtime_native_0" \
+  setsid bash "$leader" "$out/runtime-0-owner" "$out/runtime-0-owner/control" "$$" \
+  python3 "$binary_helper" run-runtime-shard 0 \
+  7>&- 9>&- > "$out/runtime-0.stdout" 2> "$out/runtime-0.stderr" &
+worker_pid[runtime-0]=$!
+worker_state[runtime-0]=active
+STATEKNOT_TEST_DATABASE_URL="${base%/stateknot_test}/stateknot_runtime_native_1" \
+  setsid bash "$leader" "$out/runtime-1-owner" "$out/runtime-1-owner/control" "$$" \
+  python3 "$binary_helper" run-runtime-shard 1 \
+  7>&- 8>&- > "$out/runtime-1.stdout" 2> "$out/runtime-1.stderr" &
+worker_pid[runtime-1]=$!
+worker_state[runtime-1]=active
+printf 'store\t%s\nruntime-0\t%s\nruntime-1\t%s\n' "${worker_pid[store]}" "${worker_pid[runtime-0]}" "${worker_pid[runtime-1]}" > "$out/pids.tsv"
+for role in "${lanes[@]}"; do
   bind_identity "$role"
 done
-python3 "$binary_helper" overlap
-printf 'Both original leader identities bound.\n' > "$out/monitor-ready"
+python3 "$binary_helper" overlap-sharded
+printf 'All three original leader identities bound.\n' > "$out/monitor-ready"
 printf 'Owned leaders started; complete native-binary outputs are retained separately.\n'
-while [[ ${worker_state[store]} == active || ${worker_state[runtime]} == active ]]; do
-  for role in store runtime; do
+while [[ ${worker_state[store]} == active || ${worker_state[runtime-0]} == active || ${worker_state[runtime-1]} == active ]]; do
+  (( SECONDS < pair_deadline )) || exit 124
+  for role in "${lanes[@]}"; do
     [[ ${worker_state[$role]} == active ]] || continue
     identity_alive "$role"
     if record_status "$role"; then
@@ -196,18 +215,18 @@ while [[ ${worker_state[store]} == active || ${worker_state[runtime]} == active 
       (( 10#${suite_code[$role]} == 0 )) || exit "${suite_code[$role]}"
     fi
   done
-  if [[ ${worker_state[store]} == active || ${worker_state[runtime]} == active ]]; then sleep 0.05; fi
+  if [[ ${worker_state[store]} == active || ${worker_state[runtime-0]} == active || ${worker_state[runtime-1]} == active ]]; then sleep 0.05; fi
 done
-[[ ${suite_code[store]} == 0 && ${suite_code[runtime]} == 0 ]]
-# Full original test harnesses must actually finish; suite exit alone is insufficient.
+[[ ${suite_code[store]} == 0 && ${suite_code[runtime-0]} == 0 && ${suite_code[runtime-1]} == 0 ]]
+# Each actual original case belongs to exactly one explicit execution lane.
 [[ $(grep -Fxc 'running 276 tests' "$out/store.stdout") == 1 ]]
 [[ $(grep -Ec '^test result: ok[.] 276 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' "$out/store.stdout") == 1 ]]
-[[ $(grep -Fxc 'running 229 tests' "$out/runtime.stdout") == 1 ]]
-[[ $(grep -Ec '^test result: ok[.] 229 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' "$out/runtime.stdout") == 1 ]]
+# Runtime selected/filtered counts are derived only from the bound full inventory plan.
+# verify-sharded in the successful EXIT path checks every actual selected case and summary.
 psql_in_service "$settings" > "$out/settings-after.tsv"
 cmp "$out/settings-before.tsv" "$out/settings-after.tsv"
 python3 "$binary_helper" verify
 python3 "$script_dir/postgres-native-artifacts.py" verify after
-sha256sum "$out/store.stdout" "$out/store.stderr" "$out/runtime.stdout" "$out/runtime.stderr" > "$out/log-sha256.txt"
+sha256sum "$out/store.stdout" "$out/store.stderr" "$out/runtime-0.stdout" "$out/runtime-0.stderr" "$out/runtime-1.stdout" "$out/runtime-1.stderr" > "$out/log-sha256.txt"
 date -u +%Y-%m-%dT%H:%M:%SZ > "$out/pair-completed.txt"
-printf 'Both complete native suites passed their full harness guards.\n'
+printf 'Store full harness and both exhaustive Runtime shards passed their actual harness guards.\n'

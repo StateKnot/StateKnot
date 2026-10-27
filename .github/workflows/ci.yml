@@ -362,7 +362,9 @@ jobs:
       - name: Verify Native artifact rejection controls
         env:
           PYTHONDONTWRITEBYTECODE: "1"
-        run: python3 -m unittest discover -s .github/scripts/tests -p test_postgres_native_artifacts.py -v
+        run: |
+          python3 -m unittest discover -s .github/scripts/tests -p test_postgres_native_artifacts.py -v
+          python3 .github/scripts/test-postgres-native-runtime-shards.py -v
 
       - name: Build and export cold Native binaries
         id: export
@@ -469,7 +471,7 @@ jobs:
           STATEKNOT_PARALLEL_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
           STATEKNOT_PARALLEL_POSTGRES_MAJOR: ${{ matrix.version }}
         # Separate fresh databases; each original harness remains serial.
-        # Same-run cold producer binaries retain two owned native-binary groups.
+        # Same-run cold producer binaries retain three owned native-binary groups.
         run: bash .github/scripts/run-postgres-native-parallel.sh
 
       - name: Upload complete native-suite outputs

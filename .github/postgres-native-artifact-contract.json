@@ -1,5 +1,5 @@
 {
-  "schema": "stateknot-postgres-native-shared-build-ci-contract-v1",
+  "schema": "stateknot-postgres-native-shared-build-ci-contract-v2",
   "expected_jobs": 22,
   "expected_checkouts": 20,
   "original21_job_names": [
@@ -283,7 +283,160 @@
     17
   ],
   "native_job_timeout_minutes": 30,
-  "native_pair_owner_unchanged": true,
+  "native_execution": {
+    "schema": "stateknot-native-runtime-shards-execution-v1",
+    "plan_schema": "stateknot-native-runtime-shards-plan-v1",
+    "producer_roles": [
+      "store",
+      "runtime"
+    ],
+    "lanes": [
+      {
+        "label": "store",
+        "role": "store",
+        "database": "stateknot_store_native",
+        "owner_fd": 7,
+        "shard_index": null
+      },
+      {
+        "label": "runtime-0",
+        "role": "runtime",
+        "database": "stateknot_runtime_native_0",
+        "owner_fd": 8,
+        "shard_index": 0
+      },
+      {
+        "label": "runtime-1",
+        "role": "runtime",
+        "database": "stateknot_runtime_native_1",
+        "owner_fd": 9,
+        "shard_index": 1
+      }
+    ],
+    "runtime_assignment": {
+      "algorithm": "sort complete producer inventory; lane0=names[0::2], lane1=names[1::2]",
+      "union_equals_complete_inventory": true,
+      "selected_names_once": true,
+      "same_runtime_binary": true,
+      "test_threads": 1,
+      "libtest_filter_mode": "exact selected names; no substring or prefix selection",
+      "inventory_source": "full_inventory.runtime",
+      "shard_count": 2,
+      "assignment_id": "sorted-full-inventory-alternating-v1",
+      "passed_count": "len(sorted(controlled full_inventory.runtime names)[shard_index::shard_count])",
+      "filtered_count": "full_inventory.runtime - passed_count",
+      "store_passed_count": "full_inventory.store",
+      "store_filtered_count": 0,
+      "required_failed_ignored_measured": 0,
+      "producer_receipt_source": "postgres-native-parallel/runtime-binary.json",
+      "producer_inventory_source": "postgres-native-parallel/import/producer/runtime-inventory.stdout",
+      "same_source_binding_and_profile": true
+    },
+    "owner_protocol": {
+      "leader_sessions": 3,
+      "original_two_lane_arrangement_unchanged": false,
+      "states": [
+        "unstarted",
+        "active",
+        "lost",
+        "retired"
+      ],
+      "identity_and_retirement_protocol_preserved": true,
+      "leader_lane_allowlist_and_fd_closure_extended": true,
+      "successful_cleanup_requires_all_three_retired": true,
+      "overlap_identities": "Each lane retains actual /proc leader/helper/binary pid,start_ticks,ppid,pgrp,session,exe; original owner identity and parent tree must agree; nine PIDs are distinct.",
+      "database_observation": "Parse each actual live binary process environment at overlap, require its fixed local PostgreSQL route and persist only its database name.",
+      "retirement_observation": "Successful direct waits plus original owner cleanup-complete and no residual owned process-group member are mandatory; absent or lost identity cannot qualify."
+    },
+    "artifact_layout": {
+      "schema": "stateknot-native-runtime-shards-artifact-layout-v1",
+      "directory": "postgres-native-parallel/",
+      "artifact_name": "postgres-native-parallel-${{ matrix.version }}-${{ github.run_id }}",
+      "artifacts_per_native_job": 1,
+      "total_workflow_artifacts": 56,
+      "producer_artifacts": 2,
+      "control_fifo_exclusion": "!postgres-native-parallel/*-owner/control",
+      "per_lane": [
+        "{lane}.stdout",
+        "{lane}.stderr",
+        "{lane}-execution.json",
+        "{lane}-command.txt",
+        "{lane}-owner/leader-identity",
+        "{lane}-owner/helper-pid",
+        "{lane}-owner/suite-status",
+        "{lane}-owner/cleanup-reason",
+        "{lane}-owner/helper-wait-status",
+        "{lane}-owner/cleanup-complete"
+      ],
+      "shared": [
+        "execution-schema.json",
+        "runtime-shards-plan.json",
+        "runtime-shards-inventory.stdout",
+        "runtime-shards-inventory.stderr",
+        "runtime-0-selection.stdout",
+        "runtime-0-selection.stderr",
+        "runtime-1-selection.stdout",
+        "runtime-1-selection.stderr",
+        "native-binary-overlap-sharded.json",
+        "lane-completions.tsv",
+        "pids.tsv",
+        "suite-exits.tsv",
+        "leader-exits.tsv",
+        "retire-requests.tsv",
+        "retired.tsv",
+        "cleanup.tsv",
+        "created-databases.txt",
+        "service.txt",
+        "settings-before.tsv",
+        "settings-after.tsv",
+        "profile.tsv",
+        "override-presence.tsv",
+        "log-sha256.txt",
+        "pair-started.txt",
+        "pair-completed.txt",
+        "native-runtime-shards-verification.json"
+      ],
+      "stream_semantics": "Three original stdout/stderr pairs are retained independently. Each Runtime lane summary must match the derived selected-name count and full_inventory.runtime minus that count; no concatenated or synthesized runtime.stdout/runtime.stderr.",
+      "synthetic_runtime_streams_allowed": false,
+      "overlap_keys": [
+        "schema",
+        "observed_unix_ns",
+        "all_actual_binary_processes_alive",
+        "processes",
+        "databases",
+        "identities"
+      ],
+      "overlap_identity_keys": [
+        "pid",
+        "start_ticks",
+        "ppid",
+        "pgrp",
+        "session",
+        "exe"
+      ]
+    },
+    "legacy_single_stream_policy": {
+      "schema": "stateknot-native-single-stream-execution-v1",
+      "verbs": [
+        "build",
+        "bridge",
+        "run store",
+        "run runtime",
+        "overlap",
+        "verify"
+      ],
+      "original_run_store_and_runtime_full_inventory": true,
+      "original_two_stream_logs": [
+        "store.stdout",
+        "store.stderr",
+        "runtime.stdout",
+        "runtime.stderr"
+      ],
+      "current_sharded_evidence_may_be_interpreted_as_legacy": false,
+      "sealed_v1_policy_and_failures_immutable": true
+    },
+    "qualification_awarded": false
+  },
   "business_ready_timeout_seconds": 90,
   "outer_observer_cap_seconds": 1800,
   "profile": {
@@ -816,7 +969,8 @@
       "source_step_sha256": "eaaf745747cee8e74f144b46c915c87707700f6856b1085964c0c4a790f20608",
       "shard": "native",
       "candidate_index": 5,
-      "equivalence": "exact original step object and run body"
+      "equivalence": "Original workflow step object and launcher body retained; Store executes its complete controlled inventory and Runtime executes two exact, disjoint alternating subsets from one imported Runtime binary. Their once-only union and derived passed/filtered summaries are governed by native_execution.",
+      "execution_schema": "stateknot-native-runtime-shards-execution-v1"
     },
     {
       "source_index": 5,
@@ -824,7 +978,8 @@
       "source_step_sha256": "e9c144f33ed5091a58b34bb167ab64478ab64185ce384925ea784aa73deff891",
       "shard": "native",
       "candidate_index": 6,
-      "equivalence": "exact original step object and run body"
+      "equivalence": "Original workflow upload step, artifact name and one artifact per major retained; uploaded directory now requires three independent raw stdout/stderr pairs, selected/full lists, plan, live identity/database overlap and all-three-owner cleanup evidence specified by native_execution.artifact_layout.",
+      "artifact_layout_schema": "stateknot-native-runtime-shards-artifact-layout-v1"
     },
     {
       "source_index": 6,
@@ -1267,7 +1422,7 @@
       "equivalence": "exact original step object and run body"
     }
   ],
-  "current_candidate_workflow_sha256": "d1c8feb174e69f70b80a3a9181430b2fe9ecb3d9aff0c998ce213b5519b2d384",
+  "current_candidate_workflow_sha256": "2b15e4145753f9bd23d8a326b8b745bdad7653b7e1b67c688699886bb8c2ee27",
   "explicit_extra_steps": [
     {
       "shard": "native",
@@ -1373,5 +1528,21 @@
   "stable_partial_prefix_bytes": 1048576,
   "producer_success_export_marker": "STATEKNOT_NATIVE_EXPORT_V1=",
   "producer_success_export_receipt": "postgres-native-parallel/export.receipt.json",
-  "producer_export_receipt_outside_sealed_bundle": true
+  "producer_export_receipt_outside_sealed_bundle": true,
+  "runtime_shard_unit_controls": {
+    "script": ".github/scripts/test-postgres-native-runtime-shards.py",
+    "fixture_provenance": ".github/scripts/tests/fixtures/postgres-native-runtime-shards/provenance.json",
+    "positive_first_required_for_every_negative": true,
+    "fixtures_are_codec_inputs_only": true,
+    "ci_job": "postgres-native-build",
+    "ci_step": "Verify Native artifact rejection controls",
+    "qualification_awarded": false
+  },
+  "native_owner_protocol": {
+    "execution_schema": "stateknot-native-runtime-shards-execution-v1",
+    "lane_count": 3,
+    "legacy_two_lane_arrangement_preserved": false,
+    "identity_and_retirement_rules_preserved": true,
+    "successful_cleanup_requires": "all three original leader/helper/binary trees exited and their groups empty; all direct waits successful; no forced kill or ownership loss"
+  }
 }

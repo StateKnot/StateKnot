@@ -396,6 +396,67 @@ def inventory(directory, role, receipt, module):
             and lines[-1] == str(count) + ' tests, 0 benchmarks', 'full 276/229 Native inventory')
 
 
+def validate_ci_contract(contract, workflow_sha256):
+    """Accept only the current three-lane CI policy; artifact-v1 stays unchanged."""
+    require(type(contract) is dict
+            and contract.get('schema') == 'stateknot-postgres-native-shared-build-ci-contract-v2',
+            'explicit current runtime-shards CI contract schema')
+    require(contract['expected_jobs'] == 22 and contract['expected_checkouts'] == 20
+            and contract['current_candidate_workflow_sha256'] == workflow_sha256
+            and contract['full_inventory'] == {'store': 276, 'runtime': 229}
+            and 'native_pair_owner_unchanged' not in contract,
+            'explicit current runtime-shards CI contract')
+    execution = contract['native_execution']
+    require(execution['schema'] == 'stateknot-native-runtime-shards-execution-v1'
+            and execution['plan_schema'] == 'stateknot-native-runtime-shards-plan-v1'
+            and execution['producer_roles'] == ['store', 'runtime']
+            and execution['qualification_awarded'] is False, 'current execution schema and original two producer roles')
+    require(execution['lanes'] == [
+            {'label': 'store', 'role': 'store', 'database': 'stateknot_store_native',
+             'owner_fd': 7, 'shard_index': None},
+            {'label': 'runtime-0', 'role': 'runtime', 'database': 'stateknot_runtime_native_0',
+             'owner_fd': 8, 'shard_index': 0},
+            {'label': 'runtime-1', 'role': 'runtime', 'database': 'stateknot_runtime_native_1',
+             'owner_fd': 9, 'shard_index': 1}], 'exact three lanes and independent database routing')
+    assignment = execution['runtime_assignment']
+    require(assignment['inventory_source'] == 'full_inventory.runtime'
+            and assignment['assignment_id'] == 'sorted-full-inventory-alternating-v1'
+            and assignment['shard_count'] == 2 and assignment['test_threads'] == 1
+            and assignment['passed_count'] == 'len(sorted(controlled full_inventory.runtime names)[shard_index::shard_count])'
+            and assignment['filtered_count'] == 'full_inventory.runtime - passed_count'
+            and assignment['union_equals_complete_inventory'] is True
+            and assignment['selected_names_once'] is True and assignment['same_runtime_binary'] is True
+            and assignment['same_source_binding_and_profile'] is True
+            and assignment['store_passed_count'] == 'full_inventory.store'
+            and assignment['store_filtered_count'] == assignment['required_failed_ignored_measured'] == 0,
+            'Runtime subset counts derive from one complete controlled inventory')
+    owner = execution['owner_protocol']
+    require(owner['leader_sessions'] == 3
+            and owner['original_two_lane_arrangement_unchanged'] is False
+            and owner['states'] == ['unstarted', 'active', 'lost', 'retired']
+            and owner['identity_and_retirement_protocol_preserved'] is True
+            and owner['leader_lane_allowlist_and_fd_closure_extended'] is True
+            and owner['successful_cleanup_requires_all_three_retired'] is True
+            and contract['native_owner_protocol']['execution_schema'] == execution['schema']
+            and contract['native_owner_protocol']['lane_count'] == 3
+            and contract['native_owner_protocol']['legacy_two_lane_arrangement_preserved'] is False,
+            'explicit three-lane ownership and successful retirement policy')
+    layout, legacy = execution['artifact_layout'], execution['legacy_single_stream_policy']
+    require(layout['schema'] == 'stateknot-native-runtime-shards-artifact-layout-v1'
+            and layout['artifacts_per_native_job'] == 1 and layout['total_workflow_artifacts'] == 56
+            and layout['producer_artifacts'] == 2 and layout['synthetic_runtime_streams_allowed'] is False
+            and layout['overlap_keys'] == ['schema', 'observed_unix_ns', 'all_actual_binary_processes_alive',
+                                         'processes', 'databases', 'identities']
+            and layout['overlap_identity_keys'] == ['pid', 'start_ticks', 'ppid', 'pgrp', 'session', 'exe']
+            and legacy['schema'] == 'stateknot-native-single-stream-execution-v1'
+            and legacy['current_sharded_evidence_may_be_interpreted_as_legacy'] is False
+            and legacy['sealed_v1_policy_and_failures_immutable'] is True,
+            'separate current raw lane streams and immutable historical policy')
+    current = {row['source_index']: row for row in contract['current_60_step_mapping']}
+    require(current[4]['execution_schema'] == execution['schema']
+            and current[5]['artifact_layout_schema'] == layout['schema'], 'current execution and upload mapping')
+
+
 def export():
     require(os.environ.get('GITHUB_JOB') == 'postgres-native-build', 'single producer job')
     require(not BUNDLE.exists(), 'export cannot replay')
@@ -438,10 +499,7 @@ def export():
         receipt = load(OUT / (role + '-binary.json'))
         require(abi(BUNDLE / 'after', role, receipt, module) == data['runtime'], 'producer DSO/binary changed during export')
     contract = load(ROOT / '.github/postgres-native-artifact-contract.json')
-    require(contract['schema'] == 'stateknot-postgres-native-shared-build-ci-contract-v1'
-            and contract['expected_jobs'] == 22 and contract['expected_checkouts'] == 20
-            and contract['current_candidate_workflow_sha256'] == sha(ROOT / '.github/workflows/ci.yml')
-            and contract['full_inventory'] == {'store': 276, 'runtime': 229}, 'explicit successor CI contract')
+    validate_ci_contract(contract, sha(ROOT / '.github/workflows/ci.yml'))
     save(BUNDLE / 'manifest.json', {'schema': SCHEMA, 'identity': identity_row, 'host': host_row,
          'profile': module.PROFILE, 'scripts': script_binding(), 'source': source,
          'producer_cold_target': (OUT / 'cold-target.txt').read_text().strip(),
