@@ -418,6 +418,7 @@ enum DiagnosticOutcome {
     Complete(bool),
     InputRequired,
     Remote,
+    InvalidResult,
 }
 
 fn diagnostic_rpc_response(
@@ -437,6 +438,10 @@ fn diagnostic_rpc_response(
             "result":{"resultType":"complete","tools":[diagnostic_tool()]}
         }),
         "tools/call" => match outcome {
+            DiagnosticOutcome::InvalidResult => json!({
+                "jsonrpc":"2.0","id":id,
+                "result":{"resultType":"complete","content":[],"isError":"false"}
+            }),
             DiagnosticOutcome::Remote => json!({
                 "jsonrpc":"2.0","id":id,
                 "error":{"code":-32041,"message":diagnostic_private("error_message"),
@@ -670,6 +675,14 @@ async fn diagnostic_http_case(sse: bool, outcome: DiagnosticOutcome) {
     let result = client.call_tool(tool, arguments.clone()).await;
     match outcome {
         DiagnosticOutcome::Remote => assert_diagnostic_remote(&result.unwrap_err()),
+        DiagnosticOutcome::InvalidResult => {
+            let error = result.unwrap_err();
+            assert_diagnostic_redacted(&error);
+            assert!(matches!(
+                error,
+                stateknot_integrations::StatelessMcpClientError::InvalidToolResult
+            ));
+        }
         DiagnosticOutcome::Complete(is_error) => {
             assert_diagnostic_complete(&result.unwrap(), is_error, sse);
         }
@@ -709,5 +722,60 @@ async fn http_response_debug_hides_payloads_without_changing_raw_values_or_resum
         ] {
             diagnostic_http_case(sse, outcome).await;
         }
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn http_invalid_tool_result_remains_a_closed_error() {
+    for sse in [false, true] {
+        diagnostic_http_case(sse, DiagnosticOutcome::InvalidResult).await;
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn http_mrtr_key_rejection_does_not_dispatch_or_retire_the_client() {
+    for sse in [false, true] {
+        let server = DiagnosticServer::start(sse, DiagnosticOutcome::InputRequired).await;
+        let client = McpClient::connect(
+            server.endpoint.clone(),
+            McpClientIdentity::new("outcome-contract-client", "1.0.0").unwrap(),
+            Arc::new(StaticMcpBearerAuthorization::new(
+                ApiKey::new(SECRET).unwrap(),
+            )),
+            McpClientOptions::default(),
+        )
+        .await
+        .unwrap();
+        let catalog = client.list_tools().await.unwrap();
+        let tool = catalog.find(&diagnostic_private("tool_name")).unwrap();
+        let first_arguments = json!({"original": "question"});
+        let response = client
+            .call_tool_once(tool, first_arguments.clone())
+            .await
+            .unwrap();
+        let McpToolCall::InputRequired(required) = response.into_outcome() else {
+            panic!("expected an input-required outcome");
+        };
+        let error = required.resume(serde_json::Map::new()).await.unwrap_err();
+        assert!(matches!(
+            error,
+            stateknot_integrations::StatelessMcpClientError::InputResponseKeysMismatch
+        ));
+        let next_arguments = json!({"after": "locally rejected continuation"});
+        let response = client
+            .call_tool_once(tool, next_arguments.clone())
+            .await
+            .unwrap();
+        assert_diagnostic_complete(&response, false, sse);
+        let captured = server.finish().await;
+        assert_eq!(captured.len(), 4);
+        let first: Value = serde_json::from_slice(request_body(&captured[2])).unwrap();
+        let next: Value = serde_json::from_slice(request_body(&captured[3])).unwrap();
+        assert_eq!(first["params"]["arguments"], first_arguments);
+        assert_eq!(next["method"], "tools/call");
+        assert_eq!(next["params"]["arguments"], next_arguments);
+        assert!(next["params"].get("requestState").is_none());
+        assert!(next["params"].get("inputResponses").is_none());
+        assert_ne!(first["id"], next["id"]);
     }
 }

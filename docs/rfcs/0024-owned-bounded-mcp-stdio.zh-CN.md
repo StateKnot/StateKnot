@@ -46,7 +46,7 @@ Issue 140 要求 JiaClaw 能发现并调用本地工具。R1 要求字面参数�
 
 复用 McpTool、McpToolCallResponse、McpCompleteToolResult、McpNotification、McpInputRequired。通过私有 HTTP/stdio continuation enum 保留现有公开 resume 签名。原 non_exhaustive client error 增加脱敏 stdio 分类，不要求重命名旧类型。配置、启动和清理错误区分无效配置、不支持 containment、准入拒绝、协议错误、上限耗尽、超时和 owner 故障。每项 stdio 调用错误都保留自己的 NotSent 或 MayHaveBeenSent，包括本地参数校验或 MRTR keys 拒绝；该错误的 Display/Debug 不含 OS 原始错误或 server 原文。共享协议解析错误由 stdio Adapter 包装，不能从缺少发送阶段的旧 HTTP variant 直接逸出。
 
-当前 McpRemoteError、McpCompleteToolResult、McpNotification 的派生 Debug 会包含远端原文/data，McpToolCallResponse 的 Debug 也会间接输出它们。复用这些类型不等于已获得脱敏。拟议 Implementation 必须改为有界、无 payload 的 Debug，并回归 HTTP/stdio 格式化；显式 raw accessor 仍可取得不可信数据。这是明确的诊断行为变化，HTTP wire、授权和重试行为不变。
+现有 HTTP 诊断边界已为 McpRemoteError、McpCompleteToolResult、McpNotification 与 McpToolCallResponse 提供无 payload 的 Debug。未来 stdio 实现必须保留并回归这一共享边界；显式 raw accessor 仍可取得不可信数据。HTTP wire、授权和重试行为保持不变。
 
 接受前须在独立消费者中编译公开名称、精确配置/错误/报告类型和真实示例。本节没有声称这些 Rust 类型已经存在。
 
@@ -144,7 +144,7 @@ Windows 要求非继承 Job Object、kill-on-last-handle-close、禁 breakaway�
 
 ## 兼容性
 
-保留 Rust1.88、现有 HTTP Interface/wire/MRTR resume 签名，上述明确更安全的共享 Debug 格式除外。不隐式升级 rmcp 或开启 child-process feature。固定审查基线为 rmcp3.5.0、Tokio1.53.2。target-specific 显式依赖边、feature 和 owner 部署在接受前审阅；传递低层依赖不等于现有直接 Interface。
+保留 Rust1.88、现有 HTTP Interface/wire/MRTR resume 签名及已有无 payload 的共享 Debug 边界。不隐式升级 rmcp 或开启 child-process feature。固定审查基线为 rmcp3.5.0、Tokio1.53.2。target-specific 显式依赖边、feature 和 owner 部署在接受前审阅；传递低层依赖不等于现有直接 Interface。
 
 ## 考虑过的替代方案
 
@@ -168,7 +168,7 @@ stdio 完成不能关闭 R1 其余语义、身份、兼容与资格要求。支�
 - 选择并审计精确 Linux 跨 crash owner 部署与 Windows safe Job owner 依赖，证明完整不变量。
 - 冻结其余 hard time/rate/generation ceiling、聚合计数表示，按原默认资源验证，不能扩大限制过关。
 - 冻结可编译的公开配置/错误/cleanup report、外部消费者 revision 和实际首批支持平台矩阵。
-- 冻结 MRTR/已返回值的计数表示、call error phase 包装、共享 Debug 改动及 stdio/HTTP invalid-result 显式差别，并在最终 Interface 编译。
+- 冻结 MRTR/已返回值的计数表示、call error phase 包装及 stdio/HTTP invalid-result 显式差别，保留并验证现有共享 Debug 边界，并在最终 Interface 编译。
 - 证明 Windows security/handle/alternate-parent profile 与 Linux 外层 owner 生命周期；当前审查依赖尚未提供这些保证。
 
 这些问题影响公开契约，解决前保持 Draft。下一项验证是在一个具名部署上检查 owner 能力、逃逸尝试和 crash 清理，完成后再发布工具。先选精确依赖/companion revision 并读源码，再以固定限制测试完整 oracle；能力不足必须在执行 sentinel target 前拒绝。可并行抽取保持 HTTP 不变的私有协议代码，但不能算 stdio 验收。
@@ -184,3 +184,8 @@ stdio 完成不能关闭 R1 其余语义、身份、兼容与资格要求。支�
 - [RFC 流程](README.md)
 - [固定 Windows parent-attribute 文档](https://github.com/MicrosoftDocs/sdk-api/blob/d43984d7c322f7d7d35704d6d1ad36dc3539703b/sdk-api-src/content/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute.md)
 - [固定 Windows process-rights 文档](https://github.com/MicrosoftDocs/win32/blob/3aee48ac3f48e187d17bdfd56951741737331749/desktop-src/ProcThread/process-security-and-access-rights.md)
+
+
+## 2026-10-27 私有实现进展
+
+[共享 Tool 结果解码](../qualification/experimental-mcp-tool-outcome-boundary-2026-10-27.zh-CN.md)已由真实 HTTP Adapter 采用，continuation 仍由 HTTP 绑定。本准备片不改公开 Interface，也未实现 owned stdio session。原生 owner 选型、最终限额、外部消费者与平台证据仍是接受条件，状态保持 Draft。

@@ -26,8 +26,9 @@ use thiserror::Error;
 mod protocol;
 
 use protocol::{
-    ParsedMessage, allocate_client_binding_id, allocate_monotonic_id, classify_rpc_message,
-    parse_cache_policy, parse_discovery, request_metadata, validate_complete_result_type,
+    DecodedToolResult, ParsedMessage, allocate_client_binding_id, allocate_monotonic_id,
+    classify_rpc_message, decode_tool_result, parse_cache_policy, parse_discovery,
+    request_metadata, validate_complete_result_type,
 };
 
 use crate::{
@@ -1320,7 +1321,21 @@ impl McpClient {
                 }
             }
         };
-        let outcome = parse_tool_result(exchange.result, self.clone(), tool.clone(), arguments)?;
+        let decoded = decode_tool_result(exchange.result)
+            .map_err(|_| StatelessMcpClientError::InvalidToolResult)?;
+        let outcome = match decoded {
+            DecodedToolResult::Complete(result) => McpToolCall::Complete(result),
+            DecodedToolResult::InputRequired {
+                input_requests,
+                request_state,
+            } => McpToolCall::InputRequired(McpInputRequired {
+                client: self.clone(),
+                tool: tool.clone(),
+                arguments,
+                input_requests,
+                request_state,
+            }),
+        };
         Ok(McpToolCallResponse {
             outcome,
             notifications: exchange.notifications,
@@ -1999,87 +2014,6 @@ fn requires_base64(value: &str) -> bool {
         || matches!(bytes.last(), Some(b' ' | b'\t'))
         || bytes.iter().any(|byte| !(0x20..=0x7e).contains(byte))
         || (value.starts_with(BASE64_PREFIX) && value.ends_with(BASE64_SUFFIX))
-}
-
-fn parse_tool_result(
-    value: Value,
-    client: McpClient,
-    tool: McpTool,
-    arguments: Map<String, Value>,
-) -> Result<McpToolCall, StatelessMcpClientError> {
-    let object = value
-        .as_object()
-        .ok_or(StatelessMcpClientError::InvalidToolResult)?;
-    let result_type = match object.get("resultType") {
-        Some(value) => Some(
-            value
-                .as_str()
-                .ok_or(StatelessMcpClientError::InvalidToolResult)?,
-        ),
-        None => None,
-    };
-    match result_type {
-        None | Some("complete") => {
-            let content = object
-                .get("content")
-                .and_then(Value::as_array)
-                .cloned()
-                .ok_or(StatelessMcpClientError::InvalidToolResult)?;
-            let is_error = match object.get("isError") {
-                Some(value) => value
-                    .as_bool()
-                    .ok_or(StatelessMcpClientError::InvalidToolResult)?,
-                None => false,
-            };
-            Ok(McpToolCall::Complete(McpCompleteToolResult {
-                content,
-                structured_content: object.get("structuredContent").cloned(),
-                is_error,
-                raw: value,
-            }))
-        }
-        Some("input_required") => {
-            let input_requests = match object.get("inputRequests") {
-                Some(value) => value
-                    .as_object()
-                    .cloned()
-                    .ok_or(StatelessMcpClientError::InvalidToolResult)?,
-                None => Map::new(),
-            };
-            for (key, request) in &input_requests {
-                let request = request
-                    .as_object()
-                    .ok_or(StatelessMcpClientError::InvalidToolResult)?;
-                if key.is_empty()
-                    || key.len() > 1024
-                    || !matches!(
-                        request.get("method").and_then(Value::as_str),
-                        Some("elicitation/create" | "sampling/createMessage" | "roots/list")
-                    )
-                {
-                    return Err(StatelessMcpClientError::InvalidToolResult);
-                }
-            }
-            let request_state = match object.get("requestState") {
-                Some(value) => Some(
-                    value
-                        .as_str()
-                        .ok_or(StatelessMcpClientError::InvalidToolResult)?
-                        .to_owned()
-                        .into_boxed_str(),
-                ),
-                None => None,
-            };
-            Ok(McpToolCall::InputRequired(McpInputRequired {
-                client,
-                tool,
-                arguments,
-                input_requests,
-                request_state,
-            }))
-        }
-        Some(_) => Err(StatelessMcpClientError::InvalidToolResult),
-    }
 }
 
 #[cfg(test)]

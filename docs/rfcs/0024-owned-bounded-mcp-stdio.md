@@ -99,13 +99,11 @@ validation or MRTR-key refusal, must retain its own send phase. Shared protocol
 parsing errors are wrapped by the stdio Adapter rather than escaping through
 old HTTP-specific variants without a phase.
 
-The current McpRemoteError, McpCompleteToolResult and McpNotification derive
-Debug containing raw remote text/data; McpToolCallResponse exposes those Debug
-implementations transitively. Reusing these types does not already provide
-redaction. The proposed Implementation must replace those Debug derives with
-bounded payload-free formatting and test HTTP and stdio formatting. Explicit
-raw accessors still return untrusted data. This is a deliberate diagnostic
-behavior change; HTTP wire/auth/replay behavior is unchanged.
+The existing HTTP diagnostics boundary already gives McpRemoteError,
+McpCompleteToolResult, McpNotification and McpToolCallResponse payload-free Debug
+formatting. A future stdio implementation must retain and test this shared
+boundary. Explicit raw accessors still return untrusted data; HTTP wire,
+authorization and replay behavior remain unchanged.
 
 Public names, exact configuration/error/report types and a realistic example
 must be compiled in an external consumer before acceptance. The prose above does not claim that these Rust types already exist.
@@ -406,8 +404,8 @@ path. No RPO, RTO, throughput or SLO claim precedes final native measurements.
 ## Compatibility
 
 Retain Rust 1.88 and the current HTTP Interface, wire behavior and MRTR resume
-signature, except for the explicitly safer shared Debug formatting described
-above. No rmcp upgrade or child-process feature is implicit. Current rmcp
+signature and existing payload-free shared Debug boundary.
+No rmcp upgrade or child-process feature is implicit. Current rmcp
 3.5.0 and Tokio 1.53.2 are the inspected baseline. Target-specific explicit
 dependency edges, feature flags and the owner deployment are reviewed before
 acceptance; a transitive low-level crate is not an existing direct Interface.
@@ -469,8 +467,8 @@ capability limit, not evidence that a macOS consumer's native use case works.
 - Freeze the compilable public configuration, error and cleanup report types,
   external consumer revision, and actual initial supported-platform matrix.
 - Fix the MRTR/returned-value accounting representation, call-error phase
-  wrapping, shared Debug change and explicit stdio-versus-HTTP invalid-result
-  mapping in the final compiled Interface.
+  wrapping, preservation and verification of the existing shared Debug boundary,
+  and explicit stdio-versus-HTTP invalid-result mapping in the final compiled Interface.
 - Prove the Windows security/handle/alternate-parent profile and Linux enclosing
   owner lifecycle; neither is established by the dependencies inspected so far.
 
@@ -498,3 +496,8 @@ evidence are complete.
 - [RFC process](README.md)
 - [Fixed Windows parent-attribute documentation](https://github.com/MicrosoftDocs/sdk-api/blob/d43984d7c322f7d7d35704d6d1ad36dc3539703b/sdk-api-src/content/processthreadsapi/nf-processthreadsapi-updateprocthreadattribute.md)
 - [Fixed Windows process-rights documentation](https://github.com/MicrosoftDocs/win32/blob/3aee48ac3f48e187d17bdfd56951741737331749/desktop-src/ProcThread/process-security-and-access-rights.md)
+
+
+## 2026-10-27 private implementation progress
+
+[Shared Tool outcome decoding](../qualification/experimental-mcp-tool-outcome-boundary-2026-10-27.md) is used by the real HTTP Adapter while its continuation remains HTTP-owned. This preparation changes no public Interface and does not implement an owned stdio session. Native owner selection, final limits, external consumer and platform evidence remain required; status remains Draft.
