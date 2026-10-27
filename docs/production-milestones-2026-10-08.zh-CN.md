@@ -525,3 +525,6 @@ npm run verify
 
 
 2026-10-27 后续验收：`6bf504e` 的真实 Unknown 对账后父 finalizer 测试组合已通过[完整 22 项 CI](https://github.com/StateKnot/StateKnot/actions/runs/40479323883)，包含当前 276/231 库存的双版本 Native 作业；此限定结果不关闭仍待补齐的故障矩阵。同日[私有 MCP Tool 结果解码](qualification/experimental-mcp-tool-outcome-boundary-2026-10-27.zh-CN.md)由真实 HTTP 采用，最终六门禁、双版各6项强制DB回归和冻结协议 required 门禁通过。新 MCP 交付仍须准确提交 CI；RFC-0024 的 owner、stdio 和外部消费者及 R1/R6/R7 继续开放。
+
+
+2026-10-27 未解析 Unknown writer-loss 补充：[限定记录](qualification/experimental-unresolved-tool-unknown-writer-loss-2026-10-27.zh-CN.md)绑定真实 writer execute_tool 后 Unknown/reconcile-first、kill/reap、ID-only cold 进程自然租约到期后的更高 fence Driver handoff、显式 release 与之后明确 consent 恢复；完整账户、原 ACK、terminal delta 与分段无写窗口均有实际断言。992source f2089d5a…/565compiled7964eb40…六门禁及双PG各exact1pass/232filtered通过；真实库存276/233，CI同步保留历史229/231和原预算。新组合及准确head CI继续待验；Unknown事务COMMIT歧义、独立provider持久化、完整矩阵、R1/R6/R7与stdio仍开放。

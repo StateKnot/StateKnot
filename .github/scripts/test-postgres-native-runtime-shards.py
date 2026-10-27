@@ -6,7 +6,7 @@
 Only the producer binding/environment and final live process-scan boundaries
 are substituted. Persisted owner identities and ABI receipts remain real inputs.
 The real sharded plan, harness, owner, routing and stream validators run over
-complete artifact-shaped files and original 276/231 producer inventories.
+complete artifact-shaped files and original 276/233 producer inventories.
 The Store list is historical Linux CI; the Runtime list is local macOS evidence.
 Their per-role provenance is distinct from the synthetic protocol receipts below.
 Every rejection first proves that its untouched fixture is accepted.

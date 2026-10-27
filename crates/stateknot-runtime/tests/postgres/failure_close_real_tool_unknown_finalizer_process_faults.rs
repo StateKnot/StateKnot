@@ -3,6 +3,9 @@
 
 //! Real Unknown is resolved before the killed finalizer; the provider is not restarted.
 
+#[path = "failure_close_real_tool_unknown_process_loss.rs"]
+mod unresolved_unknown_faults;
+
 use super::completion_commit_loss::{wait_for_backend_disconnect, worker_store};
 use super::*;
 use crate::{

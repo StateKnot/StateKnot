@@ -23,6 +23,38 @@
       }
     },
     "runtime": {
+      "file": "local-f208-runtime-inventory.stdout",
+      "inventory": 233,
+      "bytes": 24710,
+      "sha256": "5d2625b900965a2079fc1c700eff5372e13acc5d3cc26cfd1ffea3c4cdfe0687",
+      "origin": {
+        "kind": "actual-local-macos-aarch64-native-build-list",
+        "source_directory": "r1-unresolved-unknown-writer-loss-source-v2",
+        "source_files": 992,
+        "source_tree_sha256": "f2089d5a48d9288cc1241b0674235d17d13a024751b41fb0e9f0249092c6d939",
+        "compiled_inputs": 565,
+        "compiled_sha256": "7964eb40eee79683f35c5ec6cb9677bf0751f597e031065261ca92842617df30",
+        "capture_directory": "r1-unresolved-unknown-writer-loss-native-build-v1",
+        "capture_manifest_sha256": "235f484f7a0bc4ac896fd1137aab4565a643a83be7bee2bf51259dcde4df44fa",
+        "original_file": "runtime-inventory.stdout",
+        "inventory_receipt_sha256": "731269b1ea1d5c37338d0cba9fe5fea2bfe70e8bee4be36e25dff5e3e1af57c7",
+        "binary_sha256": "b977e02d048de3e0a7f556efe74f67e2ba23b5db5558ba06ef643bed442d8b7b",
+        "linux_CI": false,
+        "head_claimed": false
+      }
+    }
+  },
+  "protocol_receipt_source": {
+    "head": "ffffffffffffffffffffffffffffffffffffffff",
+    "files": [],
+    "manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
+  },
+  "protocol_receipt_source_is_synthetic": true,
+  "protocol_receipt_source_purpose": "Unit-only consistent source binding for fabricated artifact-shaped receipts; not the historical provenance of either actual inventory list.",
+  "qualification_awarded": false,
+  "verification": "The author copied the original bytes with Node built-in file APIs and checked SHA-256, byte length, 233 unique actual test names, and the exact two-case delta from the retained local-ce3b 231 list. The c9 229 and local-ce3b 231 files retain their historical bytes and provenance. No binary or test was executed by this author; the local build inventory is not Linux CI or exact-profile qualification.",
+  "retained_runtime_fixtures": [
+    {
       "file": "local-ce3b-runtime-inventory.stdout",
       "inventory": 231,
       "bytes": 24387,
@@ -43,14 +75,5 @@
         "head_claimed": false
       }
     }
-  },
-  "protocol_receipt_source": {
-    "head": "ffffffffffffffffffffffffffffffffffffffff",
-    "files": [],
-    "manifest_sha256": "1111111111111111111111111111111111111111111111111111111111111111"
-  },
-  "protocol_receipt_source_is_synthetic": true,
-  "protocol_receipt_source_purpose": "Unit-only consistent source binding for fabricated artifact-shaped receipts; not the historical provenance of either actual inventory list.",
-  "qualification_awarded": false,
-  "verification": "The author copied the original bytes with Node built-in file APIs and checked SHA-256, byte length, 231 unique actual test names, and the exact two-case delta from the retained historical c9 list. No binary or test was executed by this author."
+  ]
 }
