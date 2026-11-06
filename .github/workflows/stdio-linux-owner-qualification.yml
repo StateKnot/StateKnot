@@ -1,6 +1,6 @@
 # Copyright 2026 StateKnot contributors
 # SPDX-License-Identifier: Apache-2.0
-name: Native Rust owner foundation
+name: Native Rust owner foundation and recovery
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -16,7 +16,7 @@ permissions:
   contents: read
 jobs:
   native-owner-foundation:
-    name: Ubuntu 26.04 Rust owner foundation (P0-P5)
+    name: Ubuntu 26.04 Rust owner foundation (P0-P5, C0-C2)
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -42,7 +42,7 @@ jobs:
           cargo +1.88.0 build --locked -p stateknot-integrations --bin stateknot-mcp-stdio-owner \
             --features experimental-mcp-stdio-linux-owner --message-format=json \
             > "$output/cargo.stdout.jsonl" 2> "$output/cargo.stderr"
-      - name: Observe native Rust owner foundation
+      - name: Observe native Rust owner foundation and recovery
         timeout-minutes: 8
         shell: /usr/bin/python3 {0}
         run: |
@@ -131,25 +131,30 @@ jobs:
               result = subprocess.run(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
                                       env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"},
                                       check=False)
-          qualified = False
-          if result.returncode == 0:
-              try:
-                  outcome = json.loads((output / "qualification.json").read_bytes())
-                  actual = outcome["actual_cases"]
-                  qualified = (outcome["schema"] == "stateknot-native-owner-foundation-v2"
-                               and outcome["full_six_case_qualification"] is True
-                               and outcome["stdio_supported"] is False
-                               and [row["case"] for row in actual] == ["P0", "P1", "P2", "P3", "P4", "P5"]
-                               and all(row["passed"] is True and row["fallback_used"] is False for row in actual))
-              except (OSError, ValueError, KeyError, TypeError):
-                  pass  # Keep the raw output and fail the gate below.
+          foundation_qualified = recovery_qualified = False
+          try:
+              outcome = json.loads((output / "qualification.json").read_bytes())
+              actual = outcome["actual_cases"]
+              common = (outcome["schema"] == "stateknot-native-owner-foundation-v3"
+                        and outcome["stdio_supported"] is False and outcome["R1_closed"] is False)
+              foundation, controls = actual[:6], actual[6:]
+              foundation_qualified = (common and outcome["full_six_case_qualification"] is True
+                                      and [row["case"] for row in foundation] == ["P0", "P1", "P2", "P3", "P4", "P5"]
+                                      and all(row["passed"] is True and row["fallback_used"] is False for row in foundation))
+              recovery_qualified = (common and outcome["broker_recovery_controls_qualified"] is True
+                                    and [row["case"] for row in controls] == ["C0", "C1", "C2"]
+                                    and all(row["passed"] is True and row["fallback_used"] is False for row in controls))
+          except (OSError, ValueError, KeyError, TypeError):
+              pass  # Keep the raw output and fail the gate below.
+          qualified = result.returncode == 0 and foundation_qualified and recovery_qualified
           receipt = {
               "argv": argv, "actual_exit_code": result.returncode,
               "started_monotonic_ns": started, "ended_monotonic_ns": time.monotonic_ns(),
               "stdout_sha256": hashlib.sha256((output / "launcher.stdout").read_bytes()).hexdigest(),
               "stderr_sha256": hashlib.sha256((output / "launcher.stderr").read_bytes()).hexdigest(),
               "source_binding": binding,
-              "full_six_case_qualification": qualified, "stdio_supported": False,
+              "full_six_case_qualification": foundation_qualified,
+              "broker_recovery_controls_qualified": recovery_qualified, "stdio_supported": False,
           }
           (output / "launcher.receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
           rows = [
@@ -159,10 +164,11 @@ jobs:
           ]
           (output / "upload-manifest.json").write_text(
               json.dumps({"files": rows, "qualification": False,
-                          "full_six_case_qualification": qualified}, indent=2, sort_keys=True) + "\n"
+                          "full_six_case_qualification": foundation_qualified,
+                          "broker_recovery_controls_qualified": recovery_qualified}, indent=2, sort_keys=True) + "\n"
           )
           raise SystemExit(0 if qualified else (result.returncode or 1))
-      - name: Preserve actual raw foundation evidence
+      - name: Preserve actual raw foundation and recovery evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
