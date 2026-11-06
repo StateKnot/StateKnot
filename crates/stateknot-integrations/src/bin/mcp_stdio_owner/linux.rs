@@ -28,8 +28,12 @@ use rustix::{
 use serde::Deserialize;
 use serde_json::{Value, json};
 
+#[path = "linux/broker.rs"]
+mod broker;
 #[path = "linux/launch.rs"]
 mod launch;
+#[path = "linux/recovery.rs"]
+mod recovery;
 
 type Result<T> = std::result::Result<T, Fault>;
 
@@ -73,6 +77,7 @@ struct Config {
     boot_id: String,
     target_uid: u32,
     target_gid: u32,
+    recovery_directory: PathBuf,
 }
 
 #[derive(Deserialize)]
@@ -154,6 +159,22 @@ fn run() -> Result<u8> {
             launch::exec_target(uid, gid, namespace, deadline)?;
             Ok(0)
         }
+        Some(mode)
+            if mode == OsStr::new("record-generation")
+                || mode == OsStr::new("recover-generation") =>
+        {
+            let directory = args.next().ok_or(Fault::Configuration)?;
+            if args.next().is_some() {
+                return Err(Fault::Configuration);
+            }
+            let directory = Path::new(&directory);
+            if mode == OsStr::new("record-generation") {
+                broker::record_generation(directory)?;
+            } else {
+                broker::recover_generation(directory)?;
+            }
+            Ok(0)
+        }
         _ => Err(Fault::Configuration),
     }
 }
@@ -225,26 +246,7 @@ fn verify_profile(directory: &Path) -> Result<(Config, [u64; 2])> {
     {
         return Err(Fault::Profile);
     }
-    verify_directory(directory)?;
-    let metadata = fs::symlink_metadata(directory).map_err(|_| Fault::Profile)?;
-    if metadata.mode() & 0o777 != 0o700 {
-        return Err(Fault::Profile);
-    }
-    let path = directory.join("config.json");
-    let metadata = fs::symlink_metadata(&path).map_err(|_| Fault::Configuration)?;
-    if !metadata.is_file() || metadata.uid() != 0 || metadata.mode() & 0o777 != 0o600 {
-        return Err(Fault::Configuration);
-    }
-    let raw = read_bounded(&path, 4096).map_err(|_| Fault::Configuration)?;
-    let config: Config = serde_json::from_slice(&raw).map_err(|_| Fault::Configuration)?;
-    let valid_generation = config.generation.len() == 32
-        && config
-            .generation
-            .bytes()
-            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase());
-    if !valid_generation || !target_id(config.target_uid) || !target_id(config.target_gid) {
-        return Err(Fault::Configuration);
-    }
+    let config = config_from_directory(directory)?;
     let namespace = current_namespace()?;
     let boot = read_bounded(Path::new("/proc/sys/kernel/random/boot_id"), 64)
         .map_err(|_| Fault::Profile)?;
@@ -262,6 +264,35 @@ fn verify_profile(directory: &Path) -> Result<(Config, [u64; 2])> {
         return Err(Fault::Profile);
     }
     Ok((config, namespace))
+}
+
+fn config_from_directory(directory: &Path) -> Result<Config> {
+    verify_directory(directory)?;
+    let metadata = fs::symlink_metadata(directory).map_err(|_| Fault::Profile)?;
+    if metadata.mode() & 0o777 != 0o700 {
+        return Err(Fault::Profile);
+    }
+    let path = directory.join("config.json");
+    let metadata = fs::symlink_metadata(&path).map_err(|_| Fault::Configuration)?;
+    if !metadata.is_file() || metadata.uid() != 0 || metadata.mode() & 0o777 != 0o600 {
+        return Err(Fault::Configuration);
+    }
+    let raw = read_bounded(&path, 4096).map_err(|_| Fault::Configuration)?;
+    let config: Config = serde_json::from_slice(&raw).map_err(|_| Fault::Configuration)?;
+    let valid_generation = config.generation.len() == 32
+        && config
+            .generation
+            .bytes()
+            .all(|byte| byte.is_ascii_hexdigit() && !byte.is_ascii_uppercase());
+    if !valid_generation
+        || !target_id(config.target_uid)
+        || !target_id(config.target_gid)
+        || !config.recovery_directory.is_absolute()
+        || config.recovery_directory.starts_with(directory)
+    {
+        return Err(Fault::Configuration);
+    }
+    Ok(config)
 }
 
 const fn target_id(value: u32) -> bool {
@@ -509,8 +540,9 @@ impl Owner<'_> {
             }
             match command.op {
                 Operation::Go if self.target.is_none() => {
-                    self.start_target()?;
+                    broker::require_before_go(self.config, self.namespace)?;
                     self.lease_deadline = observed + LEASE;
+                    self.start_target(self.startup_end.min(self.lease_deadline))?;
                 }
                 Operation::Renew if self.target.is_some() => self.renew(observed)?,
                 Operation::Stop if self.target.is_some() => {
@@ -545,11 +577,11 @@ impl Owner<'_> {
         Ok(None)
     }
 
-    fn start_target(&mut self) -> Result<()> {
+    fn start_target(&mut self, deadline: Duration) -> Result<()> {
         // Only fixed operator binaries and a cleared environment are used
         // while privileges remain. The dropped child receives the launch
         // prelude directly on stdin and never via the manager or argv.
-        let deadline_nanos = monotonic_nanos(self.startup_end)?;
+        let deadline_nanos = monotonic_nanos(deadline)?;
         let mut command = Command::new(self.setpriv);
         command
             .args([
@@ -573,7 +605,7 @@ impl Owner<'_> {
             .stdin(Stdio::inherit())
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
-        check_startup(self.startup_end)?;
+        check_startup(deadline)?;
         let child = command.spawn().map_err(|_| Fault::Launch)?;
         let pid = child.id();
         *self.target = Some(child);

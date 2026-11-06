@@ -14,6 +14,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The experimental Linux MCP stdio owner requires a synced systemd generation
+  record before target launch. Same-boot recovery pins the recorded namespace
+  init with a pidfd and verifies manager exit, reaping and cgroup retirement.
+
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
   references and canonical checksum preimages verify the actual root barrier.
