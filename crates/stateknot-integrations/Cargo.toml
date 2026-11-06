@@ -21,6 +21,13 @@ publish = ["crates-io"]
 targets = []
 rustdoc-args = ["-Dwarnings"]
 
+[features]
+experimental-mcp-stdio-linux-owner = ["dep:nix", "dep:rustix"]
+
+[[bin]]
+name = "stateknot-mcp-stdio-owner"
+required-features = ["experimental-mcp-stdio-linux-owner"]
+
 [dependencies]
 a2a.workspace = true
 a2a-server.workspace = true
@@ -51,6 +58,10 @@ tokio.workspace = true
 tokio-util.workspace = true
 tower-service.workspace = true
 zeroize.workspace = true
+
+[target.'cfg(target_os = "linux")'.dependencies]
+nix = { version = "=0.31.3", default-features = false, features = ["poll", "process"], optional = true }
+rustix = { version = "=1.1.4", features = ["fs", "net", "process", "time"], optional = true }
 
 [dev-dependencies]
 stateknot-runtime = { version = "=0.1.0-alpha.1", path = "../stateknot-runtime" }
