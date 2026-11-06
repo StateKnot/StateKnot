@@ -2513,8 +2513,9 @@ impl Drop for AbortOnDropToolTask {
 }
 
 // Invocation readers already authenticate the complete ledger and activation.
-// A later physical retry may consume its old terminal response, but must not
-// charge the same observed I/O twice. Unknown or unpriced evidence is retained.
+// A retry may consume its old terminal response. The complete Driver-prepared
+// history preserves its first charge if every attempt is still unfinished;
+// existing completion behavior and unknown or unpriced evidence are retained.
 fn physical_invocation_usage(
     context: &GraphNodeContext,
     activation: &NodeActivation,
@@ -2534,7 +2535,15 @@ fn physical_invocation_usage(
         && complete_usage
         && usage.unpriced_cost_events() == ExecutionCount::ZERO
     {
-        Ok(BudgetUsage::zero())
+        match context.uncompleted_usage_history() {
+            // Every physical attempt for this exact activation is unfinished.
+            // An old SDK terminal has therefore never entered a Node charge.
+            Some(true) => Ok(usage),
+            // Preserve the existing legacy behavior; an aggregate completion
+            // does not become a new general per-K attribution proof.
+            Some(false) => Ok(BudgetUsage::zero()),
+            None => Err(ProviderNativeAgentNodeError::Integrity),
+        }
     } else {
         Ok(usage)
     }

@@ -226,11 +226,16 @@ Attempt 与 Turn。
 Terminal Ledger，而不是再次调用 Provider。更高 Fence 可以恢复未完成的 Physical Node
 Attempt，但不能改写已经提交的外部结果。
 
-Node completion 的用量报告该物理尝试新产生的 I/O。同一 activation 复用在新物理
-Start 之前已提交且完整定价的终态响应时，不重复报告新增 Invocation 用量；精确终态
-绑定和生命周期累计账本仍保留原费用。当前 Start 之后提交的事实，包括 Lost ACK
-恢复或 Reconciliation，仍保留实际用量。Unknown 和未定价证据继续保留既有阻塞，
-不能清零。
+Driver 在执行 Node 前核验同一 activation 的完整历史（最多 64 次尝试），并确认当前
+Start 是最新、尚未完成的一次尝试。执行 Context 携带核验结果。历史读取失败，或
+准备阶段超时、panic 时，返回 `GraphDriverError::DirectUsageEvidence`，当前 Attempt
+保持未完成，不写入零用量的 Failed completion。
+
+如果核验后的历史从未有过 completion，当前 Start 之前已提交且完整定价的终态响应
+将首次计入 Node DIRECT。Recovery 复用原 Tool 结果，不再次 Dispatch。如果已有旧
+completion，则沿用现有重放去重规则。部分已计费 Node 的逐调用用量归属仍待完成。
+当前 Start 之后提交的事实保留实际用量，生命周期账本只累计原费用一次。Unknown 和
+未定价证据继续保留既有阻塞。
 
 已知失败的 Tool 会继续作为有序 Transcript Outcome；其精确 Terminal Revision 绑定到
 Node Result，下一轮 Model 会收到失败结果，而不是虚构 Success。Write Tool 的 `Unknown`

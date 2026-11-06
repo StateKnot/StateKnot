@@ -282,10 +282,17 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   checked compare-and-exchange loop in place of the deprecated atomic update API,
   preserving each allocator's original memory ordering and wire range.
 
-- Attribute reused priced model/tool terminal evidence to its original physical
-  attempt, retaining exact bindings and cumulative lifecycle charges. Later
-  attempts do not charge that I/O again; unknown outcomes, reconciliation after
-  the current Start and unpriced evidence preserve their original usage rules.
+- Preserve the first Node DIRECT charge for a recovered Model/Tool terminal
+  when the same activation's complete history (at most 64 attempts) matches the
+  current latest, unfinished Start and contains no completion. The original Tool
+  is not dispatched again. Prepare the private history proof before node
+  execution; history read failures and preparation timeouts or panics return
+  `GraphDriverError::DirectUsageEvidence` and leave the attempt unfinished,
+  without recording a zero-usage Failed completion. Existing completed-attempt
+  deduplication, Unknown and unpriced blockers, and once-only cumulative
+  lifecycle accounting remain intact.
+  This does not establish general per-invocation attribution for partially
+  charged multi-invocation nodes.
 
 - Flush deferred Join-registration guards before rechecking the released
   original worker epoch, lease expiry and Agent deadline. Expiry rolls back

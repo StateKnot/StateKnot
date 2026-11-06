@@ -27,6 +27,9 @@ pub struct GraphNodeContext {
     checkpoint: Arc<Checkpoint>,
     cancellation: CancellationSignal,
     child_join: Option<Arc<GraphChildJoin>>,
+    // Prepared by the Driver from the complete authenticated activation
+    // history before executing application code; public construction has none.
+    uncompleted_usage_history: Option<bool>,
 }
 
 impl GraphNodeContext {
@@ -56,6 +59,7 @@ impl GraphNodeContext {
             checkpoint,
             cancellation,
             child_join: None,
+            uncompleted_usage_history: None,
         })
     }
 
@@ -82,6 +86,15 @@ impl GraphNodeContext {
     #[must_use]
     pub fn child_join(&self) -> Option<&GraphChildJoin> {
         self.child_join.as_deref()
+    }
+
+    pub(crate) fn with_uncompleted_usage_history(mut self, uncompleted: bool) -> Self {
+        self.uncompleted_usage_history = Some(uncompleted);
+        self
+    }
+
+    pub(crate) const fn uncompleted_usage_history(&self) -> Option<bool> {
+        self.uncompleted_usage_history
     }
 
     pub(crate) fn with_child_join(mut self, join: Arc<GraphChildJoin>) -> Self {

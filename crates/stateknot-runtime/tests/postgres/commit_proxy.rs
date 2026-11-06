@@ -92,6 +92,11 @@ pub(super) enum Cut {
     CommitResponse,
 }
 
+struct HistoryReadHold {
+    reached: tokio::sync::oneshot::Sender<()>,
+    resume: tokio::sync::oneshot::Receiver<()>,
+}
+
 pub(super) struct CommitProxy {
     port: u16,
     backend_pid: Arc<AtomicI32>,
@@ -119,7 +124,7 @@ impl CommitProxy {
         target: TransactionTarget,
         skip: u8,
     ) -> Self {
-        Self::start_cut(options, cut, target, skip, None, None).await
+        Self::start_cut(options, cut, target, skip, None, None, None).await
     }
 
     // A real executor call distinguishes execution maintenance from any
@@ -130,7 +135,7 @@ impl CommitProxy {
         target: TransactionTarget,
         calls: Arc<AtomicUsize>,
     ) -> Self {
-        Self::start_cut(options, cut, target, 0, Some(calls), None).await
+        Self::start_cut(options, cut, target, 0, Some(calls), None, None).await
     }
 
     // The writer uses this one session only for commit_tool_terminal after its
@@ -145,10 +150,35 @@ impl CommitProxy {
             0,
             None,
             Some(receiver),
+            None,
         )
         .await;
         proxy.outcome_phase = Some(sender);
         proxy
+    }
+
+    /// Holds the first ordered history SELECT after the real Start commit ACK.
+    /// Disable statement caching so the query has its own Parse frame.
+    pub(super) async fn start_before_node_history(
+        options: &PgConnectOptions,
+    ) -> (
+        Self,
+        tokio::sync::oneshot::Receiver<()>,
+        tokio::sync::oneshot::Sender<()>,
+    ) {
+        let (reached, observed) = tokio::sync::oneshot::channel();
+        let (forward, resume) = tokio::sync::oneshot::channel();
+        let proxy = Self::start_cut(
+            options,
+            Cut::CommitResponse,
+            TransactionTarget::GraphNodeStart,
+            0,
+            None,
+            None,
+            Some(HistoryReadHold { reached, resume }),
+        )
+        .await;
+        (proxy, observed, forward)
     }
 
     pub(super) fn arm_tool_outcome(&mut self) {
@@ -167,6 +197,7 @@ impl CommitProxy {
         mut skip: u8,
         launched: Option<Arc<AtomicUsize>>,
         mut outcome_phase: Option<tokio::sync::oneshot::Receiver<()>>,
+        mut history_read: Option<HistoryReadHold>,
     ) -> Self {
         let backend = loopback_target(options);
         let listener = TcpListener::bind((Ipv4Addr::LOCALHOST, 0)).await.unwrap();
@@ -211,6 +242,19 @@ impl CommitProxy {
                     }
                     if frame.tag == b'P' {
                         let query = parse_query(&frame.body)?;
+                        if history_read.is_some()
+                            && cut_once.load(Ordering::SeqCst)
+                            && !hold_response.load(Ordering::SeqCst)
+                            && query.ends_with(b"\nORDER BY journal_sequence ASC\nLIMIT $10\n")
+                            && let Some(hold) = history_read.take()
+                        {
+                            hold.reached
+                                .send(())
+                                .map_err(|()| invalid("controller gone before history read"))?;
+                            hold.resume.await.map_err(|_| {
+                                invalid("controller gone before history forwarding")
+                            })?;
+                        }
                         let matched = query.starts_with(target.parse_prefix());
                         armed |= matched;
                         if matched && let Some(phase) = outcome_phase.take() {

@@ -876,13 +876,17 @@ impl DurableGraphDriver {
                 let timeout = self.options.node_execution_timeout;
                 cancellations.push(cancellation);
                 tasks.spawn(self.activity.track(async move {
+                let preparing_usage = AtomicBool::new(true);
+                let preparing_usage_marker = &preparing_usage;
                 let executing = AtomicBool::new(false);
                 let executing_marker = &executing;
                 // Wrap both the synchronous `execute` call and the returned
                 // future. Object-safe executors are third-party code and may
                 // panic before they construct their future.
                 let execution = AssertUnwindSafe(async move {
-                    let mut context = context;
+                    let uncompleted = load_uncompleted_usage_history(&store, context.attempt()).await?;
+                    let mut context = context.with_uncompleted_usage_history(uncompleted);
+                    preparing_usage_marker.store(false, Ordering::Release);
                     if has_children {
                         if let Some(record) = store.load_child_join(context.attempt().activation()).await? {
                             if !executor.supports_child_join() {
@@ -902,12 +906,19 @@ impl DurableGraphDriver {
                 let outcome = tokio::select! {
                     result = &mut execution => match result {
                         Ok(result) => result,
+                        Err(_) if preparing_usage.load(Ordering::Acquire) => Err(GraphDriverError::DirectUsageEvidence {
+                            source: crate::GraphLifecycleEvidenceError::TemporarilyUnavailable,
+                        }),
                         Err(_) if !executing.load(Ordering::Acquire) => Err(GraphDriverError::ChildJoinPreparationIncomplete),
                         Err(_) => DurableGraphDriver::node_panic_failure().map(FinishedNodeExecution::without_join),
                     },
                     () = &mut deadline => {
                         task_cancellation.cancel();
-                        if executing.load(Ordering::Acquire) {
+                        if preparing_usage.load(Ordering::Acquire) {
+                            Err(GraphDriverError::DirectUsageEvidence {
+                                source: crate::GraphLifecycleEvidenceError::TemporarilyUnavailable,
+                            })
+                        } else if executing.load(Ordering::Acquire) {
                             DurableGraphDriver::node_timeout_failure().map(|error| FinishedNodeExecution::without_join(Err(error)))
                         } else {
                             Err(GraphDriverError::ChildJoinPreparationIncomplete)
@@ -2213,7 +2224,8 @@ impl GraphBlockedHandoff {
 #[derive(Debug, Error)]
 #[non_exhaustive]
 pub enum GraphDriverError {
-    /// Complete exact-journal accounting was unavailable at a frame action.
+    /// Complete usage evidence was unavailable during Node preparation or a
+    /// framework action; no Node failure or usage is synthesized for preparation.
     #[error("complete DIRECT usage evidence is unavailable: {source}")]
     DirectUsageEvidence {
         /// Closed operational evidence failure; this never quarantines data.
@@ -2309,6 +2321,62 @@ impl From<StoreError> for GraphDriverError {
             source: Box::new(source),
         }
     }
+}
+
+async fn load_uncompleted_usage_history(
+    store: &PostgresStore,
+    current: &NodeAttemptStartHead,
+) -> Result<bool, GraphDriverError> {
+    let unavailable = || GraphDriverError::DirectUsageEvidence {
+        source: crate::GraphLifecycleEvidenceError::Unavailable,
+    };
+    let corrupt = || GraphDriverError::DirectUsageEvidence {
+        source: crate::GraphLifecycleEvidenceError::Corrupt,
+    };
+    let page_size = stateknot_store_postgres::NodeAttemptHistoryPageSize::new(
+        stateknot_store_postgres::NodeAttemptHistoryPageSize::MAX,
+    )
+    .map_err(|_| corrupt())?;
+    let mut cursor = None;
+    let mut verifier = stateknot_core::NodeAttemptHistoryVerifier::new();
+    let mut observed = 0_usize;
+    let mut uncompleted = true;
+    loop {
+        let page = store
+            .load_node_attempt_history_page(current.activation(), cursor.as_ref(), page_size)
+            .await
+            .map_err(|source| GraphDriverError::DirectUsageEvidence {
+                source: if source.corrupt_record().is_some() {
+                    crate::GraphLifecycleEvidenceError::Corrupt
+                } else if source.is_retryable() {
+                    crate::GraphLifecycleEvidenceError::TemporarilyUnavailable
+                } else {
+                    crate::GraphLifecycleEvidenceError::Unavailable
+                },
+            })?;
+        observed = observed
+            .checked_add(page.records().len())
+            .ok_or_else(corrupt)?;
+        if observed > stateknot_core::ReadyNodeRecoveryPlanner::MAX_ATTEMPTS_PER_NODE {
+            return Err(corrupt());
+        }
+        for attempt in page.records() {
+            verifier.verify_next(attempt).map_err(|_| corrupt())?;
+            uncompleted &= attempt.completion().is_none();
+        }
+        if !page.has_more() {
+            break;
+        }
+        cursor = Some(page.next_cursor().ok_or_else(corrupt)?);
+    }
+    let latest = verifier.last().ok_or_else(unavailable)?;
+    if latest.start().head() != *current || latest.completion().is_some() {
+        return Err(unavailable());
+    }
+    // A prior unfinished attempt requires a higher epoch for its successor.
+    // Older fences cannot append late completions; loss of the current fence
+    // is still rejected by the eventual existing Store completion transaction.
+    Ok(uncompleted)
 }
 
 struct StartedNode {

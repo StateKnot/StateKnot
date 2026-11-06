@@ -267,13 +267,22 @@ instead of calling the provider again. A higher fence may recover an unfinished
 physical node attempt, but it cannot rewrite an already committed external
 result.
 
-Node completion usage reports the new I/O of that physical attempt. When the
-same activation reuses a fully priced terminal response committed before its
-new physical Start, it contributes no new invocation usage. The exact terminal
-binding and cumulative lifecycle accounting still retain the original charge.
-Facts committed after the current Start, including lost-ACK recovery or
-reconciliation, retain their observed usage. Unknown outcomes and unpriced
-evidence keep their existing blockers and are never cleared to zero.
+Before executing a node, the Driver verifies the activation's complete history
+of up to 64 attempts and matches the current Start to the latest unfinished
+attempt. The execution context carries the result of that check. A history
+read failure, preparation timeout or preparation panic returns
+`GraphDriverError::DirectUsageEvidence`, leaving the current attempt unfinished
+without recording a zero-usage Failed completion.
+
+If the verified history contains no completion, a fully priced terminal
+response committed before the current Start contributes its first Node DIRECT
+charge. Recovery uses the original Tool result without dispatching the Tool
+again. If an earlier completion exists, recovery keeps the existing replay
+deduplication behavior. Per-invocation attribution within partially charged
+nodes remains open. Facts committed after the current Start retain their
+observed usage, and cumulative lifecycle accounting includes the original
+charge once. Unknown outcomes and unpriced evidence keep their existing
+blockers.
 
 Known failed tools remain ordered transcript outcomes. Their exact terminal
 revision is bound into the node result, and the next model turn receives the

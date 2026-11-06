@@ -27,6 +27,9 @@ mod commit_proxy;
 #[path = "postgres/ordinary_root.rs"]
 mod ordinary_root;
 
+#[path = "postgres/provider_native_uncompleted_usage.rs"]
+mod provider_native_uncompleted_usage;
+
 #[path = "postgres/scoped_join_close_process_faults.rs"]
 mod scoped_join_close_process_faults;
 
