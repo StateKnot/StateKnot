@@ -19,6 +19,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   init with a pidfd and verifies manager exit, reaping and cgroup retirement.
   The host launcher claims the generation before creating the systemd unit
   and publishes private readiness after recording the live invocation.
+  The experimental Linux Session admits locally pinned MCP Tools, supports
+  one bounded call at a time, and waits for verified retirement and pipe EOF.
 
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route

@@ -11,6 +11,12 @@ on:
       - Cargo.lock
       - crates/stateknot-integrations/Cargo.toml
       - crates/stateknot-integrations/src/bin/**
+      - crates/stateknot-integrations/src/lib.rs
+      - crates/stateknot-integrations/src/mcp.rs
+      - crates/stateknot-integrations/src/mcp_authorization.rs
+      - crates/stateknot-integrations/src/mcp_client.rs
+      - crates/stateknot-integrations/src/mcp_client/**
+      - crates/stateknot-integrations/tests/mcp_stdio_session.rs
   workflow_dispatch:
 permissions:
   contents: read
@@ -34,11 +40,15 @@ jobs:
         env:
           CARGO_INCREMENTAL: "0"
           CARGO_PROFILE_DEV_DEBUG: "0"
+          CARGO_PROFILE_TEST_DEBUG: "0"
           RUSTFLAGS: "-D warnings"
         run: |
           output="$RUNNER_TEMP/stdio-native-owner-foundation"
           mkdir "$output"
           rustup toolchain install 1.88.0 --profile minimal > "$output/rustup.stdout" 2> "$output/rustup.stderr"
+          cargo +1.88.0 test --locked --no-run -p stateknot-integrations --test mcp_stdio_session \
+            --features experimental-mcp-stdio-linux-owner --message-format=json \
+            > "$output/cargo-consumer.stdout.jsonl" 2> "$output/cargo-consumer.stderr"
           cargo +1.88.0 build --locked -p stateknot-integrations --bin stateknot-mcp-stdio-owner \
             --features experimental-mcp-stdio-linux-owner --message-format=json \
             > "$output/cargo.stdout.jsonl" 2> "$output/cargo.stderr"
@@ -57,6 +67,7 @@ jobs:
           workspace = Path(os.environ["GITHUB_WORKSPACE"])
           script_path = ".github/scripts/qualify-stdio-linux-owner.py"
           workflow_path = ".github/workflows/stdio-linux-owner-qualification.yml"
+          consumer_path = "crates/stateknot-integrations/tests/mcp_stdio_session.rs"
           script = workspace / script_path
 
           def git(*args):
@@ -88,8 +99,17 @@ jobs:
           owner_sources = [path for path in owner_sources if path.endswith(".rs")]
           if not owner_sources:
               raise ValueError("Rust owner source inventory is empty")
-          for path in (script_path, workflow_path, "Cargo.toml", "Cargo.lock",
-                       "crates/stateknot-integrations/Cargo.toml", *owner_sources):
+          session_sources = git("ls-files", "-z", "--", "crates/stateknot-integrations/src/mcp_client").decode().split("\0")
+          session_sources = [path for path in session_sources if path.endswith(".rs")]
+          if not session_sources:
+              raise ValueError("Rust session source inventory is empty")
+          for path in (script_path, workflow_path, consumer_path, "Cargo.toml", "Cargo.lock",
+                       "crates/stateknot-integrations/Cargo.toml",
+                       "crates/stateknot-integrations/src/lib.rs",
+                       "crates/stateknot-integrations/src/mcp.rs",
+                       "crates/stateknot-integrations/src/mcp_authorization.rs",
+                       "crates/stateknot-integrations/src/mcp_client.rs",
+                       *owner_sources, *session_sources):
               raw = (workspace / path).read_bytes()
               if raw != git("show", "HEAD:" + path):
                   raise ValueError("executed qualification file differs from checkout: " + path)
@@ -114,6 +134,27 @@ jobs:
           if not 0 < len(raw) <= 32 * 1024 * 1024 or not raw.startswith(b"\x7fELF"):
               raise ValueError("invalid Linux Rust owner binary")
           binding["owner_binary_sha256"] = hashlib.sha256(raw).hexdigest()
+          consumer_rows = [json.loads(line) for line in (output / "cargo-consumer.stdout.jsonl").read_bytes().splitlines()]
+          consumer_artifacts = [
+              row for row in consumer_rows if row.get("reason") == "compiler-artifact"
+              and row["target"]["name"] == "mcp_stdio_session" and row["target"]["kind"] == ["test"]
+              and row.get("executable")
+          ]
+          if len(consumer_artifacts) != 1 or not any(row.get("reason") == "build-finished"
+                                                    and row.get("success") is True for row in consumer_rows):
+              raise ValueError("missing successful Rust session consumer build")
+          consumer_artifact = consumer_artifacts[0]
+          consumer_binary = Path(consumer_artifact["executable"]).resolve(strict=True)
+          if (consumer_artifact["manifest_path"] != str(workspace / "crates/stateknot-integrations/Cargo.toml")
+                  or consumer_artifact["target"]["src_path"] != str(workspace / consumer_path)
+                  or "experimental-mcp-stdio-linux-owner" not in consumer_artifact["features"]
+                  or consumer_binary.parent != workspace / "target/debug/deps"):
+              raise ValueError("compiled consumer test has an unexpected source, feature or path")
+          with consumer_binary.open("rb") as executable:
+              consumer_bytes = executable.read(64 * 1024 * 1024 + 1)
+          if not 0 < len(consumer_bytes) <= 64 * 1024 * 1024 or not consumer_bytes.startswith(b"\x7fELF"):
+              raise ValueError("invalid Linux Rust session consumer binary")
+          binding["consumer_binary_sha256"] = hashlib.sha256(consumer_bytes).hexdigest()
           (output / "source-binding.json").write_text(json.dumps(binding, indent=2, sort_keys=True) + "\n")
 
           argv = [
@@ -152,6 +193,88 @@ jobs:
               pass  # Keep the raw output and fail the gate below.
           qualified = (result.returncode == 0 and foundation_qualified and recovery_qualified
                        and host_launcher_qualified)
+          consumer_exit = None
+          consumer_qualified = False
+          if qualified:
+              # Stage verified copies on a root-owned path. Execute the test
+              # binary directly so the privileged step never invokes Cargo.
+              root_launcher = r"""
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import runpy
+          import shutil
+          import subprocess
+          import sys
+          import tempfile
+
+          script, owner, test, output, script_hash, owner_hash, test_hash = sys.argv[1:]
+          os.umask(0o022)
+          work = Path(tempfile.mkdtemp(prefix="stateknot-stdio-test-", dir="/run"))
+          work.chmod(0o755)
+
+          def stage(source, name, digest, mode, limit):
+              with Path(source).open("rb") as stream:
+                  raw = stream.read(limit + 1)
+              if not 0 < len(raw) <= limit or hashlib.sha256(raw).hexdigest() != digest:
+                  raise ValueError("root staging bytes differ for " + name)
+              dest = work / name
+              with dest.open("xb") as stream:
+                  stream.write(raw)
+              dest.chmod(mode)
+              if dest.stat().st_uid != 0 or dest.stat().st_mode & 0o022:
+                  raise ValueError("untrusted root staging path")
+              return dest
+
+          probe = runpy.run_path(str(stage(script, "probe.py", script_hash, 0o644, 512 * 1024)))
+          stage(owner, "stateknot-mcp-stdio-owner", owner_hash, 0o755, 32 * 1024 * 1024)
+          test_binary = stage(test, "consumer", test_hash, 0o755, 64 * 1024 * 1024)
+          generation = os.urandom(16).hex()
+          recovery = probe["provision_managed_recovery"](generation)
+          control = work / "control"
+          control.mkdir(mode=0o700)
+          probe["save"](control / "config.json", {
+              "generation": generation, "boot_id": probe["boot_id"](),
+              "host_namespace": probe["ns_identity"](os.getpid()),
+              "target_uid": probe["UID"], "target_gid": probe["UID"],
+              "recovery_directory": str(recovery),
+          }, True)
+          env = dict(probe["ENV"], STATEKNOT_STDIO_TEST_WORK=str(work),
+                     STATEKNOT_STDIO_TEST_GENERATION=generation)
+          result = subprocess.run([str(test_binary), "--exact", "--ignored", "--nocapture",
+                                   "owned_session_discovers_calls_and_retires"],
+                                  stdin=subprocess.DEVNULL, env=env, cwd=work, timeout=45, check=False)
+          if result.returncode != 0:
+              raise SystemExit(result.returncode if result.returncode > 0 else 1)
+          record, record_metadata = probe["journal_snapshot"](recovery / probe["RECORD_NAME"])
+          intent, intent_metadata = probe["journal_snapshot"](recovery / probe["LAUNCH_INTENT_NAME"])
+          record, intent = json.loads(record), json.loads(intent)
+          if record["generation"] != generation or intent["generation"] != generation:
+              raise ValueError("consumer retirement records differ from its generation")
+          probe["save"](Path(output) / "consumer-root.json", {
+              "generation": generation, "owner_binary_sha256": owner_hash,
+              "consumer_binary_sha256": test_hash,
+              "generation_record": record, "generation_record_metadata": record_metadata,
+              "launch_intent": intent, "launch_intent_metadata": intent_metadata,
+          })
+          shutil.rmtree(work)
+          shutil.rmtree(recovery)
+          """
+              consumer_argv = [
+                  "/usr/bin/sudo", "-n", "--", "/usr/bin/python3", "-I", "-c", root_launcher,
+                  str(script), str(binary), str(consumer_binary), str(output),
+                  binding["files_sha256"][script_path], binding["owner_binary_sha256"],
+                  binding["consumer_binary_sha256"],
+              ]
+              with (output / "consumer.stdout").open("xb") as out, (output / "consumer.stderr").open("xb") as err:
+                  consumer_exit = subprocess.run(consumer_argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                                                 env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"},
+                                                 check=False).returncode
+              consumer_stdout = (output / "consumer.stdout").read_bytes()
+              consumer_qualified = (consumer_exit == 0 and (output / "consumer-root.json").is_file()
+                                    and consumer_stdout.count(b"STATEKNOT_MCP_STDIO_SESSION_DISCOVERY_CALL_RETIREMENT=passed") == 1
+                                    and b"test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;" in consumer_stdout)
           receipt = {
               "argv": argv, "actual_exit_code": result.returncode,
               "started_monotonic_ns": started, "ended_monotonic_ns": time.monotonic_ns(),
@@ -161,6 +284,8 @@ jobs:
               "full_six_case_qualification": foundation_qualified,
               "broker_recovery_controls_qualified": recovery_qualified,
               "host_launcher_qualified": host_launcher_qualified, "stdio_supported": False,
+              "consumer_actual_exit_code": consumer_exit,
+              "consumer_session_qualified": consumer_qualified,
           }
           (output / "launcher.receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
           rows = [
@@ -172,9 +297,10 @@ jobs:
               json.dumps({"files": rows, "qualification": False,
                           "full_six_case_qualification": foundation_qualified,
                           "broker_recovery_controls_qualified": recovery_qualified,
-                          "host_launcher_qualified": host_launcher_qualified}, indent=2, sort_keys=True) + "\n"
+                          "host_launcher_qualified": host_launcher_qualified,
+                          "consumer_session_qualified": consumer_qualified}, indent=2, sort_keys=True) + "\n"
           )
-          raise SystemExit(0 if qualified else (result.returncode or 1))
+          raise SystemExit(0 if qualified and consumer_qualified else (result.returncode or consumer_exit or 1))
       - name: Preserve actual raw foundation, recovery and launch evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
