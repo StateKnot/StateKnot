@@ -681,7 +681,7 @@ enum AuthorizationSource {
     Approved(McpToolApproval),
 }
 
-fn forbidden_approved_tool_extension(tool: &Value) -> bool {
+pub(crate) fn forbidden_approved_tool_extension(tool: &Value) -> bool {
     fn has_header(value: &Value) -> bool {
         match value {
             Value::Object(fields) => {

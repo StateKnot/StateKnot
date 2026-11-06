@@ -22,7 +22,7 @@ targets = []
 rustdoc-args = ["-Dwarnings"]
 
 [features]
-experimental-mcp-stdio-linux-owner = ["dep:nix", "dep:rustix"]
+experimental-mcp-stdio-linux-owner = ["dep:nix", "dep:rustix", "tokio/io-util", "tokio/process"]
 
 [[bin]]
 name = "stateknot-mcp-stdio-owner"

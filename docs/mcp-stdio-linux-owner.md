@@ -101,8 +101,23 @@ record and ready marker.
 
 The helper's terminal record reports its stop reason when available. The
 live controller observes pipe EOF and joins its launcher separately.
-Recovery cannot reconstruct lost pipe or Tool results. Public MCP Session
-integration and independent consumer qualification remain separate work.
+Recovery covers process retirement. Tool results come from the live call.
+
+## Use the experimental Rust Session
+
+Enable `experimental-mcp-stdio-linux-owner` in `stateknot-integrations` on
+Linux. The [public API fixture](../crates/stateknot-integrations/tests/mcp_stdio_session.rs)
+uses the installed launcher and the pre-provisioned generation described above.
+Build `McpStdioConfig` with an explicit command, expected server identity,
+reviewed descriptor pins, and a local schema registry. Construct an
+`McpStdioSession`, await `start()`, and use `client()` to access the admitted
+catalog and call an approved Tool. Await `shutdown()` for retirement and EOF.
+
+This profile uses MCP 2026-07-28, one active call, and complete Tool results.
+Use a separate Session per trusted local security scope. A call failure reports
+whether a write was attempted. Reconcile uncertain external effects before
+dispatching another write. If shutdown reports pending cleanup, retain the
+generation and use the recovery procedure above.
 
 ## Standalone qualification
 

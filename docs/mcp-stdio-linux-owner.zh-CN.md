@@ -79,8 +79,19 @@ stateknot-mcp-stdio-owner recover-generation "$recovery_directory"
 的存活时间。缺少记录或就绪标记时，目标无法启动。
 
 辅助程序可通过终止记录报告停止原因。运行中的控制器仍须单独观测管道 EOF 并等待
-其启动子进程退出。恢复无法重建丢失的管道或 Tool 结果。公开 MCP Session 集成和独立
-消费者验收仍需单独交付。
+其启动子进程退出。恢复处理进程退场，Tool 结果以实时调用结果为准。
+
+## 使用实验性 Rust Session
+
+在 Linux 上为 `stateknot-integrations` 启用 `experimental-mcp-stdio-linux-owner`。
+[公开 API 用例](../crates/stateknot-integrations/tests/mcp_stdio_session.rs) 使用已安装的
+launcher 和上述预配代际。通过显式命令、预期服务端身份、审查过的 Tool 描述符 pin
+和本地 schema registry 构造 `McpStdioConfig`。创建 `McpStdioSession` 并等待 `start()`，
+再通过 `client()` 访问已准入的目录并调用 Tool。等待 `shutdown()` 核实进程回收和 EOF。
+
+此配置采用 MCP 2026-07-28，每次只运行一个调用，并接收完整 Tool 结果。每个受信本地
+安全范围使用独立 Session。调用失败会标记是否尝试过写入。在再次发起写操作前先核实
+不确定的外部结果。若关闭返回待核验，保留原代际并按上节流程恢复。
 
 ## 独立验收
 
