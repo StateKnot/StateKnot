@@ -1,6 +1,6 @@
 # Copyright 2026 StateKnot contributors
 # SPDX-License-Identifier: Apache-2.0
-name: Native Rust owner foundation and recovery
+name: Native Rust owner foundation
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -16,7 +16,7 @@ permissions:
   contents: read
 jobs:
   native-owner-foundation:
-    name: Ubuntu 26.04 Rust owner foundation (P0-P5, C0-C2)
+    name: Ubuntu 26.04 Rust owner foundation (P0-P5)
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
