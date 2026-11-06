@@ -5,10 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Experimental Linux owner for MCP stdio
 
-This experimental operator component provides the namespace init and the
-host-side recovery commands for one owned process generation. Use the
+This experimental operator component launches and recovers one owned MCP
+stdio process generation under the host systemd manager. The
 [Linux qualification controller](../.github/scripts/qualify-stdio-linux-owner.py)
-for the full systemd unit profile.
+exercises the launch, control, and recovery paths.
 
 ```console
 cargo +1.88.0 build --locked -p stateknot-integrations \
@@ -16,48 +16,65 @@ cargo +1.88.0 build --locked -p stateknot-integrations \
   --features experimental-mcp-stdio-linux-owner
 ```
 
-## Prepare a generation
+## Launch a generation
 
-Install the owner and the fixed `/usr/bin/setpriv` and `/usr/bin/systemctl`
-as root-owned ELF executables under paths that only root can modify. Start
-`stateknot-mcp-stdio-owner namespace-init <generation-directory>` as private
-PID 1 in the cgroup `/system.slice/stateknot-owner-<generation>.service`.
-Use a fresh generation and the qualified systemd profile with a five-second
-watchdog that sends `SIGKILL`, `Restart=no`, and `CollectMode=inactive`.
+Install the owner and the fixed `/usr/bin/systemd-run`, `/usr/bin/systemctl`,
+and `/usr/bin/setpriv` as root-owned ELF executables under paths that only
+root can modify. The controller runs as root in the system manager's PID
+namespace on a cgroup v2 host.
 
-The canonical generation directory and a separate recovery directory must
-both be root-owned and mode 0700. Place the recovery directory on persistent
-storage such as `/var/lib/stateknot/mcp-stdio/<generation>`. Use a canonical
-absolute path with root-owned ancestors that only root can write. The
-recovery journal rejects tmpfs and ramfs. The generation directory's root-owned
-mode 0600 `config.json` contains `generation` (32 lowercase hexadecimal
-characters), `boot_id`, `host_namespace` (device and inode), `target_uid`,
-`target_gid`, and `recovery_directory`. The target UID and GID must be non-root.
+For each fresh generation, provision a private control directory and the fixed
+recovery directory `/var/lib/stateknot/mcp-stdio/<generation>`. Both must be
+root-owned and mode 0700. Use separate canonical absolute paths with
+root-owned ancestors that only root can write. The control path must be UTF-8
+and fit the Unix socket address limit. The recovery directory must be outside
+the control directory tree and on persistent storage. The journal rejects
+tmpfs and ramfs.
 
-Once systemd reports the unit active and running, run the host-side command as
-root in the system manager's PID namespace. Wait for it to succeed before
-sending GO.
+Write root-owned mode 0600 `config.json` in the control directory. It contains
+`generation` (32 lowercase hexadecimal characters), `boot_id` (from
+`/proc/sys/kernel/random/boot_id`), `host_namespace` (device and inode of
+`/proc/1/ns/pid`), the non-root `target_uid` and `target_gid`, and
+`recovery_directory` (the fixed generation path above). Use a fresh control
+directory without existing socket or readiness files.
+
+The controller starts the following command as a child process with three
+distinct FIFO pipes. The child receives the read end on stdin and the write
+ends on stdout and stderr. Keep the controller's ends and the child handle,
+and drain stdout and stderr separately. Stderr can carry launch diagnostics.
 
 ```console
-stateknot-mcp-stdio-owner record-generation "$generation_directory"
+stateknot-mcp-stdio-owner launch-generation "$control_directory"
 ```
 
-The command verifies the live systemd invocation and namespace init, then
-atomically publishes and syncs a versioned, root-owned mode 0600
-`generation.json` in the recovery directory. The record binds the boot and
-generation to the actual unit, invocation ID, host PID and start time, PID
-namespace, and cgroup device and inode. A repeat with the same observations
-can reuse that record. A conflicting record fails closed.
+Before requesting the unit, the broker atomically publishes and syncs a
+root-owned mode 0600 `launch-intent.json` in the recovery directory. The
+intent reserves the generation for one launch. The broker uses the fixed
+systemd profile with private PID 1, a five-second `SIGKILL` watchdog,
+`Restart=no`, and `CollectMode=inactive`, and passes the three streams through
+`systemd-run --wait --pipe`.
 
-The broker opens the private `control.sock` once. It sends generation-bound
-`go`, `renew`, and `stop` packets. Before accepting its one GO, the owner
-verifies the synced record against its own identity and checks its deadline. Missing,
-invalid, or mismatched evidence prevents the target from starting. After
-dropping privileges, the launcher reads a four-byte big-endian length followed
-by at most 32 KiB of JSON describing the executable, working directory,
-arguments, and explicit environment as Unix bytes. Subsequent stdin bytes
-belong to the application. The launcher uses literal `execve` and keeps the
-launch prelude out of the generation record.
+The broker verifies the live unit and its `InvocationID`, the namespace
+init's exact executable and command line, and the manager's monotonic start
+time for this launch. It publishes and syncs a versioned root-owned mode 0600
+`generation.json`, binding the boot and generation to the actual unit,
+invocation, host PID and start time, PID namespace, and cgroup device and
+inode. It then publishes `broker-ready.json` in the control directory and
+continues waiting for `systemd-run`.
+
+After `broker-ready.json` appears, connect once to the private Unix
+`SOCK_SEQPACKET` socket `control.sock`. Send JSON packets with `op` and
+`generation`. Send `go` once, renew with `renew` while the target runs, and
+send `stop` to end the generation. The namespace init checks the ready
+marker, the synced record, and the deadline before releasing the target.
+Missing or mismatched evidence prevents launch.
+
+The child launcher drops privileges before reading a four-byte big-endian
+length and up to 32 KiB of JSON on stdin. The JSON describes the executable,
+working directory, arguments, and explicit environment as Unix bytes.
+Subsequent stdin bytes belong to the application. The launcher calls
+`execve` with literal values and keeps the launch prelude out of the
+generation record.
 
 ## Recover a recorded generation
 
@@ -75,10 +92,21 @@ empty or removed original cgroup. Preserve the failed unit and its record
 until recovery is verified. The command retains the immutable record. A
 different boot, changed identity, or missing manager evidence yields failure.
 
-Recovery covers generations with a committed record on the current boot.
-The interval between unit creation and record publication is protected by
-the GO gate and has no durable launch intent in this component. The helper's
-terminal record reports its stop reason when available. The live controller
-must observe pipe EOF separately. Recovery cannot reconstruct lost pipe or
-Tool results. Public MCP Session integration and independent consumer
-qualification remain separate delivery work.
+An intent without `generation.json` reserves the generation and gives no
+authority to signal a process or certify retirement. Recovery fails closed,
+and another launch with the same generation fails even with a fresh control
+directory. Keep the intent. If systemd admitted the unit, the pre-GO startup
+deadline and watchdog bound its lifetime. No target can start without the
+record and ready marker.
+
+The helper's terminal record reports its stop reason when available. The
+live controller observes pipe EOF and joins its launcher separately.
+Recovery cannot reconstruct lost pipe or Tool results. Public MCP Session
+integration and independent consumer qualification remain separate work.
+
+## Standalone qualification
+
+`record-generation <control-directory>` is for independently started
+qualification units. It requires a recovery directory outside
+`/var/lib/stateknot/mcp-stdio`. For a managed launch, the process that claimed
+the intent publishes the generation record.

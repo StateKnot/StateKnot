@@ -22,7 +22,8 @@ use serde::{Deserialize, Serialize};
 
 type Result<T> = std::result::Result<T, JournalError>;
 
-const FILE: &str = "generation.json";
+const GENERATION_FILE: &str = "generation.json";
+const INTENT_FILE: &str = "launch-intent.json";
 const VERSION: u8 = 1;
 const MAX_RECORD: u64 = 1024;
 const DIRECTORY_FLAGS: OFlags = OFlags::RDONLY
@@ -55,6 +56,23 @@ pub(super) struct LocalIdentity<'a> {
     pub(super) cgroup_identity: [u64; 2],
 }
 
+#[derive(Serialize)]
+pub(super) struct LaunchIntent<'a> {
+    pub(super) boot_id: &'a str,
+    pub(super) generation: &'a str,
+    pub(super) host_namespace: [u64; 2],
+    pub(super) control_directory: &'a str,
+    pub(super) target_uid: u32,
+    pub(super) target_gid: u32,
+}
+
+#[derive(Serialize)]
+struct IntentWire<'a> {
+    version: u8,
+    #[serde(flatten)]
+    intent: LaunchIntent<'a>,
+}
+
 // Only validated, synced journal reads can construct a Record.
 pub(super) struct Record(Wire);
 
@@ -85,12 +103,6 @@ impl Wire {
             cgroup_identity: self.cgroup_identity,
         }
     }
-
-    fn bytes(&self) -> Result<Vec<u8>> {
-        let mut bytes = serde_json::to_vec(self).map_err(|_| JournalError)?;
-        bytes.push(b'\n');
-        Ok(bytes)
-    }
 }
 
 impl Record {
@@ -115,6 +127,44 @@ impl Record {
     }
 }
 
+// This one-shot claim must succeed before invoking the system manager. An
+// intent records only the attempted launch; it is not an observed unit identity.
+pub(super) fn claim_launch(directory: &Path, intent: LaunchIntent<'_>) -> Result<()> {
+    let control = Path::new(intent.control_directory);
+    if !boot_id(intent.boot_id)
+        || !lower_hex(intent.generation, 32)
+        || intent.host_namespace[1] == 0
+        || intent.control_directory.len() > 4096
+        || intent.control_directory.chars().any(char::is_control)
+        || !control.is_absolute()
+        || control == directory
+        || !super::target_id(intent.target_uid)
+        || !super::target_id(intent.target_gid)
+    {
+        return Err(JournalError);
+    }
+    let bytes = encode(&IntentWire {
+        version: VERSION,
+        intent,
+    })?;
+    let journal = Journal::open(directory)?;
+    journal.require_absent(GENERATION_FILE)?;
+    journal.require_absent(INTENT_FILE)?;
+    if !journal.publish(INTENT_FILE, &bytes)? {
+        return Err(JournalError);
+    }
+    journal.sync_directories()?;
+    // If another broker recorded the live unit while we were publishing,
+    // retain the intent but give this caller no launch permission.
+    journal.require_absent(GENERATION_FILE)
+}
+
+fn encode(record: &impl Serialize) -> Result<Vec<u8>> {
+    let mut bytes = serde_json::to_vec(record).map_err(|_| JournalError)?;
+    bytes.push(b'\n');
+    Ok(bytes)
+}
+
 pub(super) fn persist(directory: &Path, observed: Observation<'_>) -> Result<Record> {
     validate(&observed)?;
     let expected = Wire {
@@ -132,7 +182,7 @@ pub(super) fn persist(directory: &Path, observed: Observation<'_>) -> Result<Rec
     let recorded = if let Some(recorded) = journal.read()? {
         recorded
     } else {
-        journal.publish(&expected)?;
+        journal.publish(GENERATION_FILE, &encode(&expected)?)?;
         journal.read()?.ok_or(JournalError)?
     };
     if recorded.0 != expected {
@@ -243,10 +293,25 @@ impl Journal {
         Ok(Self { directory, parents })
     }
 
+    fn require_absent(&self, name: &str) -> Result<()> {
+        match statat(&self.directory, name, AtFlags::SYMLINK_NOFOLLOW) {
+            Err(Errno::NOENT) => Ok(()),
+            _ => Err(JournalError),
+        }
+    }
+
+    fn sync_directories(&self) -> Result<()> {
+        fsync(&self.directory).map_err(|_| JournalError)?;
+        for parent in self.parents.iter().rev() {
+            fsync(parent).map_err(|_| JournalError)?;
+        }
+        Ok(())
+    }
+
     fn read(&self) -> Result<Option<Record>> {
         let fd = match openat(
             &self.directory,
-            FILE,
+            GENERATION_FILE,
             OFlags::RDONLY | OFlags::NOFOLLOW | OFlags::CLOEXEC | OFlags::NONBLOCK,
             Mode::empty(),
         ) {
@@ -276,18 +341,15 @@ impl Journal {
         }
         let record: Wire = serde_json::from_slice(&bytes).map_err(|_| JournalError)?;
         validate(&record.identity())?;
-        if record.version != VERSION || record.bytes()? != bytes {
+        if record.version != VERSION || encode(&record)? != bytes {
             return Err(JournalError);
         }
         // Heal an interruption after rename and before the initial directory
         // sync. Sync bottom-up so freshly created ancestors survive as well.
         file.sync_all().map_err(|_| JournalError)?;
-        fsync(&self.directory).map_err(|_| JournalError)?;
-        for parent in self.parents.iter().rev() {
-            fsync(parent).map_err(|_| JournalError)?;
-        }
-        let after =
-            statat(&self.directory, FILE, AtFlags::SYMLINK_NOFOLLOW).map_err(|_| JournalError)?;
+        self.sync_directories()?;
+        let after = statat(&self.directory, GENERATION_FILE, AtFlags::SYMLINK_NOFOLLOW)
+            .map_err(|_| JournalError)?;
         if after.st_dev != before.st_dev
             || after.st_ino != before.st_ino
             || after.st_size != before.st_size
@@ -300,13 +362,13 @@ impl Journal {
         Ok(Some(Record(record)))
     }
 
-    fn publish(&self, record: &Wire) -> Result<()> {
-        let bytes = record.bytes()?;
+    // Return false if a competing writer already published this name.
+    fn publish(&self, destination: &str, bytes: &[u8]) -> Result<bool> {
         let mut nonce = [0; 16];
         File::open("/dev/urandom")
             .and_then(|mut source| source.read_exact(&mut nonce))
             .map_err(|_| JournalError)?;
-        let pending = format!(".generation-{:032x}.pending", u128::from_be_bytes(nonce));
+        let pending = format!(".{destination}-{:032x}.pending", u128::from_be_bytes(nonce));
         let mode = Mode::RUSR | Mode::WUSR;
         let mut file = File::from(
             openat(
@@ -317,14 +379,15 @@ impl Journal {
             )
             .map_err(|_| JournalError)?,
         );
-        let result = self.publish_file(&mut file, mode, &pending, &bytes);
+        let result = self.publish_file(&mut file, mode, &pending, destination, bytes);
         if result.is_err() {
             // This name is unique to this attempted publication. Orphans
             // from a process crash are never read as launch authority.
             let _ = unlinkat(&self.directory, pending.as_str(), AtFlags::empty());
         }
         match result {
-            Ok(()) | Err(Errno::EXIST) => Ok(()), // Read and compare the winner.
+            Ok(()) => Ok(true),
+            Err(Errno::EXIST) => Ok(false),
             Err(_) => Err(JournalError),
         }
     }
@@ -334,6 +397,7 @@ impl Journal {
         file: &mut File,
         mode: Mode,
         pending: &str,
+        destination: &str,
         bytes: &[u8],
     ) -> rustix::io::Result<()> {
         fchmod(&*file, mode)?;
@@ -343,7 +407,7 @@ impl Journal {
             &self.directory,
             pending,
             &self.directory,
-            FILE,
+            destination,
             RenameFlags::NOREPLACE,
         )
     }
