@@ -84,7 +84,7 @@ stateknot-mcp-stdio-owner recover-generation "$recovery_directory"
 ## 使用实验性 Rust Session
 
 在 Linux 上为 `stateknot-integrations` 启用 `experimental-mcp-stdio-linux-owner`。
-[公开 API 用例](../crates/stateknot-integrations/tests/mcp_stdio_session.rs) 使用已安装的
+[公开 API 用例](../examples/mcp-stdio-consumer/tests/mcp_stdio_session.rs) 使用已安装的
 launcher 和上述预配代际。通过显式命令、预期服务端身份、审查过的 Tool 描述符 pin
 和本地 schema registry 构造 `McpStdioConfig`。创建 `McpStdioSession` 并等待 `start()`，
 再通过 `client()` 访问已准入的目录并调用 Tool。等待 `shutdown()` 核实进程回收和 EOF。
@@ -92,6 +92,23 @@ launcher 和上述预配代际。通过显式命令、预期服务端身份、�
 此配置采用 MCP 2026-07-28，每次只运行一个调用，并接收完整 Tool 结果。每个受信本地
 安全范围使用独立 Session。调用失败会标记是否尝试过写入。在再次发起写操作前先核实
 不确定的外部结果。若关闭返回待核验，保留原代际并按上节流程恢复。
+
+### 复现独立 Cargo 消费者
+
+[消费者清单](../examples/mcp-stdio-consumer/Cargo.toml) 将 StateKnot 固定到 Git 提交
+`64190661ef722130f04cc0915a6b077c0d6062f8`。
+独立的[锁文件](../examples/mcp-stdio-consumer/Cargo.lock)固定解析后的依赖。在 Linux 上，
+以普通用户身份从仓库根目录编译测试。
+
+```console
+cargo +1.88.0 test --locked --manifest-path examples/mcp-stdio-consumer/Cargo.toml --no-run
+```
+
+这条命令构建消费者测试。[Linux 验收工作流](../.github/workflows/stdio-linux-owner-qualification.yml)
+把清单、锁文件和测试复制到 StateKnot 工作区之外，以普通权限编译。它核对并暂存所得测试
+二进制和所有者启动程序，再按上述要求配备私有目录及 root 拥有的 systemd 验收环境。
+提权步骤直接运行这份已暂存的测试二进制，验证发现、
+已固定的 Tool 调用和可核验的关闭。原生运行结果以工作流记录为准。
 
 ## 独立验收
 

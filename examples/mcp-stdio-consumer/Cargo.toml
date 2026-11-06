@@ -1,0 +1,21 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+
+[package]
+name = "stateknot-mcp-stdio-consumer"
+version = "0.0.0"
+edition = "2024"
+rust-version = "1.88"
+publish = false
+license = "Apache-2.0"
+
+[workspace]
+resolver = "3"
+
+[target.'cfg(target_os = "linux")'.dependencies]
+serde_json = "=1.0.151"
+serde_json_canonicalizer = "=0.3.2"
+stateknot-core = { git = "https://github.com/StateKnot/StateKnot.git", rev = "64190661ef722130f04cc0915a6b077c0d6062f8" }
+stateknot-integrations = { git = "https://github.com/StateKnot/StateKnot.git", rev = "64190661ef722130f04cc0915a6b077c0d6062f8", features = ["experimental-mcp-stdio-linux-owner"] }
+stateknot-runtime = { git = "https://github.com/StateKnot/StateKnot.git", rev = "64190661ef722130f04cc0915a6b077c0d6062f8" }
+tokio = { version = "=1.53.2", default-features = false, features = ["macros", "rt"] }

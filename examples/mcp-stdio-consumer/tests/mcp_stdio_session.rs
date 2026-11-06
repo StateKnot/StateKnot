@@ -3,7 +3,7 @@
 
 //! Native consumer contract for the experimental Linux MCP stdio session.
 
-#![cfg(all(target_os = "linux", feature = "experimental-mcp-stdio-linux-owner"))]
+#![cfg(target_os = "linux")]
 
 use std::{collections::BTreeMap, env, ffi::OsString, fs, path::Path, path::PathBuf, sync::Arc};
 
