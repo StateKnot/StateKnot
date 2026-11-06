@@ -21,6 +21,8 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   and publishes private readiness after recording the live invocation.
   The experimental Linux Session admits locally pinned MCP Tools, supports
   one bounded call at a time, and waits for verified retirement and pipe EOF.
+  A standalone Cargo consumer pins the SDK Git revision and exercises the
+  public Session through discovery, a Tool call, and verified shutdown.
 
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route

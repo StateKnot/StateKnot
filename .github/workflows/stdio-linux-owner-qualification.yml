@@ -16,7 +16,7 @@ on:
       - crates/stateknot-integrations/src/mcp_authorization.rs
       - crates/stateknot-integrations/src/mcp_client.rs
       - crates/stateknot-integrations/src/mcp_client/**
-      - crates/stateknot-integrations/tests/mcp_stdio_session.rs
+      - examples/mcp-stdio-consumer/**
   workflow_dispatch:
 permissions:
   contents: read
@@ -46,9 +46,20 @@ jobs:
           output="$RUNNER_TEMP/stdio-native-owner-foundation"
           mkdir "$output"
           rustup toolchain install 1.88.0 --profile minimal > "$output/rustup.stdout" 2> "$output/rustup.stderr"
-          cargo +1.88.0 test --locked --no-run -p stateknot-integrations --test mcp_stdio_session \
-            --features experimental-mcp-stdio-linux-owner --message-format=json \
-            > "$output/cargo-consumer.stdout.jsonl" 2> "$output/cargo-consumer.stderr"
+          consumer="$RUNNER_TEMP/stateknot-mcp-stdio-consumer"
+          example="$GITHUB_WORKSPACE/examples/mcp-stdio-consumer"
+          mkdir "$consumer"
+          mkdir "$consumer/tests"
+          cp "$example/Cargo.toml" "$example/Cargo.lock" "$consumer/"
+          cp "$example/tests/mcp_stdio_session.rs" "$consumer/tests/"
+          (
+            cd "$consumer"
+            export CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target"
+            cargo +1.88.0 metadata --locked --manifest-path Cargo.toml --format-version=1 \
+              > "$output/cargo-consumer.metadata.json" 2> "$output/cargo-consumer.metadata.stderr"
+            cargo +1.88.0 test --locked --no-run --manifest-path Cargo.toml --test mcp_stdio_session \
+              --message-format=json > "$output/cargo-consumer.stdout.jsonl" 2> "$output/cargo-consumer.stderr"
+          )
           cargo +1.88.0 build --locked -p stateknot-integrations --bin stateknot-mcp-stdio-owner \
             --features experimental-mcp-stdio-linux-owner --message-format=json \
             > "$output/cargo.stdout.jsonl" 2> "$output/cargo.stderr"
@@ -67,7 +78,11 @@ jobs:
           workspace = Path(os.environ["GITHUB_WORKSPACE"])
           script_path = ".github/scripts/qualify-stdio-linux-owner.py"
           workflow_path = ".github/workflows/stdio-linux-owner-qualification.yml"
-          consumer_path = "crates/stateknot-integrations/tests/mcp_stdio_session.rs"
+          example = "examples/mcp-stdio-consumer"
+          consumer_files = ("Cargo.toml", "Cargo.lock", "tests/mcp_stdio_session.rs")
+          staged = (Path(os.environ["RUNNER_TEMP"]) / "stateknot-mcp-stdio-consumer").resolve(strict=True)
+          if staged.is_relative_to(workspace.resolve(strict=True)):
+              raise ValueError("consumer must be built outside the StateKnot workspace")
           script = workspace / script_path
 
           def git(*args):
@@ -99,23 +114,23 @@ jobs:
           owner_sources = [path for path in owner_sources if path.endswith(".rs")]
           if not owner_sources:
               raise ValueError("Rust owner source inventory is empty")
-          session_sources = git("ls-files", "-z", "--", "crates/stateknot-integrations/src/mcp_client").decode().split("\0")
-          session_sources = [path for path in session_sources if path.endswith(".rs")]
-          if not session_sources:
-              raise ValueError("Rust session source inventory is empty")
-          for path in (script_path, workflow_path, consumer_path, "Cargo.toml", "Cargo.lock",
-                       "crates/stateknot-integrations/Cargo.toml",
-                       "crates/stateknot-integrations/src/lib.rs",
-                       "crates/stateknot-integrations/src/mcp.rs",
-                       "crates/stateknot-integrations/src/mcp_authorization.rs",
-                       "crates/stateknot-integrations/src/mcp_client.rs",
-                       *owner_sources, *session_sources):
+          for path in (script_path, workflow_path, "Cargo.toml", "Cargo.lock",
+                       "crates/stateknot-integrations/Cargo.toml", *owner_sources,
+                       *(f"{example}/{name}" for name in consumer_files)):
               raw = (workspace / path).read_bytes()
               if raw != git("show", "HEAD:" + path):
                   raise ValueError("executed qualification file differs from checkout: " + path)
               if binding["event"] == "pull_request" and raw != git("show", head + ":" + path):
                   raise ValueError("executed qualification file differs from PR head: " + path)
               binding["files_sha256"][path] = hashlib.sha256(raw).hexdigest()
+          staged_hashes = {}
+          for name in consumer_files:
+              path = staged / name
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if path.is_symlink() or digest != binding["files_sha256"][f"{example}/{name}"]:
+                  raise ValueError("staged consumer file differs from checkout: " + name)
+              staged_hashes[name] = digest
+          binding["consumer_staged_files_sha256"] = staged_hashes
           cargo_rows = [json.loads(line) for line in (output / "cargo.stdout.jsonl").read_bytes().splitlines()]
           artifacts = [row for row in cargo_rows if row.get("reason") == "compiler-artifact"
                        and row["target"]["name"] == "stateknot-mcp-stdio-owner"
@@ -134,9 +149,46 @@ jobs:
           if not 0 < len(raw) <= 32 * 1024 * 1024 or not raw.startswith(b"\x7fELF"):
               raise ValueError("invalid Linux Rust owner binary")
           binding["owner_binary_sha256"] = hashlib.sha256(raw).hexdigest()
+          metadata_bytes = (output / "cargo-consumer.metadata.json").read_bytes()
+          metadata = json.loads(metadata_bytes)
+          packages = {package["id"]: package for package in metadata["packages"]}
+          resolve = metadata["resolve"]
+          root_id = resolve["root"]
+          root = packages[root_id]
+          if (metadata["workspace_root"] != str(staged)
+                  or metadata["workspace_members"] != [root_id]
+                  or metadata["target_directory"] != str(workspace / "target")
+                  or root["name"] != "stateknot-mcp-stdio-consumer"
+                  or root["manifest_path"] != str(staged / "Cargo.toml") or root["source"] is not None):
+              raise ValueError("consumer metadata does not identify the staged standalone crate")
+          revision = "64190661ef722130f04cc0915a6b077c0d6062f8"
+          source = f"git+https://github.com/StateKnot/StateKnot.git?rev={revision}#{revision}"
+          stateknot_names = {"stateknot-core", "stateknot-integrations", "stateknot-runtime"}
+          nodes = {node["id"]: node for node in resolve["nodes"]}
+          pinned = [packages[dep["pkg"]] for dep in nodes[root_id]["deps"]
+                    if packages[dep["pkg"]]["name"] in stateknot_names]
+          sdk_packages = [package for package in packages.values()
+                          if package["id"] != root_id and package["name"].startswith("stateknot-")]
+          if (len(pinned) != len(stateknot_names)
+                  or {package["name"] for package in pinned} != stateknot_names
+                  or any(package["source"] != source for package in sdk_packages)):
+              raise ValueError("consumer resolved a StateKnot dependency outside the pinned HTTPS Git revision")
+          binding["consumer_git_revision"] = revision
+          binding["consumer_git_source"] = source
+          binding["consumer_package_ids"] = {package["name"]: package["id"] for package in sdk_packages}
+          binding["consumer_metadata_sha256"] = hashlib.sha256(metadata_bytes).hexdigest()
           consumer_rows = [json.loads(line) for line in (output / "cargo-consumer.stdout.jsonl").read_bytes().splitlines()]
+          for package in pinned:
+              compiled = [row for row in consumer_rows if row.get("reason") == "compiler-artifact"
+                          and row.get("package_id") == package["id"]
+                          and row["target"]["kind"] == ["lib"]
+                          and row["manifest_path"] == package["manifest_path"]]
+              if (len(compiled) != 1 or package["name"] == "stateknot-integrations"
+                      and "experimental-mcp-stdio-linux-owner" not in compiled[0]["features"]):
+                  raise ValueError("consumer did not compile the resolved pinned package: " + package["name"])
           consumer_artifacts = [
               row for row in consumer_rows if row.get("reason") == "compiler-artifact"
+              and row.get("package_id") == root_id
               and row["target"]["name"] == "mcp_stdio_session" and row["target"]["kind"] == ["test"]
               and row.get("executable")
           ]
@@ -145,11 +197,10 @@ jobs:
               raise ValueError("missing successful Rust session consumer build")
           consumer_artifact = consumer_artifacts[0]
           consumer_binary = Path(consumer_artifact["executable"]).resolve(strict=True)
-          if (consumer_artifact["manifest_path"] != str(workspace / "crates/stateknot-integrations/Cargo.toml")
-                  or consumer_artifact["target"]["src_path"] != str(workspace / consumer_path)
-                  or "experimental-mcp-stdio-linux-owner" not in consumer_artifact["features"]
+          if (consumer_artifact["manifest_path"] != str(staged / "Cargo.toml")
+                  or consumer_artifact["target"]["src_path"] != str(staged / consumer_files[2])
                   or consumer_binary.parent != workspace / "target/debug/deps"):
-              raise ValueError("compiled consumer test has an unexpected source, feature or path")
+              raise ValueError("compiled consumer test has an unexpected source or path")
           with consumer_binary.open("rb") as executable:
               consumer_bytes = executable.read(64 * 1024 * 1024 + 1)
           if not 0 < len(consumer_bytes) <= 64 * 1024 * 1024 or not consumer_bytes.startswith(b"\x7fELF"):

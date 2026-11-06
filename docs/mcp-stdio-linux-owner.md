@@ -106,7 +106,7 @@ Recovery covers process retirement. Tool results come from the live call.
 ## Use the experimental Rust Session
 
 Enable `experimental-mcp-stdio-linux-owner` in `stateknot-integrations` on
-Linux. The [public API fixture](../crates/stateknot-integrations/tests/mcp_stdio_session.rs)
+Linux. The [public API fixture](../examples/mcp-stdio-consumer/tests/mcp_stdio_session.rs)
 uses the installed launcher and the pre-provisioned generation described above.
 Build `McpStdioConfig` with an explicit command, expected server identity,
 reviewed descriptor pins, and a local schema registry. Construct an
@@ -118,6 +118,27 @@ Use a separate Session per trusted local security scope. A call failure reports
 whether a write was attempted. Reconcile uncertain external effects before
 dispatching another write. If shutdown reports pending cleanup, retain the
 generation and use the recovery procedure above.
+
+### Reproduce the standalone Cargo consumer
+
+The [consumer manifest](../examples/mcp-stdio-consumer/Cargo.toml) pins
+StateKnot to Git revision `64190661ef722130f04cc0915a6b077c0d6062f8`.
+The standalone [lockfile](../examples/mcp-stdio-consumer/Cargo.lock) fixes the
+resolved dependencies. From the repository root on Linux, compile the test
+as an ordinary user.
+
+```console
+cargo +1.88.0 test --locked --manifest-path examples/mcp-stdio-consumer/Cargo.toml --no-run
+```
+
+This command builds the consumer test. The
+[Linux qualification workflow](../.github/workflows/stdio-linux-owner-qualification.yml)
+copies the manifest, lockfile and test outside the StateKnot workspace and
+compiles them without root privileges. It verifies and stages the resulting
+test binary and owner launcher, then provisions the private directories and
+the root-owned systemd fixture described above. The privileged step runs the
+exact staged test binary directly to exercise discovery, a pinned Tool call,
+and verified shutdown. The workflow result records the native outcome.
 
 ## Standalone qualification
 
