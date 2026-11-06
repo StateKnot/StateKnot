@@ -1,0 +1,722 @@
+#!/usr/bin/python3
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+"""Native Linux owner foundation probe. P0-P2 only; never stdio qualification."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import select
+import shutil
+import signal
+import socket
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+
+PYTHON = "/usr/bin/python3"
+SYSTEMCTL = "/usr/bin/systemctl"
+SYSTEMD_RUN = "/usr/bin/systemd-run"
+SETPRIV = "/usr/bin/setpriv"
+ENV = {"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"}
+UID = 65534
+LEASE = 5.0
+MAX_STREAM = 512 * 1024
+SUCCESS_FIXTURE_EXIT = 42  # Intentional failed-unit retention, not a suite status.
+REJECT_FIXTURE_EXIT = 44
+PROPERTIES = ("InvocationID", "MainPID", "ExecMainPID", "ExecMainCode",
+              "ExecMainStatus", "ExecMainExitTimestampMonotonic", "ControlGroup",
+              "PrivatePIDs", "Restart", "WatchdogUSec", "ActiveState", "SubState",
+              "Result")
+CGROOT = Path("/sys/fs/cgroup")
+
+
+def require(ok, message):
+    if not ok:
+        raise ValueError(message)
+
+
+def digest(raw):
+    return hashlib.sha256(raw).hexdigest()
+
+
+def save(path, value, private=False):
+    raw = (json.dumps(value, indent=2, sort_keys=True) + "\n").encode()
+    fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL | os.O_NOFOLLOW,
+                 0o600 if private else 0o644)
+    with os.fdopen(fd, "wb") as stream:
+        stream.write(raw)
+        stream.flush()
+        os.fsync(stream.fileno())
+    directory = os.open(path.parent, os.O_RDONLY | os.O_DIRECTORY)
+    try:
+        os.fsync(directory)
+    finally:
+        os.close(directory)
+
+
+def boot_id():
+    return Path("/proc/sys/kernel/random/boot_id").read_text().strip()
+
+
+def status(raw):
+    return dict(line.split(":", 1) for line in raw.splitlines() if ":" in line)
+
+
+def proc_fact(pid, directory_fd=None):
+    def read(name):
+        if directory_fd is None:
+            return Path("/proc", str(pid), name).read_text()
+        fd = os.open(name, os.O_RDONLY | os.O_CLOEXEC, dir_fd=directory_fd)
+        with os.fdopen(fd) as stream:
+            return stream.read()
+    fields = read("stat").rsplit(") ", 1)[1].split()
+    row = status(read("status"))
+    return {"pid": pid, "state": fields[0], "ppid": int(fields[1]),
+            "pgrp": int(fields[2]), "session": int(fields[3]),
+            "start_ticks": fields[19],
+            "uids": [int(x) for x in row["Uid"].split()],
+            "gids": [int(x) for x in row["Gid"].split()],
+            "groups": [int(x) for x in row["Groups"].split()],
+            "nspid": [int(x) for x in row["NSpid"].split()],
+            "caps": {k: int(row[k], 16) for k in
+                     ("CapInh", "CapPrm", "CapEff", "CapBnd", "CapAmb")},
+            "nnp": int(row["NoNewPrivs"])}
+
+
+def ns_identity(pid):
+    st = os.stat(Path("/proc", str(pid), "ns/pid"))
+    return [st.st_dev, st.st_ino]
+
+
+class ProcessIdentity:
+    """A host observer, not a wait/reaper for a systemd-owned process."""
+    def __init__(self, pid, log):
+        self.log = log
+        self.last_observation = None
+        require(pid > 1, "refuse host PID1 or invalid process")
+        self.pid = pid
+        self.pidfd = os.pidfd_open(pid, 0)
+        self.procfd = os.open("/proc/" + str(pid),
+                              os.O_RDONLY | os.O_DIRECTORY | os.O_CLOEXEC)
+        self.fact = proc_fact(pid, self.procfd)
+        self.namespace = ns_identity(pid)
+        require(self.fact["state"] not in ("Z", "X"), "identity already retired")
+        require(proc_fact(pid)["start_ticks"] == self.fact["start_ticks"],
+                "PID changed while identity was captured")
+
+    def record(self, row):
+        body = json.dumps(row, sort_keys=True)
+        if body != self.last_observation:
+            with self.log.open("a") as stream:
+                stream.write(json.dumps({"monotonic_ns": time.monotonic_ns(), **row},
+                                        sort_keys=True) + "\n")
+            self.last_observation = body
+
+    def exited_and_reaped(self):
+        row = {"pid": self.pid, "original_start_ticks": self.fact["start_ticks"],
+               "pidfd_exit_ready": bool(select.select([self.pidfd], [], [], 0)[0]),
+               "retired": False}
+        if not row["pidfd_exit_ready"]:
+            self.record(row)
+            return False
+        try:
+            row["pinned_original_proc"] = proc_fact(self.pid, self.procfd)
+            self.record(row)  # Includes zombie; exit-ready is not reap.
+            return False
+        except OSError as exc:
+            row["pinned_proc_errno"] = exc.errno
+            self.record(row)
+            require(exc.errno in (2, 3), "original proc access failed, not absence")
+        try:
+            row["current_host_proc"] = proc_fact(self.pid)
+            row["retired"] = (row["current_host_proc"]["start_ticks"] != self.fact["start_ticks"])
+        except OSError as exc:
+            row["host_proc_errno"] = exc.errno
+            self.record(row)
+            require(exc.errno in (2, 3), "host proc access failed, not absence")
+            row["retired"] = True
+        self.record(row)
+        return row["retired"]
+
+    def close(self):
+        os.close(self.procfd)
+        os.close(self.pidfd)
+
+
+class Capture:
+    """Bounded real pipes; EOF and wait are observed separately."""
+    def __init__(self, process, directory, label):
+        self.process = process
+        self.streams = {}
+        self.bytes = {}
+        for name in ("stdout", "stderr"):
+            pipe = getattr(process, name)
+            os.set_blocking(pipe.fileno(), False)
+            self.streams[pipe.fileno()] = (pipe, (directory / (label + "." + name)).open("xb"))
+            self.bytes[pipe.fileno()] = 0
+
+    def pump(self):
+        if not self.streams:
+            return
+        for fd in select.select(list(self.streams), [], [], 0)[0]:
+            data = os.read(fd, 8192)
+            pipe, output = self.streams[fd]
+            if not data:
+                output.close()
+                pipe.close()
+                del self.streams[fd]
+                continue
+            self.bytes[fd] += len(data)
+            output.write(data)
+            output.flush()
+            require(self.bytes[fd] <= MAX_STREAM, "bounded fixture stream exceeded")
+
+    def complete(self):
+        self.pump()
+        return not self.streams and self.process.poll() is not None
+
+    def close(self):
+        for pipe, output in self.streams.values():
+            output.close()
+            pipe.close()
+        self.streams.clear()
+
+
+def command(directory, label, argv, timeout=8):
+    require(argv[0] in (SYSTEMCTL, SYSTEMD_RUN, SETPRIV, PYTHON),
+            "command outside fixed executable allowlist")
+    started = time.monotonic_ns()
+    out_path, err_path = directory / (label + ".stdout"), directory / (label + ".stderr")
+    error = None
+    with out_path.open("xb") as out, err_path.open("xb") as err:
+        process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                                   env=ENV, cwd="/", close_fds=True)
+        try:
+            code = process.wait(timeout=timeout)
+        except subprocess.TimeoutExpired:
+            error = "TimeoutExpired"
+            process.kill()
+            process.wait(timeout=2)
+            code = None
+    stdout, stderr = out_path.read_bytes(), err_path.read_bytes()
+    save(directory / (label + ".receipt.json"),
+         {"argv": argv, "actual_exit_code": code, "error": error,
+          "started_monotonic_ns": started, "ended_monotonic_ns": time.monotonic_ns(),
+          "stdout_sha256": digest(stdout), "stderr_sha256": digest(stderr)})
+    require(len(stdout) <= MAX_STREAM and len(stderr) <= MAX_STREAM,
+            "fixed control command output exceeded")
+    require(error is None, "fixed control command timed out")
+    return subprocess.CompletedProcess(argv, code, stdout, stderr)
+
+
+def unit_properties(directory, unit, sequence):
+    result = command(directory, "show-" + str(sequence),
+                     [SYSTEMCTL, "show", unit, "--no-pager",
+                      "--property=" + ",".join(PROPERTIES)])
+    require(result.returncode == 0, "cannot read exact unit identity")
+    return dict(line.split("=", 1) for line in result.stdout.decode().splitlines()
+                if "=" in line)
+
+
+def cgroup_path(value):
+    require(value.startswith("/system.slice/") and ".." not in value.split("/"),
+            "unexpected task cgroup location")
+    return CGROOT / value.lstrip("/")
+
+
+def cgroup_members(path):
+    members = set()
+    for entry in (path, *path.rglob("*")):
+        if entry.is_dir():
+            members.update(int(x) for x in (entry / "cgroup.procs").read_text().split())
+    return sorted(members)
+
+
+def notify(message):
+    address = os.environ.get("NOTIFY_SOCKET")
+    require(address is not None, "manager notify socket absent")
+    if address.startswith("@"):
+        address = "\0" + address[1:]
+    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
+        sock.sendto(message.encode(), address)
+
+
+def fixture():
+    """Fixed hostile tree, reached only after setpriv's complete drop."""
+    me = proc_fact(os.getpid())
+    require(me["uids"] == [UID] * 4 and me["gids"] == [UID] * 4
+            and me["groups"] == [] and all(v == 0 for v in me["caps"].values())
+            and me["nnp"] == 1, "fixture privilege drop failed")
+    require("NOTIFY_SOCKET" not in os.environ, "notify authority leaked")
+    for descriptor in os.listdir("/proc/self/fd"):
+        if int(descriptor) > 2:
+            try:
+                os.fstat(int(descriptor))
+            except OSError as exc:
+                require(exc.errno == 9, "unexpected FD inspection failure")
+            else:
+                raise ValueError("control or unexpected FD leaked to fixture")
+    for branch in ("setsid", "double-fork"):
+        pid = os.fork()
+        if pid == 0:
+            os.setsid()
+            if branch == "double-fork":
+                nested = os.fork()
+                if nested:
+                    os._exit(0)
+            signal.signal(signal.SIGTERM, signal.SIG_IGN)
+            os.write(1, ("leaf:" + branch + "\n").encode())
+            os.write(2, ("pipe-holder:" + branch + "\n").encode())
+            while True:
+                time.sleep(1)
+        if branch == "double-fork":
+            os.waitpid(pid, 0)
+    signal.signal(signal.SIGTERM, signal.SIG_IGN)
+    os.write(1, b"fixture-parent-ready\n")
+    while True:
+        time.sleep(1)
+
+
+def helper(private, code):
+    require(os.geteuid() == 0 and os.getpid() == 1, "not trusted private PID1")
+    config = json.loads((private / "config.json").read_bytes())
+    require(ns_identity(1) != config["host_namespace"], "shared host PID namespace")
+    server = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
+    server.bind(str(private / "control.sock"))
+    os.chmod(private / "control.sock", 0o600)
+    server.listen(1)
+    server.settimeout(0.2)
+    save(private / "helper-ready.json",
+         {"pid": 1, "namespace": ns_identity(1), "target_spawns": 0,
+          "generation": config["generation"]}, True)
+    notify("READY=1\nWATCHDOG=1")
+    accepting_until = time.monotonic() + 12
+    while True:
+        notify("WATCHDOG=1")
+        try:
+            connection, _ = server.accept()
+            break
+        except socket.timeout:
+            require(time.monotonic() < accepting_until, "owner never connected")
+    server.close()
+    connection.settimeout(0.2)
+    deadline = time.monotonic() + LEASE
+    child = None
+    try:
+        while time.monotonic() < deadline:
+            notify("WATCHDOG=1")
+            try:
+                raw = connection.recv(2048)
+            except socket.timeout:
+                continue
+            if not raw:
+                reason = "owner-eof"
+                break
+            require(len(raw) < 2048, "oversize control packet")
+            frame = json.loads(raw)
+            if frame.get("generation") != config["generation"]:
+                save(private / "helper-terminal.json",
+                     {"reason": "generation-rejected", "target_spawns": int(child is not None)}, True)
+                return REJECT_FIXTURE_EXIT
+            op = frame.get("op")
+            if op == "go" and child is None:
+                argv = [SETPRIV, "--bounding-set=-all", "--inh-caps=-all",
+                        "--ambient-caps=-all", "--clear-groups",
+                        "--reuid=" + str(UID), "--regid=" + str(UID),
+                        "--no-new-privs", PYTHON, "-I", str(code), "fixture"]
+                child = subprocess.Popen(argv, stdin=subprocess.DEVNULL,
+                                         env=ENV, close_fds=True, cwd="/")
+                save(private / "target-started.json",
+                     {"child_namespace_pid": child.pid, "target_spawns": 1}, True)
+            elif op == "renew" and child is not None:
+                deadline = time.monotonic() + LEASE
+            elif op == "stop" and child is not None:
+                reason = "owner-stop"
+                break
+            else:
+                raise ValueError("invalid control transition")
+            if child is not None:
+                require(child.poll() is None, "fixed fixture exited before trigger")
+        else:
+            reason = "owner-lease-expired"  # Safety bound, not an implemented P3 case.
+    finally:
+        connection.close()
+    save(private / "helper-terminal.json",
+         {"reason": reason, "target_spawns": int(child is not None)}, True)
+    return SUCCESS_FIXTURE_EXIT
+
+
+def session_owner(private):
+    config = json.loads((private / "config.json").read_bytes())
+    with socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET) as connection:
+        connection.settimeout(10)
+        connection.connect(str(private / "control.sock"))
+        line = sys.stdin.buffer.readline()
+        require(line in (b"GO\n", b"REJECT\n"), "owner instruction differs")
+        generation = config["generation"] if line == b"GO\n" else "wrong-generation"
+        def send(op):
+            connection.sendall(json.dumps({"op": op, "generation": generation}).encode())
+        send("go")
+        stopping = False
+        while True:
+            ready = select.select([sys.stdin.buffer, connection], [], [], 0.3)[0]
+            if connection in ready:
+                try:
+                    if not connection.recv(2048):
+                        return 0
+                except ConnectionResetError:
+                    return 0
+            if sys.stdin.buffer in ready:
+                instruction = sys.stdin.buffer.readline()
+                if instruction == b"STOP\n":
+                    send("stop")
+                    stopping = True
+                elif not instruction:
+                    return 0
+                else:
+                    raise ValueError("unknown owner instruction")
+            if line == b"GO\n" and not stopping:
+                send("renew")
+
+
+def preflight(output, image_os, image_version):
+    require(sys.platform == "linux" and os.geteuid() == 0, "root native Linux required")
+    require(image_os == "ubuntu26" and image_version, "explicit Ubuntu26 image metadata required")
+    require(Path("/proc/1/comm").read_text().strip() == "systemd", "host PID1 is not systemd")
+    require((CGROOT / "cgroup.controllers").is_file(), "cgroup-v2 absent")
+    require(hasattr(os, "pidfd_open") and hasattr(signal, "pidfd_send_signal"),
+            "safe Python pidfd interfaces absent")
+    programs = {}
+    for executable in (PYTHON, SYSTEMCTL, SYSTEMD_RUN, SETPRIV):
+        resolved = Path(executable).resolve(strict=True)
+        st = resolved.stat()
+        require(stat.S_ISREG(st.st_mode) and st.st_uid == 0
+                and not st.st_mode & 0o022, "untrusted fixed executable " + executable)
+        programs[executable] = {"resolved": str(resolved), "sha256": digest(resolved.read_bytes())}
+    version = command(output, "systemd-version", [SYSTEMCTL, "--version"])
+    require(version.returncode == 0, "systemd version command failed")
+    major = int(version.stdout.decode().splitlines()[0].split()[1])
+    require(major >= 258, "systemd>=258 required")
+    space = os.statvfs(output)
+    available = space.f_bavail * space.f_frsize
+    require(available >= 64 * 1024 * 1024, "raw evidence space below 64 MiB")
+    setpriv = command(output, "setpriv-version", [SETPRIV, "--version"])
+    require(setpriv.returncode == 0, "setpriv unavailable")
+    save(output / "host-profile.json",
+         {"boot_id": boot_id(), "uname": list(os.uname()),
+          "systemd_version": version.stdout.decode(), "image_os": image_os,
+          "image_version": image_version, "python": sys.version,
+          "host_namespace": ns_identity(os.getpid()), "programs": programs,
+          "evidence_space_available_bytes": available,
+          "profile_scope": "this exact native host tuple, not all Ubuntu26 builds"})
+
+
+def wait_for(predicate, captures, seconds, message):
+    deadline = time.monotonic() + seconds
+    while time.monotonic() < deadline:
+        for capture in captures:
+            capture.pump()
+        value = predicate()
+        if value:
+            return value
+        time.sleep(0.05)
+    raise TimeoutError(message)
+
+
+def run_case(output, work, code, case, sequence):
+    directory = output / case
+    directory.mkdir(mode=0o755)
+    private = work / case
+    private.mkdir(mode=0o700)
+    generation = os.urandom(16).hex()
+    unit = "stateknot-owner-" + generation + ".service"
+    config = {"generation": generation, "host_namespace": ns_identity(os.getpid())}
+    save(private / "config.json", config, True)
+    save(directory / "intent.json", {"unit": unit, "boot_id": boot_id(), **config})
+    identities = []
+    captures = []
+    expected_invocation = None
+    owner = service = owner_identity = None
+    started = time.monotonic_ns()
+    answer = {"case": case, "passed": False, "fallback_used": False, "unit": unit}
+    try:
+        argv = [SYSTEMD_RUN, "--quiet", "--wait", "--pipe", "--unit=" + unit]
+        for prop in ("Type=notify", "NotifyAccess=main", "PrivatePIDs=yes",
+                     "Restart=no", "CollectMode=inactive", "KillMode=control-group",
+                     "SendSIGKILL=yes", "WatchdogSec=5s", "WatchdogSignal=SIGKILL",
+                     "TimeoutStartSec=15s", "TimeoutStopSec=15s", "RuntimeMaxSec=35s",
+                     "TasksMax=16", "MemoryMax=128M", "CPUQuota=100%",
+                     "NoNewPrivileges=yes", "RestrictNamespaces=yes",
+                     "ProtectControlGroups=yes", "ProtectKernelTunables=yes",
+                     "ProtectKernelModules=yes", "ProtectKernelLogs=yes",
+                     "CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_SETPCAP",
+                     "AmbientCapabilities="):
+            argv.extend(["--property=" + prop])
+        argv.extend(["--", PYTHON, "-I", str(code), "helper", str(private), str(code)])
+        save(directory / "service-start.json", {"argv": argv})
+        service = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, env=ENV, cwd="/", close_fds=True)
+        service_capture = Capture(service, directory, "service")
+        captures.append(service_capture)
+        wait_for(lambda: (private / "helper-ready.json").is_file(), captures, 12,
+                 "trusted helper did not reach before-GO ready")
+        props = unit_properties(directory, unit, sequence)
+        expected_invocation = props["InvocationID"]
+        require(len(expected_invocation) == 32 and props["PrivatePIDs"] == "yes"
+                and props["Restart"] == "no", "unit profile mismatch")
+        leader = ProcessIdentity(int(props["MainPID"]), directory / "proc-observations.jsonl")
+        identities.append(leader)
+        require(leader.namespace != config["host_namespace"]
+                and leader.fact["nspid"][-1] == 1
+                and leader.fact["uids"] == [0] * 4 and leader.fact["ppid"] == 1,
+                "before-GO PID1/actual manager-parent identity mismatch")
+        cg = cgroup_path(props["ControlGroup"])
+        cg_identity = [cg.stat().st_dev, cg.stat().st_ino]
+        wait_for(lambda: cgroup_members(cg) == [leader.pid], captures, 3,
+                 "unexpected before-GO process or launcher still present")
+        ready = json.loads((private / "helper-ready.json").read_bytes())
+        require(ready["generation"] == generation and ready["target_spawns"] == 0
+                and ready["namespace"] == leader.namespace, "before-GO helper binding differs")
+        save(directory / "identity.json",
+             {"unit": unit, "invocation_id": expected_invocation,
+              "boot_id": boot_id(), "control_group": props["ControlGroup"],
+              "init": leader.fact, "namespace": leader.namespace,
+              "profile": props, "cgroup_identity": cg_identity,
+              "target_spawns_before_go": 0})
+        owner = subprocess.Popen([PYTHON, "-I", str(code), "owner", str(private)],
+                                 stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                 stderr=subprocess.PIPE, env=ENV, cwd="/", close_fds=True)
+        owner_capture = Capture(owner, directory, "owner")
+        captures.append(owner_capture)
+        owner_identity = ProcessIdentity(owner.pid, directory / "owner-proc-observations.jsonl")
+        save(directory / "session-owner-identity.json",
+             {"fact": owner_identity.fact, "namespace": owner_identity.namespace})
+        owner.stdin.write(b"REJECT\n" if case == "P0" else b"GO\n")
+        owner.stdin.flush()
+        if case != "P0":
+            def topology():
+                if not (private / "target-started.json").is_file():
+                    return False
+                members = cgroup_members(cg)
+                if len(members) != 4:
+                    return False
+                facts = [proc_fact(pid) for pid in members]
+                target = [row for row in facts if row["pid"] != leader.pid]
+                if any(row["state"] in ("Z", "X") for row in facts):
+                    return False
+                if not all(row["uids"] == [UID] * 4 and row["gids"] == [UID] * 4
+                           and row["groups"] == [] and row["nnp"] == 1
+                           and all(value == 0 for value in row["caps"].values())
+                           and ns_identity(row["pid"]) == leader.namespace for row in target):
+                    return False
+                if len({row["session"] for row in target}) != 3:
+                    return False
+                initial = json.loads((private / "target-started.json").read_bytes())
+                parent = [row for row in target if row["nspid"][-1] == initial["child_namespace_pid"]]
+                if len(parent) != 1:
+                    return False
+                if sorted(row["ppid"] for row in target) != sorted([leader.pid, leader.pid, parent[0]["pid"]]):
+                    return False
+                # The observed fork tree can precede its TERM-ignore and
+                # pipe writes. Wait for the exact completed readiness lines.
+                stdout = (directory / "service.stdout").read_bytes().split(b"\n")[:-1]
+                stderr = (directory / "service.stderr").read_bytes().split(b"\n")[:-1]
+                if any(stdout.count(marker) != 1 for marker in
+                       (b"fixture-parent-ready", b"leaf:setsid", b"leaf:double-fork")):
+                    return False
+                if any(stderr.count(marker) != 1 for marker in
+                       (b"pipe-holder:setsid", b"pipe-holder:double-fork")):
+                    return False
+                return facts
+            facts = wait_for(topology, captures, 10, "live fork tree, privilege drop or pipe readiness absent")
+            for row in facts:
+                if row["pid"] != leader.pid:
+                    identity = ProcessIdentity(row["pid"], directory / "proc-observations.jsonl")
+                    require(identity.fact["start_ticks"] == row["start_ticks"],
+                            "target identity changed during capture")
+                    identities.append(identity)
+            save(directory / "actual-hostile-tree.json", {"all_members": facts})
+        fault_ns = time.monotonic_ns()
+        if case == "P2":
+            signal.pidfd_send_signal(owner_identity.pidfd, signal.SIGKILL)
+            save(directory / "fault-sent.json",
+                 {"signal": "SIGKILL", "target": owner_identity.fact,
+                  "monotonic_ns": fault_ns, "send_success_is_not_completion": True})
+        elif case == "P1":
+            owner.stdin.write(b"STOP\n")
+            owner.stdin.flush()
+        owner.stdin.close()
+        wait_for(lambda: owner.poll() is not None, captures, 10, "session-owner did not exit")
+        owner_code = owner.wait(timeout=1)
+        require(owner_code == (-signal.SIGKILL if case == "P2" else 0),
+                "unexpected actual owner exit")
+        owner_identity.close()
+        owner_identity = None
+        expected_exit = REJECT_FIXTURE_EXIT if case == "P0" else SUCCESS_FIXTURE_EXIT
+        def retired():
+            service_capture.pump()
+            return all(identity.exited_and_reaped() for identity in identities)
+        wait_for(retired, captures, 15, "original init/tree remains live or zombie")
+        final = unit_properties(directory, unit, sequence + 1)
+        require(final["InvocationID"] == expected_invocation
+                and int(final["ExecMainPID"]) == leader.pid
+                and final["ExecMainCode"] == "1"
+                and int(final["ExecMainStatus"]) == expected_exit
+                and int(final["ExecMainExitTimestampMonotonic"]) > 0,
+                "same-generation manager exit facts differ")
+        try:
+            require([cg.stat().st_dev, cg.stat().st_ino] == cg_identity,
+                    "original cgroup identity replaced")
+            empty = (not cgroup_members(cg)
+                     and "populated 0" in (cg / "cgroup.events").read_text().splitlines())
+            removed = False
+        except FileNotFoundError:
+            # A member or events file can disappear without the original
+            # cgroup being removed. Confirm absence of the cgroup itself.
+            try:
+                cg.lstat()
+            except FileNotFoundError:
+                empty, removed = True, True
+            else:
+                raise
+        require(empty, "cgroup still populated")
+        wait_for(lambda: all(capture.complete() for capture in captures), captures, 5,
+                 "I/O EOF or actual helper process join missing")
+        service_code = service.wait(timeout=1)
+        require(service_code == expected_exit, "systemd-run did not preserve actual exit")
+        terminal = json.loads((private / "helper-terminal.json").read_bytes())
+        expected_reason = {"P0": "generation-rejected", "P1": "owner-stop", "P2": "owner-eof"}[case]
+        require(terminal["reason"] == expected_reason
+                and terminal["target_spawns"] == (0 if case == "P0" else 1),
+                "actual control cause differs")
+        require(boot_id() == json.loads((directory / "intent.json").read_bytes())["boot_id"],
+                "boot identity changed")
+        answer.update({"passed": True, "retired": True, "invocation_id": expected_invocation,
+                       "fault_monotonic_ns": fault_ns, "actual_owner_wait_status": owner_code,
+                       "actual_systemd_run_wait_status": service_code, "manager_exit": final,
+                       "helper_terminal": terminal, "all_original_identities_disappeared": True,
+                       "cgroup_live_empty": True, "cgroup_removed": removed, "io_eof_and_join": True,
+                       "controller_waited_init": False, "init_reaper": "systemd",
+                       "witness": "original proc identity + pidfd + manager + namespace + cgroup + I/O",
+                       "fixture_exit_is_intentional_failed_unit_retention": True})
+    except Exception as exc:
+        answer["error"] = type(exc).__name__ + ": " + str(exc)
+    finally:
+        if not answer["passed"]:
+            answer["fallback_used"] = True
+            try:
+                current = unit_properties(directory, unit, sequence + 2)
+                require(expected_invocation is not None
+                        and current["InvocationID"] == expected_invocation,
+                        "unknown generation: refuse fallback signal")
+                command(directory, "fallback-kill",
+                        [SYSTEMCTL, "kill", "--kill-whom=all", "--signal=SIGKILL", unit])
+            except Exception as exc:
+                answer["fallback_error"] = type(exc).__name__ + ": " + str(exc)
+        if owner is not None and not answer["passed"]:
+            if owner.poll() is None:
+                owner.kill()
+                answer["fallback_owner_signal"] = "SIGKILL"
+            answer["fallback_owner_wait_status"] = owner.wait(timeout=2)
+        if owner_identity is not None:
+            owner_identity.close()
+        if service is not None and not answer["passed"]:
+            try:
+                wait_for(lambda: service_capture.complete(), captures, 5,
+                         "fallback I/O or systemd-run join incomplete")
+                answer["fallback_systemd_run_wait_status"] = service.wait(timeout=1)
+            except Exception as exc:
+                answer["fallback_join_error"] = type(exc).__name__ + ": " + str(exc)
+                if service.poll() is None:
+                    service.kill()
+                    service.wait(timeout=2)
+        if answer["passed"]:
+            cleanup = command(directory, "reset-failed", [SYSTEMCTL, "reset-failed", unit])
+            answer["reset_failed_actual_exit_code"] = cleanup.returncode
+            if cleanup.returncode != 0:
+                answer["passed"] = False
+                answer["cleanup_error"] = "reset-failed failed after strict retirement"
+        for capture in captures:
+            capture.close()
+        for identity in identities:
+            identity.close()
+        answer["ended_monotonic_ns"] = time.monotonic_ns()
+        answer["started_monotonic_ns"] = started
+        save(directory / "case-result.json", answer)
+    return answer
+
+
+def controller(args):
+    os.umask(0o022)
+    output = Path(args.output).resolve(strict=True)
+    require(output.is_dir() and not Path(args.output).is_symlink(), "invalid evidence directory")
+    result = {"schema": "stateknot-native-owner-foundation-v1",
+              "implemented_cases": ["P0", "P1", "P2"],
+              "unimplemented_cases": ["P3", "P4", "P5"],
+              "full_six_case_qualification": False, "stdio_supported": False,
+              "R1_closed": False, "actual_cases": []}
+    work = None
+    try:
+        source_binding = json.loads(args.source_binding)
+        source_bytes = Path(__file__).read_bytes()
+        source_sha256 = digest(source_bytes)
+        require(source_binding["files_sha256"][".github/scripts/qualify-stdio-linux-owner.py"]
+                == source_sha256, "executed probe differs from verified checkout")
+        preflight(output, args.image_os, args.image_version)
+        work = Path(tempfile.mkdtemp(prefix="stateknot-owner-", dir="/run"))
+        os.chmod(work, 0o755)
+        public = work / "code"
+        public.mkdir(mode=0o755)
+        code = public / "probe.py"
+        code.write_bytes(source_bytes)
+        os.chmod(code, 0o644)
+        require(code.stat().st_uid == 0, "helper copy must be root-owned")
+        save(output / "probe-source.json",
+             {"sha256": digest(code.read_bytes()), "run_id": args.run_id,
+              "run_attempt": args.attempt, "source_binding": source_binding,
+              "public_code_path": str(code), "private_case_dirs_mode": "0700"})
+        for index, case in enumerate(("P0", "P1", "P2")):
+            row = run_case(output, work, code, case, 10 * index)
+            result["actual_cases"].append(row)
+            if not row["passed"]:
+                break
+    except Exception as exc:
+        result["error"] = type(exc).__name__ + ": " + str(exc)
+    passed = (len(result["actual_cases"]) == 3
+              and all(row["passed"] for row in result["actual_cases"]))
+    result["foundation_P0_P2_passed"] = passed
+    result["pending_identity_root"] = str(work) if work is not None and not passed else None
+    save(output / "qualification.json", result)
+    if work is not None and passed:
+        shutil.rmtree(work)
+    entries = [{"path": str(p.relative_to(output)), "bytes": p.stat().st_size,
+                "sha256": digest(p.read_bytes())}
+               for p in sorted(output.rglob("*")) if p.is_file()
+               and not p.name.startswith("launcher.")]
+    save(output / "manifest.json", {"files": entries, "full_profile_qualified": False})
+    return 0 if passed else 1
+
+
+def main():
+    mode = sys.argv[1] if len(sys.argv) > 1 else ""
+    if mode == "fixture":
+        fixture()
+    elif mode == "helper" and len(sys.argv) == 4:
+        return helper(Path(sys.argv[2]), Path(sys.argv[3]))
+    elif mode == "owner" and len(sys.argv) == 3:
+        return session_owner(Path(sys.argv[2]))
+    elif mode == "controller":
+        parser = argparse.ArgumentParser()
+        for name in ("output", "run-id", "attempt", "source-binding", "image-os", "image-version"):
+            parser.add_argument("--" + name, required=True)
+        return controller(parser.parse_args(sys.argv[2:]))
+    else:
+        raise ValueError("fixed probe mode required")
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

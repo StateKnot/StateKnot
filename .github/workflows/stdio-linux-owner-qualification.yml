@@ -1,0 +1,118 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+name: Native owner foundation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/scripts/qualify-stdio-linux-owner.py
+      - .github/workflows/stdio-linux-owner-qualification.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-owner-foundation:
+    name: Ubuntu 26.04 owner foundation (P0-P2)
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-26.04
+    timeout-minutes: 8
+    steps:
+      - name: Checkout reviewed candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Observe native owner foundation
+        shell: /usr/bin/python3 {0}
+        run: |
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import time
+
+          output = Path(os.environ["RUNNER_TEMP"]) / "stdio-native-owner-foundation"
+          output.mkdir(mode=0o755)
+          workspace = Path(os.environ["GITHUB_WORKSPACE"])
+          script_path = ".github/scripts/qualify-stdio-linux-owner.py"
+          workflow_path = ".github/workflows/stdio-linux-owner-qualification.yml"
+          script = workspace / script_path
+
+          def git(*args):
+              return subprocess.check_output(["/usr/bin/git", *args], cwd=workspace, timeout=10)
+
+          checkout = git("rev-parse", "--verify", "HEAD").decode().strip()
+          if checkout != os.environ["GITHUB_SHA"]:
+              raise ValueError("checkout differs from the workflow event commit")
+          binding = {
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "workflow_commit": os.environ["GITHUB_WORKFLOW_SHA"],
+              "checkout_commit": checkout,
+              "checkout_tree": git("rev-parse", "HEAD^{tree}").decode().strip(),
+              "files_sha256": {},
+          }
+          if binding["event"] == "pull_request":
+              event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_bytes())
+              pr = event["pull_request"]
+              if pr["head"]["repo"]["full_name"] != os.environ["GITHUB_REPOSITORY"]:
+                  raise ValueError("root probe requires a same-repository PR")
+              head, base = pr["head"]["sha"], pr["base"]["sha"]
+              if git("show", "-s", "--format=%P", "HEAD").decode().split() != [base, head]:
+                  raise ValueError("checkout is not the merge of the event base and PR head")
+              binding.update(pull_request_number=pr["number"], pull_request_head=head,
+                             pull_request_base=base)
+          elif binding["event"] != "workflow_dispatch":
+              raise ValueError("unsupported event for root probe")
+          for path in (script_path, workflow_path):
+              raw = (workspace / path).read_bytes()
+              if raw != git("show", "HEAD:" + path):
+                  raise ValueError("executed qualification file differs from checkout: " + path)
+              if binding["event"] == "pull_request" and raw != git("show", head + ":" + path):
+                  raise ValueError("executed qualification file differs from PR head: " + path)
+              binding["files_sha256"][path] = hashlib.sha256(raw).hexdigest()
+          (output / "source-binding.json").write_text(json.dumps(binding, indent=2, sort_keys=True) + "\n")
+
+          argv = [
+              "/usr/bin/sudo", "-n", "--", "/usr/bin/python3", "-I", str(script),
+              "controller", "--output", str(output),
+              "--run-id", os.environ["GITHUB_RUN_ID"],
+              "--attempt", os.environ["GITHUB_RUN_ATTEMPT"],
+              "--source-binding", json.dumps(binding, sort_keys=True),
+              "--image-os", os.environ.get("ImageOS", ""),
+              "--image-version", os.environ.get("ImageVersion", ""),
+          ]
+          started = time.monotonic_ns()
+          with (output / "launcher.stdout").open("xb") as out, (output / "launcher.stderr").open("xb") as err:
+              result = subprocess.run(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                                      env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"},
+                                      check=False)
+          receipt = {
+              "argv": argv, "actual_exit_code": result.returncode,
+              "started_monotonic_ns": started, "ended_monotonic_ns": time.monotonic_ns(),
+              "stdout_sha256": hashlib.sha256((output / "launcher.stdout").read_bytes()).hexdigest(),
+              "stderr_sha256": hashlib.sha256((output / "launcher.stderr").read_bytes()).hexdigest(),
+              "source_binding": binding,
+              "full_six_case_qualification": False, "stdio_supported": False,
+          }
+          (output / "launcher.receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+          rows = [
+              {"path": str(p.relative_to(output)), "bytes": p.stat().st_size,
+               "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+              for p in sorted(output.rglob("*")) if p.is_file() and p.name != "upload-manifest.json"
+          ]
+          (output / "upload-manifest.json").write_text(
+              json.dumps({"files": rows, "qualification": False}, indent=2, sort_keys=True) + "\n"
+          )
+          raise SystemExit(result.returncode)
+      - name: Preserve actual raw foundation evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stdio-native-owner-foundation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/stdio-native-owner-foundation
+          if-no-files-found: error
+          retention-days: 14
