@@ -161,14 +161,17 @@ fn run() -> Result<u8> {
         }
         Some(mode)
             if mode == OsStr::new("record-generation")
-                || mode == OsStr::new("recover-generation") =>
+                || mode == OsStr::new("recover-generation")
+                || mode == OsStr::new("launch-generation") =>
         {
             let directory = args.next().ok_or(Fault::Configuration)?;
             if args.next().is_some() {
                 return Err(Fault::Configuration);
             }
             let directory = Path::new(&directory);
-            if mode == OsStr::new("record-generation") {
+            if mode == OsStr::new("launch-generation") {
+                return broker::launch_generation(directory);
+            } else if mode == OsStr::new("record-generation") {
                 broker::record_generation(directory)?;
             } else {
                 broker::recover_generation(directory)?;
@@ -540,7 +543,7 @@ impl Owner<'_> {
             }
             match command.op {
                 Operation::Go if self.target.is_none() => {
-                    broker::require_before_go(self.config, self.namespace)?;
+                    broker::require_before_go(self.directory, self.config, self.namespace)?;
                     self.lease_deadline = observed + LEASE;
                     self.start_target(self.startup_end.min(self.lease_deadline))?;
                 }

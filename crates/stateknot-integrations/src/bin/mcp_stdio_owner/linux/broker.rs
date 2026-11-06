@@ -7,31 +7,60 @@ use std::{
     collections::BTreeMap,
     env,
     fs::{self, File},
-    io::{ErrorKind, Read},
+    io::{self, ErrorKind, Read},
     os::fd::{AsFd, OwnedFd},
-    os::unix::fs::MetadataExt,
+    os::unix::{ffi::OsStrExt, fs::MetadataExt},
     path::{Path, PathBuf},
-    process::{Command, Stdio},
+    process::{Child, Command, ExitStatus, Stdio},
     thread,
     time::Duration,
 };
 
 use nix::poll::{PollFd, PollFlags, PollTimeout, poll};
 use rustix::{
-    fs::{AtFlags, Mode, OFlags, fcntl_getfl, fcntl_setfl, open, openat, statat},
+    fs::{AtFlags, FileType, Mode, OFlags, fcntl_getfl, fcntl_setfl, fstat, open, openat, statat},
     io::Errno,
     process::{self, Pid, PidfdFlags, Signal, pidfd_open, pidfd_send_signal},
 };
+use serde::Deserialize;
+use serde_json::json;
 
 use super::{
-    Fault, Result, check_startup, config_from_directory, current_namespace, monotonic_now,
-    poll_input, read_bounded, recovery, trusted_executable,
+    Config, Fault, Result, check_startup, config_from_directory, current_namespace, monotonic_now,
+    poll_input, read_bounded, recovery, trusted_executable, write_private,
 };
 
 const SYSTEMCTL: &str = "/usr/bin/systemctl";
+const SYSTEMD_RUN: &str = "/usr/bin/systemd-run";
+const RECOVERY_ROOT: &str = "/var/lib/stateknot/mcp-stdio";
 const CGROUP_ROOT: &str = "/sys/fs/cgroup";
 const SNAPSHOT_TIME: Duration = Duration::from_secs(2);
 const COMMAND_LIMIT: usize = 8192;
+const UNIT_PROFILE: &[&str] = &[
+    "Type=notify",
+    "NotifyAccess=main",
+    "PrivatePIDs=yes",
+    "Restart=no",
+    "CollectMode=inactive",
+    "KillMode=control-group",
+    "SendSIGKILL=yes",
+    "WatchdogSec=5s",
+    "WatchdogSignal=SIGKILL",
+    "TimeoutStartSec=15s",
+    "TimeoutStopSec=15s",
+    "RuntimeMaxSec=35s",
+    "TasksMax=16",
+    "MemoryMax=128M",
+    "CPUQuota=100%",
+    "NoNewPrivileges=yes",
+    "RestrictNamespaces=yes",
+    "ProtectControlGroups=yes",
+    "ProtectKernelTunables=yes",
+    "ProtectKernelModules=yes",
+    "ProtectKernelLogs=yes",
+    "CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_SETPCAP",
+    "AmbientCapabilities=",
+];
 const PROPERTIES: &[&str] = &[
     "Id",
     "LoadState",
@@ -57,31 +86,200 @@ const PROPERTIES: &[&str] = &[
     "InvocationID",
     "ControlGroup",
     "ExecMainCode",
+    "ExecMainStartTimestampMonotonic",
     "ExecMainExitTimestampMonotonic",
 ];
 
-pub(super) fn record_generation(control: &Path) -> Result<()> {
-    let end = monotonic_now()? + Duration::from_secs(6);
+pub(super) fn launch_generation(control: &Path) -> Result<u8> {
+    let config = host_config(control)?;
+    if config.recovery_directory.as_os_str()
+        != Path::new(RECOVERY_ROOT)
+            .join(&config.generation)
+            .as_os_str()
+    {
+        return Err(Fault::Configuration);
+    }
+    let control_directory = control.to_str().ok_or(Fault::Configuration)?;
+    let helper = trusted_executable(&env::current_exe().map_err(|_| Fault::Profile)?)?;
+    let systemd_run = trusted_executable(Path::new(SYSTEMD_RUN))?;
+    verify_application_pipes()?;
+    for name in ["helper-ready.json", "broker-ready.json", "control.sock"] {
+        match fs::symlink_metadata(control.join(name)) {
+            Err(error) if error.kind() == ErrorKind::NotFound => {}
+            _ => return Err(Fault::Evidence),
+        }
+    }
+    recovery::claim_launch(
+        &config.recovery_directory,
+        recovery::LaunchIntent {
+            boot_id: &config.boot_id,
+            generation: &config.generation,
+            host_namespace: config.host_namespace,
+            control_directory,
+            target_uid: config.target_uid,
+            target_gid: config.target_gid,
+        },
+    )
+    .map_err(|_| Fault::Evidence)?;
+
+    let unit = generation_unit(&config.generation);
+    let mut launch = Command::new(systemd_run);
+    launch
+        .args([
+            "--quiet",
+            "--wait",
+            "--pipe",
+            "--no-ask-password",
+            "--job-mode=fail",
+            "--expand-environment=no",
+            "--slice=system.slice",
+        ])
+        .arg(format!("--unit={unit}"))
+        .args(
+            UNIT_PROFILE
+                .iter()
+                .map(|property| format!("--property={property}")),
+        )
+        .arg("--")
+        .arg(&helper)
+        .arg("namespace-init")
+        .arg(control)
+        .env_clear()
+        .env("LC_ALL", "C")
+        .current_dir("/")
+        .stdin(Stdio::inherit())
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
+    let started = monotonic_now()?;
+    let mut child = launch.spawn().map_err(|_| Fault::Launch)?;
+    let result = (|| {
+        arm_generation(control, &config, &mut child, started)?;
+        let status = wait_for_launcher(&mut child, started + Duration::from_secs(70))?;
+        status
+            .code()
+            .and_then(|code| u8::try_from(code).ok())
+            .ok_or(Fault::Launch)
+    })();
+    if result.is_err() {
+        // Only our direct systemd-run child is signalled here. The service
+        // remains manager-owned. Without a record it cannot release a target.
+        let _ = child.kill();
+        if let Ok(now) = monotonic_now() {
+            let _ = wait_for_launcher(&mut child, now + SNAPSHOT_TIME);
+        }
+    }
+    result
+}
+
+fn verify_application_pipes() -> Result<()> {
+    let (stdin, stdout, stderr) = (io::stdin(), io::stdout(), io::stderr());
+    let mut identities = Vec::new();
+    for (fd, access) in [
+        (stdin.as_fd(), OFlags::RDONLY),
+        (stdout.as_fd(), OFlags::WRONLY),
+        (stderr.as_fd(), OFlags::WRONLY),
+    ] {
+        let state = fstat(fd).map_err(|_| Fault::Profile)?;
+        let flags = fcntl_getfl(fd).map_err(|_| Fault::Profile)?;
+        let identity = (state.st_dev, state.st_ino);
+        if FileType::from_raw_mode(state.st_mode) != FileType::Fifo
+            || flags & OFlags::ACCMODE != access
+            || identities.contains(&identity)
+        {
+            return Err(Fault::Profile);
+        }
+        identities.push(identity);
+    }
+    Ok(())
+}
+
+fn arm_generation(
+    control: &Path,
+    config: &Config,
+    child: &mut Child,
+    started: Duration,
+) -> Result<()> {
+    let unit = generation_unit(&config.generation);
+    let end = started + super::STARTUP;
+    let ready = control.join("helper-ready.json");
+    loop {
+        check_startup(end)?;
+        if child.try_wait().map_err(|_| Fault::Launch)?.is_some() {
+            return Err(Fault::Launch);
+        }
+        if ready.is_file() {
+            let snapshot = Manager::load(&unit, end)?;
+            if snapshot.value("ActiveState")? == "active" {
+                let before = u64::try_from(started.as_micros()).map_err(|_| Fault::Profile)?;
+                if snapshot.number("ExecMainStartTimestampMonotonic")? < before {
+                    return Err(Fault::Evidence);
+                }
+                let invocation = save_running_generation(control, config, &snapshot, end)?;
+                check_startup(end)?;
+                return write_private(
+                    control,
+                    "broker-ready.json",
+                    &json!({
+                        "generation": config.generation, "invocation_id": invocation,
+                    }),
+                );
+            }
+        }
+        thread::sleep(Duration::from_millis(20));
+    }
+}
+
+fn wait_for_launcher(child: &mut Child, end: Duration) -> Result<ExitStatus> {
+    loop {
+        if let Some(status) = child.try_wait().map_err(|_| Fault::Launch)? {
+            return Ok(status);
+        }
+        check_startup(end)?;
+        thread::sleep(Duration::from_millis(20));
+    }
+}
+
+fn host_config(control: &Path) -> Result<Config> {
     let host_namespace = verify_host()?;
     let config = config_from_directory(control)?;
-    let boot_id = boot_id()?;
-    if boot_id != config.boot_id || host_namespace != config.host_namespace {
+    if boot_id()? != config.boot_id || host_namespace != config.host_namespace {
         return Err(Fault::Profile);
+    }
+    Ok(config)
+}
+
+pub(super) fn record_generation(control: &Path) -> Result<()> {
+    let end = monotonic_now()? + Duration::from_secs(6);
+    let config = host_config(control)?;
+    // The managed journal has a single writer, the process that claimed it
+    // before unit creation. This command remains for standalone qualification.
+    if config.recovery_directory.starts_with(RECOVERY_ROOT) {
+        return Err(Fault::Evidence);
     }
     let unit = generation_unit(&config.generation);
     let snapshot = Manager::load(&unit, end)?;
+    save_running_generation(control, &config, &snapshot, end).map(|_| ())
+}
+
+fn save_running_generation<'a>(
+    control: &Path,
+    config: &Config,
+    snapshot: &'a Manager,
+    end: Duration,
+) -> Result<&'a str> {
+    let unit = generation_unit(&config.generation);
     let pid = snapshot.live_pid()?;
-    let init = PinnedInit::open(pid, &unit, host_namespace)?;
-    init.require_current_executable()?;
+    let init = PinnedInit::open(pid, &unit, config.host_namespace)?;
+    init.require_command(control)?;
     let invocation_id = snapshot.value("InvocationID")?;
-    if snapshot != Manager::load(&unit, end)? || init.exited()? {
+    if *snapshot != Manager::load(&unit, end)? || init.exited()? {
         return Err(Fault::Evidence);
     }
     check_startup(end)?;
     recovery::persist(
         &config.recovery_directory,
         recovery::Observation {
-            boot_id: &boot_id,
+            boot_id: &config.boot_id,
             generation: &config.generation,
             unit: &unit,
             invocation_id,
@@ -92,7 +290,7 @@ pub(super) fn record_generation(control: &Path) -> Result<()> {
         },
     )
     .map_err(|_| Fault::Evidence)?;
-    Ok(())
+    Ok(invocation_id)
 }
 
 pub(super) fn recover_generation(directory: &Path) -> Result<()> {
@@ -153,9 +351,32 @@ fn stop_pinned(
     Ok(())
 }
 
-pub(super) fn require_before_go(config: &super::Config, namespace: [u64; 2]) -> Result<()> {
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct BrokerReady {
+    generation: String,
+    invocation_id: String,
+}
+
+pub(super) fn require_before_go(
+    control: &Path,
+    config: &Config,
+    namespace: [u64; 2],
+) -> Result<()> {
     let record = recovery::recover(&config.recovery_directory).map_err(|_| Fault::Evidence)?;
     let invocation = env::var("INVOCATION_ID").map_err(|_| Fault::Evidence)?;
+    if config.recovery_directory.starts_with(RECOVERY_ROOT) {
+        let path = control.join("broker-ready.json");
+        let metadata = fs::symlink_metadata(&path).map_err(|_| Fault::Evidence)?;
+        if !metadata.is_file() || metadata.uid() != 0 || metadata.mode() & 0o7777 != 0o600 {
+            return Err(Fault::Evidence);
+        }
+        let bytes = read_bounded(&path, 512).map_err(|_| Fault::Evidence)?;
+        let ready: BrokerReady = serde_json::from_slice(&bytes).map_err(|_| Fault::Evidence)?;
+        if ready.generation != config.generation || ready.invocation_id != invocation {
+            return Err(Fault::Evidence);
+        }
+    }
     let stat = read_bounded(Path::new("/proc/self/stat"), COMMAND_LIMIT as u64)
         .map_err(|_| Fault::Evidence)?;
     let start_ticks = recovery::start_ticks(&stat).map_err(|_| Fault::Evidence)?;
@@ -261,12 +482,22 @@ impl PinnedInit {
         Ok(init)
     }
 
-    fn require_current_executable(&self) -> Result<()> {
+    fn require_command(&self, control: &Path) -> Result<()> {
         let actual =
             statat(&self.proc_dir, "exe", AtFlags::empty()).map_err(|_| Fault::Evidence)?;
         let own_path = trusted_executable(&env::current_exe().map_err(|_| Fault::Profile)?)?;
-        let expected = fs::metadata(own_path).map_err(|_| Fault::Profile)?;
+        let expected = fs::metadata(&own_path).map_err(|_| Fault::Profile)?;
         if [actual.st_dev, actual.st_ino] != [expected.dev(), expected.ino()] {
+            return Err(Fault::Evidence);
+        }
+        let cmdline = proc_read(&self.proc_dir, "cmdline")?;
+        let expected = [
+            own_path.as_os_str().as_bytes(),
+            b"namespace-init",
+            control.as_os_str().as_bytes(),
+            b"",
+        ];
+        if !cmdline.split(|byte| *byte == 0).eq(expected) {
             return Err(Fault::Evidence);
         }
         Ok(())

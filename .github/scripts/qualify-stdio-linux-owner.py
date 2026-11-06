@@ -33,8 +33,11 @@ SUCCESS_FIXTURE_EXIT = 42  # Intentional failed-unit retention, not a suite stat
 REJECT_FIXTURE_EXIT = 44
 FOUNDATION_CASES = ("P0", "P1", "P2", "P3", "P4", "P5")
 RECOVERY_CASES = ("C0", "C1", "C2")
-CASES = FOUNDATION_CASES + RECOVERY_CASES
+LAUNCH_CASES = ("L0",)
+CASES = FOUNDATION_CASES + RECOVERY_CASES + LAUNCH_CASES
 RECORD_NAME = "generation.json"
+LAUNCH_INTENT_NAME = "launch-intent.json"
+MANAGED_RECOVERY_ROOT = Path("/var/lib/stateknot/mcp-stdio")
 EVIDENCE_ERROR = b"stateknot-mcp-stdio-owner: owner-evidence-unavailable\n"
 PROPERTIES = ("InvocationID", "MainPID", "ExecMainPID", "ExecMainCode",
               "ExecMainStatus", "ExecMainExitTimestampMonotonic", "ControlGroup",
@@ -210,31 +213,43 @@ class Capture:
         self.streams.clear()
 
 
-def command(directory, label, argv, timeout=8, *, owner_binary=None):
+def command(directory, label, argv, timeout=8, *, owner_binary=None, application_pipes=False):
+    owner_modes = ("launch-generation",) if application_pipes else ("record-generation", "recover-generation")
     require(argv[0] in (SYSTEMCTL, SYSTEMD_RUN, SETPRIV, PYTHON)
             or (owner_binary is not None and argv[0] == str(owner_binary)
-                and len(argv) == 3 and argv[1] in ("record-generation", "recover-generation")),
+                and len(argv) == 3 and argv[1] in owner_modes),
             "command outside fixed executable allowlist")
     started = time.monotonic_ns()
     out_path, err_path = directory / (label + ".stdout"), directory / (label + ".stderr")
     error = None
-    with out_path.open("xb") as out, err_path.open("xb") as err:
-        process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
-                                   env=ENV, cwd="/", close_fds=True)
+    if application_pipes:
+        process = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
+                                   stderr=subprocess.PIPE, env=ENV, cwd="/", close_fds=True)
+        process.stdin.close()
+        capture = Capture(process, directory, label)
         try:
-            code = process.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
+            wait_for(capture.complete, (), timeout, "fixed launcher command timed out")
+            code = process.wait(timeout=1)
+        except TimeoutError:
             error = "TimeoutExpired"
-            pidfd = os.pidfd_open(process.pid)
-            try:
-                try:
-                    signal.pidfd_send_signal(pidfd, signal.SIGKILL)
-                except ProcessLookupError:
-                    pass
-            finally:
-                os.close(pidfd)
-            process.wait(timeout=2)
             code = None
+        except (OSError, ValueError) as exc:
+            error = type(exc).__name__ + ": " + str(exc)
+            code = process.poll()
+        finally:
+            if process.poll() is None:
+                kill_direct_child(process)
+            capture.close()
+    else:
+        with out_path.open("xb") as out, err_path.open("xb") as err:
+            process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                                       env=ENV, cwd="/", close_fds=True)
+            try:
+                code = process.wait(timeout=timeout)
+            except subprocess.TimeoutExpired:
+                error = "TimeoutExpired"
+                kill_direct_child(process)
+                code = None
     stdout, stderr = out_path.read_bytes(), err_path.read_bytes()
     save(directory / (label + ".receipt.json"),
          {"argv": argv, "actual_exit_code": code, "error": error,
@@ -244,6 +259,18 @@ def command(directory, label, argv, timeout=8, *, owner_binary=None):
             "fixed control command output exceeded")
     require(error is None, "fixed control command timed out")
     return subprocess.CompletedProcess(argv, code, stdout, stderr)
+
+
+def kill_direct_child(process):
+    # Popen has not reaped this direct child, so its PID is still reserved.
+    pidfd = os.pidfd_open(process.pid)
+    try:
+        signal.pidfd_send_signal(pidfd, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    finally:
+        os.close(pidfd)
+    process.wait(timeout=2)
 
 
 def unit_properties(directory, unit, sequence):
@@ -257,7 +284,7 @@ def unit_properties(directory, unit, sequence):
 
 def broker_command(directory, label, owner_binary, mode, path, *, succeeds):
     result = command(directory, label, [str(owner_binary), mode, str(path)], timeout=12,
-                     owner_binary=owner_binary)
+                     owner_binary=owner_binary, application_pipes=mode == "launch-generation")
     require(result.returncode == (0 if succeeds else 1) and not result.stdout
             and result.stderr == (b"" if succeeds else EVIDENCE_ERROR),
             label + " produced unexpected broker outcome")
@@ -274,6 +301,17 @@ def journal_snapshot(path):
                  "inode": info.st_ino, "mode": "0600", "uid": info.st_uid,
                  "links": info.st_nlink, "mtime_ns": info.st_mtime_ns,
                  "ctime_ns": info.st_ctime_ns}
+
+
+def provision_managed_recovery(generation):
+    for path in (MANAGED_RECOVERY_ROOT.parent, MANAGED_RECOVERY_ROOT):
+        path.mkdir(mode=0o700, exist_ok=True)
+        metadata = path.lstat()
+        require(stat.S_ISDIR(metadata.st_mode) and metadata.st_uid == 0
+                and not metadata.st_mode & 0o022, "untrusted managed recovery root")
+    directory = MANAGED_RECOVERY_ROOT / generation
+    directory.mkdir(mode=0o700)
+    return directory
 
 
 def require_journal_absent(path):
@@ -510,19 +548,23 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
     directory.mkdir(mode=0o755)
     private = work / case
     private.mkdir(mode=0o700)
-    recovery_dir = recovery_root / case
-    recovery_dir.mkdir(mode=0o700)
-    journal = recovery_dir / RECORD_NAME
     stale = None
     if case == "C1":
         # Reuse the retired P5 unit name with a new systemd invocation. This
         # gives the replacement a real journal from the same boot and unit.
         raw, _ = journal_snapshot(recovery_root / "P5" / RECORD_NAME)
         stale = json.loads(raw)
-        save_bytes(journal, raw, True)
         generation = stale["generation"]
     else:
         generation = os.urandom(16).hex()
+    if case == "L0":
+        recovery_dir = provision_managed_recovery(generation)
+    else:
+        recovery_dir = recovery_root / case
+        recovery_dir.mkdir(mode=0o700)
+    journal = recovery_dir / RECORD_NAME
+    if stale is not None:
+        save_bytes(journal, raw, True)
     unit = "stateknot-owner-" + generation + ".service"
     config = {"generation": generation, "host_namespace": ns_identity(os.getpid()),
               "boot_id": boot_id(), "target_uid": UID, "target_gid": UID,
@@ -549,19 +591,24 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
                 return result.stdout == b"not-found\n"
 
             wait_for(prior_unit_unloaded, captures, 3, "retired prior invocation still loaded")
-        argv = [SYSTEMD_RUN, "--quiet", "--wait", "--pipe", "--unit=" + unit]
-        for prop in ("Type=notify", "NotifyAccess=main", "PrivatePIDs=yes",
-                     "Restart=no", "CollectMode=inactive", "KillMode=control-group",
-                     "SendSIGKILL=yes", "WatchdogSec=5s", "WatchdogSignal=SIGKILL",
-                     "TimeoutStartSec=15s", "TimeoutStopSec=15s", "RuntimeMaxSec=35s",
-                     "TasksMax=16", "MemoryMax=128M", "CPUQuota=100%",
-                     "NoNewPrivileges=yes", "RestrictNamespaces=yes",
-                     "ProtectControlGroups=yes", "ProtectKernelTunables=yes",
-                     "ProtectKernelModules=yes", "ProtectKernelLogs=yes",
-                     "CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_SETPCAP",
-                     "AmbientCapabilities="):
-            argv.extend(["--property=" + prop])
-        argv.extend(["--", str(owner_binary), "namespace-init", str(private)])
+        if case == "L0":
+            require_journal_absent(recovery_dir / LAUNCH_INTENT_NAME)
+            require_journal_absent(journal)
+            argv = [str(owner_binary), "launch-generation", str(private)]
+        else:
+            argv = [SYSTEMD_RUN, "--quiet", "--wait", "--pipe", "--unit=" + unit]
+            for prop in ("Type=notify", "NotifyAccess=main", "PrivatePIDs=yes",
+                         "Restart=no", "CollectMode=inactive", "KillMode=control-group",
+                         "SendSIGKILL=yes", "WatchdogSec=5s", "WatchdogSignal=SIGKILL",
+                         "TimeoutStartSec=15s", "TimeoutStopSec=15s", "RuntimeMaxSec=35s",
+                         "TasksMax=16", "MemoryMax=128M", "CPUQuota=100%",
+                         "NoNewPrivileges=yes", "RestrictNamespaces=yes",
+                         "ProtectControlGroups=yes", "ProtectKernelTunables=yes",
+                         "ProtectKernelModules=yes", "ProtectKernelLogs=yes",
+                         "CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_SETPCAP",
+                         "AmbientCapabilities="):
+                argv.extend(["--property=" + prop])
+            argv.extend(["--", str(owner_binary), "namespace-init", str(private)])
         save(directory / "service-start.json", {"argv": argv})
         service = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, env=ENV, cwd="/", close_fds=True)
@@ -570,6 +617,9 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
         captures.append(service_capture)
         wait_for(lambda: (private / "helper-ready.json").is_file(), captures, 12,
                  "trusted helper did not reach before-GO ready")
+        if case == "L0":
+            wait_for(lambda: (private / "broker-ready.json").is_file(), captures, 12,
+                     "host launcher did not publish before-GO readiness")
         props = unit_properties(directory, unit, sequence)
         if (props["ActiveState"], props["SubState"]) != ("active", "running"):
             ready_sequence = 0
@@ -618,7 +668,25 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
                            "main_start_ticks": int(leader.fact["start_ticks"]),
                            "pid_namespace": leader.namespace, "cgroup_identity": cg_identity}
         journal_before = None
-        if case == "C0":
+        launch_intent = None
+        if case == "L0":
+            launch_intent = journal_snapshot(recovery_dir / LAUNCH_INTENT_NAME)
+            require(json.loads(launch_intent[0]) == {
+                "version": 1, "boot_id": config["boot_id"], "generation": generation,
+                "host_namespace": config["host_namespace"], "control_directory": str(private),
+                "target_uid": UID, "target_gid": UID,
+            }, "launcher intent does not bind exact inputs")
+            broker_ready = (private / "broker-ready.json").read_bytes()
+            require(json.loads(broker_ready) == {"generation": generation,
+                                                 "invocation_id": expected_invocation},
+                    "broker readiness does not bind the verified invocation")
+            journal_before = journal_snapshot(journal)
+            require(json.loads(journal_before[0]) == expected_record,
+                    "launcher journal does not bind exact native generation")
+            save_bytes(directory / LAUNCH_INTENT_NAME, launch_intent[0])
+            save(directory / "launch-intent-metadata.json", launch_intent[1])
+            save_bytes(directory / "broker-ready.json", broker_ready)
+        elif case == "C0":
             require_journal_absent(journal)
         elif stale is not None:
             require(stale["boot_id"] == config["boot_id"] and stale["unit"] == unit
@@ -713,6 +781,27 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
                     identities.append(identity)
             save(directory / "actual-hostile-tree.json", {"all_members": facts})
             fault_ns = time.monotonic_ns()
+        if case == "L0":
+            duplicate = work / "L0-duplicate"
+            duplicate.mkdir(mode=0o700)
+            save(duplicate / "config.json", config, True)
+            broker_command(directory, "launch-generation-conflict", owner_binary,
+                           "launch-generation", duplicate, succeeds=False)
+            for name in ("helper-ready.json", "broker-ready.json", "control.sock",
+                         "target-started.json"):
+                require_journal_absent(duplicate / name)
+            live = unit_properties(directory, unit, sequence + 3)
+            current = [proc_fact(identity.pid, identity.procfd) for identity in identities]
+            require(live == props and owner.poll() is None and service.poll() is None
+                    and cgroup_members(cg) == sorted(identity.pid for identity in identities)
+                    and all(fact["start_ticks"] == identity.fact["start_ticks"]
+                            and fact["state"] not in ("Z", "X", "T", "t")
+                            and not select.select([identity.pidfd], [], [], 0)[0]
+                            for identity, fact in zip(identities, current)),
+                    "conflicting launcher disturbed the original invocation or target tree")
+            save(directory / "rejected-launch-live.json",
+                 {"profile": live, "original_members": current, "owner_pid": owner_identity.pid})
+            fault_ns = time.monotonic_ns()
         pause_observation = None
         if case in ("P2", "P4", "P5"):
             target = owner_identity if case == "P2" else leader
@@ -729,7 +818,7 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
                 stopped = wait_for(stopped_init, captures, 3, "original namespace init did not stop")
                 save(directory / "fault-observed.json",
                      {"observed_monotonic_ns": time.monotonic_ns(), "stopped_init": stopped})
-        elif case == "P1":
+        elif case in ("P1", "L0"):
             owner.stdin.write(b"STOP\n")
             owner.stdin.flush()
         elif case == "P3":
@@ -783,7 +872,7 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
         wait_for(lambda: all(capture.complete() for capture in captures), captures, 5,
                  "I/O EOF or actual helper process join missing")
         service_code = service.wait(timeout=1)
-        require(service_code == expected_exit, "systemd-run did not preserve actual exit")
+        require(service_code == expected_exit, "service launcher did not preserve actual exit")
         terminal_path = private / "helper-terminal.json"
         terminal = None
         if case in ("P4", "P5", "C2"):
@@ -797,7 +886,7 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
             else:
                 expected_reason = {"P0": "generation-rejected", "P1": "owner-stop", "P2": "owner-eof",
                                    "C0": "owner-evidence-unavailable",
-                                   "C1": "owner-evidence-unavailable"}[case]
+                                   "C1": "owner-evidence-unavailable", "L0": "owner-stop"}[case]
                 rejected = case in ("P0", "C0", "C1")
                 require(terminal["reason"] == expected_reason
                         and terminal["target_spawns"] == (0 if rejected else 1),
@@ -820,16 +909,23 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
         else:
             require(journal_snapshot(journal) == journal_before,
                     "generation journal changed after publication, conflict or replay")
+        if launch_intent is not None:
+            require(journal_snapshot(recovery_dir / LAUNCH_INTENT_NAME) == launch_intent,
+                    "launch intent changed after the duplicate launch or STOP")
         require(boot_id() == json.loads((directory / "intent.json").read_bytes())["boot_id"],
                 "boot identity changed")
         answer.update({"passed": True, "retired": True, "invocation_id": expected_invocation,
                        "fault_monotonic_ns": fault_ns, "actual_owner_wait_status": owner_code,
-                       "actual_systemd_run_wait_status": service_code, "manager_exit": final,
+                       "manager_exit": final,
                        "helper_terminal": terminal, "all_original_identities_disappeared": True,
                        "cgroup_live_empty": True, "cgroup_removed": removed, "io_eof_and_join": True,
                        "controller_waited_init": False, "init_reaper": "systemd",
                        "witness": "original proc identity + pidfd + manager + namespace + cgroup + I/O",
                        "fixture_exit_is_intentional_failed_unit_retention": True})
+        if case == "L0":
+            answer.update(actual_launch_generation_wait_status=service_code, duplicate_launch_rejected=True)
+        else:
+            answer["actual_systemd_run_wait_status"] = service_code
     except Exception as exc:
         answer["error"] = type(exc).__name__ + ": " + str(exc)
     finally:
@@ -879,6 +975,12 @@ def run_case(output, work, recovery_root, code, owner_binary, case, sequence):
             if cleanup.returncode != 0:
                 answer["passed"] = False
                 answer["cleanup_error"] = "reset-failed failed after strict retirement"
+            elif case == "L0":
+                try:
+                    shutil.rmtree(recovery_dir)
+                except OSError as exc:
+                    answer["passed"] = False
+                    answer["cleanup_error"] = type(exc).__name__ + ": " + str(exc)
         for capture in captures:
             capture.close()
         if service is not None:
@@ -900,7 +1002,7 @@ def controller(args):
     result = {"schema": "stateknot-native-owner-foundation-v3",
               "implemented_cases": list(CASES), "unimplemented_cases": [],
               "full_six_case_qualification": False, "broker_recovery_controls_qualified": False,
-              "stdio_supported": False,
+              "host_launcher_qualified": False, "stdio_supported": False,
               "R1_closed": False, "actual_cases": []}
     work = recovery_root = None
     try:
@@ -933,7 +1035,8 @@ def controller(args):
               "run_attempt": args.attempt, "source_binding": source_binding,
               "owner_binary_sha256": digest(owner_bytes),
               "public_code_path": str(code), "private_case_dirs_mode": "0700",
-              "recovery_root": str(recovery_root), "recovery_case_dirs_mode": "0700"})
+              "recovery_root": str(recovery_root), "recovery_case_dirs_mode": "0700",
+              "managed_recovery_root": str(MANAGED_RECOVERY_ROOT)})
         for index, case in enumerate(CASES):
             row = run_case(output, work, recovery_root, code, owner_binary, case, 10 * index)
             result["actual_cases"].append(row)
@@ -942,15 +1045,22 @@ def controller(args):
     except Exception as exc:
         result["error"] = type(exc).__name__ + ": " + str(exc)
     actual = result["actual_cases"]
-    foundation = actual[:len(FOUNDATION_CASES)]
-    controls = actual[len(FOUNDATION_CASES):]
+    recovery_start = len(FOUNDATION_CASES)
+    launch_start = recovery_start + len(RECOVERY_CASES)
+    foundation = actual[:recovery_start]
+    controls = actual[recovery_start:launch_start]
+    launch = actual[launch_start:]
     result["foundation_P0_P2_passed"] = (len(actual) >= 3
                                           and all(row["passed"] for row in actual[:3]))
     result["full_six_case_qualification"] = (tuple(row["case"] for row in foundation) == FOUNDATION_CASES
                                              and all(row["passed"] and not row["fallback_used"] for row in foundation))
     result["broker_recovery_controls_qualified"] = (tuple(row["case"] for row in controls) == RECOVERY_CASES
                                                    and all(row["passed"] and not row["fallback_used"] for row in controls))
-    passed = result["full_six_case_qualification"] and result["broker_recovery_controls_qualified"]
+    result["host_launcher_qualified"] = (tuple(row["case"] for row in launch) == LAUNCH_CASES
+                                        and all(row["passed"] and not row["fallback_used"]
+                                                and row["duplicate_launch_rejected"] for row in launch))
+    passed = (result["full_six_case_qualification"] and result["broker_recovery_controls_qualified"]
+              and result["host_launcher_qualified"])
     result["pending_identity_root"] = str(work) if work is not None and not passed else None
     result["pending_recovery_root"] = str(recovery_root) if recovery_root is not None and not passed else None
     save(output / "qualification.json", result)
@@ -963,7 +1073,8 @@ def controller(args):
                and not p.name.startswith("launcher.")]
     save(output / "manifest.json", {"files": entries, "full_profile_qualified": False,
                                     "full_six_case_qualification": result["full_six_case_qualification"],
-                                    "broker_recovery_controls_qualified": result["broker_recovery_controls_qualified"]})
+                                    "broker_recovery_controls_qualified": result["broker_recovery_controls_qualified"],
+                                    "host_launcher_qualified": result["host_launcher_qualified"]})
     return 0 if passed else 1
 
 
