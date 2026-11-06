@@ -92,7 +92,7 @@ impl Wire {
             ("method".to_owned(), Value::from(method)),
             ("params".to_owned(), Value::Object(params)),
         ]));
-        let request = BoundedJson::try_from_value(request).map_err(json_error)?;
+        let request = BoundedJson::try_from_value(request).map_err(|error| json_error(&error))?;
         let mut frame = FrameBuffer::default();
         serde_json::to_writer(&mut frame, &request).map_err(|_| WireError::Limit)?;
         frame.0.push(b'\n');
@@ -194,7 +194,7 @@ impl Wire {
                 if body.is_empty() || body.contains(&b'\r') {
                     return Err(WireError::Protocol);
                 }
-                let value = BoundedJson::from_slice(body).map_err(json_error)?;
+                let value = BoundedJson::from_slice(body).map_err(|error| json_error(&error))?;
                 return Ok((value.into_value(), frame.len() + 1));
             }
         }
@@ -266,7 +266,7 @@ fn correlated_progress(notification: &McpNotification, id: u64) -> Result<Option
     Ok((token.as_u64() == Some(id)).then_some(progress))
 }
 
-fn json_error(error: BoundedJsonError) -> WireError {
+fn json_error(error: &BoundedJsonError) -> WireError {
     match error {
         BoundedJsonError::InputTooLarge { .. }
         | BoundedJsonError::CompactRepresentationTooLarge { .. }

@@ -269,7 +269,7 @@ impl Paths {
             return Ok(None);
         };
         if record.version != 1
-            || record.generation != self.generation
+            || record.id != self.generation
             || record.boot_id != self.boot_id
             || record.unit != format!("stateknot-owner-{}.service", self.generation)
             || !hex_id(&record.invocation_id)
@@ -348,7 +348,8 @@ struct Connected {
 struct Generation {
     version: u8,
     boot_id: String,
-    generation: String,
+    #[serde(rename = "generation")]
+    id: String,
     unit: String,
     invocation_id: String,
     main_pid: u32,

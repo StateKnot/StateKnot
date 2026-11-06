@@ -178,6 +178,18 @@ impl McpStdioCommand {
         arguments: &[OsString],
         environment: &BTreeMap<OsString, OsString>,
     ) -> Result<Self> {
+        #[derive(Serialize)]
+        struct Entry<'a> {
+            name: &'a [u8],
+            value: &'a [u8],
+        }
+        #[derive(Serialize)]
+        struct Launch<'a> {
+            executable: &'a [u8],
+            cwd: &'a [u8],
+            arguments: Vec<&'a [u8]>,
+            environment: Vec<Entry<'a>>,
+        }
         if !absolute_path(executable)
             || !absolute_path(cwd)
             || arguments.len() > 128
@@ -205,18 +217,6 @@ impl McpStdioCommand {
             })
         {
             return Err(failure(McpStdioFailure::Configuration));
-        }
-        #[derive(Serialize)]
-        struct Entry<'a> {
-            name: &'a [u8],
-            value: &'a [u8],
-        }
-        #[derive(Serialize)]
-        struct Launch<'a> {
-            executable: &'a [u8],
-            cwd: &'a [u8],
-            arguments: Vec<&'a [u8]>,
-            environment: Vec<Entry<'a>>,
         }
         let launch = Launch {
             executable,
@@ -464,7 +464,9 @@ impl McpStdioSession {
                 .await
                 .map_err(|_| failure(McpStdioFailure::CleanupPending))?;
             if let Some(wire) = pipe.take() {
-                self.stdout = Some(tokio::spawn(async move { wire.finish().await.is_ok() }));
+                self.stdout = Some(tokio::spawn(async move {
+                    Box::pin(wire.finish()).await.is_ok()
+                }));
             }
         }
         let pending = || failure(McpStdioFailure::CleanupPending);
