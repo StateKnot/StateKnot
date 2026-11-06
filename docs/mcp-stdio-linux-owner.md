@@ -140,6 +140,12 @@ the root-owned systemd fixture described above. The privileged step runs the
 exact staged test binary directly to exercise discovery, a pinned Tool call,
 and verified shutdown. The workflow result records the native outcome.
 
+The workflow also requires a blocked handshake, an unsupported protocol
+version, malformed and oversized replies, an unexpected response ID, and a
+cancelled in-flight call. The successful case checks that interleaved progress
+notifications stay associated with the right request. Each case runs in a
+fresh generation and checks retirement of the observed process tree.
+
 ## Standalone qualification
 
 `record-generation <control-directory>` is for independently started
