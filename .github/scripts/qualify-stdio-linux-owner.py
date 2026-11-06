@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Copyright 2026 StateKnot contributors
 # SPDX-License-Identifier: Apache-2.0
-"""Native Linux owner foundation probe. P0-P2 only; never stdio qualification."""
+"""Native Linux owner probe for P0-P5, separate from stdio qualification."""
 import argparse
 import hashlib
 import json
@@ -23,10 +23,11 @@ SYSTEMD_RUN = "/usr/bin/systemd-run"
 SETPRIV = "/usr/bin/setpriv"
 ENV = {"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"}
 UID = 65534
-LEASE = 5.0
+LEASE_NS = 5_000_000_000
 MAX_STREAM = 512 * 1024
 SUCCESS_FIXTURE_EXIT = 42  # Intentional failed-unit retention, not a suite status.
 REJECT_FIXTURE_EXIT = 44
+CASES = ("P0", "P1", "P2", "P3", "P4", "P5")
 PROPERTIES = ("InvocationID", "MainPID", "ExecMainPID", "ExecMainCode",
               "ExecMainStatus", "ExecMainExitTimestampMonotonic", "ControlGroup",
               "PrivatePIDs", "Restart", "WatchdogUSec", "ActiveState", "SubState",
@@ -303,16 +304,27 @@ def helper(private, code):
         except socket.timeout:
             require(time.monotonic() < accepting_until, "owner never connected")
     server.close()
-    connection.settimeout(0.2)
-    deadline = time.monotonic() + LEASE
+    last_renewal_ns = time.monotonic_ns()
+    deadline_ns = last_renewal_ns + LEASE_NS
+    accepted_renewals = 0
     child = None
     try:
-        while time.monotonic() < deadline:
+        while True:
+            remaining_ns = deadline_ns - time.monotonic_ns()
+            if remaining_ns <= 0:
+                reason = "owner-lease-expired"
+                break
             notify("WATCHDOG=1")
+            connection.settimeout(min(0.2, remaining_ns / 1_000_000_000))
             try:
                 raw = connection.recv(2048)
             except socket.timeout:
                 continue
+            received_ns = time.monotonic_ns()
+            if received_ns >= deadline_ns:
+                # A packet observed after expiry cannot extend the lease.
+                reason = "owner-lease-expired"
+                break
             if not raw:
                 reason = "owner-eof"
                 break
@@ -333,7 +345,9 @@ def helper(private, code):
                 save(private / "target-started.json",
                      {"child_namespace_pid": child.pid, "target_spawns": 1}, True)
             elif op == "renew" and child is not None:
-                deadline = time.monotonic() + LEASE
+                last_renewal_ns = received_ns
+                deadline_ns = last_renewal_ns + LEASE_NS
+                accepted_renewals += 1
             elif op == "stop" and child is not None:
                 reason = "owner-stop"
                 break
@@ -341,12 +355,14 @@ def helper(private, code):
                 raise ValueError("invalid control transition")
             if child is not None:
                 require(child.poll() is None, "fixed fixture exited before trigger")
-        else:
-            reason = "owner-lease-expired"  # Safety bound, not an implemented P3 case.
+        save(private / "helper-terminal.json",
+             {"reason": reason, "target_spawns": int(child is not None),
+              "accepted_renewals": accepted_renewals,
+              "last_renewal_monotonic_ns": last_renewal_ns,
+              "lease_deadline_monotonic_ns": deadline_ns,
+              "terminal_monotonic_ns": time.monotonic_ns()}, True)
     finally:
         connection.close()
-    save(private / "helper-terminal.json",
-         {"reason": reason, "target_spawns": int(child is not None)}, True)
     return SUCCESS_FIXTURE_EXIT
 
 
@@ -361,26 +377,47 @@ def session_owner(private):
         def send(op):
             connection.sendall(json.dumps({"op": op, "generation": generation}).encode())
         send("go")
-        stopping = False
+        renewing = line == b"GO\n"
+        paused = None
+        last_renew_sent_ns = None
+        if renewing:
+            send("renew")
+            last_renew_sent_ns = time.monotonic_ns()
         while True:
             ready = select.select([sys.stdin.buffer, connection], [], [], 0.3)[0]
             if connection in ready:
                 try:
                     if not connection.recv(2048):
+                        if paused is not None:
+                            save(private / "owner-paused-peer-eof.json",
+                                 {**paused, "peer_eof_monotonic_ns": time.monotonic_ns()}, True)
                         return 0
                 except ConnectionResetError:
+                    require(paused is None, "paused owner requires clean peer EOF")
                     return 0
             if sys.stdin.buffer in ready:
                 instruction = sys.stdin.buffer.readline()
                 if instruction == b"STOP\n":
                     send("stop")
-                    stopping = True
+                    renewing = False
+                elif instruction == b"PAUSE\n" and renewing:
+                    renewing = False
+                    paused = {"pid": os.getpid(), "socket_fd": connection.fileno(),
+                              "socket_inode": os.fstat(connection.fileno()).st_ino,
+                              "last_renew_sent_monotonic_ns": last_renew_sent_ns,
+                              "pause_monotonic_ns": time.monotonic_ns()}
+                    save(private / "owner-renewal-paused.json", paused, True)
                 elif not instruction:
                     return 0
                 else:
                     raise ValueError("unknown owner instruction")
-            if line == b"GO\n" and not stopping:
-                send("renew")
+            if renewing:
+                try:
+                    send("renew")
+                except (BrokenPipeError, ConnectionResetError):
+                    # A killed helper can close its peer between select and send.
+                    return 0
+                last_renew_sent_ns = time.monotonic_ns()
 
 
 def preflight(output, image_os, image_version):
@@ -425,6 +462,57 @@ def wait_for(predicate, captures, seconds, message):
             return value
         time.sleep(0.05)
     raise TimeoutError(message)
+
+
+def observe_paused_owner(private, owner, identity, captures):
+    def read_pause():
+        try:
+            return json.loads((private / "owner-renewal-paused.json").read_bytes())
+        except (FileNotFoundError, json.JSONDecodeError):
+            return False
+
+    pause = wait_for(read_pause, captures, 3, "owner did not stop renewing with its socket open")
+    require(pause["pid"] == identity.pid and owner.poll() is None, "paused owner not original/live")
+    fd, inode = pause["socket_fd"], pause["socket_inode"]
+    require(type(fd) is int and fd > 2 and type(inode) is int and inode > 0,
+            "invalid paused owner socket identity")
+    link = os.readlink("fd/" + str(fd), dir_fd=identity.procfd)
+    require(link == f"socket:[{inode}]", "paused owner no longer holds the original socket")
+    return {"owner_pause": pause, "actual_proc_socket": link,
+            "observed_monotonic_ns": time.monotonic_ns()}
+
+
+def validate_lease_expiry(observation, peer_eof, terminal):
+    pause = observation["owner_pause"]
+    deadline = terminal["lease_deadline_monotonic_ns"]
+    require(terminal["reason"] == "owner-lease-expired" and terminal["target_spawns"] == 1
+            and terminal["accepted_renewals"] > 0
+            and terminal["last_renewal_monotonic_ns"] + LEASE_NS == deadline,
+            "helper did not expire the absolute owner lease")
+    require(peer_eof == {**pause, "peer_eof_monotonic_ns": peer_eof["peer_eof_monotonic_ns"]}
+            and 0 < pause["last_renew_sent_monotonic_ns"] <= pause["pause_monotonic_ns"]
+            <= observation["observed_monotonic_ns"] < deadline <= terminal["terminal_monotonic_ns"]
+            <= peer_eof["peer_eof_monotonic_ns"],
+            "same held owner socket did not observe helper EOF after lease expiry")
+
+
+def validate_manager_exit(final, invocation, pid, case, fault_ns):
+    # ExecMainCode uses Linux si_code (CLD_EXITED=1, CLD_KILLED=2).
+    # systemd-run propagates exit-code status, returns 1 for watchdog and 255 for signal.
+    require(case in CASES, "unknown native owner case")
+    if case == "P4":
+        result, code, status, launcher = "watchdog", 2, signal.SIGKILL, 1
+    elif case == "P5":
+        result, code, status, launcher = "signal", 2, signal.SIGKILL, 255
+    else:
+        status = REJECT_FIXTURE_EXIT if case == "P0" else SUCCESS_FIXTURE_EXIT
+        result, code, launcher = "exit-code", 1, status
+    require(final["InvocationID"] == invocation and int(final["ExecMainPID"]) == pid
+            and int(final["ExecMainCode"]) == code and int(final["ExecMainStatus"]) == status
+            and final["Result"] == result
+            and int(final["ExecMainExitTimestampMonotonic"]) >= fault_ns // 1000,
+            "same-generation manager exit or retirement cause differs")
+    return launcher
 
 
 def run_case(output, work, code, case, sequence):
@@ -495,6 +583,7 @@ def run_case(output, work, code, case, sequence):
         owner_identity = ProcessIdentity(owner.pid, directory / "owner-proc-observations.jsonl")
         save(directory / "session-owner-identity.json",
              {"fact": owner_identity.fact, "namespace": owner_identity.namespace})
+        fault_ns = time.monotonic_ns()  # P0's attempted GO is itself the fault.
         owner.stdin.write(b"REJECT\n" if case == "P0" else b"GO\n")
         owner.stdin.flush()
         if case != "P0":
@@ -540,34 +629,47 @@ def run_case(output, work, code, case, sequence):
                             "target identity changed during capture")
                     identities.append(identity)
             save(directory / "actual-hostile-tree.json", {"all_members": facts})
-        fault_ns = time.monotonic_ns()
-        if case == "P2":
-            signal.pidfd_send_signal(owner_identity.pidfd, signal.SIGKILL)
+            fault_ns = time.monotonic_ns()
+        pause_observation = None
+        if case in ("P2", "P4", "P5"):
+            target = owner_identity if case == "P2" else leader
+            injected_signal = signal.SIGSTOP if case == "P4" else signal.SIGKILL
+            signal.pidfd_send_signal(target.pidfd, injected_signal)
             save(directory / "fault-sent.json",
-                 {"signal": "SIGKILL", "target": owner_identity.fact,
+                 {"signal": injected_signal.name, "target": target.fact,
                   "monotonic_ns": fault_ns, "send_success_is_not_completion": True})
+            if case == "P4":
+                def stopped_init():
+                    fact = proc_fact(leader.pid, leader.procfd)
+                    return fact if fact["state"] == "T" else False
+
+                stopped = wait_for(stopped_init, captures, 3, "original namespace init did not stop")
+                save(directory / "fault-observed.json",
+                     {"observed_monotonic_ns": time.monotonic_ns(), "stopped_init": stopped})
         elif case == "P1":
             owner.stdin.write(b"STOP\n")
             owner.stdin.flush()
-        owner.stdin.close()
+        elif case == "P3":
+            owner.stdin.write(b"PAUSE\n")
+            owner.stdin.flush()
+            pause_observation = observe_paused_owner(private, owner, owner_identity, captures)
+            save(directory / "owner-paused.json", pause_observation)
+        if case in ("P0", "P1", "P2"):
+            owner.stdin.close()
         wait_for(lambda: owner.poll() is not None, captures, 10, "session-owner did not exit")
         owner_code = owner.wait(timeout=1)
         require(owner_code == (-signal.SIGKILL if case == "P2" else 0),
                 "unexpected actual owner exit")
+        if not owner.stdin.closed:
+            owner.stdin.close()
         owner_identity.close()
         owner_identity = None
-        expected_exit = REJECT_FIXTURE_EXIT if case == "P0" else SUCCESS_FIXTURE_EXIT
         def retired():
             service_capture.pump()
             return all(identity.exited_and_reaped() for identity in identities)
         wait_for(retired, captures, 15, "original init/tree remains live or zombie")
         final = unit_properties(directory, unit, sequence + 1)
-        require(final["InvocationID"] == expected_invocation
-                and int(final["ExecMainPID"]) == leader.pid
-                and final["ExecMainCode"] == "1"
-                and int(final["ExecMainStatus"]) == expected_exit
-                and int(final["ExecMainExitTimestampMonotonic"]) > 0,
-                "same-generation manager exit facts differ")
+        expected_exit = validate_manager_exit(final, expected_invocation, leader.pid, case, fault_ns)
         try:
             require([cg.stat().st_dev, cg.stat().st_ino] == cg_identity,
                     "original cgroup identity replaced")
@@ -588,11 +690,21 @@ def run_case(output, work, code, case, sequence):
                  "I/O EOF or actual helper process join missing")
         service_code = service.wait(timeout=1)
         require(service_code == expected_exit, "systemd-run did not preserve actual exit")
-        terminal = json.loads((private / "helper-terminal.json").read_bytes())
-        expected_reason = {"P0": "generation-rejected", "P1": "owner-stop", "P2": "owner-eof"}[case]
-        require(terminal["reason"] == expected_reason
-                and terminal["target_spawns"] == (0 if case == "P0" else 1),
-                "actual control cause differs")
+        terminal_path = private / "helper-terminal.json"
+        terminal = None
+        if case in ("P4", "P5"):
+            require(not terminal_path.exists(), "forced init death claimed a cooperative exit")
+        else:
+            terminal = json.loads(terminal_path.read_bytes())
+            if case == "P3":
+                peer_eof = json.loads((private / "owner-paused-peer-eof.json").read_bytes())
+                validate_lease_expiry(pause_observation, peer_eof, terminal)
+                save(directory / "owner-paused-peer-eof.json", peer_eof)
+            else:
+                expected_reason = {"P0": "generation-rejected", "P1": "owner-stop", "P2": "owner-eof"}[case]
+                require(terminal["reason"] == expected_reason
+                        and terminal["target_spawns"] == (0 if case == "P0" else 1),
+                        "actual control cause differs")
         require(boot_id() == json.loads((directory / "intent.json").read_bytes())["boot_id"],
                 "boot identity changed")
         answer.update({"passed": True, "retired": True, "invocation_id": expected_invocation,
@@ -654,9 +766,8 @@ def controller(args):
     os.umask(0o022)
     output = Path(args.output).resolve(strict=True)
     require(output.is_dir() and not Path(args.output).is_symlink(), "invalid evidence directory")
-    result = {"schema": "stateknot-native-owner-foundation-v1",
-              "implemented_cases": ["P0", "P1", "P2"],
-              "unimplemented_cases": ["P3", "P4", "P5"],
+    result = {"schema": "stateknot-native-owner-foundation-v2",
+              "implemented_cases": list(CASES), "unimplemented_cases": [],
               "full_six_case_qualification": False, "stdio_supported": False,
               "R1_closed": False, "actual_cases": []}
     work = None
@@ -679,16 +790,19 @@ def controller(args):
              {"sha256": digest(code.read_bytes()), "run_id": args.run_id,
               "run_attempt": args.attempt, "source_binding": source_binding,
               "public_code_path": str(code), "private_case_dirs_mode": "0700"})
-        for index, case in enumerate(("P0", "P1", "P2")):
+        for index, case in enumerate(CASES):
             row = run_case(output, work, code, case, 10 * index)
             result["actual_cases"].append(row)
             if not row["passed"]:
                 break
     except Exception as exc:
         result["error"] = type(exc).__name__ + ": " + str(exc)
-    passed = (len(result["actual_cases"]) == 3
-              and all(row["passed"] for row in result["actual_cases"]))
-    result["foundation_P0_P2_passed"] = passed
+    actual = result["actual_cases"]
+    passed = (tuple(row["case"] for row in actual) == CASES
+              and all(row["passed"] and not row["fallback_used"] for row in actual))
+    result["foundation_P0_P2_passed"] = (len(actual) >= 3
+                                          and all(row["passed"] for row in actual[:3]))
+    result["full_six_case_qualification"] = passed
     result["pending_identity_root"] = str(work) if work is not None and not passed else None
     save(output / "qualification.json", result)
     if work is not None and passed:
@@ -697,7 +811,8 @@ def controller(args):
                 "sha256": digest(p.read_bytes())}
                for p in sorted(output.rglob("*")) if p.is_file()
                and not p.name.startswith("launcher.")]
-    save(output / "manifest.json", {"files": entries, "full_profile_qualified": False})
+    save(output / "manifest.json", {"files": entries, "full_profile_qualified": False,
+                                    "full_six_case_qualification": passed})
     return 0 if passed else 1
 
 

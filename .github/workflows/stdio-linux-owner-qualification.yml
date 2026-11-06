@@ -12,7 +12,7 @@ permissions:
   contents: read
 jobs:
   native-owner-foundation:
-    name: Ubuntu 26.04 owner foundation (P0-P2)
+    name: Ubuntu 26.04 owner foundation (P0-P5)
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
@@ -90,13 +90,25 @@ jobs:
               result = subprocess.run(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
                                       env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"},
                                       check=False)
+          qualified = False
+          if result.returncode == 0:
+              try:
+                  outcome = json.loads((output / "qualification.json").read_bytes())
+                  actual = outcome["actual_cases"]
+                  qualified = (outcome["schema"] == "stateknot-native-owner-foundation-v2"
+                               and outcome["full_six_case_qualification"] is True
+                               and outcome["stdio_supported"] is False
+                               and [row["case"] for row in actual] == ["P0", "P1", "P2", "P3", "P4", "P5"]
+                               and all(row["passed"] is True and row["fallback_used"] is False for row in actual))
+              except (OSError, ValueError, KeyError, TypeError):
+                  pass  # Keep the raw output and fail the gate below.
           receipt = {
               "argv": argv, "actual_exit_code": result.returncode,
               "started_monotonic_ns": started, "ended_monotonic_ns": time.monotonic_ns(),
               "stdout_sha256": hashlib.sha256((output / "launcher.stdout").read_bytes()).hexdigest(),
               "stderr_sha256": hashlib.sha256((output / "launcher.stderr").read_bytes()).hexdigest(),
               "source_binding": binding,
-              "full_six_case_qualification": False, "stdio_supported": False,
+              "full_six_case_qualification": qualified, "stdio_supported": False,
           }
           (output / "launcher.receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
           rows = [
@@ -105,9 +117,10 @@ jobs:
               for p in sorted(output.rglob("*")) if p.is_file() and p.name != "upload-manifest.json"
           ]
           (output / "upload-manifest.json").write_text(
-              json.dumps({"files": rows, "qualification": False}, indent=2, sort_keys=True) + "\n"
+              json.dumps({"files": rows, "qualification": False,
+                          "full_six_case_qualification": qualified}, indent=2, sort_keys=True) + "\n"
           )
-          raise SystemExit(result.returncode)
+          raise SystemExit(0 if qualified else (result.returncode or 1))
       - name: Preserve actual raw foundation evidence
         if: always()
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
