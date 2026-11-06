@@ -1,0 +1,17 @@
+{
+  "base_commit": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "source_tree_origin": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "actual_main_compiled_inputs_exact": 530,
+  "main_compiled_inputs_match_final_native_source": true,
+  "adopted_code_files": 47,
+  "adopted_documents": 8,
+  "whole_main_tree_equality_claimed": false,
+  "A2A_candidate_included": false,
+  "schema37_included": false,
+  "native_green_both": true,
+  "mandatory_PITR_green_both": true,
+  "tracked_worktree_diff_check_exit": 0,
+  "untracked_fixture_not_checked_by_this_command": true,
+  "known_patch_warning": "one original pg_dump fixture EOF blank line is preserved verbatim; full staged diff check will record it; no whitespace policy changed",
+  "staged_or_committed": false
+}

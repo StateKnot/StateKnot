@@ -1,0 +1,15 @@
+
+running 1 test
+test nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay ... 
+thread 'nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay' panicked at crates/stateknot-runtime/tests/postgres/nested_driver.rs:1150:10:
+called `Result::unwrap()` on an `Err` value: Store { source: LeaseExpired }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+FAILED
+
+failures:
+
+failures:
+    nested_driver::seven_actual_levels_use_default_stack_and_one_whole_claim_replay
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 184 filtered out; finished in 1041.92s
+

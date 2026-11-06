@@ -1,0 +1,122 @@
+{
+  "baseline_commit": "7f4180762dfd90c849ff934af94f1398d265554d",
+  "comparison": "Rust lexical tokens; comments and whitespace ignored. Only explicit private BoxFuture wrappers, complete Box::new storage changes, and one exact rustfmt single-expression closure brace pair normalized.",
+  "files": {
+    "crates/stateknot-store-postgres/src/root_graph_barriers.rs": {
+      "old_sha256": "e70bc79b0dd958a54cda6acff33d6756ac8e770fda11f453a62b3674b62b17fc",
+      "new_sha256": "37598ebdc1d2e9fb67e809833aad07ade5d210eee551f5d9108102416ab022dc",
+      "literal_tokens_equal_in_order": true,
+      "literal_count": 276,
+      "sql_tokens_equal_in_order": true,
+      "sql_count": 10,
+      "methods": {
+        "authenticated_edge": {
+          "old_inner_body_tokens": 1266,
+          "new_inner_body_tokens": 1268,
+          "boxfuture_before": false,
+          "boxfuture_after": true,
+          "box_new_before": 0,
+          "box_new_after": 0,
+          "rustfmt_added_closure_brace_pair": true,
+          "body_tokens_equal_after_explicit_normalization": true
+        },
+        "authenticated_admission": {
+          "old_inner_body_tokens": 176,
+          "new_inner_body_tokens": 181,
+          "boxfuture_before": false,
+          "boxfuture_after": true,
+          "box_new_before": 0,
+          "box_new_after": 1,
+          "rustfmt_added_closure_brace_pair": false,
+          "body_tokens_equal_after_explicit_normalization": true
+        },
+        "authenticate_intent_source": {
+          "old_inner_body_tokens": 112,
+          "new_inner_body_tokens": 112,
+          "boxfuture_before": false,
+          "boxfuture_after": true,
+          "box_new_before": 0,
+          "box_new_after": 0,
+          "rustfmt_added_closure_brace_pair": false,
+          "body_tokens_equal_after_explicit_normalization": true
+        },
+        "validate_original_terminal": {
+          "old_inner_body_tokens": 123,
+          "new_inner_body_tokens": 123,
+          "boxfuture_before": false,
+          "boxfuture_after": true,
+          "box_new_before": 0,
+          "box_new_after": 0,
+          "rustfmt_added_closure_brace_pair": false,
+          "body_tokens_equal_after_explicit_normalization": true
+        },
+        "local_record": {
+          "old_inner_body_tokens": 212,
+          "new_inner_body_tokens": 218,
+          "boxfuture_before": false,
+          "boxfuture_after": true,
+          "box_new_before": 0,
+          "box_new_after": 1,
+          "rustfmt_added_closure_brace_pair": false,
+          "body_tokens_equal_after_explicit_normalization": true
+        },
+        "verify_event": {
+          "old_inner_body_tokens": 251,
+          "new_inner_body_tokens": 257,
+          "boxfuture_before": false,
+          "boxfuture_after": true,
+          "box_new_before": 0,
+          "box_new_after": 1,
+          "rustfmt_added_closure_brace_pair": false,
+          "body_tokens_equal_after_explicit_normalization": true
+        },
+        "verify_run": {
+          "old_inner_body_tokens": 286,
+          "new_inner_body_tokens": 298,
+          "boxfuture_before": false,
+          "boxfuture_after": true,
+          "box_new_before": 0,
+          "box_new_after": 2,
+          "rustfmt_added_closure_brace_pair": false,
+          "body_tokens_equal_after_explicit_normalization": true
+        },
+        "verify_checkpoint": {
+          "old_inner_body_tokens": 393,
+          "new_inner_body_tokens": 404,
+          "boxfuture_before": true,
+          "boxfuture_after": true,
+          "box_new_before": 0,
+          "box_new_after": 2,
+          "rustfmt_added_closure_brace_pair": false,
+          "body_tokens_equal_after_explicit_normalization": true
+        }
+      },
+      "outside_listed_methods_tokens_equal_after_only_complete_box_new_normalization": true,
+      "outside_methods_box_new_before": 6,
+      "outside_methods_box_new_after": 5
+    },
+    "crates/stateknot-store-postgres/src/trusted_graph_root.rs": {
+      "old_sha256": "e48f443d068e87c2131ad277fbae9e27b0022547c90a5f26bfbeed3d7984afb8",
+      "new_sha256": "c94ea20859fb64e034e29148c682a69b55802b42e135be150e8e50dcde28c715",
+      "literal_tokens_equal_in_order": true,
+      "literal_count": 24,
+      "sql_tokens_equal_in_order": true,
+      "sql_count": 3,
+      "methods": {
+        "authenticate": {
+          "old_inner_body_tokens": 393,
+          "new_inner_body_tokens": 387,
+          "boxfuture_before": false,
+          "boxfuture_after": false,
+          "box_new_before": 3,
+          "box_new_after": 2,
+          "rustfmt_added_closure_brace_pair": false,
+          "body_tokens_equal_after_explicit_normalization": true
+        }
+      },
+      "outside_listed_methods_tokens_equal_after_only_complete_box_new_normalization": true,
+      "outside_methods_box_new_before": 0,
+      "outside_methods_box_new_after": 0
+    }
+  }
+}

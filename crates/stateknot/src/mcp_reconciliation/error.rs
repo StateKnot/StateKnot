@@ -160,67 +160,69 @@ impl McpToolErrorReconciler {
                 }}))
     }
 
-    async fn reconcile(
+    fn reconcile(
         &self,
         principal: McpServerPrincipal,
         request: McpErrorReconciliationRequest,
-    ) -> Result<Value, McpReconciliationError> {
-        if !principal.has_scope(SCOPE) {
-            return Err(McpReconciliationError::Denied);
-        }
-        let grant = self
-            .authorizer
-            .authorize(principal.clone(), request.clone())
-            .await?;
-        let failure = Failure::new(
-            request.failure_id,
-            request.failure_category,
-            request.failure_code.clone(),
-            FailureOrigin::new("mcp.reconciliation")
-                .map_err(|_| McpReconciliationError::Invalid)?,
-            request.failure_message.clone(),
-            RetryAdvice::Never,
-        )
-        .map_err(|_| McpReconciliationError::Invalid)?;
-        let request_digest = Digest::sha256(
-            serde_json_canonicalizer::to_vec(&json!({
-                "tool":TOOL, "subject":principal.subject(), "tenant":grant.caller.tenant_id(),
-                "principal":grant.caller.principal(), "request":request
-            }))
-            .map_err(|_| McpReconciliationError::Invalid)?,
-        );
-        let target = ReconciliationTarget {
-            event_id: request.event_id,
-            run_id: request.run_id,
-            invocation_id: request.invocation_id,
-            attempt_id: request.attempt_id,
-            expected_revision: request.expected_revision,
-            expected_digest: request.expected_digest,
-        };
-        let expected = self.backend.load(&grant, &target).await?;
-        let error = ToolError::new(
-            failure,
-            ToolErrorPhase::Execution,
-            request.external_effect.core(),
-            ToolErrorProvenance::new(
-                request.invocation_id,
-                request.attempt_id,
-                expected.intent().descriptor().metadata().identity().clone(),
-            ),
-        )
-        .map_err(|_| McpReconciliationError::Invalid)?;
-        expected
-            .validate_reconciliation_error(&error)
-            .map_err(|_| McpReconciliationError::Invalid)?;
-        self.backend
-            .apply(
-                &grant,
-                &target,
-                &expected,
-                ReconciledOutcome::Error(error),
-                request_digest,
+    ) -> BoxFuture<'_, Result<Value, McpReconciliationError>> {
+        Box::pin(async move {
+            if !principal.has_scope(SCOPE) {
+                return Err(McpReconciliationError::Denied);
+            }
+            let grant = self
+                .authorizer
+                .authorize(principal.clone(), request.clone())
+                .await?;
+            let failure = Failure::new(
+                request.failure_id,
+                request.failure_category,
+                request.failure_code.clone(),
+                FailureOrigin::new("mcp.reconciliation")
+                    .map_err(|_| McpReconciliationError::Invalid)?,
+                request.failure_message.clone(),
+                RetryAdvice::Never,
             )
-            .await
+            .map_err(|_| McpReconciliationError::Invalid)?;
+            let request_digest = Digest::sha256(
+                serde_json_canonicalizer::to_vec(&json!({
+                    "tool":TOOL, "subject":principal.subject(), "tenant":grant.caller.tenant_id(),
+                    "principal":grant.caller.principal(), "request":request
+                }))
+                .map_err(|_| McpReconciliationError::Invalid)?,
+            );
+            let target = ReconciliationTarget {
+                event_id: request.event_id,
+                run_id: request.run_id,
+                invocation_id: request.invocation_id,
+                attempt_id: request.attempt_id,
+                expected_revision: request.expected_revision,
+                expected_digest: request.expected_digest,
+            };
+            let expected = self.backend.load(&grant, &target).await?;
+            let error = ToolError::new(
+                failure,
+                ToolErrorPhase::Execution,
+                request.external_effect.core(),
+                ToolErrorProvenance::new(
+                    request.invocation_id,
+                    request.attempt_id,
+                    expected.intent().descriptor().metadata().identity().clone(),
+                ),
+            )
+            .map_err(|_| McpReconciliationError::Invalid)?;
+            expected
+                .validate_reconciliation_error(&error)
+                .map_err(|_| McpReconciliationError::Invalid)?;
+            self.backend
+                .apply(
+                    &grant,
+                    &target,
+                    &expected,
+                    ReconciledOutcome::Error(error),
+                    request_digest,
+                )
+                .await
+        })
     }
 }
 

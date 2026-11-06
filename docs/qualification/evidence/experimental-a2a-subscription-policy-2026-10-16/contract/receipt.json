@@ -1,0 +1,21 @@
+{
+  "classification": "authored next-slice interface/acceptance plan, not implementation/compile/review verdict",
+  "public_API_delta": "A2aServerHttpOptions::with_subscription_authorization_rechecks(self)->Self only",
+  "default": false,
+  "enabled_operation": "SubscribeToTask only",
+  "new_public_traits_types_errors_dependencies": false,
+  "matrix_cases": 17,
+  "required_bindings": [
+    "HTTP+JSON REST",
+    "JSON-RPC"
+  ],
+  "scope": "current decoded host policy; not credential reauthentication or durable backend",
+  "original_idle_absolute_deadline_covers_all_phases": true,
+  "existing_request_timeout_still_bounds_each_callback": true,
+  "terminal_state_must_not_hold_backend_or_permit": true,
+  "full_source_changed": false,
+  "main_source_v3_or_existing_evidence_modified": false,
+  "compile_tests_TPC_DB_network_Docker_run": false,
+  "independent_Standards_Spec_review": "not performed; required from another reviewer",
+  "RFC25_R1_complete": false
+}

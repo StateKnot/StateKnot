@@ -1,0 +1,6 @@
+{
+  "kind": "offline collector assertion; not compile or test failure",
+  "cause": "Generated delta JSON is covered by bundle manifest, not raw copied-artifact index; accessor wrongly required raw-artifact membership",
+  "source_or_raw_execution_changed": false,
+  "seal_existed": false
+}

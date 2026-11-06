@@ -1,0 +1,9 @@
+{
+  "reviewer": "/root/resume_proof_base_oct15",
+  "received_unix": 1792052913.699902,
+  "artifact": "erase-only.patch.gz",
+  "patch_sha256": "331cb10c0e41fddd31c2c1fae506aacfffafac5d126151c2d50f8e3998b4964c",
+  "findings": [],
+  "review": "Independently read the patch. Complete helper returns BoxFuture<a>; transaction borrow stays at a, start remains start with start: a, and the returned proof still borrows original start. Body order recognize -> full base -> anchor -> nonRoot proof and all error returns are unchanged. No semantic or lifetime issue identified.",
+  "uncompressed_artifact": "erase-only.patch"
+}

@@ -1,0 +1,51 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/source32-old35-producer-source",
+  "source_tree_sha256": "d8f2d04afaa87c5a25a807b73376de1be4d1fec6b8cf4168c82a0eab9d2606cb",
+  "source_files": 899,
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/source32-old35-producer-source/Cargo.toml",
+    "-p",
+    "stateknot-store-postgres",
+    "--test",
+    "postgres",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "exit_code": 0,
+  "seconds": 23.735758304595947,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+  "artifacts": [
+    {
+      "package": "stateknot-store-postgres",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/source32-old35-producer-source/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/source32-old35-producer/strict-build-v1/stateknot-store-postgres-postgres",
+      "sha256": "0932ed39bd157926da3f553efba7a215d1f3d5c29f192258ba2a663d5089c618",
+      "fresh": false
+    }
+  ],
+  "workspace_only_clean": [
+    "cargo",
+    "clean",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/source32-old35-producer-source/Cargo.toml",
+    "--target-dir",
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+    "-p",
+    "stateknot-store-postgres"
+  ],
+  "cache_inactive_before_clean": true,
+  "strict_environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings"
+  },
+  "database_tests_executed": false,
+  "qualification": "Strict Store Native binary built only. No Native execution qualification."
+}

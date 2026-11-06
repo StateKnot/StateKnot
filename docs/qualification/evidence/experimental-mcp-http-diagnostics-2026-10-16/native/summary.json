@@ -1,0 +1,310 @@
+{
+  "binaries": {
+    "mcp_durable": {
+      "bytes": 63478624,
+      "cargo_artifact": {
+        "executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_durable-9299de57a29eb9cb",
+        "features": [],
+        "filenames": [
+          "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_durable-9299de57a29eb9cb"
+        ],
+        "fresh": false,
+        "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations/Cargo.toml",
+        "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations#0.1.0-alpha.1",
+        "profile": {
+          "debug_assertions": true,
+          "debuginfo": 0,
+          "opt_level": "0",
+          "overflow_checks": true,
+          "test": true
+        },
+        "reason": "compiler-artifact",
+        "target": {
+          "crate_types": [
+            "bin"
+          ],
+          "doc": false,
+          "doctest": false,
+          "edition": "2024",
+          "kind": [
+            "test"
+          ],
+          "name": "mcp_durable",
+          "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations/tests/mcp_durable.rs",
+          "test": true
+        }
+      },
+      "features": "per-package default command, no workspace/all-features union",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-native-v1/execution-v1/artifacts/mcp_durable",
+      "sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+      "tests": [
+        "a2a_authorized_denial_commits_once_without_business_send_or_policy_repeat",
+        "a2a_authorized_send_reads_the_durable_start_and_recovery_does_not_send_again",
+        "a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched",
+        "mcp_approved_denial_commits_without_remote_dispatch_or_repeat_authorization",
+        "mcp_approved_write_is_authorized_after_durable_start_and_reconciles_once",
+        "mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch"
+      ]
+    },
+    "mcp_reconciliation": {
+      "bytes": 65610192,
+      "cargo_artifact": {
+        "executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_reconciliation-f9bad79af7f236c0",
+        "features": [],
+        "filenames": [
+          "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_reconciliation-f9bad79af7f236c0"
+        ],
+        "fresh": false,
+        "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot/Cargo.toml",
+        "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot#0.1.0-alpha.1",
+        "profile": {
+          "debug_assertions": true,
+          "debuginfo": 0,
+          "opt_level": "0",
+          "overflow_checks": true,
+          "test": true
+        },
+        "reason": "compiler-artifact",
+        "target": {
+          "crate_types": [
+            "bin"
+          ],
+          "doc": false,
+          "doctest": false,
+          "edition": "2024",
+          "kind": [
+            "test"
+          ],
+          "name": "mcp_reconciliation",
+          "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot/tests/mcp_reconciliation.rs",
+          "test": true
+        }
+      },
+      "features": "per-package default command, no workspace/all-features union",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-native-v1/execution-v1/artifacts/mcp_reconciliation",
+      "sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+      "tests": [
+        "authenticated_reconciliation_is_atomic_fenced_and_recovers_a_lost_http_receipt",
+        "error::concurrent_success_and_failure_submissions_have_one_authoritative_winner",
+        "error::error_startup_rejects_missing_and_drifted_audit_schemas",
+        "error::known_error_definition_is_separate_closed_and_cannot_grant_retry",
+        "error::known_error_wire_rejects_foreign_authority_uncertainty_and_private_debug",
+        "error::known_errors_require_distinct_authority_and_recover_exact_lost_receipts",
+        "error::successful_v1_schemas_remain_byte_compatible",
+        "lost_receipt_gate_never_carries_release_into_another_request",
+        "reconciliation_definition_requires_explicit_scope_and_closed_shapes",
+        "wire_request_is_closed_and_debug_does_not_expose_output"
+      ]
+    }
+  },
+  "compiled_canonical_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "full_Store_Runtime_Native_CI_capacity_or_R1_qualified": false,
+  "new_database_retained_each_major": "stateknot_r1_mcp_debug_20261016v3",
+  "postgres": [
+    {
+      "binary_sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+      "database": "stateknot_r1_mcp_debug_20261016v3",
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "major": 16,
+      "markers": {
+        "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+          {
+            "calls": 0,
+            "case": "denial",
+            "duplicate_ledger_unchanged": true,
+            "durable_start_verified": true,
+            "payload_from_full_input": true,
+            "policy_calls": 1
+          },
+          {
+            "calls": 1,
+            "case": "lost_response",
+            "duplicate_ledger_unchanged": true,
+            "durable_start_verified": true,
+            "payload_from_full_input": true,
+            "policy_calls": 1
+          }
+        ],
+        "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+          {
+            "calls": 0,
+            "case": "denial",
+            "duplicate_ledger_unchanged": true,
+            "durable_before_authorization": true,
+            "policy_calls": 1
+          },
+          {
+            "calls": 1,
+            "case": "lost_response",
+            "durable_before_authorization": true,
+            "policy_calls": 1,
+            "reconciliation_idempotent": true
+          }
+        ]
+      },
+      "measured": 0,
+      "passed": 6,
+      "target": "mcp_durable"
+    },
+    {
+      "binary_sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+      "database": "stateknot_r1_mcp_debug_20261016v3",
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "major": 16,
+      "markers": {
+        "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": [
+          {
+            "atomic_audit": true,
+            "authorization_before_lookup": true,
+            "distinct_scopes": true,
+            "duplicate_receipts_per_effect": 24,
+            "effects": 2,
+            "fresh_service_recovery": true,
+            "invariants": "passed",
+            "lost_http_receipt": true,
+            "profile": "known-error-reconciliation-v1",
+            "retry_never": true,
+            "stale_fence_rejected": true
+          }
+        ],
+        "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": [
+          {
+            "error_first_submissions": 24,
+            "invariants": "passed",
+            "mixed_success_failure_submissions": 24,
+            "same_event_identity": true,
+            "single_revision": true,
+            "success_first_conflict": true
+          }
+        ],
+        "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": [
+          {
+            "atomic_audit": true,
+            "authenticated_http": true,
+            "authorization_before_lookup": true,
+            "concurrent_first_submissions": 24,
+            "duplicate_receipts": 24,
+            "fresh_service_recovery": true,
+            "invariants": "passed",
+            "lost_http_receipt": true,
+            "profile": "mcp-result-reconciliation-v1",
+            "schema": 24,
+            "stale_fence_rejected": true
+          }
+        ]
+      },
+      "measured": 0,
+      "passed": 10,
+      "target": "mcp_reconciliation"
+    },
+    {
+      "binary_sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+      "database": "stateknot_r1_mcp_debug_20261016v3",
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "major": 17,
+      "markers": {
+        "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+          {
+            "calls": 0,
+            "case": "denial",
+            "duplicate_ledger_unchanged": true,
+            "durable_start_verified": true,
+            "payload_from_full_input": true,
+            "policy_calls": 1
+          },
+          {
+            "calls": 1,
+            "case": "lost_response",
+            "duplicate_ledger_unchanged": true,
+            "durable_start_verified": true,
+            "payload_from_full_input": true,
+            "policy_calls": 1
+          }
+        ],
+        "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+          {
+            "calls": 0,
+            "case": "denial",
+            "duplicate_ledger_unchanged": true,
+            "durable_before_authorization": true,
+            "policy_calls": 1
+          },
+          {
+            "calls": 1,
+            "case": "lost_response",
+            "durable_before_authorization": true,
+            "policy_calls": 1,
+            "reconciliation_idempotent": true
+          }
+        ]
+      },
+      "measured": 0,
+      "passed": 6,
+      "target": "mcp_durable"
+    },
+    {
+      "binary_sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+      "database": "stateknot_r1_mcp_debug_20261016v3",
+      "failed": 0,
+      "filtered": 0,
+      "ignored": 0,
+      "major": 17,
+      "markers": {
+        "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": [
+          {
+            "atomic_audit": true,
+            "authorization_before_lookup": true,
+            "distinct_scopes": true,
+            "duplicate_receipts_per_effect": 24,
+            "effects": 2,
+            "fresh_service_recovery": true,
+            "invariants": "passed",
+            "lost_http_receipt": true,
+            "profile": "known-error-reconciliation-v1",
+            "retry_never": true,
+            "stale_fence_rejected": true
+          }
+        ],
+        "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": [
+          {
+            "error_first_submissions": 24,
+            "invariants": "passed",
+            "mixed_success_failure_submissions": 24,
+            "same_event_identity": true,
+            "single_revision": true,
+            "success_first_conflict": true
+          }
+        ],
+        "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": [
+          {
+            "atomic_audit": true,
+            "authenticated_http": true,
+            "authorization_before_lookup": true,
+            "concurrent_first_submissions": 24,
+            "duplicate_receipts": 24,
+            "fresh_service_recovery": true,
+            "invariants": "passed",
+            "lost_http_receipt": true,
+            "profile": "mcp-result-reconciliation-v1",
+            "schema": 24,
+            "stale_fence_rejected": true
+          }
+        ]
+      },
+      "measured": 0,
+      "passed": 10,
+      "target": "mcp_reconciliation"
+    }
+  ],
+  "profile": "opt0/debug0, assertions/overflow true, default stack; original fixture budgets unchanged",
+  "scope": "two affected default-feature suites only;32 harness tests across two majors, existing authorization/MRTR/effect/reconciliation regressions",
+  "source_928_before_after_exact": true,
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "state": "passed"
+}

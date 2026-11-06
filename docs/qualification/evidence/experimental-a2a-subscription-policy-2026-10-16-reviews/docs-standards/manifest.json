@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "artifacts": [
+    {
+      "path": "author-offline-verifier.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "author-offline-verifier.stdout",
+      "bytes": 278,
+      "sha256": "ec0c81adaa486561fd44aa7e000f90c808b5744fa5df2bef28c33938277ff15f"
+    },
+    {
+      "path": "input-bindings.json",
+      "bytes": 6380,
+      "sha256": "adb3c570e7e46a6c8ad411bd4b6054b39afda7246f67bc97cf66a25fd992c262"
+    },
+    {
+      "path": "receipt.json",
+      "bytes": 1465,
+      "sha256": "b57f59fb8df78ef9706bc7ed54841d2138424cabd4f0d64d57a6c0e0341a54bc"
+    },
+    {
+      "path": "review.md",
+      "bytes": 3699,
+      "sha256": "5d319ac6ee46b468ba815828192a5cb47ca64c4d9a115b9a2b78e2cb406657a8"
+    },
+    {
+      "path": "reviewed.patch.gz",
+      "bytes": 6065,
+      "sha256": "ca24bb3facdfae1ed6da80ea4e77ba44674b3b4d4a93a7d60b26543e4084159f"
+    },
+    {
+      "path": "verify.py",
+      "bytes": 2005,
+      "sha256": "b0ad3bb090cc6495e5e698c59ef7016ab6704dc69e129e40b7070228dd21ba6c"
+    }
+  ]
+}

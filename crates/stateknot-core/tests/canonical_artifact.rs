@@ -3,11 +3,13 @@
 
 //! Cross-version compatibility fixtures for artifact and content-part wire values.
 
+use std::collections::BTreeMap;
+
 use serde::Deserialize;
 use serde_json::Value;
 use stateknot_core::{
     ArtifactDescription, ArtifactName, ArtifactParents, ArtifactRef, ArtifactRepresentation,
-    ContentPart, MediaType, RetentionClass,
+    BoundedJson, CanonicalJson, ContentPart, Digest, JsonLimits, MediaType, RetentionClass,
 };
 
 const FIXTURE_SCHEMA: &str = "https://stateknot.github.io/schema/test-fixture/core-artifact/1.0.0";
@@ -93,6 +95,69 @@ fn canonical_media_type_fixture_matches_runtime_contract() {
             "MediaType accepted {invalid}"
         );
     }
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct MediaTypeInputSchemas {
+    schema: String,
+    source_commit: String,
+    changes: BTreeMap<String, SchemaChange>,
+    artifact_input_document: Value,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct SchemaChange {
+    before: Digest,
+    after: Digest,
+}
+
+#[test]
+fn media_type_input_correction_retains_actual_prior_schema_and_reviewed_pins() {
+    let baseline: MediaTypeInputSchemas = serde_json::from_str(include_str!(
+        "fixtures/core-media-type-input-schemas-v1.json"
+    ))
+    .unwrap();
+    assert_eq!(
+        baseline.schema,
+        "https://stateknot.github.io/schema/test-fixture/core-media-type-input-schemas/1.0.0"
+    );
+    assert_eq!(
+        baseline.source_commit,
+        "c4967d0a57aacaae4e5ff8658c66810cba160203"
+    );
+    let inventory: Value =
+        serde_json::from_str(include_str!("fixtures/core-public-type-inventory-v1.json")).unwrap();
+    assert_eq!(baseline.changes.len(), 35);
+    for (name, change) in &baseline.changes {
+        assert_ne!(change.before, change.after, "{name}");
+        assert_eq!(
+            inventory["types"][name]["schema_digest"],
+            change.after.to_string()
+        );
+    }
+    let digest = |value: Value| {
+        CanonicalJson::new(
+            &BoundedJson::try_from_value_with_limits(value, JsonLimits::MAXIMUM).unwrap(),
+        )
+        .unwrap()
+        .digest()
+    };
+    let expected = &baseline.changes["ArtifactRepresentation"];
+    assert_eq!(digest(baseline.artifact_input_document), expected.before);
+    assert_eq!(
+        digest(serde_json::to_value(schemars::schema_for!(ArtifactRepresentation)).unwrap()),
+        expected.after
+    );
+    let output = schemars::generate::SchemaSettings::draft2020_12()
+        .for_serialize()
+        .into_generator()
+        .into_root_schema_for::<ArtifactRepresentation>();
+    assert_eq!(
+        digest(serde_json::to_value(output).unwrap()),
+        expected.before
+    );
 }
 
 #[test]

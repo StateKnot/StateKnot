@@ -1,0 +1,32 @@
+{
+  "review_kind": "independent focused source/spec review of ignored single-file candidate; not Native or compile qualification",
+  "baseline_sha256": "8dcaa48e644869544723cce7fb7f1ffa54b71fcaa16b812da67bb201015707fa",
+  "candidate_sha256": "d6b0037366d7fb4adb38c21f0a4602de10c595c0ce625b65aa7fac114250387d",
+  "patch_sha256": "0182c425552d8568bd3857e8d0a27c3f2eb015f47fe7230b4ffbdfa213ff0769",
+  "baseline_exact_final922": true,
+  "baseline_exact_adopted_main": true,
+  "new_impl_methods_and_success_marker_are_only_changes": true,
+  "original_Drop_and_docker_command_helpers_byte_identical": true,
+  "original_PITR_business_body_assertions_and_resources_byte_identical": true,
+  "tracked_source_and_target_names": "stateknot-pitr-{source,target}-{fresh UUIDv7 simple identity}",
+  "tracked_volumes": "stateknot-pitr-{wal,base,target-data}-{same fresh UUIDv7 simple identity}",
+  "mutations_limited_to_tracked_names": true,
+  "absence_queries_require_successful_exit_and_UTF8": true,
+  "absence_match_is_exact_output_line_after_Docker_substring_filter": true,
+  "container_ownership_released_only_after_successful_absence_query": true,
+  "volume_ownership_released_only_after_successful_removal_and_absence_query": true,
+  "success_marker_after_all_durable_assertions_and_explicit_cleanup": true,
+  "outer_absolute_budget_seconds": {
+    "existing_explicit_source_stop": 30,
+    "final_target_stop": 10,
+    "each_volume_remove_and_confirmation": 10
+  },
+  "docker_polling_helper_unchanged": "100 ms polling; checks process completion before its existing elapsed timeout; no new hard-real-time precision qualification",
+  "failure_path": "panic before ownership release retains the current/unprocessed names for unchanged best-effort Drop. Drop still ignores nonzero exit status and can itself panic on spawn/wait/timeout; no all-failure cleanup guarantee is claimed.",
+  "cause_boundary": "Original rm stderr was not captured. Async --rm completion is a source-supported possible race, not established actual cause.",
+  "actionable_findings": [],
+  "compile_executed": false,
+  "database_or_Docker_command_executed": false,
+  "main_or_candidate_modified": false,
+  "existing_residual_WAL_volume_preserved": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1"
+}

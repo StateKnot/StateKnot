@@ -1,0 +1,44 @@
+{
+  "schema": "mcp-lossless-execution-appendix-independent-audit/v1",
+  "appendix_manifest_sha256": "96206529c1dc6cf4480d1cb3f9623d552014cd0528ff343ffc8dee43730d1b2e",
+  "appendix_seal_sha256": "002b3200657b0c1d9ee13ff747ca5eda60eb57c7cd35e4b24814874971f7c90b",
+  "README_sha256": "e9bdbda7967bcdd10c343445caa4c695ef5cef42caaf00ad2faa8addac094001",
+  "record_sha256": "2558ff515b51cfcb981234589caa570e4d8b5a097886c517fb78918ff85e6f98",
+  "files": 55,
+  "indexed_gzip_originals": 49,
+  "all_source_originals_byte_equal": true,
+  "isolated_runner_sha256": "084de67b556627e6faa764ebc7cd560651c607b8c45bc146da0761ce4a6cab03",
+  "actual_main_runner_sha256": "d74eaf7579e5cfefde29e08a6399b40f2ac058dcfb75d2c43b8a89d6ac684a55",
+  "actual_main_2810_before_after_identical": true,
+  "compiled_536_canonical_digest": "cfd0f2f8b48e062567fb591be2e5c427781cb7db616ee20b942cc2174a775b2d",
+  "actual_main_raw_recounts": {
+    "workspace": [
+      99,
+      2098,
+      0,
+      6
+    ],
+    "doctests": [
+      10,
+      48,
+      0,
+      0
+    ]
+  },
+  "six_receipts_exit0_and_strict_runner_bound": true,
+  "actual_main_receipts_lack_start_unix_properly_disclosed": true,
+  "P2_seal_unchanged_and_collection_gap_explicit": true,
+  "no_later_metadata_in_2810_claim": true,
+  "no_current_cache_idle_or_new_Native_CI_R1_claim": true,
+  "checks": [
+    {
+      "mode": "offline",
+      "exit": 0
+    },
+    {
+      "mode": "workspace",
+      "exit": 0
+    }
+  ],
+  "F1_independent_observed_isolated_runner_now_published_exact": true
+}

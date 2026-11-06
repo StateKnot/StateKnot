@@ -1,0 +1,38 @@
+{
+  "rustc": {
+    "command": [
+      "rustc",
+      "-Vv"
+    ],
+    "exit_code": 0,
+    "sha256": "a779a874801ceac76338a2d4ec40ee690149a5b9b36793dfe152c48aa21d0184"
+  },
+  "cargo": {
+    "command": [
+      "cargo",
+      "-Vv"
+    ],
+    "exit_code": 0,
+    "sha256": "2344d3b286d56c526e4607a41afe55fa9282fff82fcb5ce534da8e3c20f8e645"
+  },
+  "host": {
+    "command": [
+      "uname",
+      "-a"
+    ],
+    "exit_code": 0,
+    "sha256": "c093ac675921995fcfcad606ccbc77f3dd60075bd569569f58651555d6acfc60"
+  },
+  "metadata": {
+    "command": [
+      "cargo",
+      "metadata",
+      "--format-version",
+      "1",
+      "--locked",
+      "--no-deps"
+    ],
+    "exit_code": 0,
+    "sha256": "fc8e89e7544cd0c6fe69deb9ca399a05772b64bc152d49f233674143767c093f"
+  }
+}

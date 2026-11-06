@@ -1,0 +1,25 @@
+{
+  "base_commit": "0e8b4b544c444f42d6a7600070a6da6bc19b72b5",
+  "source_tree_origin": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "code_files_adopted": [
+    "crates/stateknot-integrations/src/a2a_client.rs",
+    "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+    "crates/stateknot-integrations/tests/a2a_client_contract/authorization_facts.rs",
+    "crates/stateknot-integrations/tests/mcp_durable.rs"
+  ],
+  "docs_adopted": [
+    "CHANGELOG.md",
+    "docs/a2a-client.md",
+    "docs/a2a-client.zh-CN.md",
+    "docs/rfcs/0025-protocol-identity-and-authority.md",
+    "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md"
+  ],
+  "actual_main_compiled_inputs_exact": 531,
+  "production_file_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "original_schema36_runtime_store_core_SQL_unchanged": true,
+  "new_PITR_cleanup_candidate_included": false,
+  "full_Git_tree_equals923_claimed": false,
+  "six_strict_gates_network26_and_dualPG_mandatory6_passed": true,
+  "full_CI_or_full_identity_policy_qualification_claimed": false,
+  "staged_or_committed": false
+}

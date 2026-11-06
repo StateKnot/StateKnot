@@ -1,0 +1,24 @@
+{
+  "runner_pid": 55112,
+  "pid": 55534,
+  "step": "fresh-build",
+  "command": [
+    "cargo",
+    "test",
+    "-p",
+    "stateknot-integrations",
+    "--test",
+    "a2a_client_contract",
+    "--test",
+    "mcp_durable",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "started_unix": 1792066991.897943,
+  "exit_code": 0,
+  "seconds": 30.625076055526733,
+  "log_sha256": "9b8feecb6b73df5ae9bffa1d0c142fcec4632cc032bc47499a700dc93af71a96"
+}

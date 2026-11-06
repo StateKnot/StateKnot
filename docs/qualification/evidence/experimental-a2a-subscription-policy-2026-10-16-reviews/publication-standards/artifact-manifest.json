@@ -1,0 +1,34 @@
+{
+  "files": [
+    {
+      "path": "receipt.json",
+      "bytes": 2459,
+      "sha256": "49ec15733f4b89bf5037376b04b781ff5edbb33a688c64a6d307c16b3e278d34"
+    },
+    {
+      "path": "report.md",
+      "bytes": 649,
+      "sha256": "a95cfb4f1f514f165d0fe65fae77a4854238a28673e0e3f30a31f8ad3efa4134"
+    },
+    {
+      "path": "verify.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "verify.stdout",
+      "bytes": 721,
+      "sha256": "9d0bdaa48108efe3982abc64d6fa77fafa923d5c2c34660a1d74e83ee407ad5c"
+    },
+    {
+      "path": "workspace-candidate.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "workspace-candidate.stdout",
+      "bytes": 720,
+      "sha256": "241a0ef94e9ae1c1e8543474b2b743a39acc0fb87d0aaeb03faba6cd82bbc1bb"
+    }
+  ]
+}

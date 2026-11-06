@@ -1,0 +1,8 @@
+
+running 1 test
+test child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work ... 
+STATEKNOT_ROLE_PROFILE_EVIDENCE={"agent_service_submission":true,"compound_frame_entry_race":24,"compound_frame_entry_reload":true,"concurrent_submission_and_completion":24,"drift_rejected":true,"effective_acl_audit":true,"fixture_cleaned":true,"framework_caller_rebind_retry_reload":true,"invariants":"passed","isolated_retention":true,"join_checkpoint_recovery":true,"owner_is_non_superuser":true,"populated_reapply":true,"postgres":"17.11 (Debian 17.11-1.pgdg13+2)","privilege_rejections":true,"profile":"trusted-server-roles-v1","provider_native_recovery":true,"runtime_failure_close":true,"schema":35,"scoped_barrier_commit_retry_reload":true,"scoped_node_start_success_reload":true,"separate_login_connections":true,"skill_acting_window_authorization":true,"whole_frame_closure_retry_reload_terminal":true,"whole_frame_return_retry_reload":true,"whole_frame_wait_resolve_resume":true}
+ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 171.92s
+

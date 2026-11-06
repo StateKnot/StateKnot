@@ -74,7 +74,7 @@ Host failure is null or closed `{phase: "startup"|"role", role: "http"|"worker"|
 Role fields are null until started. HTTP exposes status and active connections/
 streams; Worker exposes status, active ticks/nodes, tick/quanta/failure counters
 and its closed failure; maintenance exposes status, active ticks, counters and
-the four fixed deadline/child/join/failure_close job reports. Cumulative `u64`
+the five fixed deadline/child/join/failure_close/frame_cancellation job reports. Cumulative `u64`
 counters are decimal **strings**, not lossy JSON numbers. Active/forced counts
 are bounded integers. Counters reset on process restart and are not durable usage.
 

@@ -1,0 +1,4 @@
+PostgreSQL (17)	Run mandatory PostgreSQL integration tests	2026-10-15T08:05:02.5162728Z test result: ok. 251 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1218.96s
+PostgreSQL (17)	Run durable Graph Driver integration tests	2026-10-15T08:06:24.4186502Z test child_admission::cancelled_parent_cannot_validate_an_earlier_preparation ... ok
+PostgreSQL (17)	Stop containers	2026-10-15T08:13:13.9855112Z  	  OR NEW.lifecycle_status IN ('waiting','succeeded','failed','cancelled')) THEN
+PostgreSQL (17)	Stop containers	2026-10-15T08:13:14.1222294Z  2026-10-15 08:12:21.160 UTC [9494] STATEMENT:  UPDATE stateknot.runs SET lifecycle_status = 'cancelled' WHERE tenant_id=$1 AND run_id=$2

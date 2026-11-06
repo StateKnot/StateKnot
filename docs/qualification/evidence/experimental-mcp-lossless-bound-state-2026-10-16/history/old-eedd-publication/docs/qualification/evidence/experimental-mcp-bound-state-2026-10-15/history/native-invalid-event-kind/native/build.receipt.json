@@ -1,0 +1,19 @@
+{
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "-p",
+    "stateknot",
+    "--test",
+    "mcp_bound_state",
+    "--no-run",
+    "--locked",
+    "--message-format=json"
+  ],
+  "pid": 6734,
+  "exit_code": 0,
+  "seconds": 6.308141231536865,
+  "log_sha256": "ddbf5a817d0630327b52b7122492046a472ec16ddec571587cdebb294cf1c5bc",
+  "source_tree": "3216e2d3e495fd02a6946381a49dd6ec9f2f97df0911dac0de6f9466b61d616b"
+}

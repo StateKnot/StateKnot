@@ -1,0 +1,16 @@
+{
+  "name": "/stateknot-r1-oct15-pg17",
+  "id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+  "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+  "labels": {
+    "stateknot.task": "r1-oct15"
+  },
+  "ports": {
+    "5432/tcp": [
+      {
+        "HostIp": "127.0.0.1",
+        "HostPort": "55417"
+      }
+    ]
+  }
+}

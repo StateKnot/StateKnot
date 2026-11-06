@@ -1,0 +1,32 @@
+{
+  "reason": "compiler-artifact",
+  "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-store-postgres#0.1.0-alpha.1",
+  "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-store-postgres/Cargo.toml",
+  "target": {
+    "kind": [
+      "test"
+    ],
+    "crate_types": [
+      "bin"
+    ],
+    "name": "postgres",
+    "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-store-postgres/tests/postgres.rs",
+    "edition": "2024",
+    "doc": false,
+    "doctest": false,
+    "test": true
+  },
+  "profile": {
+    "opt_level": "0",
+    "debuginfo": 0,
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "test": true
+  },
+  "features": [],
+  "filenames": [
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout/debug/deps/postgres-cf7878d2ec74ce50"
+  ],
+  "executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout/debug/deps/postgres-cf7878d2ec74ce50",
+  "fresh": false
+}

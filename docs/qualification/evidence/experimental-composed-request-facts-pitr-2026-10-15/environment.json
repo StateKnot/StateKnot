@@ -1,0 +1,8 @@
+{
+  "CARGO_TARGET_DIR": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+  "CARGO_INCREMENTAL": "0",
+  "CARGO_PROFILE_DEV_DEBUG": "0",
+  "CARGO_PROFILE_TEST_DEBUG": "0",
+  "RUSTFLAGS": "-D warnings",
+  "RUSTDOCFLAGS": "-D warnings"
+}

@@ -1,0 +1,28 @@
+{
+  "baseline_source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source",
+  "baseline_file_count": 922,
+  "candidate_source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-a2a-auth-facts-source",
+  "candidate_file_count": 923,
+  "changes": [
+    {
+      "path": "crates/stateknot-integrations/src/a2a_client.rs",
+      "baseline_sha256": "b0397e995e9fea861a7a160344d2a9ead07605705752b6c9e1ff2fe9cd5120e4",
+      "candidate_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "baseline_sha256": "ef09a38b90ab71ca67cf51130a33d968d94f4cb845cfeeaeae9c8e69cfeb9db7",
+      "candidate_sha256": "c722f75a3f38626bf736d0ac408f07b7dfded5c0726c2f786245a10900e6d4b5"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract/authorization_facts.rs",
+      "baseline_sha256": null,
+      "candidate_sha256": "1d6e980f892650d2da3325a4af1a7b575d7987b2bad7d2bda6c2cf697399a9ee"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "baseline_sha256": "f499d5d0f6fddc99dbaf7a080df753e11799ec63b5edc612241d8fbce8fe0480",
+      "candidate_sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    }
+  ]
+}

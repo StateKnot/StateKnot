@@ -1,0 +1,191 @@
+async fn populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_whole_closure() {
+    let _guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(shared) = test_store().await else {
+        return;
+    };
+    let options = shared.options().clone();
+    shared.close().await;
+    let original = std::env::var(DATABASE_URL_ENV).unwrap();
+    let name = format!(
+        "stateknot_frame_close_upgrade_{}",
+        RunId::generate().to_string().replace('-', "")
+    );
+    let admin = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&database_url_with_name(&original, "postgres"))
+        .await
+        .unwrap();
+    query(&format!("CREATE DATABASE {name}"))
+        .execute(&admin)
+        .await
+        .unwrap();
+    let url = database_url_with_name(&original, &name);
+    PostgresStore::migrate_database(&url, options.clone())
+        .await
+        .unwrap();
+    let store = PostgresStore::connect(&url, options.clone()).await.unwrap();
+    let waits = NodeWaits::try_new([NodeWait::timer(
+        TimerId::generate(),
+        RunTimerKind::Sleep,
+        Timestamp::from_unix_micros(2_000_000_000_000_000).unwrap(),
+    )])
+    .unwrap();
+    let (_, entry, graph, fence, plan, observed, revision) = Box::pin(
+        super::frame_waits::prepared(&store, "frame-close-upgrade-wait", waits),
+    )
+    .await;
+    let saved = Box::pin(super::frame_waits::suspend(
+        &store,
+        plan,
+        &fence,
+        observed,
+        entry.direct_usage_after().unwrap(),
+        revision,
+        &graph,
+    ))
+    .await;
+    let (_, prior_entry, prior_graph, prior_fence, prepared, prior_barrier) = Box::pin(
+        super::frame_returns::finished(&store, "frame-close-upgrade-return"),
+    )
+    .await;
+    let stateknot_store_postgres::GraphFrameReturnCommitOutcome::Committed(returned) =
+        Box::pin(store.return_graph_frame(
+            prepared,
+            EventId::generate(),
+            prior_fence.clone(),
+            prior_barrier.event().head(),
+            prior_barrier.direct_usage_after().unwrap(),
+            &AcceptGraphSchemas,
+            &IntegrationGraphReducer {
+                reference: prior_graph.reducer().clone(),
+            },
+        ))
+        .await
+        .unwrap()
+    else {
+        panic!("fresh upgrade return");
+    };
+    let fixture = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&url)
+        .await
+        .unwrap();
+    let checksums: Vec<(i64, Vec<u8>)> = query_as(
+        "SELECT version,checksum FROM public._sqlx_migrations WHERE version<=32 ORDER BY version",
+    )
+    .fetch_all(&fixture)
+    .await
+    .unwrap();
+    let before = facts(&fixture, &fence).await;
+    let prior = facts(&fixture, &prior_fence).await;
+    let waits_before: String = query_scalar("SELECT jsonb_agg(to_jsonb(w) ORDER BY wait_id)::text FROM stateknot.run_wait_registrations w WHERE tenant_id=$1 AND run_id=$2")
+        .bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid()).fetch_one(&fixture).await.unwrap();
+    store.close().await;
+    // Source reconstruction is distinct from retained N-1/N-2 executable qualification.
+    sqlx_core::raw_sql::raw_sql(&format!(
+        "{}\n{}",
+        include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+        include_str!("../fixtures/revert_graph_frame_closures.sql")
+    ))
+    .execute(&fixture)
+    .await
+    .unwrap();
+    assert_eq!(
+        query_scalar::<_, i64>("SELECT max(version) FROM public._sqlx_migrations")
+            .fetch_one(&fixture)
+            .await
+            .unwrap(),
+        32
+    );
+    assert!(matches!(
+        PostgresStore::connect(&url, options.clone()).await,
+        Err(StoreError::IncompatibleSchema)
+    ));
+    PostgresStore::migrate_database(&url, options.clone())
+        .await
+        .unwrap();
+    let upgraded = PostgresStore::connect(&url, options).await.unwrap();
+    assert_eq!(checksums, query_as::<_, (i64, Vec<u8>)>("SELECT version,checksum FROM public._sqlx_migrations WHERE version<=32 ORDER BY version").fetch_all(&fixture).await.unwrap());
+    assert_eq!(facts(&fixture, &fence).await, before);
+    assert_eq!(facts(&fixture, &prior_fence).await, prior);
+    assert_eq!(query_scalar::<_, String>("SELECT jsonb_agg(to_jsonb(w) ORDER BY wait_id)::text FROM stateknot.run_wait_registrations w WHERE tenant_id=$1 AND run_id=$2")
+        .bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid()).fetch_one(&fixture).await.unwrap(), waits_before);
+    assert_eq!(
+        Box::pin(upgraded.load_graph_frame_return(
+            prior_fence.tenant_id(),
+            prior_fence.run_id(),
+            prior_entry.entry().checkpoint().frame().namespace()
+        ))
+        .await
+        .unwrap()
+        .unwrap()
+        .digest(),
+        returned.digest()
+    );
+    let active = Box::pin(upgraded.load_active_graph_frame(fence.tenant_id(), fence.run_id()))
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(active.checkpoint(), saved.checkpoint());
+    upgraded
+        .append_control_plane_abandon_waits(
+            control_append(
+                fence.tenant_id().clone(),
+                fence.run_id(),
+                EventId::generate(),
+                JournalExpectation::exact(saved.event().head()),
+                33_030,
+            ),
+            active.run().lifecycle().revision(),
+            RunTransition::RequestCancellation {
+                request: cancellation_request(saved.event().recorded_at()),
+            },
+        )
+        .await
+        .unwrap();
+    let current = upgraded
+        .load_run(fence.tenant_id(), fence.run_id())
+        .await
+        .unwrap();
+    let closed = Box::pin(upgraded.close_graph_frames(
+        fence.tenant_id(),
+        fence.run_id(),
+        EventId::generate(),
+        current.journal_head().unwrap().clone(),
+        current.lifecycle().revision(),
+        saved.direct_usage_after().unwrap(),
+    ))
+    .await
+    .unwrap();
+    confirm(&upgraded, &fence, closed.record().direct_usage().clone())
+        .await
+        .unwrap();
+    let mut tx = fixture.begin().await.unwrap();
+    assert!(
+        sqlx_core::raw_sql::raw_sql(&format!(
+            "{}\n{}",
+            include_str!("../fixtures/revert_elapsed_graph_waits.sql"),
+            include_str!("../fixtures/revert_graph_frame_closures.sql")
+        ))
+        .execute(&mut *tx)
+        .await
+        .is_err()
+    );
+    tx.rollback().await.unwrap();
+    assert_eq!(
+        Box::pin(upgraded.load_graph_frame_closure(fence.tenant_id(), fence.run_id()))
+            .await
+            .unwrap()
+            .unwrap()
+            .digest(),
+        closed.record().digest()
+    );
+    upgraded.verify_schema().await.unwrap();
+    upgraded.close().await;
+    fixture.close().await;
+    query(&format!("DROP DATABASE {name}"))
+        .execute(&admin)
+        .await
+        .unwrap();
+    admin.close().await;
+}

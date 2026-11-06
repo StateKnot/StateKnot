@@ -1,0 +1,32 @@
+{
+  "base_commit": "ff7fea7db88a611e2f0db29ceedf6b0b4b48f5fa",
+  "selected_source_count": 933,
+  "source_tree_sha256": "b286803afacf84278ffa579e8f898610e9474378bd982897e90f1c3c0f0c718c",
+  "supplied_compilation_count": 542,
+  "supplied_compilation_sha256": "43877dc8d16584c5a957356a1d0310ac4faea1525b743c05c4a159178780c305",
+  "adopt_only_test_paths": [
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs"
+  ],
+  "selected_source_changes_from_base": [
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs"
+  ],
+  "production_Rust_SQL_API_migrations_or_business_budgets_changed": false,
+  "six_gate_driver_actual_exit_code": 0,
+  "workspace_summaries": 100,
+  "workspace_passed": 2123,
+  "workspace_original_ignored": 6,
+  "doctest_summaries": 10,
+  "doctests_passed": 48,
+  "actual_Native_exact_controllers": 2,
+  "actual_cuts_per_controller": 2,
+  "runtime_default_feature_inventory": 193,
+  "snapshot_fixture_tables": 22,
+  "constructor_authority_negative_not_Store_auth_or_external_identity_qualification": true,
+  "fresh_old_fence_Wait_rejected_only_before_commit_branch": true,
+  "original_request_ACK_replay_only_committed_branch": true,
+  "full_Native_CI_deployment_stdio_capacity_or_R1_qualification": false
+}

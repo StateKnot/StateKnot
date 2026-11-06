@@ -1,0 +1,266 @@
+{
+  "schema": "stateknot.qualification-collection-state.v1",
+  "status": "exact-execution-passed-resource-cleanup-open",
+  "source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "source_files": 922,
+  "groups": [
+    {
+      "id": "final922-strict-store-build-v1",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/strict-store-build-v1"
+    },
+    {
+      "id": "final922-strict-remaining-build-v1",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/strict-remaining-build-v1"
+    },
+    {
+      "id": "final922-provenance-reproduction-check",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/provenance-reproduction-check"
+    },
+    {
+      "id": "final922-six-static-gates-v1-loopback",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/six-static-gates-v1-loopback"
+    },
+    {
+      "id": "final922-six-static-raw",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/evidence/elapsed36-final-test-fixes-gates-v1-loopback"
+    },
+    {
+      "id": "diagnostic-strict-native-build-v1",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1"
+    },
+    {
+      "id": "diagnostic-full-native-v1",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/full-native-v1"
+    },
+    {
+      "id": "diagnostic-selected-native-feedback-v1",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1"
+    },
+    {
+      "id": "diagnostic-source35-upgrade-native",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/source35-upgrade-native"
+    },
+    {
+      "id": "diagnostic-wait-oracle-v2",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/wait-oracle-v2"
+    },
+    {
+      "id": "diagnostic-source32-old35-producer",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/source32-old35-producer"
+    },
+    {
+      "id": "diagnostic-source32-real-old-producer-v1",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/source32-real-old-producer-v1"
+    },
+    {
+      "id": "native-pg16-stateknot-store-postgres",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg16/stateknot-store-postgres"
+    },
+    {
+      "id": "native-pg16-stateknot-runtime",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg16/stateknot-runtime"
+    },
+    {
+      "id": "native-pg16-stateknot-integrations",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg16/stateknot-integrations"
+    },
+    {
+      "id": "native-pg16-stateknot-deepseek_agent",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg16/stateknot-deepseek_agent"
+    },
+    {
+      "id": "mandatory-backup-pg16",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg16/mandatory-backup-restore"
+    },
+    {
+      "id": "native-pg17-stateknot-store-postgres",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg17/stateknot-store-postgres"
+    },
+    {
+      "id": "native-pg17-stateknot-runtime",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg17/stateknot-runtime"
+    },
+    {
+      "id": "native-pg17-stateknot-integrations",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg17/stateknot-integrations"
+    },
+    {
+      "id": "native-pg17-stateknot-deepseek_agent",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg17/stateknot-deepseek_agent"
+    },
+    {
+      "id": "mandatory-backup-pg17",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg17/mandatory-backup-restore"
+    },
+    {
+      "id": "mandatory-pitr-pg16",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-pitr-v1/pg16"
+    },
+    {
+      "id": "mandatory-pitr-pg17",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-pitr-v1/pg17"
+    },
+    {
+      "id": "PITR16-real-open-resource-cleanup",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-pitr-v1/resource-readonly-final"
+    },
+    {
+      "id": "released-alpha1-production-identity-only",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/evidence/released-alpha1-production-binding-final922-v2"
+    },
+    {
+      "id": "final-df-cache-and-resource-observation",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-validation-resources-v1"
+    },
+    {
+      "id": "old-writer514-inputs-not-whole-tree",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/schema36-final-qualification-v1/derived-old-producer-provenance"
+    },
+    {
+      "id": "actual-apply-preparation-not-main-adoption",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/schema36-main-adoption-copy-preflight-v1"
+    },
+    {
+      "id": "actual-main-compiled-input-binding",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/schema36-main-adoption-v1"
+    },
+    {
+      "id": "previous-schema35-CI-not-final922",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/evidence/ci-c7d8768"
+    },
+    {
+      "id": "adoption-preparation-only",
+      "state": "collected",
+      "origin": ".local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-main-integration-preflight-v2"
+    }
+  ],
+  "mandatory_gates": [
+    {
+      "id": "native-pg16-stateknot-store-postgres",
+      "required": true,
+      "expected_tests": 264,
+      "state": "passed",
+      "receipt": "full-native/pg16/stateknot-store-postgres/receipt.json"
+    },
+    {
+      "id": "native-pg16-stateknot-runtime",
+      "required": true,
+      "expected_tests": 189,
+      "state": "passed",
+      "receipt": "full-native/pg16/stateknot-runtime/receipt.json"
+    },
+    {
+      "id": "native-pg16-stateknot-integrations",
+      "required": true,
+      "expected_tests": 2,
+      "state": "passed",
+      "receipt": "full-native/pg16/stateknot-integrations/receipt.json"
+    },
+    {
+      "id": "native-pg16-stateknot-deepseek_agent",
+      "required": true,
+      "expected_tests": 1,
+      "state": "passed",
+      "receipt": "full-native/pg16/stateknot-deepseek_agent/receipt.json"
+    },
+    {
+      "id": "mandatory-backup-pg16",
+      "required": true,
+      "expected_tests": 1,
+      "state": "passed",
+      "receipt": "full-native/pg16/mandatory-backup-restore/receipt.json"
+    },
+    {
+      "id": "native-pg17-stateknot-store-postgres",
+      "required": true,
+      "expected_tests": 264,
+      "state": "passed",
+      "receipt": "full-native/pg17/stateknot-store-postgres/receipt.json"
+    },
+    {
+      "id": "native-pg17-stateknot-runtime",
+      "required": true,
+      "expected_tests": 189,
+      "state": "passed",
+      "receipt": "full-native/pg17/stateknot-runtime/receipt.json"
+    },
+    {
+      "id": "native-pg17-stateknot-integrations",
+      "required": true,
+      "expected_tests": 2,
+      "state": "passed",
+      "receipt": "full-native/pg17/stateknot-integrations/receipt.json"
+    },
+    {
+      "id": "native-pg17-stateknot-deepseek_agent",
+      "required": true,
+      "expected_tests": 1,
+      "state": "passed",
+      "receipt": "full-native/pg17/stateknot-deepseek_agent/receipt.json"
+    },
+    {
+      "id": "mandatory-backup-pg17",
+      "required": true,
+      "expected_tests": 1,
+      "state": "passed",
+      "receipt": "full-native/pg17/mandatory-backup-restore/receipt.json"
+    },
+    {
+      "id": "mandatory-pitr-pg16",
+      "required": true,
+      "state": "passed",
+      "expected_tests": 1,
+      "receipt": "resources/pitr/pg16/receipt.json"
+    },
+    {
+      "id": "mandatory-pitr-pg17",
+      "required": true,
+      "state": "passed",
+      "expected_tests": 1,
+      "receipt": "resources/pitr/pg17/receipt.json"
+    }
+  ],
+  "all_exact_execution_gates_passed": true,
+  "sealed": true,
+  "reports_finalized": true,
+  "main_adoption_requires_separate_workspace_check": true,
+  "new_CI_executed_for_this_candidate": false,
+  "full_CI_passed": false,
+  "R1_complete": false,
+  "RFC22_status": "Draft",
+  "schema37_included": false,
+  "stdio_owner_delivered": false,
+  "independent_A2a_facts_candidate_included": false,
+  "resource_cleanup_complete": false
+}

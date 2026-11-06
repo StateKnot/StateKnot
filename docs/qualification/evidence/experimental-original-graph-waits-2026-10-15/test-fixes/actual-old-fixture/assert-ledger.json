@@ -1,0 +1,84 @@
+{
+  "original_test": "frame_closures::populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_whole_closure",
+  "production_changes": [],
+  "original_guard_changes": [],
+  "runtime_option_changes": [],
+  "removed_business_assertions": [],
+  "assertions": [
+    {
+      "invariant": "独立新fixture库/原options",
+      "original": "原CREATE DATABASE及migrate36/options",
+      "candidate": "保留原行为；新库runs=0后才revert"
+    },
+    {
+      "invariant": "schema32账本",
+      "original": "原revert后max(version)==32",
+      "candidate": "保留；空库重建后及导入真实旧账本后各断言32"
+    },
+    {
+      "invariant": "旧schema拒绝新Store直连",
+      "original": "connect→IncompatibleSchema",
+      "candidate": "保留同一原断言"
+    },
+    {
+      "invariant": "1..32 checksum逐字",
+      "original": "原writer即时查询32行",
+      "candidate": "真实旧writer原checksums，升级后原完整32行相等"
+    },
+    {
+      "invariant": "Wait Run完整14表",
+      "original": "facts(fence)==before",
+      "candidate": "原完整表达式保留；before来自真实旧writer导出"
+    },
+    {
+      "invariant": "Return Run完整14表",
+      "original": "facts(prior_fence)==prior",
+      "candidate": "原完整表达式保留；prior来自真实旧writer导出"
+    },
+    {
+      "invariant": "Wait registrations全部原行",
+      "original": "jsonb_agg(to_jsonb(w))==waits_before",
+      "candidate": "原完整表达式保留，全部bytea字段亦在原SQL逐字保留"
+    },
+    {
+      "invariant": "真实Return完整owning read",
+      "original": "load_graph_frame_return(...).digest()==returned.digest()",
+      "candidate": "同一个公开完整reader，期望digest来自旧writer实际return"
+    },
+    {
+      "invariant": "实际active checkpoint",
+      "original": "load_active_graph_frame.checkpoint()==saved.checkpoint()",
+      "candidate": "原完整Checkpoint比较，期望Core从旧metadata完整decode"
+    },
+    {
+      "invariant": "真实Wait完整owning read",
+      "original": "此前仅active CP+原facts",
+      "candidate": "新增load_graph_frame_barrier：原完整CP/event/directusage逐项相等"
+    },
+    {
+      "invariant": "真实Cancellation/abandon",
+      "original": "原append_control_plane_abandon_waits",
+      "candidate": "保留原original journal expectation、revision、33_030、cancellation_request(original event time)"
+    },
+    {
+      "invariant": "真实whole closure",
+      "original": "close_graph_frames→confirm",
+      "candidate": "保留原事件、当前head/revision、原usage；actual closure和confirm均必须成功"
+    },
+    {
+      "invariant": "whole closure后rollback拒绝",
+      "original": "combined原reverters execute.is_err，rollback",
+      "candidate": "原表达式保留；新增V3/nonlegacy计数0，证明前置elapsed guard不掩盖closure拒绝"
+    },
+    {
+      "invariant": "rollback后closure身份",
+      "original": "public load_graph_frame_closure digest相等",
+      "candidate": "原完整表达式及verify_schema保留"
+    },
+    {
+      "invariant": "restore guard/trigger",
+      "original": "没有snapshot导入",
+      "candidate": "新增全部schema32 trigger(name/table/state)前后全等，dump连接关闭以丢弃session settings"
+    }
+  ]
+}

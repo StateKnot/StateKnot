@@ -372,15 +372,62 @@ impl ChildRunBudgetAccount {
         parent_graph: &CompiledGraph,
         observed_at: Timestamp,
     ) -> Result<Self, ChildRunBudgetError> {
-        if intent.parent_admission_digest() != self.parent_admission_digest
-            || intent.key().tenant_id() != self.parent.tenant_id()
-            || intent.key().parent_run_id() != self.parent.run_id()
+        if !intent.key().parent().graph_namespace().is_root()
             || intent.key().parent().base_checkpoint().graph() != &self.graph
             || parent_graph.reference() != self.graph
         {
             return Err(ChildRunBudgetError::ParentMismatch);
         }
         intent.validate_declaration(parent_graph)?;
+        self.reserve_declared(intent, self.maximum_children, observed_at)
+    }
+
+    /// Reserves a declared scoped child in this same Root-bound Run account.
+    ///
+    /// The frame policy cannot widen the Root lifetime child cap. Storage must
+    /// authenticate the leaf, all topology dimensions and original DIRECT head
+    /// under its existing tree/ancestor locks. No new frame account is created.
+    ///
+    /// # Errors
+    ///
+    /// Rejects wrong frame/declaration, widened limits or insufficient capacity.
+    pub fn reserve_for_frame(
+        &self,
+        intent: &ChildRunAdmissionIntent,
+        frame: &crate::GraphFrameCheckpoint,
+        frame_graph: &CompiledGraph,
+        observed_at: Timestamp,
+    ) -> Result<Self, ChildRunBudgetError> {
+        intent
+            .validate_frame_scope(frame)
+            .map_err(|_| ChildRunBudgetError::ParentMismatch)?;
+        if frame_graph.reference() != *frame.checkpoint().graph() {
+            return Err(ChildRunBudgetError::ParentMismatch);
+        }
+        intent.validate_declaration(frame_graph)?;
+        let maximum = frame_graph
+            .child_runs()
+            .ok_or(ChildRunBudgetError::ParentMismatch)?
+            .limits()
+            .maximum_children_per_run();
+        if maximum > self.maximum_children {
+            return Err(ChildRunBudgetError::ParentMismatch);
+        }
+        self.reserve_declared(intent, maximum, observed_at)
+    }
+
+    fn reserve_declared(
+        &self,
+        intent: &ChildRunAdmissionIntent,
+        maximum_children: u16,
+        observed_at: Timestamp,
+    ) -> Result<Self, ChildRunBudgetError> {
+        if intent.parent_admission_digest() != self.parent_admission_digest
+            || intent.key().tenant_id() != self.parent.tenant_id()
+            || intent.key().parent_run_id() != self.parent.run_id()
+        {
+            return Err(ChildRunBudgetError::ParentMismatch);
+        }
         intent.child().budget().validate_narrowing(&self.budget)?;
         if let Some(existing) = self.entry(intent.key()) {
             return if existing.spawn_digest == intent.spawn_digest() {
@@ -389,7 +436,7 @@ impl ChildRunBudgetAccount {
                 Err(ChildRunBudgetError::SpawnConflict)
             };
         }
-        if self.children.len() >= usize::from(self.maximum_children) {
+        if self.children.len() >= usize::from(maximum_children) {
             return Err(ChildRunBudgetError::TooManyChildren);
         }
         let mut next = self.clone();
@@ -576,7 +623,8 @@ impl ChildRunBudgetAccount {
             entry.validate()?;
             if entry.key.tenant_id() != self.parent.tenant_id()
                 || entry.key.parent_run_id() != self.parent.run_id()
-                || entry.key.parent().base_checkpoint().graph() != &self.graph
+                || (entry.key.parent().graph_namespace().is_root()
+                    && entry.key.parent().base_checkpoint().graph() != &self.graph)
                 || entry.child.tenant_id() != self.parent.tenant_id()
                 || entry.child.run_id() == self.parent.run_id()
             {

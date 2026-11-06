@@ -1,0 +1,49 @@
+{
+  "files": [
+    {
+      "path": "audit.json",
+      "bytes": 2671,
+      "sha256": "27962b9f01252d1f7c5d591353b8e000dfd598b029e515f2c2863e5b0dcc8186"
+    },
+    {
+      "path": "audit.py",
+      "bytes": 6098,
+      "sha256": "057682b8ec75165c6e886b27fe685b6adf6f55bf04c7f3c269fc2cd9d35f1ee8"
+    },
+    {
+      "path": "offline.receipt.json",
+      "bytes": 485,
+      "sha256": "303a822288eb70d1fe46840ced5e87a9acf1af41b44401cc832df6b67fb996c2"
+    },
+    {
+      "path": "offline.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "offline.stdout",
+      "bytes": 977,
+      "sha256": "ac49ca1b421ccb6b5ed1210c3e6b232f9578cf4c8f61774f1877b4d6ac75afb5"
+    },
+    {
+      "path": "receipt.json",
+      "bytes": 1163,
+      "sha256": "29e7aeaca3f5fe9a233a5938e1c21211feb8c4d241c31087441c6b60f0b354ed"
+    },
+    {
+      "path": "review.md",
+      "bytes": 1808,
+      "sha256": "379dc4ab18c9c651ad8b4bbcee7d653a5e98c7a10ca60d2edd88a4daf84ae5e5"
+    },
+    {
+      "path": "tooling/audit-attempt1.py",
+      "bytes": 5885,
+      "sha256": "875e0fe59ba97ab147f9206a787c31290beeb97b63c4654fa7e5666290b4896c"
+    },
+    {
+      "path": "tooling/audit-attempt1.receipt.json",
+      "bytes": 459,
+      "sha256": "a49876040fbd0c2b0575ce5070f2c059d2b2167448e6642ac4a6606ddaead962"
+    }
+  ]
+}

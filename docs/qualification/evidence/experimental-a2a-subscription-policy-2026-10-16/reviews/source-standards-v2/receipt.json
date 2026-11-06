@@ -1,0 +1,23 @@
+{
+  "role": "independent non-author Standards incremental review",
+  "source_tree_sha256": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "source_count": 930,
+  "compiled_count": 538,
+  "compiled_sha256": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "production_and_other928_byte_equal_to_reviewed_v3": true,
+  "changed_fixture_paths": 2,
+  "non_tooling_standards_findings": 0,
+  "actionable_smells": 0,
+  "v3_clippy101_v4_fmt1_preserved": true,
+  "actual_final_gate_results_not_inferred": true,
+  "docs_qualification_and_links_pending_separate_finalization": true,
+  "artifact_manifest_sha256": "dfcf78163a5f79aaa53974094268b65f9e8fc777370df596024ce43ae3425236",
+  "report_sha256": "523bdded4d1cc9f9b60ea618b4e5895aa9c543eead90b03150463e280585632d",
+  "basis_sha256": "3dc9af65e8fa91c864861122ff4b9afb10782a5e47537a9c1a56e3be97084728",
+  "offline_verifier": {
+    "exit_code": 0,
+    "actual_tool_chunk_id": "3e4a2f"
+  },
+  "reviewer_rust_tcp_db_execution": false,
+  "source_main_git_index_unchanged": true
+}

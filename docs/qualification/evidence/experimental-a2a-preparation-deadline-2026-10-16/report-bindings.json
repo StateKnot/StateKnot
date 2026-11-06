@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "docs/qualification/experimental-a2a-preparation-deadline-2026-10-16.json",
+      "bytes": 3032,
+      "sha256": "95c108d03c85bff9f76eeed5220cf6e8e5275a76d767f6d2675442d828da2517"
+    },
+    {
+      "path": "docs/qualification/experimental-a2a-preparation-deadline-2026-10-16.md",
+      "bytes": 8876,
+      "sha256": "444bfffc19091b9c998de0d8d10eb7528c65f93a76f03802726a59f13d291b35"
+    },
+    {
+      "path": "docs/qualification/experimental-a2a-preparation-deadline-2026-10-16.zh-CN.md",
+      "bytes": 7802,
+      "sha256": "20ffacd9b8cf7145f364aed0be04f1a5dbd8d226553e3df4891c018733ff5c5e"
+    }
+  ]
+}

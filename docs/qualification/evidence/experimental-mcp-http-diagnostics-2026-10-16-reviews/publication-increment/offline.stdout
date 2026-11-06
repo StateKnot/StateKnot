@@ -1,0 +1,4 @@
+{"state": "component source/raw receipt checks verified", "source": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca", "inputs": 536, "source_payloads": 2, "workspace_bytecheck_requested": false, "workspace_suites": 99, "passed": 2099, "ignored": 6, "doctests": 48, "Native_CI_deployment_R1_claimed": false}
+{"state": "targeted Native raw/profile/list/complete markers verified", "majors": [16, 17], "each_major": {"mcp_durable": [6, 0, 0, 0], "mcp_reconciliation": [10, 0, 0, 0]}, "markers_per_major": 7, "two_fresh_default_feature_binaries": true, "full_Store_Runtime_Native_CI_R1": false}
+{"state": "bounded evidence verified", "source": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca", "workspace_bytecheck_requested": false, "independent_review_performed": false, "executed_build_network_database_commands": false}
+PASS: final publication candidate integrity/source/raw gates/targeted Native checked; no execution or independent review

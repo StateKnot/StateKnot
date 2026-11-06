@@ -1,0 +1,2686 @@
+{
+  "count": 536,
+  "canonical_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "bytes": 98935,
+      "sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+    },
+    {
+      "path": "Cargo.toml",
+      "bytes": 3624,
+      "sha256": "d73912078dd7ea3c34ff854cebc84088b6c1dade7a675ddfc6b3a23c3643a622"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/Cargo.toml",
+      "bytes": 1280,
+      "sha256": "6b6277d87adfb7f4676394dd91d71e9fb9bb195a6a2eebfe045f74071e881f84"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/LICENSE",
+      "bytes": 142,
+      "sha256": "b5f2bd8fcd45f03cc9cee192075d54894cf9b778b87763f1eba68d3f2830ce22"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/NOTICE",
+      "bytes": 121,
+      "sha256": "967165c981d9f76ea6153d6d0443d2e3bb9ed6773a911cb788e048df5721567a"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/src/config.rs",
+      "bytes": 13451,
+      "sha256": "29b6d8d73647ad6db9764e56907b7798123a3de7ad18d8e3cfe4cb9cebbdd6e5"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/src/error.rs",
+      "bytes": 3865,
+      "sha256": "eb207826ad06b2409f0dbc6de94e285763f7f0c617d89c28e9d9d01aa6f2ead9"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/src/lib.rs",
+      "bytes": 654,
+      "sha256": "b89af193dc006eac68ed95eeab2452db458d56e653153070b2130db1e062a488"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/src/registry.rs",
+      "bytes": 1720,
+      "sha256": "e9882b44035788da3d704ce36bc87cf1cf9b36e4a1dd6e2f603b7c11cdedd1fd"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/src/s3.rs",
+      "bytes": 16926,
+      "sha256": "20ac527b0279bcb7240e44baf21e86863a11d361c9a6ae207c15c0507b91731e"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/src/store.rs",
+      "bytes": 50926,
+      "sha256": "2a315f5f24dc00dcdc425dc3c17e9926ababc934b37dd9d6cc8847f6a3be2633"
+    },
+    {
+      "path": "crates/stateknot-artifact-store/tests/artifact_store.rs",
+      "bytes": 26205,
+      "sha256": "8cd2f12da582bb9c7b5fca208467eedad6b7a5b90a0deb6ac4afcb8c40b39c9f"
+    },
+    {
+      "path": "crates/stateknot-core/Cargo.toml",
+      "bytes": 998,
+      "sha256": "a7c5aba41fcd7dc6a6e4b3d05b83111a94381afe525dd4718de5fc1483eb4659"
+    },
+    {
+      "path": "crates/stateknot-core/LICENSE",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "crates/stateknot-core/NOTICE",
+      "bytes": 113,
+      "sha256": "7fb0437b8ffaff0795c172b71ae0753484cdbd6b3738be24b1e309399bca2817"
+    },
+    {
+      "path": "crates/stateknot-core/examples/child_run_contracts.rs",
+      "bytes": 3598,
+      "sha256": "7df74b3ef0157f5b1ccd6092cb604e597290fdd4f73012d9898a885c2c378f4c"
+    },
+    {
+      "path": "crates/stateknot-core/examples/child_run_declarations.rs",
+      "bytes": 3123,
+      "sha256": "1a4028992376453a97125fa7708e91cc10c9093a506fd48d2e79e620b16887f7"
+    },
+    {
+      "path": "crates/stateknot-core/examples/compiled_graph.rs",
+      "bytes": 2356,
+      "sha256": "0096b98f55e3a08473ffa385058094dcb88d9f9f1901371048e7928b6f1d0ca8"
+    },
+    {
+      "path": "crates/stateknot-core/examples/first_agent.rs",
+      "bytes": 1547,
+      "sha256": "cc96d072a838e9f28ff6f882720f8dc5dd03966766f60296e04e59ba41bd5aea"
+    },
+    {
+      "path": "crates/stateknot-core/examples/model_stream.rs",
+      "bytes": 4785,
+      "sha256": "32dad36c86b9a12613d25ad81e35e55998478756dfd568ae31e219cf3ddaec65"
+    },
+    {
+      "path": "crates/stateknot-core/examples/protocol_adapter.rs",
+      "bytes": 2162,
+      "sha256": "a9132202f5944d76a3c23516b25fa5ecc7c3a30fa2372e1a7c5bb0ef363e743b"
+    },
+    {
+      "path": "crates/stateknot-core/examples/support/mod.rs",
+      "bytes": 7038,
+      "sha256": "b0dd840c3be8f2eb8957c08510a6f78813a5695922c3eb2a2f39239a34cc5238"
+    },
+    {
+      "path": "crates/stateknot-core/examples/typed_tool.rs",
+      "bytes": 5074,
+      "sha256": "72f69319b523b370355f2d7ee8e409cff794cbf51de02048e229dfae2443215b"
+    },
+    {
+      "path": "crates/stateknot-core/src/accounting.rs",
+      "bytes": 23845,
+      "sha256": "28bb0445c720ec4bf72490e8efbd27976645fa75807bcc878bd175acccc43105"
+    },
+    {
+      "path": "crates/stateknot-core/src/agent.rs",
+      "bytes": 60690,
+      "sha256": "6728344875b24905de494feb894c00a7092db3da6c84863e7c7b5dc535efeaa5"
+    },
+    {
+      "path": "crates/stateknot-core/src/agent_admission.rs",
+      "bytes": 35386,
+      "sha256": "0ec39d06e60eb0a79b615afaab3dd107179c312ad3e24379d6eeae96be91b91e"
+    },
+    {
+      "path": "crates/stateknot-core/src/agent_runtime.rs",
+      "bytes": 75381,
+      "sha256": "8799f192721ac13d74c0293dcd9ddb33dc9174a6fe7daead5bf0135b6ac7e107"
+    },
+    {
+      "path": "crates/stateknot-core/src/artifact.rs",
+      "bytes": 69594,
+      "sha256": "28231522021f2941231c209f627cfd3ab02415d4788e1808c0c787cec9a9af60"
+    },
+    {
+      "path": "crates/stateknot-core/src/barrier.rs",
+      "bytes": 24095,
+      "sha256": "b19ba45c52c8636453e41564f5be3b1fbbae329301b4a482ad8348b3a0ee8b22"
+    },
+    {
+      "path": "crates/stateknot-core/src/budget.rs",
+      "bytes": 107417,
+      "sha256": "795f75213e461ae3d1dead5bfa11a4da1e1ff1390aa8813123581ae95f99bdfa"
+    },
+    {
+      "path": "crates/stateknot-core/src/budget_reservation.rs",
+      "bytes": 7942,
+      "sha256": "bea0edd87a1dab59284de9da6b93692e03a25d2eec77ddc9f01af7447d43f555"
+    },
+    {
+      "path": "crates/stateknot-core/src/budget_reservation_tests.rs",
+      "bytes": 10790,
+      "sha256": "1bd0d72287d9dfffce58bf7816155df73477e9e23add71cad6e74f5252eca973"
+    },
+    {
+      "path": "crates/stateknot-core/src/canonical.rs",
+      "bytes": 6854,
+      "sha256": "a80827966dd5e6fdb7d48164366bb1af11af7df0023eab8bbd89b61403bd7f13"
+    },
+    {
+      "path": "crates/stateknot-core/src/capability.rs",
+      "bytes": 60343,
+      "sha256": "58a8432605e8bd2bfd8c2884e7ddbc49531287e822b4b0d9cf14af27d2e30122"
+    },
+    {
+      "path": "crates/stateknot-core/src/checkpoint.rs",
+      "bytes": 70784,
+      "sha256": "ebf2b62484c2f85f6ad702ad0f656144e76c1dca3182a081f38edd18caa0a167"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_join.rs",
+      "bytes": 13818,
+      "sha256": "ac0dbec0b6368be8e39cd7a99dc952ab497153ed510758ed766e87c5e89711f1"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_join_tests.rs",
+      "bytes": 7859,
+      "sha256": "cb1f7007615a6a5f12bbb148d970828a6ec78f19591c0a4b9ce1682428931c0f"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run.rs",
+      "bytes": 5319,
+      "sha256": "009084c40f52ce08bee9e2f12f300b11ffdb81b7b2b091c31d6b80eff1d80fd1"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_admission.rs",
+      "bytes": 17829,
+      "sha256": "ac18e6819226662125bf0c675cc516d04f1a2b5d1982885a334c8c6df8680fbf"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_admission_tests.rs",
+      "bytes": 24632,
+      "sha256": "1aefce5a8d4547aa2ebee85872df300af67eee8a6eacbcbf6d2a098d2f9ed7b7"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_budget.rs",
+      "bytes": 30820,
+      "sha256": "91209dfcd37989e295731a4a36c6188a9dc0220b7fcd653917a18a8b33b2a367"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_budget_tests.rs",
+      "bytes": 29607,
+      "sha256": "edb9974aa78ce42cee792593d27d0a726de4795da0a278b37c685ece676aebfe"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_frame_tests.rs",
+      "bytes": 8488,
+      "sha256": "f169567abc555d0d8e80e532ef2b61af62b825be9ea142012cf1dd9b0f94bfc3"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_policy.rs",
+      "bytes": 18159,
+      "sha256": "01cfc8e07804daf5e38d00d7dfcba50a6d09936131222be8f4c2f73f66934c35"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_policy_tests.rs",
+      "bytes": 9639,
+      "sha256": "1671f4a89c837832e168ed486ea2cfe033c6c3197e13e2a4416e66f4f55cdeee"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_tests.rs",
+      "bytes": 7108,
+      "sha256": "9c4222a461c4c3549df4cbc792c23fc2e00d500a0627b83f65c298e43012a1a4"
+    },
+    {
+      "path": "crates/stateknot-core/src/content.rs",
+      "bytes": 41045,
+      "sha256": "032c4e951c53873d9074c60b584f39f5a1239f9a5eacfa8dadae52928e92a715"
+    },
+    {
+      "path": "crates/stateknot-core/src/decimal.rs",
+      "bytes": 4473,
+      "sha256": "2aecf9ab5b8ac23572c8a28aa09479493d54f642c5fa4e429ebf1d2b105e3ad3"
+    },
+    {
+      "path": "crates/stateknot-core/src/digest.rs",
+      "bytes": 10149,
+      "sha256": "f6b84c589c7d7ac790c118aea4bbe93198154f08cff5aa37f8b2feb8a06a38d6"
+    },
+    {
+      "path": "crates/stateknot-core/src/extension.rs",
+      "bytes": 51955,
+      "sha256": "b2d74d10b7ab33486b5f3272f4389d3d04bd703aa656b52319af0c7a0f79fe30"
+    },
+    {
+      "path": "crates/stateknot-core/src/failure.rs",
+      "bytes": 47987,
+      "sha256": "845253ac1947ec3cb167b65bda67adee65e10862540bdf9483f512bd83fd7a81"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph.rs",
+      "bytes": 88093,
+      "sha256": "3367c58bb17e242168a8e76a54c741790a04d39bc91b0581701cb2462a3eec95"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_composition.rs",
+      "bytes": 27077,
+      "sha256": "ff79d9c7ed88f903ab66f190c48d221f2e803f6b4129a6ce6a8f8c5fcf01be8f"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_composition_tests.rs",
+      "bytes": 21790,
+      "sha256": "b2762103f7f309a87938f0b0e9e11e5ef0a5d71b16292b210f8095f7a080c866"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_frame.rs",
+      "bytes": 15857,
+      "sha256": "9c599703dd6c3eb0d885b5d6f71121203b712c89993a8ee6cc6a98c7a37d5a1a"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_frame_barrier.rs",
+      "bytes": 11784,
+      "sha256": "59fb2d37367c8c80b608a9d7e2c326ad8654cb824c6b5700cde0cecd756432bc"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_frame_call.rs",
+      "bytes": 23547,
+      "sha256": "6e2494a64af988e7061bf9ef9b532a878ba4cd1d189f1a25fd563d97d1b07561"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_frame_entry.rs",
+      "bytes": 17013,
+      "sha256": "92bec66dfe3e8dee3259bca13e99ce4de6926c33e8dbe73a81594aedc5a5f94b"
+    },
+    {
+      "path": "crates/stateknot-core/src/identity.rs",
+      "bytes": 21495,
+      "sha256": "f0c5f371cc043344b9066d253fc8d2cd5b63c98ca5145bcaa03526fc9877e47d"
+    },
+    {
+      "path": "crates/stateknot-core/src/ids.rs",
+      "bytes": 33009,
+      "sha256": "82fe3c3bfadfa8619519ae562178dc62c5db8c5a24cee93eda4d104b736d8338"
+    },
+    {
+      "path": "crates/stateknot-core/src/journal.rs",
+      "bytes": 70913,
+      "sha256": "959ed9cb76103eb29d25d38cfe82b081c51355d195ffc4605390bec1a627b6ff"
+    },
+    {
+      "path": "crates/stateknot-core/src/json.rs",
+      "bytes": 47573,
+      "sha256": "0fb50179570c28f511f5938ec4e40e8d138e080455d72c486f623f366e3087fa"
+    },
+    {
+      "path": "crates/stateknot-core/src/lease.rs",
+      "bytes": 31041,
+      "sha256": "c0220dbbd58468d92c5bf7130861f722e139e5cffd14643286cf6c14fe46dafc"
+    },
+    {
+      "path": "crates/stateknot-core/src/lib.rs",
+      "bytes": 16861,
+      "sha256": "4918d8fe4f3e56b706e7ddca7f81ed07f9ff9c72da3288ec8da3ada89dd1ab76"
+    },
+    {
+      "path": "crates/stateknot-core/src/message.rs",
+      "bytes": 52859,
+      "sha256": "4df6af8d86c7df5d2fab8c93d3882e6f736a55ad25004e3662fe632e9a939101"
+    },
+    {
+      "path": "crates/stateknot-core/src/model.rs",
+      "bytes": 98446,
+      "sha256": "c9a716c92463e7222dd9fe723a57b864db5188fecd18b0cbc47787b4000d48fd"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_event.rs",
+      "bytes": 90472,
+      "sha256": "9cf9bd7162d34a3e57d32f2012b3036e3efda5f1c4152c1095ad1d01367586f9"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_invocation.rs",
+      "bytes": 72721,
+      "sha256": "5f18db3e39722c71b9764558ae47f9fe3123b28251dd9e2dd21ad8ec5a0361a6"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_request.rs",
+      "bytes": 81219,
+      "sha256": "a6f12858ca705860fa652c6aae8d85aca0f049d5f46447d8ea6c1d0644bd5239"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_response.rs",
+      "bytes": 90939,
+      "sha256": "3e32eecb70dcf86166019ab039387bf82eb184e897767ef47fdf7bdff32118fa"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_runtime.rs",
+      "bytes": 39376,
+      "sha256": "08203aa96f9c5e5d986e97d9342ba078ec931555ae2c633a0fca9c43cb163056"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_transcript.rs",
+      "bytes": 39322,
+      "sha256": "7b2ab5d248dc643c1c12f31ce12234ea5554a3c861790e6fb2af67391f630312"
+    },
+    {
+      "path": "crates/stateknot-core/src/node_attempt.rs",
+      "bytes": 47192,
+      "sha256": "50a9b9f605416ded729981592a6254d8294505f5e327e3616cfa5ff4a5f5d202"
+    },
+    {
+      "path": "crates/stateknot-core/src/node_result.rs",
+      "bytes": 88355,
+      "sha256": "1dc92dcdf9f7cc47ae7a90f534f197d1a72dc807c87d1736c8ccfb923640ecfd"
+    },
+    {
+      "path": "crates/stateknot-core/src/outbox.rs",
+      "bytes": 76808,
+      "sha256": "17f38d06022823bc5b90b994cfca507ad069245a1abd69d67de46db8511fb805"
+    },
+    {
+      "path": "crates/stateknot-core/src/recovery.rs",
+      "bytes": 54103,
+      "sha256": "5a101a4dc1ee6f994cec88fe64271a30e9833533dbcd474f951fe05ad37da1ab"
+    },
+    {
+      "path": "crates/stateknot-core/src/run.rs",
+      "bytes": 81385,
+      "sha256": "44bd379ae1ee62b46c6357b7376c7dd7a8de7d1db70a4aaa3db5e7cbcd534a75"
+    },
+    {
+      "path": "crates/stateknot-core/src/schema.rs",
+      "bytes": 11752,
+      "sha256": "4986174c5d5b520eb4eed8040471058a2854f35a1f28027a7207d35e2fbd09e9"
+    },
+    {
+      "path": "crates/stateknot-core/src/scope.rs",
+      "bytes": 16562,
+      "sha256": "7c3e65c3da6c545a6c277621678edd95fb714e49e3c28d89fceecb766c7742b8"
+    },
+    {
+      "path": "crates/stateknot-core/src/skill_authorization.rs",
+      "bytes": 32330,
+      "sha256": "5539c83dc6cba4dcc7dfb6d18de44345a510095ea548dbf2e685256af29d7148"
+    },
+    {
+      "path": "crates/stateknot-core/src/time.rs",
+      "bytes": 20217,
+      "sha256": "66a26f7c2a646f1e2929c2be61ce08141fef6ca6bfc7dcc725007966b27f1727"
+    },
+    {
+      "path": "crates/stateknot-core/src/tool.rs",
+      "bytes": 42554,
+      "sha256": "7b8675a32869b258ff1bb6fb8d1c27eac1f3fdb07d6420c3a12dfa7ceabbbc28"
+    },
+    {
+      "path": "crates/stateknot-core/src/tool_authorization.rs",
+      "bytes": 25557,
+      "sha256": "4de16981c2406535c197f2c6c42a4b68c8df95b5293a0a61fc506bd7e9816b04"
+    },
+    {
+      "path": "crates/stateknot-core/src/tool_invocation.rs",
+      "bytes": 100971,
+      "sha256": "7af0154477818153152707a7c02c3209447018b9ba9fb521a9e036e1e08a016a"
+    },
+    {
+      "path": "crates/stateknot-core/src/tool_runtime.rs",
+      "bytes": 163611,
+      "sha256": "a3d97a1d305948a7e004ac762c8f1aa4c7ba68b900646b0897b538385fc1b013"
+    },
+    {
+      "path": "crates/stateknot-core/src/version.rs",
+      "bytes": 8977,
+      "sha256": "42d82fc8e7d07c552fddbc531bf36206128807a237ea7e2cd1c494ee6e988ec5"
+    },
+    {
+      "path": "crates/stateknot-core/src/wait.rs",
+      "bytes": 77935,
+      "sha256": "a878e94aeda2880e63f15afbe1f4917948f379095661702b79759ea9373ff13f"
+    },
+    {
+      "path": "crates/stateknot-core/tests/budget_composite_properties.rs",
+      "bytes": 16277,
+      "sha256": "4b865b009780f5c8b3eaa7ea212c64e546e0647e8223e623e839fa52cd88c707"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_accounting.rs",
+      "bytes": 3843,
+      "sha256": "f8944147c63bd571f1287bc7bba732fcc817b60ceec42d534c3b4ba376507b10"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_agent.rs",
+      "bytes": 5125,
+      "sha256": "0ec44aecf8eb8f49b8231842df72273dcb65b377bbcef33d22532a1522e0fcfd"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_agent_runtime.rs",
+      "bytes": 9081,
+      "sha256": "593779c6fc32b596d0bf1ddfc0df57087cc251eff784a71e7785e9932ae682c9"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_artifact.rs",
+      "bytes": 7467,
+      "sha256": "a2c2eb16b65b86ac4b7e52333f5f10ee924ab66f041fb00ce8f066e5349a1a14"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_authorization.rs",
+      "bytes": 2830,
+      "sha256": "8a1f9cba4c00b9b2a49910f7c829ff060add1d2776bc224ca4800242a8a2df3d"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_barrier.rs",
+      "bytes": 5632,
+      "sha256": "6f08af9145892cad41f5494384f575214104d3965c0e8f6d1c54e7c70a1cddbd"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_budget.rs",
+      "bytes": 3460,
+      "sha256": "bf3db2af562c467eae8487a00cb6d4c6b16c576f6351853ff605077dba040b09"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_capability.rs",
+      "bytes": 3520,
+      "sha256": "0e0eebf96cc12a4faa0e17414bc7645b92ef807c0788b1ce7af37b07bee2a23d"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_checkpoint.rs",
+      "bytes": 6285,
+      "sha256": "cb8d6cdeb8c397359c50a495563f881c8e7a750c353bc84bfecac3a38842fd19"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_content.rs",
+      "bytes": 3835,
+      "sha256": "8f2a897862e790838da08c8820e25c0540e1d8cdfc09a12992034cb46c459dc2"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_durable_wait.rs",
+      "bytes": 12124,
+      "sha256": "9b233216cae0ef0d78c5ab6b2f9361a7eb1e80e6b3b87ba1922ca44a84d4a1bf"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_execution_wires.rs",
+      "bytes": 17865,
+      "sha256": "275d97bc78323dc8d6ae381a9b8538db7823a19e17a2b8251fa5830bd0b2bf2a"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_extension.rs",
+      "bytes": 3677,
+      "sha256": "b8b86cfe8c0ebacb24af5d0e07d760575c95e14639c26570130d0dda8d9446c8"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_failure.rs",
+      "bytes": 4770,
+      "sha256": "4bc7391d600da81399dce28261f7a9bcf059cbf3ffc25f5437fe188f9fb1f842"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_graph.rs",
+      "bytes": 5268,
+      "sha256": "c88578b82c89b1010df37c8c49d10442f1af08a95a647db2b094774a5b98b854"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_identity.rs",
+      "bytes": 2840,
+      "sha256": "92bed5edac4a1b6fdd2ba522e08d7bdda29f3674488cb4de4df5ff344454a697"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_journal.rs",
+      "bytes": 9610,
+      "sha256": "4ced319662e7c4a2d8ff7ed8d44e0f8403cd1f6fe7cedc6c55017e8894358fef"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_json.rs",
+      "bytes": 2632,
+      "sha256": "35ad0f4f13542c41558b0215f120d7278dec1be30eeec9548cca9bfb1e6c036b"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_message.rs",
+      "bytes": 2595,
+      "sha256": "a4b622c681c7dc773e34d686b07a5360cc155304dbe27f632075349cf955e5e8"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_model.rs",
+      "bytes": 4924,
+      "sha256": "cb7ae1b972267783de60cef3d29a9a7adb3fccfcedd7c58f1b0b8cbe9633d5be"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_model_descriptor.rs",
+      "bytes": 1626,
+      "sha256": "651b589123e3d315e0f06d28a024df596818fe251e76ef46185cfa8a06f5b64f"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_model_event.rs",
+      "bytes": 4193,
+      "sha256": "6915e70cd1c14d9a161901c702814ba0f433764d7f180c67fb44ffed3dc83298"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_model_invocation.rs",
+      "bytes": 11565,
+      "sha256": "d3153c8dc17e2b247af578d00c49ab5f837b8e9b6d716d2875476fb47a95bd6b"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_model_request.rs",
+      "bytes": 2433,
+      "sha256": "57fd872b4ecd3adcb49ddbde9687d6628e04a07e7f6f739e1bee15ff19f52d5a"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_model_response.rs",
+      "bytes": 4656,
+      "sha256": "17a5900d23538bbbfaa33397757d8a69d862906dc7e2bdcd73c176e70613f475"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_model_runtime.rs",
+      "bytes": 2952,
+      "sha256": "32ad21e460551e6d76daf8dc43c82fa421f609bcee492a4580d650207035c8fb"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_node_attempt.rs",
+      "bytes": 9345,
+      "sha256": "908043dc78bc5be69526cf9ecbd99187b6e9c6f5b531e984ed5bc2fbf6fde98b"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_node_result.rs",
+      "bytes": 7157,
+      "sha256": "da9b957a25f5c69f92d2da67e5ffb821402d5d296535b3218ff0afc9f2223c49"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_outbox.rs",
+      "bytes": 9222,
+      "sha256": "95c67e8a7f9265fbfbce5b2eb0092ccddd74eac05f31a3ddbcb77df8f86b3f3c"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_run_lifecycle.rs",
+      "bytes": 10208,
+      "sha256": "4555b2ad72c05e08b1ba943834d9cee2aef98cebd6cef2e9f05d0fc963e2d83a"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_scalars.rs",
+      "bytes": 2641,
+      "sha256": "a20f3b09f3841a6b8b287dac043f6e4dfd3db88715f9b24a5f5b46fd50931167"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_schema.rs",
+      "bytes": 2076,
+      "sha256": "a0771e94219d66edc56066ad1c7b3f708506d8e1fde74185bca47d7ff6c99fd7"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_skill_authorization.rs",
+      "bytes": 8088,
+      "sha256": "fac327339a6d4d117c7648a37664b4707b9654bc792c7970f6dd5300d2572f2c"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_time.rs",
+      "bytes": 5776,
+      "sha256": "91f8fdcbc8dca66f3ab73fd9a79abfefd76a602f847ff27e41fd001d40b929e3"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_tool.rs",
+      "bytes": 3971,
+      "sha256": "8214a8c077d6770c9b4bbc44b99f87e45c91761f35677f90f002b404a3f67904"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_tool_authorization.rs",
+      "bytes": 5278,
+      "sha256": "2d88449a33c8f4ec122f548ced0d815cc0cfca15083a9071a48317d76f4f055c"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_tool_invocation.rs",
+      "bytes": 5735,
+      "sha256": "2a23f9f7da66a88b36022237d38fa7bfe34faeb86def3bd03aa19eae748deeef"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_tool_runtime.rs",
+      "bytes": 3118,
+      "sha256": "55b0e6ed22d49cc201c142b0461a8f19a78b451c1ec05c1e74c9e6dd3e874865"
+    },
+    {
+      "path": "crates/stateknot-core/tests/canonical_values.rs",
+      "bytes": 7879,
+      "sha256": "5bff9ea755cafad83f18dc92483f22139acf5bcf42e1df5e42d31c5e97470bd1"
+    },
+    {
+      "path": "crates/stateknot-core/tests/dependency_boundary.rs",
+      "bytes": 2776,
+      "sha256": "b2d342014d14a277e323f31a323010a7e5c0f3193680d3b617a56932fe519fa3"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixture_catalog.rs",
+      "bytes": 10999,
+      "sha256": "d70317ea7490e4ef0da8c7375b3a4b82e1725111827b6508587a72e876bdc9e1"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/catalog-v1.json",
+      "bytes": 12242,
+      "sha256": "6bc6a86ceaa718f04e4f6b68bd9a0f47b4eedb9f8467d21d743d4e3ed625ba50"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-accounting-v1.json",
+      "bytes": 1044,
+      "sha256": "40369564f345185d0895a5737d4eeb1e512fb1ab22e2e76a4122d72730978a7b"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-admission-transcript-wires-v1.json",
+      "bytes": 97892,
+      "sha256": "b32bd472677d9a7f1344296d073b782ea31c45dcbae1bdf38936512d95fb3dce"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-agent-runtime-v1.json",
+      "bytes": 13966,
+      "sha256": "d3d867522ed2cd4e45a2779e1a20318b03b19ba88b0989168bf44c43efe6e9ba"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-agent-terminal-validation-inputs-v1.json",
+      "bytes": 2485,
+      "sha256": "a8b3ab3521418ea29378cfd7cfc03ab7872a5ff7e44f92d9043a8b1faedae118"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-agent-v1.json",
+      "bytes": 10958,
+      "sha256": "f0a821c5eea9457c5f6d94bd6650ec72b564c91152a18a90674c2f9c3a8b17ef"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-artifact-v1.json",
+      "bytes": 11344,
+      "sha256": "83933297d10125809c5054e232c8c88e61843f73f76674e43dc82349e289b5f6"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-authorization-v1.json",
+      "bytes": 1012,
+      "sha256": "598206a5459ba50720d052e187fcf43dfd69b3ae1793947495100a9c15593c5f"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-barrier-v1.json",
+      "bytes": 291,
+      "sha256": "9d38358c430e1f3a4def439ffadc18d699bec24dcdb7eff32d2f4b1c643ff88c"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-budget-v1.json",
+      "bytes": 10334,
+      "sha256": "e3db3c4b00cdcf835161adf01ab48cd176e239e4646cdeb5a63fa35243d73b15"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-capability-v1.json",
+      "bytes": 9375,
+      "sha256": "537e62167afaff4919ee8a4d027a673ed2b208859b6424acaed7e52fc99141d0"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-checkpoint-v1.json",
+      "bytes": 5594,
+      "sha256": "4d6f7058329ae7a3cfa08fb1e23640b938fe9df5d718f630428e644c779eedc0"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-content-v1.json",
+      "bytes": 6152,
+      "sha256": "7ad42f572b5d6786277d858862ddfda3723d60ae58c7fbb1b0f933c36baff3ac"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-durable-wait-v1.json",
+      "bytes": 1074,
+      "sha256": "bdc03ec41cc04101470c580810865ec1e5833c21a98d023801559f887e4849ed"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-execution-wires-v1.json",
+      "bytes": 140275,
+      "sha256": "26ecedf0f98bcec4efba0b3baf900782747f64a1fc508a03f301f5be1198dc9f"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-extension-v1.json",
+      "bytes": 3389,
+      "sha256": "8c02eea3667b36449e1115e8fc8387d72233cdde4005b8a976c8f6913f61842f"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-failure-v1.json",
+      "bytes": 6819,
+      "sha256": "2a6744b0d25f05d59b0c5966ba7c09a7d4513a3efbdf3f5e2b23d915419d0f7e"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-graph-frame-barrier-v1.json",
+      "bytes": 23077,
+      "sha256": "756be369cab62197607f08f170998e0b2c1736d447b672203109974ddb5929c1"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-graph-frame-call-v1.json",
+      "bytes": 7866,
+      "sha256": "ed4e0ccee8d19a803e1863fe8140176cbb0c6fce9086586d7aa621f017406fc5"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-graph-frame-v1.json",
+      "bytes": 16263,
+      "sha256": "44690ef63b03dce17e7b9cf4744d886140d981962b405359f9773c2b56e0d94a"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-graph-v1.json",
+      "bytes": 293,
+      "sha256": "15b437b4738ac918f406a284680343c6b93d4855523fdb4d2376018609c90847"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-identifiers-v1.json",
+      "bytes": 2544,
+      "sha256": "a0d2858126794a4a31ac7fddd2367b7fdd70474f7aadb5c4a067083e31eba0ca"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-identity-v1.json",
+      "bytes": 1878,
+      "sha256": "6104da3f27a5583012977dd35436c8c2ae2f836c98c74e4740d42bdf7a4d5edd"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-journal-v1.json",
+      "bytes": 10613,
+      "sha256": "866e9ef198a9b17257851796f7f05353512f3a4cdb446898b978806755642390"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-json-v1.json",
+      "bytes": 1657,
+      "sha256": "72db24fe269dc50d70f2056e75ba49aa10db09de0bc66fa024bc6b8e5a1c9787"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-media-type-input-schemas-v1.json",
+      "bytes": 11528,
+      "sha256": "0d5e61835f7ebb0b4c3abc7105aa46c3ac8754a15a462f17c9125cfe5aea7fcf"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-message-v1.json",
+      "bytes": 13956,
+      "sha256": "96b660f46ebdd76d1f9937ecd339930b255c9cddf397a2c4c4cf5704ef4315f2"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-model-capability-v1.json",
+      "bytes": 14435,
+      "sha256": "a0992e8a5d88e31592bc3a961f2f02a937362af203ecf17a0f4f0a418c61d7db"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-model-descriptor-v1.json",
+      "bytes": 5017,
+      "sha256": "dcfa5624418765d445320656ebdece6fa333073e8336b9800a4080a629b84d03"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-model-event-v1.json",
+      "bytes": 9041,
+      "sha256": "348d41ad3959653e476f7265abdcce6c4dbb1862d4b31694a64e379f29899c0a"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-model-invocation-v1.json",
+      "bytes": 2015,
+      "sha256": "8f5a1a229f2f201e56d1e4979f25213c072c62c81b2d0da046f69fc0dd3d267c"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-model-request-v1.json",
+      "bytes": 13612,
+      "sha256": "247fc77be79743e087e44371228fd40f73f614719730225637478a1218069a23"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-model-response-v1.json",
+      "bytes": 17044,
+      "sha256": "7d25542be1e648fdca42b96537e934536ed3a3557b6ca25e17d41990b5548674"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-model-runtime-v1.json",
+      "bytes": 10742,
+      "sha256": "26ef438063ecc5888c8975dc94717c41cc8e481054eb42e3e1e45945b209c4b8"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-node-attempt-v1.json",
+      "bytes": 683,
+      "sha256": "fa0c54dd0572e339656e6b67cb55d3123f9c6bf811ef73322864778027202e7c"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-node-result-v1.json",
+      "bytes": 631,
+      "sha256": "80e7896ad880bc4934d5a31c378e047893661d4fb2f7304befcc0ab6bfc1f51c"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-outbox-v1.json",
+      "bytes": 754,
+      "sha256": "d6014c6721b9943c1228c78328d6741dc353d44baa74bad2dcfdd4cee5de7f2e"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-public-enum-variants-v1.json",
+      "bytes": 153875,
+      "sha256": "ff973d1a745d6564b8dcc95126871c3818183277df79b6c6c835a8948ff8441e"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-public-output-schema-inventory-v1.json",
+      "bytes": 66845,
+      "sha256": "4ad3a4a23646b3c7b554099ff1ac5cf3f0bacb489addf99e901481e2155d6c51"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json",
+      "bytes": 212132,
+      "sha256": "b28e71269d82f5102007dac30119cfb39f5168e6edd07915fcdc0316c4e1d277"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-run-lifecycle-v1.json",
+      "bytes": 11285,
+      "sha256": "a098f6e54112cc5fe89673d0ed4c0912c73db1d9cfccf0dcf35dccf42189030b"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-scalars-v1.json",
+      "bytes": 1467,
+      "sha256": "a41f8ef03dda7ef6931537e456cf1ae30d8bef6f319d44b568a06e45552987db"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-schema-v1.json",
+      "bytes": 1741,
+      "sha256": "d38c025aa7debd502e96fb84c1f81cf7516c462e4671368c6697ee7bc1aa0fc8"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-skill-authorization-v1.json",
+      "bytes": 7164,
+      "sha256": "f51a140c8d53cd18e2de0191418c504a28e324a0f155f7ee8f27023b47bc0537"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-time-v1.json",
+      "bytes": 753,
+      "sha256": "3cdc443be68ed93acc31032014bb2ff4f48c3c20d2774fb4f34b8893ed85e5a5"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-time-v2.json",
+      "bytes": 904,
+      "sha256": "c30b00aa87ca135f6c42c0b16e4387ed8c59b86cab88177559fdd4a8c087ea4d"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-tool-authorization-v1.json",
+      "bytes": 5041,
+      "sha256": "9d89ac35ed5741b3a4596a31b4fa5904d75ab60ef682833e7fb3d3fa4603e45a"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-tool-invocation-v1.json",
+      "bytes": 9799,
+      "sha256": "90e1637516feb59eb54a01742866d4a33b429aff6fded4f1b036d354ff1bd727"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-tool-runtime-v1.json",
+      "bytes": 14119,
+      "sha256": "9fe7bec77d7be6166d42a661430dfec083bef7fec0b5e20ab92bc8d3bed6d74c"
+    },
+    {
+      "path": "crates/stateknot-core/tests/fixtures/core-tool-v1.json",
+      "bytes": 12943,
+      "sha256": "009dd22d4deeb72b6129bc42d863e0191ad1a804479fa5f6833d0002336ad20d"
+    },
+    {
+      "path": "crates/stateknot-core/tests/graph_frame_barriers.rs",
+      "bytes": 13665,
+      "sha256": "5c1ae5dfabd1df54b840fa23af455ced13d61139722d540b3413143361d48d8d"
+    },
+    {
+      "path": "crates/stateknot-core/tests/graph_frame_calls.rs",
+      "bytes": 21407,
+      "sha256": "d7b256f0a40e7f09a5b02e0d2f5032152238a03f96d967b69eacb0690476cd35"
+    },
+    {
+      "path": "crates/stateknot-core/tests/graph_frame_contracts.rs",
+      "bytes": 19107,
+      "sha256": "5cb8ddef702749b9d716a2f0922322ec43691ff3b3ec887d210f60f1d99fc615"
+    },
+    {
+      "path": "crates/stateknot-core/tests/graph_frame_entries.rs",
+      "bytes": 18272,
+      "sha256": "8ab46e5f437b5603b746652e3a865547e2c59c418c52821b5cf91a4c18b5f0b1"
+    },
+    {
+      "path": "crates/stateknot-core/tests/graph_state_properties.rs",
+      "bytes": 16100,
+      "sha256": "aef314a1da203fecf9b372e323283007fcfceb9090cf2409303cbfb9159cad42"
+    },
+    {
+      "path": "crates/stateknot-core/tests/nested_frame_identity_prototype.rs",
+      "bytes": 9932,
+      "sha256": "1fcce436c35c0fd1b694b0d386f1249fe12ea36b4e16f9144b5492f0e348ca89"
+    },
+    {
+      "path": "crates/stateknot-core/tests/nested_json_properties.rs",
+      "bytes": 7830,
+      "sha256": "bea5631694768b0ffbd00c9f1b4c7cdbab3dfbf95a33e56faee17a3c677e947b"
+    },
+    {
+      "path": "crates/stateknot-core/tests/object_wire_shapes.rs",
+      "bytes": 5675,
+      "sha256": "d913aa19566f34eee7674e3320bf24729c7c526464540bed60ac866763c9c77e"
+    },
+    {
+      "path": "crates/stateknot-core/tests/public_enum_variants.rs",
+      "bytes": 16526,
+      "sha256": "8c570ab32e8c58c78f3b636a002cad47ac597ee690eb5b522f0d833d433aefcb"
+    },
+    {
+      "path": "crates/stateknot-core/tests/public_type_inventory.rs",
+      "bytes": 23568,
+      "sha256": "dddd179bd9f847c6e8996f1f7e67960d3a9b7cb0792dd15c112c6a180024bb80"
+    },
+    {
+      "path": "crates/stateknot-core/tests/support/canonical_reference.rs",
+      "bytes": 1292,
+      "sha256": "329f3a7cf13f68f92a6b33a3e8e18d51f70ea3f3027951f5ea9cc97681da601b"
+    },
+    {
+      "path": "crates/stateknot-core/tests/support/frame_barriers.rs",
+      "bytes": 5912,
+      "sha256": "10ee144b45a119738663814d5b974775067013598dcc457fe68c1fb3609c8a5f"
+    },
+    {
+      "path": "crates/stateknot-core/tests/support/frame_calls.rs",
+      "bytes": 3104,
+      "sha256": "8fba4655dbd0bfc1bbd89f500d8c62a0295575189001c5cf250c796bba6cdb29"
+    },
+    {
+      "path": "crates/stateknot-core/tests/support/graph_frames.rs",
+      "bytes": 2918,
+      "sha256": "7efc882378f6be449db0df880d160eeac230fa14355c630bd15fe8e1deb8296e"
+    },
+    {
+      "path": "crates/stateknot-core/tests/support/object_fields.rs",
+      "bytes": 1240,
+      "sha256": "a7b67bb41287f97e759b825faaef4a3cd344570001d783e90b86922c5b90ce49"
+    },
+    {
+      "path": "crates/stateknot-core/tests/support/public_readers.rs",
+      "bytes": 13321,
+      "sha256": "bcdba466b8dbc09793de5da020424b5f09b7ebff4b28c0bfbc86d566ca31a0e2"
+    },
+    {
+      "path": "crates/stateknot-core/tests/value_properties.rs",
+      "bytes": 14074,
+      "sha256": "12517f07e8b403578fc08f74560dcdf65ffdcca8832f06a2e4b946e34aff56b5"
+    },
+    {
+      "path": "crates/stateknot-integrations/Cargo.toml",
+      "bytes": 1729,
+      "sha256": "707044635d4c7d634bd2b373c9cceda37d650d7bfc56dce892444dfd05f53b5e"
+    },
+    {
+      "path": "crates/stateknot-integrations/LICENSE",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "crates/stateknot-integrations/NOTICE",
+      "bytes": 113,
+      "sha256": "7fb0437b8ffaff0795c172b71ae0753484cdbd6b3738be24b1e309399bca2817"
+    },
+    {
+      "path": "crates/stateknot-integrations/examples/a2a_conformance_server.rs",
+      "bytes": 30644,
+      "sha256": "df4b1c86e7a514eefc41335bcc6735127571d6b335418204f7c7c2b6e1ec1666"
+    },
+    {
+      "path": "crates/stateknot-integrations/examples/mcp_conformance_client.rs",
+      "bytes": 10352,
+      "sha256": "3d73f33c862fa82447b452316034c4241232bad754171683ef5106cc1617b021"
+    },
+    {
+      "path": "crates/stateknot-integrations/examples/mcp_conformance_server.rs",
+      "bytes": 33071,
+      "sha256": "01afc066f286a79f1edb0434d5bccb0358784bf0abc096854987675c2c65d0fa"
+    },
+    {
+      "path": "crates/stateknot-integrations/examples/provider_adapters.rs",
+      "bytes": 4825,
+      "sha256": "041504aa142e0b5201a778c120679d5837bacf88242891697d515fa3ac248455"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_client.rs",
+      "bytes": 113100,
+      "sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_contract.rs",
+      "bytes": 128766,
+      "sha256": "2f04616d34f25069285d8fd514636a7d7712ca6fff13c2c347efd7130d7187ef"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_remote_agent.rs",
+      "bytes": 83700,
+      "sha256": "22eba35fb671cf736a5209454f937b9391597d6c9ac452eb07b7acfab542b0b7"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server.rs",
+      "bytes": 91050,
+      "sha256": "ab57758507782b3102863316abaaf9847236e7e0c1a0f2c08eddf15120aeb48a"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/adapter.rs",
+      "bytes": 27589,
+      "sha256": "ec70698be4ea5d555a9f3f77b77dfbc59fee1148dbda02aa66cc5ac8b0fba9ea"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/anthropic.rs",
+      "bytes": 46996,
+      "sha256": "c82a4f952f35e234d7cb861009f8c31645bba48cdc7bc0d4847c9b833ab37d7d"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/atomic_counter.rs",
+      "bytes": 2206,
+      "sha256": "2402a9324153fbca12eec4a27ae32dc27590f0187af1d402f0a0f82e07ab0e53"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/credential.rs",
+      "bytes": 5509,
+      "sha256": "797d56dd4535d2a8677be622c8ae960b4ee88d5eb787577b37418848c326ef4d"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/http.rs",
+      "bytes": 12705,
+      "sha256": "7e5f10dae31833dae01eeab5fc812f56045dc9fdd6607b3ee1e7aa341333e023"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/lib.rs",
+      "bytes": 13004,
+      "sha256": "d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp.rs",
+      "bytes": 54660,
+      "sha256": "acb1cd7a6febb4df2609d939a2f760dd517759d5a8c545c9b404b4550fd88c15"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_authorization.rs",
+      "bytes": 5411,
+      "sha256": "c5b1615bbbab8401bd6a4dd1615d8c755c8785952ec8fc69fb647f53b6e7c197"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_client.rs",
+      "bytes": 85744,
+      "sha256": "069d23e5b0917f67e2d8f1ca31908ddb8b441c3e3b7496a7f05da15acbde3472"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_oauth.rs",
+      "bytes": 29475,
+      "sha256": "aeecbc991a47a4b3c40997858f546107d03391223e39e8069a60251f92a5a7cf"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server.rs",
+      "bytes": 45852,
+      "sha256": "44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_app.rs",
+      "bytes": 28845,
+      "sha256": "1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_bound_state.rs",
+      "bytes": 31923,
+      "sha256": "2fb8f8bc00298b2aeb8664c026cbfe5bc470a707f5317eccfc0dc173ac4d6b09"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_prompt.rs",
+      "bytes": 58423,
+      "sha256": "ffb1832b31593d539fbc260906f8b7d38878fc0b04e12633b6e9f2edcc770131"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_resource.rs",
+      "bytes": 57247,
+      "sha256": "ea5a18b242c88e7b5dca32899357a4f52feb5ba0ce0b0170295603502407b44d"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_skill.rs",
+      "bytes": 62762,
+      "sha256": "9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_server_tool.rs",
+      "bytes": 94750,
+      "sha256": "a002c4e2d9a04bcc513f643fb2373200c42b252ee45c6b973ce6ab8f669587a0"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_skill_host.rs",
+      "bytes": 75432,
+      "sha256": "9016c4ca348a636c7ec1dc5e3f75ecff6a685c28b19341976ca9e9607c8703ac"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/mcp_skill_tool.rs",
+      "bytes": 20482,
+      "sha256": "a2529bc43b9678d1a7963d1d0be9749b1005c87d52dcb4781117a998c483af29"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/openai.rs",
+      "bytes": 58888,
+      "sha256": "6d6a8774670f4855cf4b262f156d0de4798c5e727d2791d1dac72f7c59d9d5ca"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/sse.rs",
+      "bytes": 6174,
+      "sha256": "ca28775953c38ab74131fb17448d5b2eb61330b7936d5dc73ce800bf9f209a12"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "bytes": 78286,
+      "sha256": "c5c95f30fa10ba64bbd4f49fe262465bdd0ade533ad82e9d0f159798e838b359"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract/authorization_facts.rs",
+      "bytes": 20263,
+      "sha256": "1d6e980f892650d2da3325a4af1a7b575d7987b2bad7d2bda6c2cf697399a9ee"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_client_contract.rs",
+      "bytes": 26951,
+      "sha256": "1eaeaa9e4eacce0a4600a5270be770797a843489770cdb821e17a3fe26f691c3"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_contract.rs",
+      "bytes": 16445,
+      "sha256": "154516804186ac2c670dce099daf019cf6a795b641f60f558ca4c08448f50d50"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_contract/authorization.rs",
+      "bytes": 15308,
+      "sha256": "7fd0145ae4ab2e12d4b461d640d3d14be80373b664ed6c50e59bf9bfce7c2676"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_durable.rs",
+      "bytes": 50068,
+      "sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_skills_host.rs",
+      "bytes": 40190,
+      "sha256": "749c86fdc73258acc6781b26e6e0288e26318d72f6410abd765f1f800bd18761"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/mcp_skills_server.rs",
+      "bytes": 12879,
+      "sha256": "a6dfe9bf9897562fddf919e8c54225fbe93fb4d510c7073a6891dec3d39a6355"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/provider_contract.rs",
+      "bytes": 45945,
+      "sha256": "58c29fdf6040622d9dd8dc75f3b07655feea893e9b6b0ebdc084f2894b044c5f"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/provider_native_postgres.rs",
+      "bytes": 18082,
+      "sha256": "c040192b3a79bf063d4a7779bc9cd65a955322d3b97ef617be3bbaf9d2a33fbe"
+    },
+    {
+      "path": "crates/stateknot-runtime/Cargo.toml",
+      "bytes": 1313,
+      "sha256": "32898a71d17bc3d0de89d0929d3414f772bcdbb70d0f132161935edde38f2cfd"
+    },
+    {
+      "path": "crates/stateknot-runtime/LICENSE",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "crates/stateknot-runtime/NOTICE",
+      "bytes": 113,
+      "sha256": "7fb0437b8ffaff0795c172b71ae0753484cdbd6b3738be24b1e309399bca2817"
+    },
+    {
+      "path": "crates/stateknot-runtime/examples/durable_graph_composition.rs",
+      "bytes": 10733,
+      "sha256": "c7f7846883a101dc7067e65e6f32e6ef081af4a006db7f719f2ded7c983140ad"
+    },
+    {
+      "path": "crates/stateknot-runtime/examples/local_tool_registration.rs",
+      "bytes": 4860,
+      "sha256": "96a9730d48d11bd1c53b6cff8b8527ca802818f99a07f59d2584db64ddbb26e2"
+    },
+    {
+      "path": "crates/stateknot-runtime/examples/provider_native_agent.rs",
+      "bytes": 12848,
+      "sha256": "2bf83699ee2c70a55eb6db1261e2e1740b522385b9f8a8b438cbfada0b3019eb"
+    },
+    {
+      "path": "crates/stateknot-runtime/examples/typed_agent.rs",
+      "bytes": 5814,
+      "sha256": "f997188009610e5807fa5f4aca10849802f71af598285c4f7e2fbf36c91cdf46"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/agent-admission-event-1.0.0.json",
+      "bytes": 988,
+      "sha256": "a825079ddf72755f18ca9903d7593b48d62fbc80560305b77e1ab710a22427db"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/agent-cancellation-event-1.0.0.json",
+      "bytes": 973,
+      "sha256": "3c414b8a35f2377804bec48d581ef012faf19ecf6f4fb0e66fd45e02238224b9"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/agent-deadline-event-1.0.0.json",
+      "bytes": 692,
+      "sha256": "a9b94ce5fc8536badeb55e8d0a16c42c0bcc7690f84b14e562a8d942d20b5ed4"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/agent-policy-evidence-1.0.0.json",
+      "bytes": 625,
+      "sha256": "85e59a17d8d18f154b0bdb6d53abc228c576b99a502e9efe74d37f0087996522"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/agent-service-control-event-1.0.0.json",
+      "bytes": 1019,
+      "sha256": "c764ca2aa37a36c8b0e131c7503bd5d6a146050a41fef0be1b379bc35ba7c7aa"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/child-join-event-1.0.0.json",
+      "bytes": 454,
+      "sha256": "2a6b7b19cc3afe4668e99b4291e6e47b8ceae4fe2d032cfbabb5da59827300d1"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/child-reconciliation-event-1.0.0.json",
+      "bytes": 486,
+      "sha256": "8d8cc909ec05412f6909e3fd9037ac1f80da22c455cfab10fde6251f7b13dbe4"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/graph-driver-event-1.0.0.json",
+      "bytes": 3471,
+      "sha256": "eccee47d47242d015b8c6db4aa4b6eaa2a4157a49c54462fb29c69d0df492079"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/graph-lifecycle-event-1.0.0.json",
+      "bytes": 3583,
+      "sha256": "79fd83b8d556b499ff009e6714111b6722ae3b6ce6fee6ebed8ecb5216daec4b"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/invocation-execution-event-1.0.0.json",
+      "bytes": 1859,
+      "sha256": "a21c733cf913cbb55b123aab876fdbcbaacf589ab63a75c2f9c4a9f6b3435cb7"
+    },
+    {
+      "path": "crates/stateknot-runtime/schemas/run-failure-close-event-1.0.0.json",
+      "bytes": 530,
+      "sha256": "7e6ea19216e1a59e5048e214ba443a171bdbc62a04362bc244823046e52e420c"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/admission_schema.rs",
+      "bytes": 4901,
+      "sha256": "76f842de9ee17a07ae654889d0784545b750d11a20e3569d1d8dc13a63db7d6c"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_deadlines.rs",
+      "bytes": 11069,
+      "sha256": "9d15f7114f7e6feece23caa73a28440272da23b5393aa8928faa46769adb06c1"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_loop.rs",
+      "bytes": 14734,
+      "sha256": "6ae9b854083a8907325ab373933fd0ac358dd45fab9ee66f03cbb56b4f28db1a"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_maintenance.rs",
+      "bytes": 13910,
+      "sha256": "201a45462d6198cb6f68d99b10443ded75111d19fc0cbb4e3eecd31af57157b3"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_maintenance/binding.rs",
+      "bytes": 6840,
+      "sha256": "851ccd2f709834917839bbbe0ab2687bf9ea3c131dc2dfa4c42056abaabf99e5"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_maintenance/health.rs",
+      "bytes": 5565,
+      "sha256": "7a2076f2e6d040a19ea6380293b6a962caf63341f5b5b83a3bbf7474122a1c0a"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_maintenance/options.rs",
+      "bytes": 4281,
+      "sha256": "c71a32b0fb1d86ff7e55714dce4764013100a837165d161f7b4d27056a975e70"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_service.rs",
+      "bytes": 34844,
+      "sha256": "df832cdacbe0df385939ccdc8186a8973f3366bd299e24711022accf97968dab"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_service/activity.rs",
+      "bytes": 2772,
+      "sha256": "3ae30d7bb356208b403a9a1381bd6c43f2ef088c1165a49794688f14fed16679"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_service/policy.rs",
+      "bytes": 10264,
+      "sha256": "060f202d2ff651afe093722dab89f4cf1dcff2e7e21490b85decda75b4c43f20"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_service/policy/artifact.rs",
+      "bytes": 7957,
+      "sha256": "bb46f577af25c411ac9722dfd58583cc6f3ca5a0b72b800d96dbfbcd41b9ec9c"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_service/policy/schema.rs",
+      "bytes": 1461,
+      "sha256": "813aa00e4e3d1f7b50ef66e34baa816c68fdf35c5b11c440b58239f507c90376"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_service/policy/tests.rs",
+      "bytes": 16049,
+      "sha256": "120ac64e7e7f1ef4d9e565fbbd4a976ef11a258b3626a3205c18c45ce170b46d"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_service/readiness.rs",
+      "bytes": 2388,
+      "sha256": "9716011f5413dbef190c8b6c65a87222ba054010930d9b60e1ed28f87caa8514"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/agent_typed.rs",
+      "bytes": 24047,
+      "sha256": "a4f7fef76c8f5d7c53acb6c5e970cf804a159ff0ccadff797d5c709ff34fba6e"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/cancellation_schema.rs",
+      "bytes": 5512,
+      "sha256": "84d20706277e8a2b2e66bf5a44332df7af99d55cc3908543485e9ce7150b6497"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/child_join.rs",
+      "bytes": 16118,
+      "sha256": "885ccf1884843b07f3a0c93e574f7423bacb74eb61b5f1db7e21542dd0b7efdf"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/child_reconciler.rs",
+      "bytes": 21565,
+      "sha256": "7eedbefa96f82526d515ef34598ab0fc52c15ea515734fec06ae90767f55e89d"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver.rs",
+      "bytes": 102945,
+      "sha256": "ff17ee321eec475865c3094a1b8d95fdcfec1a78952046d9a2c94798d9d61969"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/barrier.rs",
+      "bytes": 5705,
+      "sha256": "6ec98b0f9a88631075662ee6eb4b3cd2c467a6d079127cb95767b94a36c0dcbb"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/frame.rs",
+      "bytes": 35897,
+      "sha256": "5c95b1453baf55347dc1dbbf3ddb82ec573c1e906290288e398be4e762f7b6bf"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/lease.rs",
+      "bytes": 5938,
+      "sha256": "aad1a2e7c28ea79413fff05bcd80a6d8237aabc3a4c5cb4ce07b17a3b417f983"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/node_batch.rs",
+      "bytes": 8755,
+      "sha256": "dc0969ae208a568c31ced9a5d24efe54ed423e738010f697eed88827db0e1d42"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver_schema.rs",
+      "bytes": 4349,
+      "sha256": "159643bbde10923eeff7ad7ce4ad1ea6ddfe7bbeab4e57c984ab01ae47f6e368"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/durable_admission.rs",
+      "bytes": 26365,
+      "sha256": "9180c9d0ffa2f649822cd364d3642ba8e1a804c2639fe7a43ea966caa951e08a"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/durable_runs.rs",
+      "bytes": 31145,
+      "sha256": "e1899e53899149b5b81e14633d5072e2254de73f1f9a18451656fef70ccecabd"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/execution_activity.rs",
+      "bytes": 2116,
+      "sha256": "df18b37d7063524506cc297164611c029959febd4e3ce2531db99aaa58b32404"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/failure_close.rs",
+      "bytes": 13537,
+      "sha256": "0f372205abe15d765693342221ce562e2c7d2e7c83105fb5c5df75dc2ac15683"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/fair_scheduler.rs",
+      "bytes": 31488,
+      "sha256": "74826a33f32e8b2f1ec5a5aa942f622e587a4de58cab8200fe750ebed64bf53d"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/invocation_executor.rs",
+      "bytes": 123526,
+      "sha256": "5fabccef72d1fa31bbebbe9744196ba81fa4c3763f21be90d971b2ab59a14464"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/invocation_schema.rs",
+      "bytes": 5423,
+      "sha256": "b606c61cddb26364e4e7eec6ae3f39823161dc4304bf7a5522644fb0516fe46d"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/lib.rs",
+      "bytes": 10000,
+      "sha256": "8f5a2f309c579ae689e4e1f70998873a85c6ed565fe6dcab95b1758a231d61b1"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/lifecycle.rs",
+      "bytes": 63337,
+      "sha256": "52950a0a18d9b53cda74c509da24550e59e07ab25690b9b2ce6b075a9dc97e79"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/lifecycle/direct.rs",
+      "bytes": 3399,
+      "sha256": "8b2b1c4050d49471a2c2a6ffb626989d18d606028e627ea9b431880f56b54cdf"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/lifecycle/frame.rs",
+      "bytes": 24427,
+      "sha256": "7f302985cc59d78bf11e1dc4b3f3de229c6efc5fb861dd3ff6c5d3327284d038"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/lifecycle_schema.rs",
+      "bytes": 6908,
+      "sha256": "9a9c32a928c237ef1515a978f9deedd1233c77860ec3e7a9127f0a82e0d2e29f"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/model_token_accounting.rs",
+      "bytes": 10145,
+      "sha256": "41fc7d9994f54ec5c066546d508e3dd0244a1ca9384933625f5f9d0f69ec6d92"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/provider_native_agent.rs",
+      "bytes": 162673,
+      "sha256": "0c34e3ac811e568966464638d68606582413970431e33d9279e6ce96f558993d"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/provider_registry.rs",
+      "bytes": 15827,
+      "sha256": "0d10645ecc111009b629c7623d2c4c745d552fe7c80af31357cde57f7c71c4d2"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/registry.rs",
+      "bytes": 54951,
+      "sha256": "e4a6e4cac60ae8c5efab443bafc6b958941cd9801f18d4d7f5a6788125bebcef"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/registry_child_tests.rs",
+      "bytes": 9444,
+      "sha256": "0ae29bdb8c9d5f7c7ba0c2adb843031e6208b170071d6ae76ed5328d1e7b78f5"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/schema.rs",
+      "bytes": 34228,
+      "sha256": "4cdc9521a2eb1f19d1045cdb8b9de827cb0f1e7383cff374c62c175fa374e7a0"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/service_schema.rs",
+      "bytes": 5233,
+      "sha256": "4f6b6af9101b3bbeb79d36e5517f2b3eee168f4e35b573765043e8e096a9fce6"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/tenant_scheduler.rs",
+      "bytes": 15720,
+      "sha256": "938079d2aef254803e5868b08c09ad6b8688c4925d1b553c0f77cdb37d219160"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/frame_entry_schema.rs",
+      "bytes": 4141,
+      "sha256": "e48f17882c8c8b304c792920941e84f488e86b6cf895f2f4855e6f20327efbd3"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres.rs",
+      "bytes": 250493,
+      "sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadline_process.rs",
+      "bytes": 19561,
+      "sha256": "c5c5c80f2501ab29a38cb4688ba0e8b8d11d46019a652e50dc80d5827b908a5a"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs",
+      "bytes": 7380,
+      "sha256": "adc7e7405e7770d4b489e1c12675a3a74035211c866d2745eae5a1ec01dfef22"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_deadlines.rs",
+      "bytes": 29983,
+      "sha256": "26a45ad851a07b3a9dcc24312684122a5c6c75bed583082581d0f45a7d6742b9"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/agent_maintenance.rs",
+      "bytes": 20851,
+      "sha256": "e4032d3f1c10099ba8d28bbf36508fda0ee38e2d9fe5333fd950ff66cb51f245"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission.rs",
+      "bytes": 17339,
+      "sha256": "9d89bed8e2ffb85f19bcd92d2ccfebacec7ca396857092e513ee1c61b3df4f6a"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_admission_commit_loss.rs",
+      "bytes": 15569,
+      "sha256": "1f83ae9144ce4f350d630b397b5feec52521870f342920776e2bf595e7ca79fc"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation.rs",
+      "bytes": 31130,
+      "sha256": "0eeb0afb8314937c07655dbce94ae693980eee3e4cc792ccfed0475ce190f2ed"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation_commit_loss.rs",
+      "bytes": 19935,
+      "sha256": "0f246101da4e61fe33045c40bc0ebcbb10a37a83092d67bde0e2ad1bf5d2b571"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs",
+      "bytes": 9160,
+      "sha256": "20db69a8756ed6bed43b67e239b67f94b823440178beccd0c36045ea005cbfb1"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_join.rs",
+      "bytes": 18984,
+      "sha256": "18ad30bb9ab870a08807ce016d869d67bbdab9519b26f56c4b7f967ac3f2c8a2"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_backup_restore.rs",
+      "bytes": 12968,
+      "sha256": "4d8cf0fdecfc41ee137cb3a00e65a94251714d3cde9a1a2eb2c9a56b20abf7a5"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_consumption_commit_loss.rs",
+      "bytes": 13002,
+      "sha256": "4ca175b2e3ba82deab9f66b2d4067668dd3c91f5450ddb0edefc8b299a11108f"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_driver.rs",
+      "bytes": 33409,
+      "sha256": "769e878028dd246072b1a67f89ab1161e4061be42eafb0defa5fe5fb11569cd7"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+      "bytes": 16060,
+      "sha256": "d6b0037366d7fb4adb38c21f0a4602de10c595c0ce625b65aa7fac114250387d"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_process.rs",
+      "bytes": 15856,
+      "sha256": "07e953366e5f37dfe73b947d1ccaf83c827a3444bbb0814d151b8653f5c11e73"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_join_qualification.rs",
+      "bytes": 20992,
+      "sha256": "5c68670da51463baab9829352f5e9df662ad3510b81e76733f02ddbb1dfaeb10"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_ownership.rs",
+      "bytes": 34637,
+      "sha256": "8e621c3f0d8ccb5efd4b659da592f7bc00400dbd2ecf405d0b208a62743fbe8c"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_settlement_commit_loss.rs",
+      "bytes": 16275,
+      "sha256": "9ccb4f5af28adad1f3ddfedd560e97603c52624e4372d4a8bbbb4f5e204df91b"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/child_tree.rs",
+      "bytes": 10752,
+      "sha256": "0147b2b7de6d7610e00ff4d2cf128e595bc3f5fdbb733849ae4fffc78d911b3f"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+      "bytes": 14196,
+      "sha256": "c679ce5aa0aecb8d610da396954168e46a4648bece20ce986ed303d2ba68e0ed"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/elapsed_graph_wait_races.rs",
+      "bytes": 21252,
+      "sha256": "2b9079a2498497b665a9bb2d0028315f727b2f6bf8ce3eb3b3595e9546c0a96c"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/elapsed_graph_waits.rs",
+      "bytes": 23685,
+      "sha256": "8fe8a7412110028d061cb1b767291b8d2c53af1ed1177c77c8d6d6a01c2cede9"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close.rs",
+      "bytes": 30371,
+      "sha256": "435f32b6b91df5a639b64d58fd5831f53c66e59087c6da5cf2f1ea25ab4dfda9"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_commit_loss.rs",
+      "bytes": 16064,
+      "sha256": "74d453f79218104cfa5fc5df3d967a772329fca4256f5a4ce5377464ca87c913"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_completion_commit_loss.rs",
+      "bytes": 18064,
+      "sha256": "8822f21f90b552ce1143cd4db32ea7a11a4bdca918f190bdc18b0613a9b843da"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_process.rs",
+      "bytes": 12116,
+      "sha256": "f17685021616204b1efc9e5d76c0bee00f712ed49bf202b131187814a4af61a1"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs",
+      "bytes": 6990,
+      "sha256": "005186858cbcedea53275b338ea05988d02c91f95d502018879383e0a7e328d9"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/graph_composition.rs",
+      "bytes": 26974,
+      "sha256": "47fe392569e49a1a3ca19b5cc9b88c70e197e9c170587cd34d5360fb9eb9d563"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "bytes": 137836,
+      "sha256": "47965383e754c9c5fd63955b5975a7652bf18831deac3d9cebea613c80f5e4e9"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/ordinary_root.rs",
+      "bytes": 54811,
+      "sha256": "99c2d536de03969961f1700e5323705161871a91eb7c9a572c2e502a6d0ba2c2"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/process_harness.rs",
+      "bytes": 9203,
+      "sha256": "f65d30e965a9c7d39e16878016d0d7b51b980b8827d706b1ca59087b46252271"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs",
+      "bytes": 26630,
+      "sha256": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/role_profile.rs",
+      "bytes": 50738,
+      "sha256": "a09417101545c0c40baba62f49cb6e31733a43cbd0d06d3e3a6ad6f18e58910f"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/root_driver_recovery.rs",
+      "bytes": 11029,
+      "sha256": "66592baf57a5ea3937e59bc96d38801a9d429eb0a4c9ff6651271793f582b910"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/transaction_commit_loss.rs",
+      "bytes": 22059,
+      "sha256": "30437f993e34b367c1c12c2f9f57a26c6a0063a960fa10c7660c9fb56ac04dcc"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/tool_registration.rs",
+      "bytes": 24197,
+      "sha256": "3bf11c5a2967059f3727245015ee14a7710221272dd3ae145d3e6617256680ad"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/typed_agent.rs",
+      "bytes": 11808,
+      "sha256": "74de7f96821039e1792d16345079a185d231ab07f71a4dde6bd48b7e68b24618"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/Cargo.toml",
+      "bytes": 985,
+      "sha256": "a3d3479fdc1b19a95c14ea9102ca89035cf102dc987a4978e6dd5fe475495ca9"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/LICENSE",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/NOTICE",
+      "bytes": 113,
+      "sha256": "7fb0437b8ffaff0795c172b71ae0753484cdbd6b3738be24b1e309399bca2817"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0001_initial.sql",
+      "bytes": 6742,
+      "sha256": "89ade328070157ab1444d37dc66046ad4fa2e8c62b1c9019e23488e4092bf946"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0002_checkpoints.sql",
+      "bytes": 6209,
+      "sha256": "195d01d3ca535e4928589d146aa48aa67dac69090bbb714a49910425cc37ba2b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0003_tool_invocations.sql",
+      "bytes": 10845,
+      "sha256": "40b9a26946d44f5faaf80d9997e8069f15cba17993ed69a76a04bcbd1c2a66bc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0004_model_invocations.sql",
+      "bytes": 14798,
+      "sha256": "bd315f7395d5d3e2dcb3f3a9270810ae1a9a5d6ed54de21bd4bfc52edf931ab4"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0005_pending_node_results.sql",
+      "bytes": 21289,
+      "sha256": "0cac233d6229cb328f367980f14431a2c321da2c4469c03912302103779cda91"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0006_node_attempts.sql",
+      "bytes": 17031,
+      "sha256": "18b9ea07eacfbbd562661c2427016b800178c7225d426c0b7a151e3fdaf75528"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0007_scheduler_readiness.sql",
+      "bytes": 1805,
+      "sha256": "a31c9ba1648cdaa07adef97fb7dbe62a5035ae44aaa67048654a859f8152a5ae"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0008_transactional_outbox.sql",
+      "bytes": 19355,
+      "sha256": "ccdaace50b1232e6493a57668319a398d221fafa23eb7304648bc42b9065e8dd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0009_durable_waits.sql",
+      "bytes": 17353,
+      "sha256": "03f246ef5cc40f62b705637e6b820da8ef87b9c4a5afe822f6b33472e3b916ec"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0010_run_quarantines.sql",
+      "bytes": 3140,
+      "sha256": "6c750e2635fdf70719d71b734fe36ef23f752f50e80037c26e51a33e62db4d21"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0011_fenced_recovery_quarantines.sql",
+      "bytes": 965,
+      "sha256": "1109d639b89c49bae349d3537d83fff7790acdd31f7e106001eb9c0013247f3d"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0012_delayed_retry_wakeup.sql",
+      "bytes": 1622,
+      "sha256": "bd74a9de569b793cf315e63051f3ae8d5f773e9538a2adb8b55a0f5fc37bc551"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0013_graph_registry.sql",
+      "bytes": 2832,
+      "sha256": "d5b5ac27c9fa86298ed2ce797d32760bda32deef987afae0fd49e30dd8f63fa8"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0014_scheduler_fairness.sql",
+      "bytes": 3210,
+      "sha256": "80da3ed8e1ea588506ee5e24f4ad7dc00d7759ab138adba4f7887f9fb7aa81d3"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0015_agent_admissions.sql",
+      "bytes": 7015,
+      "sha256": "ee0ea2c3d2fb4d21dd63ee86834de36ffea30eb83f700beb9b2236aaf879c038"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0016_agent_submission_keys.sql",
+      "bytes": 2016,
+      "sha256": "f40ba773d5aa9fbccd1b695838db81c12e0fa482b644b82ff8fa53d597cbfad4"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0017_terminal_tool_result_bindings.sql",
+      "bytes": 2776,
+      "sha256": "a2797bc36ba2968aa32939f159387b74893ccf6d81f9b5ec24c06573bac5b015"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0018_artifact_registry.sql",
+      "bytes": 4414,
+      "sha256": "f6d9f55c89b36131463bd65a1c4c10b24ad0f8a3e9f9e4ad9ce8a61de09e7011"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0019_terminal_model_failure_bindings.sql",
+      "bytes": 742,
+      "sha256": "a72795574d0aa5b84550a641d882d5aa2f75ed2b0eabcdf088110c17e7c801b3"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0020_child_run_ownership.sql",
+      "bytes": 16082,
+      "sha256": "c6d946373a705ca7faca7b933a1e3de49bc2303f475e704b27999286c03f790d"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0021_child_run_cancellation.sql",
+      "bytes": 7666,
+      "sha256": "c6beef2ca07bf131a0ffbf4f69cb9b6e4b9abbf3ef5dfcdcc5c6a99200c411dc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0022_child_run_joins.sql",
+      "bytes": 9878,
+      "sha256": "29261b54c43f68c4a6433226cf48420779e62e704798c9a7ce88a360568af91b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0023_agent_deadlines.sql",
+      "bytes": 3339,
+      "sha256": "87dcdf1128f146c9770ce0b090de33233c0de2336487be26f27f5da15fcc7652"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0024_run_failure_closes.sql",
+      "bytes": 6723,
+      "sha256": "096ba75282cbf8a7ff6bd00df0184a4d14978b2fb06337d8ee075712e6848b38"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0025_tool_authorization_receipts.sql",
+      "bytes": 4404,
+      "sha256": "1f2c22071a171d598876794f1795c9567fc0956b8677060776699d48de9e445f"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0026_skill_activation_windows.sql",
+      "bytes": 8128,
+      "sha256": "cc0cd99713fbe7732a9183316018726341fac45af3e5f7d898c58bcd5c3ac1ec"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0027_scoped_checkpoints.sql",
+      "bytes": 8297,
+      "sha256": "e15d6c2973734f212e9444a3179309e6a783025926b80ca0a97006f9cc2b88dd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0028_graph_frame_entries.sql",
+      "bytes": 17860,
+      "sha256": "5351de9b1b48700c4ebb0c5764164a82895db0016b97d876c7438e3ec7c6642e"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0029_graph_frame_barriers.sql",
+      "bytes": 14353,
+      "sha256": "a58c4c2f27f534c3cbdedb5c29ca240b73a0a67658102f9467609917d050303a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0030_graph_frame_caller_bindings.sql",
+      "bytes": 11382,
+      "sha256": "a6d01278d32327fc4328faa08c238fa8a0ceb62ca2a517eb88a568db11e4898a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0031_graph_frame_returns.sql",
+      "bytes": 16947,
+      "sha256": "7c4874965560727980f81e33cafea5d2ea784612c32eb8c6cf599e19228d0e61"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0032_graph_frame_waits.sql",
+      "bytes": 7545,
+      "sha256": "1b74d033351e1eda5ac8debce76f2161e32697c80e9200ba9ecd8b2c40230e38"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0033_graph_frame_closures.sql",
+      "bytes": 21696,
+      "sha256": "3496c0a846950d3026dee6a2fb3b7db8c567a38deeee6b1072462a8743520574"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0034_root_graph_barriers.sql",
+      "bytes": 18755,
+      "sha256": "931964864cc4952297eff419babe92eb11882309558292712723b9eb71cd4168"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0035_trusted_root_graph_barriers.sql",
+      "bytes": 15955,
+      "sha256": "027c0ac24b12a31846db75c766599c4d78a5ab78895731572e400a50c3babd58"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0036_elapsed_graph_waits.sql",
+      "bytes": 65136,
+      "sha256": "2b0c29bff090abf8c946a44b3a8c5a2c25748f2ad3d39ee7ac9dc96c50ab7a30"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/ops/trusted-role-profile.psql",
+      "bytes": 628,
+      "sha256": "fd45043eb09affa007866dadb726850c8c31451dee40fdf86bfc3030d18ee5bb"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/ops/trusted-role-profile.sql",
+      "bytes": 16204,
+      "sha256": "715e2ae998c51aadde4bd6b7ed1bd85689a6d85ef5fa1e44a02891b39a763ad1"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/agent_deadline_catalog.json",
+      "bytes": 958,
+      "sha256": "836ddfb1a854b90c24593a9b03829390678bda1235cac9c80707521d12fa913c"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/agent_deadlines.rs",
+      "bytes": 14551,
+      "sha256": "331927eb0a6ebf27c2a1d7a7f76eefbcafeb50aeeacf20f74aea0c04533c7520"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_cancellation.rs",
+      "bytes": 32687,
+      "sha256": "6d4e2b65f2403d2187ce98623115f6d876ff147e4772b352fe87ef784060c284"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_join_catalog.json",
+      "bytes": 10894,
+      "sha256": "471f30edf53ef611b9509fea5cdf87451a60d1136e7adbb7f1b0eb63099b1f91"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_joins.rs",
+      "bytes": 36879,
+      "sha256": "d8b99bed81e49bb576fb9e0358a13acb71290122f65ac5ce36efedb635538707"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_run_scope.rs",
+      "bytes": 10852,
+      "sha256": "63bd88b975746511af9651e9ffc65da7943e9e6944f4f75034463e33379a4bbc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_runs.rs",
+      "bytes": 71308,
+      "sha256": "e41e4faa9a079cf77ccdd20939f22024fe668f5ceb961ab4e69d4816b1498cf2"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/config.rs",
+      "bytes": 25381,
+      "sha256": "f2039152c46fa6884fe80b96fee7532f9c2098e859c3165b4bb9c87d46cfa0b0"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/error.rs",
+      "bytes": 38287,
+      "sha256": "7064c167d0597865e8bcb5f25cc4424ff11e6674a00981f4a8a2b99b4eadfb00"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/failure_close_catalog.json",
+      "bytes": 3803,
+      "sha256": "b6f2e4bac11d045404dd2e43c03fa69067c41ef04557d6fd9ffa6b9847a7d9db"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/failure_closes.rs",
+      "bytes": 21844,
+      "sha256": "6982d9fbd4a78fcf7a4723e9fdf764717fd003881eae5f53537bf80967fa89b1"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/frame_recovery.rs",
+      "bytes": 10586,
+      "sha256": "7d659f407ec729d9c557ddd91eed8bedcfef1b64d162c0ba4636faca50b27c08"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/frame_retry.rs",
+      "bytes": 25173,
+      "sha256": "acc0626b7280784b340af192b890870c7444523e664117f15aa4116af2ed9e09"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frame_catalog.json",
+      "bytes": 114343,
+      "sha256": "1c9dc41099d33671de055e42c7c6b5e13432377291b4f6b3b91dfb04f6ace139"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frame_catalog.sql",
+      "bytes": 4640,
+      "sha256": "9ea7b7528a55f9b82a669d7ceabd2e4e1392a774ca2b36fd44f324abbfdec562"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames.rs",
+      "bytes": 64375,
+      "sha256": "16fe8662534fe2f6614be716bf4d69c9512db85e65fa6cd2f8f3a3312d798030"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/active.rs",
+      "bytes": 14162,
+      "sha256": "bfe95b8d64b92744b64fbcfaec85bf8feaf9ec2d26fe619f0e0e2c0801bcdc47"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/application_replay.rs",
+      "bytes": 69879,
+      "sha256": "f585b948552e7096f4d1d6aec13f104166b8c4563382dd087eedb1a5da80cdfc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/barriers.rs",
+      "bytes": 83084,
+      "sha256": "f5a8bc46e5b2544c988cbd2e1db35804ef8c772cb010de525c8ebd9a809dedfd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/barriers/elapsed.rs",
+      "bytes": 12619,
+      "sha256": "2be8498a756934c06fa87667f1b89c118096de1cec9f43be92dd43bc22eabb17"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs",
+      "bytes": 34974,
+      "sha256": "6af9628ab035226496323df8750f98490fabec02a883aa392242f4d76bff2602"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/closures.rs",
+      "bytes": 53198,
+      "sha256": "7d87f05b9bdf0c1eb3ab3408852d23900f76b9198505a2017566d934e79340b8"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/replay.rs",
+      "bytes": 6272,
+      "sha256": "095a6f653021475fda00c691a9b57ddc17f388a18aa9d6122dc9949709ab0a95"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/returns.rs",
+      "bytes": 57462,
+      "sha256": "b1dbee165ee311c3a38f228045e302937af9dcb50f672d9b54419d05ba9d223b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/root_prefix.rs",
+      "bytes": 16656,
+      "sha256": "9255b08e2102e9a6ae5097121cbd26aa3d8bd0db997910042552b310e03439c7"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_wait_catalog.json",
+      "bytes": 30383,
+      "sha256": "b12b2ba36a28d11b167d308a0b40300d50486cfa16bba96988379679d477068d"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_wait_catalog.sql",
+      "bytes": 2163,
+      "sha256": "ff10201d9d96cbe74ad6c0b782e85a4e7966cd4c5f2c73bcefa58b2e2e89f7f4"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_waits.rs",
+      "bytes": 22867,
+      "sha256": "bb5cdd5320af08f41586c1ef3a3d7acf68084ecc906c99b9ef770d34fc669c53"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_waits/database.rs",
+      "bytes": 15535,
+      "sha256": "7e6b8c45bcb58cda53e99d1834050e67c0027fb58497ea958eb42c19c7aec040"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/lib.rs",
+      "bytes": 6431,
+      "sha256": "1e2b238a3a1ea80182f549617927b5b47965c7cc45a8750aaedd19fc2ebbaa0f"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/model.rs",
+      "bytes": 90999,
+      "sha256": "3f080509c163c102c134949bd72a01eadf88ee3feebfcd7d18f601b4a9daaa6e"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barrier_catalog.json",
+      "bytes": 37856,
+      "sha256": "73c2062a6045503dc67ee25bdaec60b49b74776ea71977b3798c90d4384d0ecd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barrier_catalog.sql",
+      "bytes": 2174,
+      "sha256": "2026e795923273bd020cf92493f0dc0000cb2bb48ad0af817be9b4c21481aea0"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barriers.rs",
+      "bytes": 97227,
+      "sha256": "8ef0700e76f65bd778eb9b3575a64314ca0be24dff4bebbac7ec85ad188ac56b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barriers/elapsed.rs",
+      "bytes": 7706,
+      "sha256": "98fef1bcd95d5e327acc5bcb1639d48392d74bf5445da24ab4bdc55dd8917c17"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/scoped_checkpoint_catalog.json",
+      "bytes": 10430,
+      "sha256": "5d458a45e65406f3343a1642650b995112a64042569b065d7b42ef8edeeedd57"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/scoped_checkpoints.rs",
+      "bytes": 4177,
+      "sha256": "9bd5ea26bc7cb04d745b633f7aaf6be888adbcc427fbc117fd6e3aabcc35ec16"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/skill_activation_windows.rs",
+      "bytes": 21103,
+      "sha256": "e9176285a2eae03b1966cdecc5c369848bffbebaa6baba697d5bb73583f1aa83"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/store.rs",
+      "bytes": 818019,
+      "sha256": "78835132253e71ad070dfc26b86d6b2d57b819f7498006cf1dfa631530d21c80"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/tool_authorization_receipts.rs",
+      "bytes": 26742,
+      "sha256": "de24861556419cab272bcfa00e13af377f78d110f0bffee32ceb02ff03fbb855"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/trusted_graph_root.rs",
+      "bytes": 10199,
+      "sha256": "c94ea20859fb64e034e29148c682a69b55802b42e135be150e8e50dcde28c715"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/artifact_model.rs",
+      "bytes": 1363,
+      "sha256": "4de036bcc26b5186091d093a02f40d0ff4d7c418944c33310059b18072d03895"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.README.md",
+      "bytes": 11089,
+      "sha256": "1055e9526769871d0ad7ac61115a7838811ef22fb62fbb8514d05ba7fcc38392"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.json",
+      "bytes": 276915,
+      "sha256": "35b90c759260f7b1fe72be1cd16c03de008a5e4bb0ef89103d928b5cd1fa4aaf"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.sql",
+      "bytes": 361725,
+      "sha256": "a08558e789498fde599645a70d336bf28946ca7e809566f79aa0d37dd1d55a26"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_agent_deadlines.sql",
+      "bytes": 549,
+      "sha256": "9d283b01e819a462e7a8a460a75e8ade785099afbc7940e11e8cc8239c1d9c88"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_child_joins.sql",
+      "bytes": 750,
+      "sha256": "556d9b8196419795e2a25f83430037deabf6826895640c901d6f99395f58e1b2"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql",
+      "bytes": 28509,
+      "sha256": "34f548206c9e155e6f085ad6fe63f9ccb5e26e0ea5b03e1a03196521fc19f6e8"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_barriers.sql",
+      "bytes": 14416,
+      "sha256": "2f03c225f330c17b47f9f8d46a5e51f55f885ca94c6bb83b512b4855389d31b7"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_caller_bindings.sql",
+      "bytes": 11724,
+      "sha256": "5bbdf6f6a75a23824d807b2f8414279e91062eb862b22962a181ab5befe2d32e"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_closures.sql",
+      "bytes": 4656,
+      "sha256": "83c025aa773133c001ab19fa9d28373673614f6c925d558e88c8d0f4f4bb750a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_entries.sql",
+      "bytes": 13038,
+      "sha256": "c16eacc1df08e1bcf1dd1198cb65ac1d086b580050b8cc29957c70d469b14ad3"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_returns.sql",
+      "bytes": 9897,
+      "sha256": "7858f3083ff53fe167b3924e2fcec8e9d4f09ee122f31d571da3683eecfda34b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_graph_frame_waits.sql",
+      "bytes": 6118,
+      "sha256": "90f14d63fe52fb183623eb5e67d0d0481de93894bdee3452a9efc01b566c3722"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_run_failure_closes.sql",
+      "bytes": 721,
+      "sha256": "a4790f9c3f420678957f758a267e6055b4aeabc5218fad81034072146898049c"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_scoped_checkpoints.sql",
+      "bytes": 15930,
+      "sha256": "b2af0cfb7317e8a4a724c7707b4f87504a129e408a9ad726c65f57d11a6709ab"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_skill_activation_windows.sql",
+      "bytes": 1004,
+      "sha256": "f08dc49c20ba2b74c298a041037ee92d2926b49f251e1bc0548ff0df31e725d7"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/fixtures/revert_tool_authorization_receipts.sql",
+      "bytes": 437,
+      "sha256": "e884db8ddaa49e8dd808b5ae8209837bc8ac8dfb8e85b84738074952d7a317d8"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres.rs",
+      "bytes": 607953,
+      "sha256": "790697b004899c2123ea071fd5b5b193c126d5cc84b1bc85812858ef93efbdab"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/child_upgrade.rs",
+      "bytes": 6236,
+      "sha256": "dbbb912b4a6396f6aff4aae6a41b9a393d249b99dbb9a27bab6f48d22346834a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_application_replay.rs",
+      "bytes": 92044,
+      "sha256": "6d0ded8b450265b85b2d4372375944a2c27625250d46feb258abee9ebe6adb61"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs",
+      "bytes": 35295,
+      "sha256": "5627b9b566b658971ef17a0ac59c7177fd5a3ab80084c350392ccd8d1d57e354"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_callers.rs",
+      "bytes": 28009,
+      "sha256": "51d2df3badd1a38eca4108041e3708ea6a2a2f49281e290bf7ac72ba808a073a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_child_cancellation.rs",
+      "bytes": 8636,
+      "sha256": "da619e288716be779b2606a0e1de1be99ccf209e1e9fb4c1611164bf07a35b0f"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_child_join.rs",
+      "bytes": 13545,
+      "sha256": "f9384e89f976a87c29357858b849ccdc52c7595237e173da61aa7574840d2e0f"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_child_topology.rs",
+      "bytes": 23383,
+      "sha256": "9226d40415d3c8897f55967d4de2809cba09f797d2f2332b4bbe4631e9585f87"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_children.rs",
+      "bytes": 32325,
+      "sha256": "4c0848ccac4d83f4524b0a2c57d8c1dc17a9618813223eab391fb9b511ae4055"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs",
+      "bytes": 62751,
+      "sha256": "d35e7f6d61200c8aaf16c357ece0fc5cb0eecbb455ac940c524e91d16179db39"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_dispatch.rs",
+      "bytes": 31104,
+      "sha256": "9af3882aa9409f9daf83c19a02f8bfc03514bd2561ab10cefeb3bcd07be2f766"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_elapsed_wait_faults.rs",
+      "bytes": 13146,
+      "sha256": "98490758b629cf9123cb81f3b92e38a259d83ad8591ea5f15fd0a866c5de76c0"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_elapsed_waits.rs",
+      "bytes": 25146,
+      "sha256": "d1a3c287542e19e02619810f822545855da1926510c46da2eadef93be63574f1"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_entries.rs",
+      "bytes": 6587,
+      "sha256": "1556f291bc5d7f5ca625bc5d9505c58a79e3ca08966ca5ac97f944f9266579cc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_recovery.rs",
+      "bytes": 34904,
+      "sha256": "06158beb20f7c5a18a5f55c81eda1efee9c4c9adeee808f60fda2c55a54c5842"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_retry.rs",
+      "bytes": 70555,
+      "sha256": "061efafc13ae0e2aba4d7c122de7adf4564fd0c057fad716a7e81873527a1c9a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_returns.rs",
+      "bytes": 39742,
+      "sha256": "2ef8458c19a728be0cc257b2e8231b9dc548d3de3b70838a2351b04e183766a7"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_scope.rs",
+      "bytes": 18724,
+      "sha256": "ef4e4dcd9e6647a358f4a4ed465d7557e824b98203173761ac9ad54140d1d901"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_transactions.rs",
+      "bytes": 32142,
+      "sha256": "2d3510a4bbdeb6d7526b5610c9ce3bcbab3a3e2929c2b479d209467564b33a76"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_waits.rs",
+      "bytes": 35818,
+      "sha256": "82d3808b1a27b31e4cd4aa24c269b980fefc8672503e553c518586c2ce39f9cd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/proof_base_reuse.rs",
+      "bytes": 8726,
+      "sha256": "75eadbdf73c2c6b377c9c065828a9bde88ae8750413aecb69565bea548aaf071"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/result_namespace_corruption.rs",
+      "bytes": 12299,
+      "sha256": "0245180f1b17faf93b6b28cafd6f84703b7b7b33503d47ddf0ce4ef0fe52d9a0"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/root_barrier_upgrade.rs",
+      "bytes": 11844,
+      "sha256": "8a9de45f2a3dbcece2c4e96afe10af011f9d2c8f82332ec39ccfc3fb62c88d2f"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers.rs",
+      "bytes": 67763,
+      "sha256": "3867a9dabfe0ba155d1a1e1d6c8f2369bc32fabb378718e014059d85390a6dcf"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/elapsed.rs",
+      "bytes": 18700,
+      "sha256": "21dfa062071820b9db3a8e0e8f6877a347469277a53e93eb8f3dc91646e8edf0"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/trusted_upgrade.rs",
+      "bytes": 19303,
+      "sha256": "63fed0ffa4b909b2ee307340aed22da5acf01c3eac5c7e232432fcfe7d848050"
+    },
+    {
+      "path": "crates/stateknot-testkit/Cargo.toml",
+      "bytes": 871,
+      "sha256": "93f2de3756c1ded22655699d495fb68d19d1f0f8a4a23caf9212ce7f5dd73e65"
+    },
+    {
+      "path": "crates/stateknot-testkit/LICENSE",
+      "bytes": 11358,
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "crates/stateknot-testkit/NOTICE",
+      "bytes": 113,
+      "sha256": "7fb0437b8ffaff0795c172b71ae0753484cdbd6b3738be24b1e309399bca2817"
+    },
+    {
+      "path": "crates/stateknot-testkit/src/environment.rs",
+      "bytes": 13502,
+      "sha256": "34f04437617af695842582804704402099094273c9ff53cd1b4524783177ef58"
+    },
+    {
+      "path": "crates/stateknot-testkit/src/fault.rs",
+      "bytes": 10050,
+      "sha256": "24c28200cd58b788dc9dd7c20452dce5d9b4113d79c3b1575d3ebf998eb419ac"
+    },
+    {
+      "path": "crates/stateknot-testkit/src/lib.rs",
+      "bytes": 1170,
+      "sha256": "cbd391bb041c1d5bdda70649f655f5b53da680a60927a026bcf84dd6b92244b7"
+    },
+    {
+      "path": "crates/stateknot-testkit/src/report.rs",
+      "bytes": 31478,
+      "sha256": "51c79fba162c6e290e0c5608e9ddcc42899fbaf119caf704ca095ffe3cb266ba"
+    },
+    {
+      "path": "crates/stateknot-testkit/src/run.rs",
+      "bytes": 28105,
+      "sha256": "df5d34dc7bb25b00cd2d511fab2c3086056174d6ecc867081965fae807ae4f19"
+    },
+    {
+      "path": "crates/stateknot-testkit/tests/qualification.rs",
+      "bytes": 5604,
+      "sha256": "42ebe4491fb7b5efa616a31be4b87b8a2f910cbaac957b17e84ed3df174eca89"
+    },
+    {
+      "path": "crates/stateknot/Cargo.toml",
+      "bytes": 1711,
+      "sha256": "65207930c95a1eb989315295ceb6bbac7e2d5e324a046b3d676b974502017aef"
+    },
+    {
+      "path": "crates/stateknot/LICENSE",
+      "bytes": 11357,
+      "sha256": "c71d239df91726fc519c6eb72d318ec65820627232b2f796219e87dcf35d0ab4"
+    },
+    {
+      "path": "crates/stateknot/NOTICE",
+      "bytes": 113,
+      "sha256": "7fb0437b8ffaff0795c172b71ae0753484cdbd6b3738be24b1e309399bca2817"
+    },
+    {
+      "path": "crates/stateknot/examples/deepseek_agent.config.json",
+      "bytes": 1233,
+      "sha256": "06974106a01507d8b5693cc29071f0601538ab13999fbb777530476842202259"
+    },
+    {
+      "path": "crates/stateknot/examples/deepseek_agent.rs",
+      "bytes": 21699,
+      "sha256": "5bf10682e1c3824c586efdaa2eeac2d514f597b7d03072ae472d52d8f48e56f3"
+    },
+    {
+      "path": "crates/stateknot/examples/in_process_agent.rs",
+      "bytes": 3094,
+      "sha256": "b477836707102e4e8bca317fe50f7cbedfcabffd6b2892351650008283606954"
+    },
+    {
+      "path": "crates/stateknot/src/agent_host.rs",
+      "bytes": 14929,
+      "sha256": "01088d13c0989a1087ebf46fb5630f146cf083a237d15c7caaba7f06c3bbee76"
+    },
+    {
+      "path": "crates/stateknot/src/agent_host/health.rs",
+      "bytes": 4642,
+      "sha256": "6c146dc61636871327e0bc1d4bc22d03234d6bb9c9fee57801fa4dafcac04b2c"
+    },
+    {
+      "path": "crates/stateknot/src/agent_host/operations.rs",
+      "bytes": 11451,
+      "sha256": "5bfccd68a0b013a9e300862686f58d0ba095dc05b292f17c91adc23e1274e795"
+    },
+    {
+      "path": "crates/stateknot/src/agent_host/operations/options.rs",
+      "bytes": 2322,
+      "sha256": "92d3af46e340e65ff19a457a972011362ed5349d0425f0258b303642cd9d6d72"
+    },
+    {
+      "path": "crates/stateknot/src/agent_host/operations/policy.rs",
+      "bytes": 3774,
+      "sha256": "429d0a2aa44373f589aff17ef76ac13a06f1da7e0aad76619f27241a4d9b0436"
+    },
+    {
+      "path": "crates/stateknot/src/agent_host/operations/policy_tests.rs",
+      "bytes": 2974,
+      "sha256": "90f95888428dd197fba44dc5362b29e6ad2f25e387b4dd2d2408d222791cfe6d"
+    },
+    {
+      "path": "crates/stateknot/src/agent_host/operations/tests.rs",
+      "bytes": 2651,
+      "sha256": "374f075c1a2b740028a0746971ca66b0cf7b155b936b3a7812750c09fbb88fb2"
+    },
+    {
+      "path": "crates/stateknot/src/agent_host/operations/wire.rs",
+      "bytes": 4678,
+      "sha256": "3f8ab52085986346e33e8053f8d3ee107e5df827f548811d7c86588713a80def"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http.rs",
+      "bytes": 21629,
+      "sha256": "33fbb5dbc2f192b2b11d3650f3929f5746f3eb76125e4c84c6d2e80725658806"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/auth.rs",
+      "bytes": 5159,
+      "sha256": "9f445efe22a8dc351a8b12d375b74445d4e4f9418522852c9a2aeeabf58dd8ba"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/introspection.rs",
+      "bytes": 15993,
+      "sha256": "b6e1a1ed3ad317efa6e82c6f8303dcbe4037534495abbc17da3402f8dc9c7669"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/introspection/claims.rs",
+      "bytes": 2669,
+      "sha256": "c525210fcfa04a02e1846634f32f534b406eccdd6719759eefa284545e4976ee"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/introspection/policy.rs",
+      "bytes": 6292,
+      "sha256": "e09e4bd622caf33dbeb972727faf033081bdde90934b0b839b6022b7a9614106"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/introspection/tests.rs",
+      "bytes": 15664,
+      "sha256": "5024cf68d6a74b77b4e31add720a0c09b32d096c79ad714c3062c3b071cdaceb"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/jwt_jwks.rs",
+      "bytes": 19661,
+      "sha256": "5ad9a4d0fb05460c7fadf62214a388020211d8662279be8bca7705852ce15a8d"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/jwt_jwks/tests.rs",
+      "bytes": 18750,
+      "sha256": "0d68c886b399e85f55dbf936e32fc2b4784e8e3239fc802a0f666fbddc663b0e"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/options.rs",
+      "bytes": 5257,
+      "sha256": "74a153afd75aeaf0ebec8d1fa11e74ae1621c8491e739d86d0edbd7663811859"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/server.rs",
+      "bytes": 12338,
+      "sha256": "90a6d75c360d4150f5be148fd1b4a6b030807a926573fdb18add8515e162c981"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/server/health.rs",
+      "bytes": 4545,
+      "sha256": "4862f3aad398f57e6e111194f0f6f74fa709fb383d879a71b05458ee8bc5c731"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/server/options.rs",
+      "bytes": 3089,
+      "sha256": "c002805f17ac98e64cd37abb94cce3f25ff4f6d10d23ace0e4ba0516e2e03873"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/sse.rs",
+      "bytes": 11053,
+      "sha256": "033b992c2946e3c826f7a13ad644db62e58ec7b400fa21bfb1d112feb50e6e7b"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/sse/tests.rs",
+      "bytes": 2127,
+      "sha256": "1a9e75e0dd8494a91377c539fb7feab6c799c6b0318c87a83360824076a1c8de"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/tests.rs",
+      "bytes": 6630,
+      "sha256": "315025ebe45c8177e9d14c153ae08ab51e2b0f523241c316ff1710e77cdfabc3"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/wire.rs",
+      "bytes": 2157,
+      "sha256": "f17677ae90eedee1a7a010a29915390d5c07216e0ea936bd50a693855c576359"
+    },
+    {
+      "path": "crates/stateknot/src/agent_worker.rs",
+      "bytes": 12627,
+      "sha256": "e82a90020793d612c5ac84ae2a164839be32b446b41ba51f817cd73edcf2b1b0"
+    },
+    {
+      "path": "crates/stateknot/src/agent_worker/binding.rs",
+      "bytes": 4754,
+      "sha256": "f188561be0e25be274e3cb109d78dcc919653486b4774bd1d113fbfffb234692"
+    },
+    {
+      "path": "crates/stateknot/src/agent_worker/health.rs",
+      "bytes": 5918,
+      "sha256": "2b703becebb0b010cbaed7464afc161bbe2245ab16be54abd5abcf34f754e177"
+    },
+    {
+      "path": "crates/stateknot/src/agent_worker/options.rs",
+      "bytes": 5022,
+      "sha256": "8304f45d1c4fec4a10ec096cc75d93f2f8222458ded90629435c68c72d1f2d72"
+    },
+    {
+      "path": "crates/stateknot/src/http_transport.rs",
+      "bytes": 2121,
+      "sha256": "b9e62f4056b94b6cb0d0bd5896ea633b45acbd19a25faf980a81f9f3f1a153c4"
+    },
+    {
+      "path": "crates/stateknot/src/in_process_agent.rs",
+      "bytes": 27648,
+      "sha256": "439b098debd746752052dd56a3b570efe821560bb98616b3e98a023896819e61"
+    },
+    {
+      "path": "crates/stateknot/src/lib.rs",
+      "bytes": 2234,
+      "sha256": "574fea02ce997635a7255ed4b1f2b08cf83d512ced5f047800ae0cb32af6e301"
+    },
+    {
+      "path": "crates/stateknot/src/mcp_compute.rs",
+      "bytes": 16910,
+      "sha256": "01e5ed4b4166b291daf261cdf9f120a068e13f1b1609a37b63038f621930997e"
+    },
+    {
+      "path": "crates/stateknot/src/mcp_reconciliation.rs",
+      "bytes": 20996,
+      "sha256": "3f92e5479550d19e313ae014811af0b6fa4e2e9ed51930e0643bc001cd1cc63e"
+    },
+    {
+      "path": "crates/stateknot/src/mcp_reconciliation/error.rs",
+      "bytes": 12114,
+      "sha256": "aff8d770dfdd1cc10d13d9b51856427f60b52214290c78c7bf0346a0b3dfe992"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http.rs",
+      "bytes": 19764,
+      "sha256": "39a61913543d368d407b0dc28d0c7d746ed5ade9dc1da19437fd253f9d82dca0"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/execution_evidence.rs",
+      "bytes": 3064,
+      "sha256": "33ed735f9445b5cfcf86f8c2b9390ac845034d362033499e47f69ab5f0dba21b"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/fixture.rs",
+      "bytes": 17113,
+      "sha256": "b855893af4b6075eaea028f787da355b949c2e4885ad63e39bf95633230f0408"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/identity.rs",
+      "bytes": 19007,
+      "sha256": "7bb0f35e15a7fe6fc42612650fa325416b448616b4f2aef762a7a96bd037a792"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/identity/operations.rs",
+      "bytes": 6336,
+      "sha256": "d47fea9734a8866b271bb4ef73c783188c3ad0b83264ec52a14ede2abbe63731"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/jwt_jwks_identity.rs",
+      "bytes": 16179,
+      "sha256": "3f06f561ae002faed8fb2749f251c20ab65bbfac6dfc06d2e5208d2fbb13d5d2"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/resource_policy.rs",
+      "bytes": 9490,
+      "sha256": "8e3833c718aa3e2618b0fb091f3f76b709ef33543e36d84c1ed1be6b9ffe8dfe"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/server.rs",
+      "bytes": 19584,
+      "sha256": "bb4ff8e360406d8c180caa7561299078a494fee1d6a7796c9544cb05e5803ec5"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_http/sse.rs",
+      "bytes": 17190,
+      "sha256": "317ce2988467f0e8a382fc5ecd4c767b57fc193b3a42fbde73d8e68bd5cf743d"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker.rs",
+      "bytes": 21822,
+      "sha256": "dd9f642140f6875455f2d00edcb685f6172370a8c26b7c2807fafa03df8e38b5"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/host.rs",
+      "bytes": 16288,
+      "sha256": "410e56d7639cb371c087f236739ef10cf30e86660afc787ea1a4659f0c1adc03"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/operations.rs",
+      "bytes": 20089,
+      "sha256": "6bf12df39c05a0349b7519f5b003182fac9bced631bea29d624f860ad3fa349e"
+    },
+    {
+      "path": "crates/stateknot/tests/agent_worker/qualification.rs",
+      "bytes": 13329,
+      "sha256": "39ac11740f3f1bd818d9ad9370a8609fdeb330901dbe68dd5271307dd1d7bd06"
+    },
+    {
+      "path": "crates/stateknot/tests/in_process_agent.rs",
+      "bytes": 9512,
+      "sha256": "885c6024737b72bddee970381e59b076b216d5a2463aa18a68676c09ce7a2608"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_bound_state.rs",
+      "bytes": 836,
+      "sha256": "4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_bound_state/durable.rs",
+      "bytes": 10468,
+      "sha256": "e420f926b1d61b4eb462c8844378b0690b0e2bf54a0b55e59b15f17e69058fe6"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_bound_state/network.rs",
+      "bytes": 38366,
+      "sha256": "13cd1ad067afe81df8e056ac8d59dffc5d3ad0ee80362505c41d7bade6511d87"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_bound_state/support.rs",
+      "bytes": 26578,
+      "sha256": "6d22e3b162187d446c4fa243cd6c5e58505d972a2065315c9f6a9b7bc2b5bdba"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_compute.rs",
+      "bytes": 21838,
+      "sha256": "ece79317603b3edfa85729622ef9e1fb1474b7c5325f50bb33180f6a8296d69a"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_compute/postgres.rs",
+      "bytes": 15133,
+      "sha256": "9a45edd871b18521c473cb976cd61b6d6abaa4f8db7282e4b7e96f84214a4901"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_reconciliation.rs",
+      "bytes": 28963,
+      "sha256": "6318ad8c5696a2461bba32eff147efaf37440b6153ab472034c9066f72c199ec"
+    },
+    {
+      "path": "crates/stateknot/tests/mcp_reconciliation/error.rs",
+      "bytes": 23534,
+      "sha256": "b72c7074770e19f6427b1b9bb187ab7bbe0366d5637c2cfbd1b4d26c33734f06"
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "bytes": 165,
+      "sha256": "2f441c124b2cfabc1558c8b3f990f44fde197b62c3aa3e36b7d8d79d330af858"
+    }
+  ]
+}

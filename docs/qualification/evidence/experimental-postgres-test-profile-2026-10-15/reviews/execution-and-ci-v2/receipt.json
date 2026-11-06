@@ -1,0 +1,191 @@
+{
+  "kind": "independent offline actual-execution evidence and CI candidate fact review",
+  "time_utc": "2026-10-15T14:22:32.185637+00:00",
+  "main_head": "686c42739e9f128db9d90fcb4e9d1aefd36942d8",
+  "execution_seal_sha256": "9b3853142130afacee6873668b51ae76c4a9671403902897a9f04851aad3877d",
+  "semantic_summary_sha256": "40fb5ffbf2e41c502c85dc4e0c96edf114d691df7a6ff3a771fc041e19cfe2e0",
+  "verified_sealed_files": 273,
+  "verified_external_binding_files": 8,
+  "serious_findings": [],
+  "open_actionable_findings": [],
+  "closed_findings": [
+    {
+      "id": "C1",
+      "priority": "P3",
+      "v1_comment": "only test compilation understated job-wide dev-debug/incremental settings",
+      "v2_resolution": "Build/test profile only; leases, fixtures and job budgets are unchanged.",
+      "closed_by_exact_comment_only_delta": true
+    }
+  ],
+  "original_runner": {
+    "exit_code": 1,
+    "failure_sha256": "6d95b03135134a41293d10f776261f0f3e166862638bd065b5378473a809488a",
+    "exception": "FileNotFoundError",
+    "elapsed_seconds": 2730.996731042862,
+    "phase": "final tagged-cache inactivity guard after all product commands and final source check",
+    "original_summary_json_absent": true,
+    "no_TAG_fix_retry_cleanup_or_runner_edit": true
+  },
+  "actual_product_commands": {
+    "strict_six_all_exit_zero": true,
+    "workspace_suites": 98,
+    "workspace_passed": 2073,
+    "workspace_ignored": 6,
+    "doc_suites": 10,
+    "doctests_passed": 45,
+    "Native_suite_processes": 10,
+    "Native_count_per_major": 462,
+    "Native_total_reported_passes": 924,
+    "Native_includes_conditional_test_function_returns_not_backup_PITR_drills": true,
+    "Native_counts_detail": "264 Store +189 Runtime +2 provider +1 DeepSeek example +6 separate facts on each major",
+    "actual_server_versions": [
+      "16.15 (Debian 16.15-1.pgdg13+2)",
+      "17.11 (Debian 17.11-1.pgdg13+2)"
+    ]
+  },
+  "post_failure_readonly_audit": {
+    "sha256": "da4aeb04755efed87da63fbf1d10e36b184141651a120fa1609e01f0119344ef",
+    "structured_audit_complete": true,
+    "original_runner_remains_failed": true,
+    "ps_lsof_exit1_empty_means_no_matching_process_or_handle": true,
+    "Cargo_and_execution_locks_free_as_recorded": true,
+    "both_TAGs_missing_caches_retained": true,
+    "outer_audit_exit0_evidence": "original exec_command tool receipt chunk4fe9fb reported by execution owner; no separately saved aggregate command receipt; do not invent one or call it a second acceptance runner",
+    "raw_per_command_logs_sealed": true
+  },
+  "profile": {
+    "toolchain": "1.88.0; nightly check pinned nightly-2026-10-07",
+    "feature_configuration": "workspace --all-targets --all-features union; not original CI per-package default features",
+    "test_opt_level": "1",
+    "dev_debug": "0",
+    "test_debug": "0",
+    "incremental": "0",
+    "test_debug_assertions": true,
+    "test_overflow_checks": true,
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings",
+    "dev_release_Cargo_manifests_unchanged": true,
+    "build_dependency_profile_overrides_preserved": true,
+    "fixture_stack_lease_deadline_quantum_resources_and_SQL_unchanged": true
+  },
+  "binary_metadata_independently_matched": [
+    {
+      "suite": "store",
+      "sha256": "0bbd9117f395ebc7d34c4863e628c09f505c602d3a66a1a981d283d141857109",
+      "raw_cargo_artifact_exact": true,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "package_features": [],
+      "listed_tests": 264
+    },
+    {
+      "suite": "runtime",
+      "sha256": "f38577af6bff376ea3d2eb66e7ab1e004ddad6c1d9f4e279d291182e3736e762",
+      "raw_cargo_artifact_exact": true,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "package_features": [],
+      "listed_tests": 189
+    },
+    {
+      "suite": "provider",
+      "sha256": "278c37c38e6302efd517bfbe74655ff91b28e789e6aad29bbe1565eae601313d",
+      "raw_cargo_artifact_exact": true,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "package_features": [],
+      "listed_tests": 2
+    },
+    {
+      "suite": "example",
+      "sha256": "b041f4c59db10dd0b72ab041439792ce1d5ce511307e14245deaadebce00043b",
+      "raw_cargo_artifact_exact": true,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "package_features": [],
+      "listed_tests": 1
+    },
+    {
+      "suite": "facts",
+      "sha256": "b4dcc159a0d0e345637edd0479264f13c745cb993bfe7037f70d700c661f301d",
+      "raw_cargo_artifact_exact": true,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "package_features": [],
+      "listed_tests": 6
+    }
+  ],
+  "source": {
+    "files": 923,
+    "tree_sha256": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+    "all_actual_source_maps_equal": true,
+    "main_supplied_inputs": 531,
+    "complete_actual_main_supply_set_equal": true,
+    "canonical_sha256": "ddaf1aba9089af825b870d3c1466969d8967d59ee8805564b302b4c16eebc4b8",
+    "not_compiler_read_closure": true,
+    "old_opt0_whole2182_not_transferred_to_whole923": true
+  },
+  "CI_v2": {
+    "baseline_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004",
+    "v1_sha256": "6bead2659391392d43076624c56473b5cfae366d63efc5d985559009ed76336a",
+    "v2_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7",
+    "v2_patch_sha256": "a1f293f4b74753f33a05bae2183eb61cf44d1bfb896e763da7c693c3e010e49f",
+    "v2_receipt_sha256": "544f95113973b2a00a9d3d71563a4c29b4d9cef5d9813bd990e1065ed949f695",
+    "added_lines": 9,
+    "added_environment_variables": {
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true"
+    },
+    "original_postgres_steps": 53,
+    "original_postgres_run_entries": 31,
+    "timeout_minutes": 30,
+    "commands_and_other_jobs_byte_equal_after_removing_block": true,
+    "v1_to_v2_only_second_comment": true,
+    "executed_as_full_CI": false
+  },
+  "acceptable_scope": [
+    "publish exact local opt1 union product command results with original runner failure and audit separately retained",
+    "use comment-corrected 9-line/6-env postgres-job candidate for subsequent actual unchanged CI validation; no present CI pass claim"
+  ],
+  "not_qualified": [
+    "original runner overall success",
+    "CI default per-package dependency features",
+    "Ubuntu CI execution",
+    "complete 30-minute postgres job",
+    "backup-restore/PITR mandatory drills in this run",
+    "capacity/CPU percentage claims",
+    "R1 completion",
+    "MCP bound-state new source"
+  ],
+  "public_bundle_review": "pending producer publication/seal; not reviewed in this receipt",
+  "review_operations": "read/hash/parse only; no compilation, binary execution, DB, Docker, cache/TAG, runner, main/index mutation"
+}

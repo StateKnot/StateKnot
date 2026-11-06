@@ -31,8 +31,7 @@ use stateknot_integrations::{
     A2aListPushConfigsRequest, A2aListTasksRequest, A2aMessage, A2aMessageRole, A2aPart,
     A2aPartContent, A2aPushConfig, A2aRemoteAgent, A2aRemoteAgentDelivery, A2aRemoteAgentRecovery,
     A2aSecurityScheme, A2aSendMessageRequest, A2aSendMessageResponse, A2aStreamEvent,
-    A2aSubscribeTaskRequest, A2aTaskState, ApiKey, ProviderHttpOptions, StaticA2aBearerToken,
-    a2a_agent_card_digest,
+    A2aSubscribeTaskRequest, A2aTaskState, ApiKey, ProviderHttpOptions, a2a_agent_card_digest,
 };
 use stateknot_runtime::{JsonSchemaRegistry, JsonSchemaRegistryBuilder};
 use tokio::{
@@ -72,6 +71,7 @@ struct TestA2aServer {
     card_endpoint: A2aAgentCardEndpoint,
     interface_pin: A2aClientInterfacePin,
     card: Value,
+    configured_interface_url: String,
     requests: mpsc::Receiver<Vec<u8>>,
     task: JoinHandle<()>,
 }
@@ -387,6 +387,7 @@ impl TestA2aServer {
             .unwrap(),
             interface_pin,
             card,
+            configured_interface_url: interface_url,
             requests,
             task,
         }
@@ -542,8 +543,10 @@ fn request_method(request: &[u8]) -> &str {
 fn rest_operation(method: &str, target: &str) -> &'static str {
     let path = target.split('?').next().unwrap();
     match (method, path) {
-        ("POST", "/a2a/message:send") => "SendMessage",
-        ("POST", "/a2a/message:stream") => "SendStreamingMessage",
+        ("POST", "/a2a/message:send" | "/a2a/remote-tenant/message:send") => "SendMessage",
+        ("POST", "/a2a/message:stream" | "/a2a/remote-tenant/message:stream") => {
+            "SendStreamingMessage"
+        }
         ("GET", "/a2a/tasks/task-1") => "GetTask",
         ("GET", "/a2a/tasks") => "ListTasks",
         ("POST", "/a2a/tasks/task-1:cancel") => "CancelTask",
@@ -2012,13 +2015,10 @@ async fn exercise_operation_matrix(binding: A2aBinding) {
         OperationBehavior::OperationMatrix,
     )
     .await;
+    let policy = Arc::new(authorization_facts::RequestPolicy::default());
     let client = discover(
         &server,
-        A2aClientSecurity::bearer(
-            "oidc",
-            Arc::new(StaticA2aBearerToken::new(ApiKey::new(TOKEN).unwrap())),
-        )
-        .unwrap(),
+        A2aClientSecurity::bearer("oidc", policy.clone()).unwrap(),
         A2aClientOptions::default(),
     )
     .await;
@@ -2146,6 +2146,7 @@ async fn exercise_operation_matrix(binding: A2aBinding) {
     for _ in 0..11 {
         calls.push(server.next_request().await);
     }
+    policy.assert_wire_requests(&calls);
     match binding {
         A2aBinding::HttpJson => {
             let expected = [
@@ -2201,3 +2202,6 @@ async fn exercise_operation_matrix(binding: A2aBinding) {
         _ => unreachable!("matrix covers the implemented A2A client bindings"),
     }
 }
+
+#[path = "a2a_client_contract/authorization_facts.rs"]
+mod authorization_facts;

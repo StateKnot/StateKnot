@@ -1,0 +1,350 @@
+{
+  "format": 1,
+  "date": "2026-10-15",
+  "status": "bounded_product_execution_with_failed_runner_final_guard",
+  "original_runner_exit_code": 1,
+  "runner_overall_passed": false,
+  "all_six_static_and_ten_Native_commands_exit_zero": true,
+  "source": {
+    "frozen_files": 923,
+    "tree_sha256": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+    "parent_A2A_tree_sha256": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+    "only_source_delta": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+    "new_complete_source_archive": false,
+    "conservative_supplied_input_files": 531,
+    "canonical_supplied_input_sha256": "ddaf1aba9089af825b870d3c1466969d8967d59ee8805564b302b4c16eebc4b8",
+    "compiler_read_closure_claimed": false,
+    "actual_opt0_whole_files": 2182,
+    "whole923_opt0_execution_transferred": false
+  },
+  "profile": {
+    "toolchain": "1.88.0; nightly check pinned nightly-2026-10-07",
+    "feature_configuration": "workspace --all-targets --all-features union; not original CI per-package default features",
+    "test_opt_level": "1",
+    "dev_debug": "0",
+    "test_debug": "0",
+    "incremental": "0",
+    "test_debug_assertions": true,
+    "test_overflow_checks": true,
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings",
+    "dev_release_Cargo_manifests_unchanged": true,
+    "build_dependency_profile_overrides_preserved": true,
+    "fixture_stack_lease_deadline_quantum_resources_and_SQL_unchanged": true
+  },
+  "six_static": {
+    "all_exit_zero": true,
+    "workspace_passed": 2073,
+    "workspace_original_ignored": 6,
+    "doctests_passed": 45
+  },
+  "fresh_binaries": [
+    {
+      "suite": "store",
+      "sha256": "0bbd9117f395ebc7d34c4863e628c09f505c602d3a66a1a981d283d141857109",
+      "bytes": 42571152,
+      "Cargo_fresh": false,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "dependency_feature_union": true,
+      "binary_bytes_published": false
+    },
+    {
+      "suite": "runtime",
+      "sha256": "f38577af6bff376ea3d2eb66e7ab1e004ddad6c1d9f4e279d291182e3736e762",
+      "bytes": 50785872,
+      "Cargo_fresh": false,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "dependency_feature_union": true,
+      "binary_bytes_published": false
+    },
+    {
+      "suite": "provider",
+      "sha256": "278c37c38e6302efd517bfbe74655ff91b28e789e6aad29bbe1565eae601313d",
+      "bytes": 33165472,
+      "Cargo_fresh": false,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "dependency_feature_union": true,
+      "binary_bytes_published": false
+    },
+    {
+      "suite": "example",
+      "sha256": "b041f4c59db10dd0b72ab041439792ce1d5ce511307e14245deaadebce00043b",
+      "bytes": 35275568,
+      "Cargo_fresh": false,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "dependency_feature_union": true,
+      "binary_bytes_published": false
+    },
+    {
+      "suite": "facts",
+      "sha256": "b4dcc159a0d0e345637edd0479264f13c745cb993bfe7037f70d700c661f301d",
+      "bytes": 32881712,
+      "Cargo_fresh": false,
+      "profile": {
+        "opt_level": "1",
+        "debuginfo": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "test": true
+      },
+      "dependency_feature_union": true,
+      "binary_bytes_published": false
+    }
+  ],
+  "Native": [
+    {
+      "major": 16,
+      "phase_wall_seconds": 1175.5749220848083,
+      "suites": [
+        {
+          "suite": "store",
+          "passed": 264,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 446.94485211372375,
+          "binary_sha256": "0bbd9117f395ebc7d34c4863e628c09f505c602d3a66a1a981d283d141857109",
+          "marker_counts": {}
+        },
+        {
+          "suite": "runtime",
+          "passed": 189,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 719.3242228031158,
+          "binary_sha256": "f38577af6bff376ea3d2eb66e7ab1e004ddad6c1d9f4e279d291182e3736e762",
+          "marker_counts": {
+            "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9,
+            "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+            "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+            "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+            "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1,
+            "STATEKNOT_PROCESS_KILL_EVIDENCE": 6,
+            "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1,
+            "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8,
+            "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6
+          }
+        },
+        {
+          "suite": "provider",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 1.223031997680664,
+          "binary_sha256": "278c37c38e6302efd517bfbe74655ff91b28e789e6aad29bbe1565eae601313d",
+          "marker_counts": {}
+        },
+        {
+          "suite": "example",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 1.497352123260498,
+          "binary_sha256": "b041f4c59db10dd0b72ab041439792ce1d5ce511307e14245deaadebce00043b",
+          "marker_counts": {}
+        },
+        {
+          "suite": "facts",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 1.6749770641326904,
+          "binary_sha256": "b4dcc159a0d0e345637edd0479264f13c745cb993bfe7037f70d700c661f301d",
+          "marker_counts": {
+            "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": 2,
+            "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2
+          }
+        }
+      ]
+    },
+    {
+      "major": 17,
+      "phase_wall_seconds": 1150.0947029590607,
+      "suites": [
+        {
+          "suite": "store",
+          "passed": 264,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 454.4607629776001,
+          "binary_sha256": "0bbd9117f395ebc7d34c4863e628c09f505c602d3a66a1a981d283d141857109",
+          "marker_counts": {}
+        },
+        {
+          "suite": "runtime",
+          "passed": 189,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 687.6176760196686,
+          "binary_sha256": "f38577af6bff376ea3d2eb66e7ab1e004ddad6c1d9f4e279d291182e3736e762",
+          "marker_counts": {
+            "STATEKNOT_CHILD_ADMISSION_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_CHILD_CANCELLATION_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_CHILD_SETTLEMENT_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_DEADLINE_JOIN_PROCESS_EVIDENCE": 9,
+            "STATEKNOT_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_PARENT_FINALIZATION_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_MAINTENANCE_CURSOR_EVIDENCE": 1,
+            "STATEKNOT_MAINTENANCE_EFFECTS_EVIDENCE": 1,
+            "STATEKNOT_MAINTENANCE_RECOVERY_EVIDENCE": 1,
+            "STATEKNOT_MAINTENANCE_LIFECYCLE_EVIDENCE": 1,
+            "STATEKNOT_PROCESS_KILL_EVIDENCE": 6,
+            "STATEKNOT_ROLE_PROFILE_EVIDENCE": 1,
+            "STATEKNOT_CHILD_JOIN_CONSUMPTION_COMMIT_LOSS_EVIDENCE": 2,
+            "STATEKNOT_CHILD_JOIN_PROCESS_EVIDENCE": 8,
+            "STATEKNOT_JOIN_DEADLINE_COMMIT_LOSS_EVIDENCE": 6
+          }
+        },
+        {
+          "suite": "provider",
+          "passed": 2,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 1.1942179203033447,
+          "binary_sha256": "278c37c38e6302efd517bfbe74655ff91b28e789e6aad29bbe1565eae601313d",
+          "marker_counts": {}
+        },
+        {
+          "suite": "example",
+          "passed": 1,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 1.5109031200408936,
+          "binary_sha256": "b041f4c59db10dd0b72ab041439792ce1d5ce511307e14245deaadebce00043b",
+          "marker_counts": {}
+        },
+        {
+          "suite": "facts",
+          "passed": 6,
+          "failed": 0,
+          "ignored": 0,
+          "filtered_out": 0,
+          "exit_code": 0,
+          "seconds": 1.6397368907928467,
+          "binary_sha256": "b4dcc159a0d0e345637edd0479264f13c745cb993bfe7037f70d700c661f301d",
+          "marker_counts": {
+            "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": 2,
+            "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2
+          }
+        }
+      ]
+    }
+  ],
+  "runner_failure": {
+    "phase": "final cache inactivity/cleanup eligibility check",
+    "exception": "FileNotFoundError",
+    "missing": "CACHEDIR.TAG",
+    "original_failure_sha256": "6d95b03135134a41293d10f776261f0f3e166862638bd065b5378473a809488a",
+    "original_summary_json_created": false,
+    "retry_or_tag_fix_or_cleanup": false
+  },
+  "resource_audit": {
+    "separate_read_only_audit_passed": true,
+    "all_recorded_PIDs_and_selected_native_programs_inactive": true,
+    "cache_lsof_empty_and_locks_acquirable": true,
+    "two_new_cache_TAGs_missing_retained": true,
+    "task_cache_logical_kib": 11230220,
+    "available_kib": 324664452,
+    "du_is_not_APFS_reclaimable_space": true,
+    "post_failure_DB_query_or_mutation": false
+  },
+  "CI686": {
+    "run": 38741332898,
+    "head": "686c42739e9f128db9d90fcb4e9d1aefd36942d8",
+    "actual_PR_merge_checkout": "b552ef62bcb9540fc4b0291b847665885201be5b",
+    "equal_complete_Git_tree": "222152eb603e960cadbb5001a80294b9de96bc84",
+    "success_jobs": 11,
+    "cancelled_jobs": 2,
+    "timeout_annotation": "The job has exceeded the maximum execution time of 30m0s",
+    "Store_passed_per_major": 264,
+    "Runtime_entered_per_major": 189,
+    "Runtime_terminal_summary": false,
+    "explicit_FAILED_lines": 0,
+    "complete_CI_qualified": false,
+    "independent_Linux_PITR": {
+      "majors": [
+        16,
+        17
+      ],
+      "passed_per_major": 1,
+      "filtered_out_per_major": 188,
+      "resource_cleanup_marker_true": true,
+      "host": "Linux x86_64",
+      "versions": [
+        "16.14",
+        "17.11"
+      ],
+      "other_jobs_qualified": false
+    }
+  },
+  "CI_profile_candidate": {
+    "review": "independent execution/CI fact review; v1 wording corrected and v2 comment-only increment independently verified",
+    "workflow_candidate_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7",
+    "job": "postgres only",
+    "added_lines": 9,
+    "original_steps": 53,
+    "original_run_steps": 31,
+    "timeout_minutes": 30,
+    "original_default_feature_commands_unchanged": true,
+    "status_at_record_freeze": "prepared; actual CI execution pending",
+    "version": 2,
+    "v1_comment_was_too_narrow_preserved_and_corrected": true,
+    "v2_independent_review": "0 serious / 0 remaining; execution and CI v2 facts only, not this publication bundle"
+  },
+  "claim_limits": {
+    "local_feature_union_transferred_to_CI_default": false,
+    "full_CI_30m_qualified": false,
+    "local_opt1_backup_or_PITR_qualified": false,
+    "matched_opt0_whole_Native_baseline_for_this_composed_source_executed": false,
+    "speedup_capacity_or_CPU_percentage_claimed": false,
+    "production_or_Supported_or_R1_closed": false,
+    "cache_cleanup_eligibility_granted": false
+  }
+}

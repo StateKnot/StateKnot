@@ -1,0 +1,12 @@
+{
+  "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+  "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+  "task_label": "r1-oct15",
+  "database": "stateknot_r1_a_runtime_20261015v1",
+  "postgres_major": "17",
+  "host": "Darwin",
+  "server": {
+    "server_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+    "database": "stateknot_r1_a_runtime_20261015v1"
+  }
+}

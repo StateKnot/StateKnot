@@ -1,0 +1,19 @@
+{
+  "runner_pid": 65314,
+  "pid": 65976,
+  "gate": "rustdoc",
+  "command": [
+    "cargo",
+    "doc",
+    "--workspace",
+    "--all-features",
+    "--no-deps",
+    "--locked"
+  ],
+  "started_unix": 1792068845.4356108,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+  "exit_code": 0,
+  "seconds": 3.2530972957611084,
+  "log_sha256": "66bbecc9865475414a4a689e020c86a0a752e4a0f34e4cda0bed2eb21a2d3b02",
+  "summaries": []
+}

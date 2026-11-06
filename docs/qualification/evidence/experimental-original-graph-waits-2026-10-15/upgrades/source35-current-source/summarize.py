@@ -1,0 +1,12 @@
+from pathlib import Path
+import json,hashlib,re
+b=Path('/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration');out=b/'source35-upgrade-native';rows=[]
+for major in ['16','17']:
+ p=out/('pg'+major);r=json.loads((p/'receipt.json').read_text());assert r['qualified_exact_one_existing_test'] and r['exit_code']==0 and r['summaries']==[['ok','1','0','0']]
+ info=json.loads((p/'container-identity.json').read_text());ports=info['ports']['5432/tcp'];assert any(x['HostIp']=='127.0.0.1' and x['HostPort']=='554'+major for x in ports)
+ after=(p/'after-base.log').read_text().splitlines();assert after[1]=='36|1|36|t' and after[2]=='54',after
+ before_dbs=(p/'before-environment.log').read_text().splitlines()[2:];after_dbs=(p/'after-fixture-databases.log').read_text().splitlines();actual_seconds=float(re.findall(r'finished in ([0-9.]+)s',(p/'native.log').read_text())[-1])
+ rows.append({'postgres_major':major,'server_version_number':r['server_version_number'],'passed':1,'failed':0,'ignored':0,'seconds':r['seconds'],'receipt_sha256':hashlib.sha256((p/'receipt.json').read_bytes()).hexdigest(),'log_sha256':r['log_sha256'],'base_schema_after':'exact1..36 successful;54 business tables','fixture_database_inventory_restored':before_dbs==after_dbs,'actual_fixture_log_seconds':actual_seconds})
+result={'source_tree_sha256':'bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45','source_files':919,'store_binary_sha256':'fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9','exact_existing_test':'root_graph_barriers::trusted_upgrade::populated_source35_upgrade_preserves_registration_bytes_and_legacy_identity','rows':rows,'only_one_test_per_major':True,'no_source_or_assertion_changes':True,'default_stack_original_resources':True,'native_scope':'current-source nonempty SOURCE35 reconstruction→36 only','historical_N_minus1_N_minus2_binary_qualification':False,'independent_restricted_role_qualification':False,'full_native_or_R1_qualification':False};(out/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
+p=b/'integration.json';v=json.loads(p.read_text());v['focused_source35_upgrade_native']=str((out/'summary.json').resolve());v['qualification']='Exact919 source six full static gates and one existing current-source nonempty SOURCE35→36 upgrade regression per PostgreSQL major passed; no broad Native, historical binary, performance or R1 qualification.';p.write_text(json.dumps(v,indent=2)+'\n')
+print(json.dumps(result,indent=2))

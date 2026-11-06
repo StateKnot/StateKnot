@@ -1,0 +1,13 @@
+# A2A subscription policy evidence
+
+This bundle records the exact final v5 source and local component gates. It does not provide Native database, IdP, durable task backend, full CI, cold30m, stdio, deployment or R1 qualification. The test author assembled this package; its verifier is an author check, not an independent source review.
+
+Run `python3 verify.py --repository-root /absolute/path/to/repository` for pure offline checks. After actual code adoption, add `--workspace --workspace-root /absolute/path/to/checkout` to check the 538 exact supplied compilation inputs. It does not compare the whole Git tree or claim a compiler read closure. A different or not-yet-adopted checkout must fail that check. No command invokes Cargo, preserved runners, Docker, network or a database.
+
+`artifact-index.json` binds the raw and stored hashes. Raw logs/patches and large original JSON manifests use deterministic gzip (mtime0, no filename). Original receipt bytes, log hashes and the original cross-directory six-gate receipt paths are unchanged. `original/q1` through `original/q5-network-enabled-retry-v1` retain every available gate receipt, log, runner, controller, source/input list, disk and cache observation. The zero-byte advisory lock files are omitted. The final six summary combines original q5 fmt/Clippy and q5-network-enabled-retry-v1 workspace/doctests/rustdoc/nightly; it was not rewritten as a new run.
+
+`source/base-references.json` binds only existing published source-reconstruction inputs. The verifier rebuilds the historical A2A-facts archive, retained PITR fixture, lossless MCP and Debug chain, then applies exactly the three new payloads here. It checks all 930 final paths/bytes/hashes, all five source variants through exact archived fixture patches, and the sorted 538 compilation inputs. It inherits no old execution or Native result. The original production file is identical from v1 through v5; fixture-only corrections and sandbox failures are retained separately.
+
+The new inventory is eight private tests plus one actual TCP test family containing the 17 frozen matrix IDs over REST and JSON-RPC; it is not 34 independently named libtests. Conditional PostgreSQL harnesses in the ordinary workspace run can return without a database and therefore do not establish Native qualification. Original six ignored fixtures remain visible.
+
+Independent source Standards v1/v2 reports are retained with their exact scope. Final independent Spec and publication review are not claimed in this seal and can be supplied as separately bound appendices. Guides/RFC/change tracking and actual CI are outside the frozen source snapshot; no matching whole-main claim is made.

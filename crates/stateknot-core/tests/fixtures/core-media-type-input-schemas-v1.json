@@ -1,0 +1,271 @@
+{
+  "schema": "https://stateknot.github.io/schema/test-fixture/core-media-type-input-schemas/1.0.0",
+  "source_commit": "c4967d0a57aacaae4e5ff8658c66810cba160203",
+  "changes": {
+    "AgentAdmission": {
+      "before": "sha256:d4a6f7f944091c2ec72cb53802b70cd9971076a5709b3f60660032a3f6c55e3b",
+      "after": "sha256:b69e9f6e427a4d09a4d0e56b1e8428388f1fc74b86572e8f98cfe9d883f1a79b"
+    },
+    "AgentAdmissionIntent": {
+      "before": "sha256:adcc746e1e0b431eba75c95a7e07afd022f0ef775cc9980fa247ed8f7cb5351b",
+      "after": "sha256:e787f25a3f408ca55ec8af5d7a9e13eca838a19ede8d06e91417dd951bc2c854"
+    },
+    "AgentArtifacts": {
+      "before": "sha256:c58aed828d3f9361482de22c0f9fc50a901e955262c09d73a2c42bea1fbc3ea9",
+      "after": "sha256:d47e19b23bf5d42f9e41fa4ce420beb5b969157968d0fa3720a9ba2a1c3be98a"
+    },
+    "AgentDescriptor": {
+      "before": "sha256:456b033c88eb920a1371ce40e38927f73094850126b448799a6c110048d8df76",
+      "after": "sha256:698f7e6cbd68bbfbb52ed15d6189c20b433bd2234bfac82b4c3b1e9cc860dc8d"
+    },
+    "AgentInstructions": {
+      "before": "sha256:253e6e9a5b3ae4a6b59fd2c2b8bcabbc293aa325c2296bd7b74a6860a4b7d218",
+      "after": "sha256:50cabdde52a6938b43944c65f30e968c43328a3a449e60bf0efe24d3db3dd0dc"
+    },
+    "AgentResult": {
+      "before": "sha256:a894edfad6f2938516e722c2642d25508c8e54d47ce087b4e493d492bca0825b",
+      "after": "sha256:aa77cb4ee9d5a8d4720b6eb34769e3f4aaf0da28a33bafea369775756b57d1ba"
+    },
+    "ArtifactRef": {
+      "before": "sha256:07499b20ba1bc1fc777836098b1c804f6b2d19973bc4c651ab71a83ace44b187",
+      "after": "sha256:606ff6b4f6bfd9224724eaadb67a804a6e8c4363068cd13f3cdf91d7a8961b8b"
+    },
+    "ArtifactRepresentation": {
+      "before": "sha256:2d54d3900f1e4cd78d292540641f81f6a30b00e194d7f3e9472e40d7ec92ca02",
+      "after": "sha256:20389d9866f23040a787ef643c1d1d4dfc42dac0706a963587a5dd996bbe84c2"
+    },
+    "ChildRunAdmissionIntent": {
+      "before": "sha256:eb1daf05eaf8f99ff79c35a9441928e8c9e62a9f856912071287bbed43a85134",
+      "after": "sha256:6241c04df84720285b6cdec5f2288110f10c695f98fc8b2852d42435b5c983de"
+    },
+    "ContentPart": {
+      "before": "sha256:4da40e52732313404df73eb0adb2d02c05a0bdd38eb0b91744070b4acdcceb85",
+      "after": "sha256:66177927da63733c6b173dd9c7115488f655b7e37d9c7f28e0011dda8217d529"
+    },
+    "Instruction": {
+      "before": "sha256:74224a56f5573f776dbb0c96b6de502040e1c37c4dde1213390b2ddca38e3d80",
+      "after": "sha256:60eeabbd4dc55cb34eeca3741427b76d3990edb6d26ffa69982e5961bbb45747"
+    },
+    "InstructionContent": {
+      "before": "sha256:6350bca71dddbdfdbd87a6ac94d0be5761b239bbd8c3a855ca12d2eab7611a48",
+      "after": "sha256:cc8c5f6ab460134b7974f7009633e0c9384762b78d28100b09271b634fc21fa6"
+    },
+    "MediaType": {
+      "before": "sha256:093e5d5ba4e1f404e25df7ce54fdb9a5b798c1f915ae9df558b9b2da77a5a3e6",
+      "after": "sha256:f96be7f3b97203ab92fbf558c7c2ab82f4c99694389446e4740cd355c824fb67"
+    },
+    "Message": {
+      "before": "sha256:ba7f1a2d9ce995f8b60908cd38c9c8aca12f728bad4e7d1c6ac67001c4437b30",
+      "after": "sha256:059518dc0fd83d43e1771f2ef93662c9c929646ccc1db970ebdd5964ad06b8ce"
+    },
+    "MessageParts": {
+      "before": "sha256:d158b4e9275c9399eebc62a7f89cbb7c3e1ec93c5524d4089dc2d35f23af7ffc",
+      "after": "sha256:f98ed495eda162d2d5d8f833daf5e4355f65ab687b4818e24194e569e4646d0f"
+    },
+    "ModelEvent": {
+      "before": "sha256:2300cb2e30e2bcf769939f0ea34faf273097ad37c1409c31480c7655e6dbcb48",
+      "after": "sha256:a75eae8839316be6cace91f9e3481819d4ffd8953e82b2a55a227bcdd2aebe1d"
+    },
+    "ModelEventKind": {
+      "before": "sha256:8b9fd8cd16241b40141ed394a57745b8494f745475fd6bc49fccf203b352527b",
+      "after": "sha256:f3eb5e38c23cbb26dd8e4c036949ae73700070c2aa84b8a8f22230923a127d7e"
+    },
+    "ModelInvocation": {
+      "before": "sha256:2c982e8043dc9802085c42322feb45277dd20894985509db60b9d227233ad921",
+      "after": "sha256:0bce1b827fbaf60a658c8349d6b7e4486bb0070804f28c473f88f7f390a71177"
+    },
+    "ModelInvocationIntent": {
+      "before": "sha256:4d0d0b671b01f1915abb3b1360d1d4cfb06f8eb8c8629b28a2d3db6a36d5676e",
+      "after": "sha256:724ee207acdbbedfe70afbf4631da67e5e4b4330061b4b9e606bbb80481244aa"
+    },
+    "ModelInvocationState": {
+      "before": "sha256:7bd21ce425a718e143d36941a2e1825516bff562374d94c28fca5a30c223501d",
+      "after": "sha256:fa9ee9c14e6b6b068a4255a345f498772de3d88a2c0b8aff822864772992d0d1"
+    },
+    "ModelInvocationTransition": {
+      "before": "sha256:91decff1522507127f763f6b74af23b67df50cb526c6ce893771bb0769db7d16",
+      "after": "sha256:91fb54e1acf9a8e8af976ac7b97353b2387028df4f5de50f27798e59fa017914"
+    },
+    "ModelOutputItem": {
+      "before": "sha256:cbe18550cc4fa0cffdfb49f23a00ad5cd5616a4ef362e16b54ee156a828cf756",
+      "after": "sha256:c5d04afa12807931d601be28ff7ccac032b6638675520f822f7878790a2944c0"
+    },
+    "ModelOutputStart": {
+      "before": "sha256:dedeba041a28d66ad0a9405e0c331de978443c4945f6eaceed6a33101bdf445a",
+      "after": "sha256:68f1fa8c400a16602e92ceadf95ca795d83d5bebe524d948b853a1e9bb149461"
+    },
+    "ModelRequest": {
+      "before": "sha256:bcea20bd6b74308ca441bc2e19ac1d8df8bfc15439de61381dc82bd8ccc87074",
+      "after": "sha256:d6cab3478c84780daf0d58c469260178c7bc2a3da07c6b4f45d2b0824c478cc8"
+    },
+    "ModelResponse": {
+      "before": "sha256:7c6632a5443a77ca57cec3caf88a341a085b15c33d619769755e73f24dee831b",
+      "after": "sha256:8267390d71b86a4a5fd0da45c6ff942cf10aa8674762ecbf2478e05a4d4bbeb1"
+    },
+    "ModelToolOutcome": {
+      "before": "sha256:067927e0e3eab27202ed33082b3ca3324579504334d7f6e6fabb8145e2615cdd",
+      "after": "sha256:71f9c8512ba4b77bd8cda778af6c8e707a4ce5b4104859cb0720e7268005f307"
+    },
+    "ModelTranscript": {
+      "before": "sha256:f644e079bae475d6557e67e0b0a1ca7b5fa3cf1b83f449cca5fea933000261ae",
+      "after": "sha256:bf01a2f0602035123c70e76c9d75b70fa82b0f6616a1a08f520e2b9929ad80c0"
+    },
+    "ModelTranscriptTurn": {
+      "before": "sha256:d69b9fdaa27b9e6a6ff396fa0213e32529c62bc5480f7d53747d722cbbe002c1",
+      "after": "sha256:19df7dcb994c9540f4fdbba6ad956e29e897c7648e532ad467374478a743a698"
+    },
+    "RunLifecycle": {
+      "before": "sha256:35d8846db6af039e0ed348fd0eedd907483389b37d61250c58debc491fd9160d",
+      "after": "sha256:5a614cc3a22b6a472e5b8affe82a87b29213c8f2cb0640a568fd57efab551f33"
+    },
+    "RunTransition": {
+      "before": "sha256:69538377e94c74f096528aa66ddf24dafa28bf681cd49546a2298cff135eaba3",
+      "after": "sha256:12ea9305fd05d00944e199adad4d21fd8aa5269fd9d3f32dda432fc37f9de82f"
+    },
+    "ToolArtifacts": {
+      "before": "sha256:2cf7a1941ce86ac5a5ac90594fab11ff637d1cb1263abf21299619e72e0bc777",
+      "after": "sha256:c8bf3797e33ae3db48e4b10b09b436d37dc7e2b94e45e6f3b1dff7d1c6535d39"
+    },
+    "ToolInvocation": {
+      "before": "sha256:6850454e27fc4f4c6a62bc1f299b94b33b819956a7bb76a5b6bbfed4ab8e2f10",
+      "after": "sha256:03bef6952a36c8eb0be0281b8d883959310bf04c10a75eafce2e24d258719016"
+    },
+    "ToolInvocationState": {
+      "before": "sha256:050ccff8170d4e428807e571cc19bc258a9690d1786a658c554f49b308a5ad4f",
+      "after": "sha256:608309f4067ea731c4db4927e0374051d2f89cc5a0d240410642a0c84860154d"
+    },
+    "ToolInvocationTransition": {
+      "before": "sha256:49048cc1d0d5bf48dfe100cc0ca8cec95c749b8e240670bb8eeba951addecce5",
+      "after": "sha256:960b4a7fc3f50d8dca37837a49537ebdd3a3293abb4a8adab750fe2eb13cc5d7"
+    },
+    "ToolResult": {
+      "before": "sha256:6c9068c430dd19ad31981d59af360bfbb511349460afd70bb71d46d5c489223c",
+      "after": "sha256:9d59259f56cdcbc14e62af158f40d66becb5fd36947abd6d5c7beb0d2d83672a"
+    }
+  },
+  "artifact_input_document": {
+    "$defs": {
+      "ArtifactModality": {
+        "description": "Semantic modality used for provider capability negotiation and rendering.\n\nThe declared modality is not inferred from, and cannot override, the media\ntype or byte-level inspection policy. Adapters must validate all three when\nmapping an artifact to an external provider or protocol.",
+        "oneOf": [
+          {
+            "const": "text",
+            "description": "Large or externally stored textual content.",
+            "type": "string"
+          },
+          {
+            "const": "image",
+            "description": "Image content.",
+            "type": "string"
+          },
+          {
+            "const": "audio",
+            "description": "Audio content.",
+            "type": "string"
+          },
+          {
+            "const": "video",
+            "description": "Video content.",
+            "type": "string"
+          },
+          {
+            "const": "document",
+            "description": "Human-oriented document content.",
+            "type": "string"
+          },
+          {
+            "const": "structured_data",
+            "description": "Machine-oriented structured data.",
+            "type": "string"
+          },
+          {
+            "const": "archive",
+            "description": "An archive or compound package.",
+            "type": "string"
+          },
+          {
+            "const": "binary",
+            "description": "Other opaque binary content.",
+            "type": "string"
+          }
+        ]
+      },
+      "SchemaReference": {
+        "additionalProperties": false,
+        "description": "An immutable reference to canonical JSON schema bytes.\n\nThe explicit version supports compatibility policy, while the digest\nprevents a reused URI or version from silently changing validation\nbehavior.",
+        "properties": {
+          "digest": {
+            "maxLength": 71,
+            "minLength": 71,
+            "pattern": "^sha256:[0-9a-f]{64}$",
+            "type": "string"
+          },
+          "id": {
+            "format": "uri",
+            "maxLength": 512,
+            "minLength": 9,
+            "pattern": "^https://[^?#]+$",
+            "type": "string"
+          },
+          "version": {
+            "maxLength": 62,
+            "minLength": 5,
+            "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)$",
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "version",
+          "digest"
+        ],
+        "type": "object"
+      }
+    },
+    "$schema": "https://json-schema.org/draft/2020-12/schema",
+    "additionalProperties": false,
+    "description": "Integrity and interpretation metadata for immutable artifact bytes.",
+    "properties": {
+      "byte_length": {
+        "maxLength": 20,
+        "minLength": 1,
+        "pattern": "^(0|[1-9][0-9]{0,19})$",
+        "type": "string"
+      },
+      "digest": {
+        "maxLength": 71,
+        "minLength": 71,
+        "pattern": "^sha256:[0-9a-f]{64}$",
+        "type": "string"
+      },
+      "media_type": {
+        "description": "A canonical concrete media type. StateKnot additionally enforces RFC name syntax, unique sorted parameters, parameter count/value bounds, and canonical quoting at runtime.",
+        "maxLength": 512,
+        "minLength": 3,
+        "pattern": "^[a-z0-9][a-z0-9!#$&.^_+-]{0,126}/[a-z0-9][a-z0-9!#$&.^_+-]{0,126}(?:;.*)?$",
+        "type": "string"
+      },
+      "modality": {
+        "$ref": "#/$defs/ArtifactModality"
+      },
+      "schema": {
+        "anyOf": [
+          {
+            "$ref": "#/$defs/SchemaReference"
+          },
+          {
+            "type": "null"
+          }
+        ]
+      }
+    },
+    "required": [
+      "media_type",
+      "modality",
+      "byte_length",
+      "digest"
+    ],
+    "title": "ArtifactRepresentation",
+    "type": "object"
+  }
+}

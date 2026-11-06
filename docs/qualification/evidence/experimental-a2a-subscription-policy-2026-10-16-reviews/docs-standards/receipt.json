@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "role": "independent non-author five-document Standards review only",
+  "candidate_manifest_sha256": "d269dd554d6074f86fdfa75fc1250f4b39fcb7decc59525689079f8d9e610d6a",
+  "candidate_freeze_sha256": "0c131042c744889d41d18e6a5a8a95fa9aa04a933e00c79baa3a050f0b9fac34",
+  "baseline_commit": "4e726b4c5a95d52a171690a2f4df315692c38d3c",
+  "files": 5,
+  "standards_findings": 0,
+  "actionable_smells": 0,
+  "Spec_axis_review_claimed": false,
+  "independent_source_or_test_or_publication_review_claimed": false,
+  "author_relationship_disclosed": "reviewer authored A2A tests and publication package; not these five adoption docs",
+  "actual_baseline_Git_read_only": true,
+  "all_previous_paragraphs_and_examples_exact": true,
+  "new_link_occurrences_checked": 7,
+  "new_report_targets_available_in_publication_candidate": 3,
+  "report_targets_already_in_main_claimed": false,
+  "actual_six_gate_summary_sha256": "cc7606f390ddd767c4a24393410d337de13018398ce66c833bd758051a3904ca",
+  "raw_workspace": [
+    100,
+    2108,
+    0,
+    6,
+    0,
+    0
+  ],
+  "raw_doctests": [
+    10,
+    48,
+    0,
+    0,
+    0,
+    0
+  ],
+  "author_verifier_exit_code": 0,
+  "main_source_index_candidate_seal_mutated": false,
+  "Cargo_DB_network_Docker_CI_cache_execution": false,
+  "report_sha256": "5d319ac6ee46b468ba815828192a5cb47ca64c4d9a115b9a2b78e2cb406657a8",
+  "input_bindings_sha256": "adb3c570e7e46a6c8ad411bd4b6054b39afda7246f67bc97cf66a25fd992c262"
+}

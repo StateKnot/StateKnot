@@ -23,6 +23,7 @@ use stateknot_runtime::{
     AgentServiceCaller, AgentServiceError, AgentServiceRegistry, AgentServiceV1,
     DurableTenantSchedulerBuildError, ExecutableGraphRegistry, GraphLifecycleEvidenceProvider,
     JsonSchemaRegistryBuilder, TypedAgent, TypedAgentInputError, TypedAgentOutputError,
+    register_standard_agent_cancellation_event_schema,
     register_standard_agent_deadline_event_schema, register_standard_child_join_event_schema,
     register_standard_child_reconciliation_event_schema,
     register_standard_run_failure_close_event_schema,
@@ -109,6 +110,8 @@ impl InProcessAgentBinding {
         register_standard_child_join_event_schema(&mut schemas)
             .map_err(|_| InProcessAgentBindingError::MaintenanceSchemas)?;
         register_standard_run_failure_close_event_schema(&mut schemas)
+            .map_err(|_| InProcessAgentBindingError::MaintenanceSchemas)?;
+        register_standard_agent_cancellation_event_schema(&mut schemas)
             .map_err(|_| InProcessAgentBindingError::MaintenanceSchemas)?;
         let schemas = schemas
             .build()

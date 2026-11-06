@@ -1,0 +1,136 @@
+{
+  "observed_utc": "2026-10-16T03:45:45.501860+00:00",
+  "final_docs_manifest_sha256": "aef6ecd8f947bf410d4e97f721ea3d0fb7c01a1a5b23dce1bf4d2d07b54a1044",
+  "final_docs_freeze_sha256": "b78c134739263f99a62ef8c7e65e95dd8ab916b75c6031d89d42383354cff281",
+  "final_docs_receipt_sha256": "add2713ee28d08b2942e4b4ad5e2fed4b5cd7c76e6c6e06d3d12448688137932",
+  "prior_v1_manifest_sha256": "cb005ee64f102f3df0bff87becccd23c8c06b69a504d7de5c291574cd3022a56",
+  "v1_finding_preserved_unchanged": "findings-v1.json",
+  "v1_P2_PostgreSQL15_case_wording_closed": true,
+  "final_document_bytes_identical_to_v2": true,
+  "v3_only_receipt_classification_refinement_targeted_vs_full_qualification": true,
+  "baseline8016_and_original_examples_preserved": [
+    {
+      "path": "docs/mcp-client.md",
+      "sha256": "6f12206ee74f30996ae616afa14f8bd035005fd3118c51d7b407ac657c47c24d",
+      "baseline8016_byte_equal": true,
+      "insertions_only": true,
+      "old_examples_byte_equal": true,
+      "v2_v3_document_bytes_equal": true
+    },
+    {
+      "path": "docs/mcp-client.zh-CN.md",
+      "sha256": "37b84d49620ab9343405713a9b96e0fb9caa7b3df0b7d05a0e440b7d1fe336f3",
+      "baseline8016_byte_equal": true,
+      "insertions_only": true,
+      "old_examples_byte_equal": true,
+      "v2_v3_document_bytes_equal": true
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "a0f5ba8434c98891234507c1bad1238a3513443f406bb8c49fd5e53d3d4e31e0",
+      "baseline8016_byte_equal": true,
+      "insertions_only": true,
+      "old_examples_byte_equal": true,
+      "v2_v3_document_bytes_equal": true
+    }
+  ],
+  "new_targeted_Native_facts": [
+    {
+      "major": 16,
+      "server_version": "16.15",
+      "suite": "mcp_durable",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "source": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "binary_sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+      "raw_log_sha256": "3e7770753082453e964cbbdf4504b5fa6c05b9da36f4fd10a4b30a32f1a5f272",
+      "fresh_default_feature_Cargo_artifact_confirmed_in_raw_build_log": true,
+      "profile": {
+        "debug_assertions": true,
+        "debuginfo": 0,
+        "opt_level": "0",
+        "overflow_checks": true,
+        "test": true
+      },
+      "original_receipt_default_stack_no_override": true,
+      "all_JSON_markers_equal_saved_qualification": true
+    },
+    {
+      "major": 16,
+      "server_version": "16.15",
+      "suite": "mcp_reconciliation",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "source": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "binary_sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+      "raw_log_sha256": "888752d869345d5d412fe38c34a20d560d843cce2a3ecb0a870f25cf2758bea1",
+      "fresh_default_feature_Cargo_artifact_confirmed_in_raw_build_log": true,
+      "profile": {
+        "debug_assertions": true,
+        "debuginfo": 0,
+        "opt_level": "0",
+        "overflow_checks": true,
+        "test": true
+      },
+      "original_receipt_default_stack_no_override": true,
+      "all_JSON_markers_equal_saved_qualification": true
+    },
+    {
+      "major": 17,
+      "server_version": "17.11",
+      "suite": "mcp_durable",
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "source": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "binary_sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+      "raw_log_sha256": "b219d2f5080f71a80bc9252cd2a1c80b8e55a610957fb203e1e2b8d14f75c006",
+      "fresh_default_feature_Cargo_artifact_confirmed_in_raw_build_log": true,
+      "profile": {
+        "debug_assertions": true,
+        "debuginfo": 0,
+        "opt_level": "0",
+        "overflow_checks": true,
+        "test": true
+      },
+      "original_receipt_default_stack_no_override": true,
+      "all_JSON_markers_equal_saved_qualification": true
+    },
+    {
+      "major": 17,
+      "server_version": "17.11",
+      "suite": "mcp_reconciliation",
+      "passed": 10,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0,
+      "source": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+      "binary_sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+      "raw_log_sha256": "013adc2ad5786ff232bb06425352d0423a65d476f28e61155762402877fa2d0d",
+      "fresh_default_feature_Cargo_artifact_confirmed_in_raw_build_log": true,
+      "profile": {
+        "debug_assertions": true,
+        "debuginfo": 0,
+        "opt_level": "0",
+        "overflow_checks": true,
+        "test": true
+      },
+      "original_receipt_default_stack_no_override": true,
+      "all_JSON_markers_equal_saved_qualification": true
+    }
+  ],
+  "per_major_JSON_marker_count": 7,
+  "Native_summary_sha256": "d09277466fedc0fe80a2b6f42d801481d00831694118858eba18c11868b7eb05",
+  "source_before_after_identity_fields_exact": true,
+  "complete_resource_observation_bodies_equal": false,
+  "cache_logical_size_observations_are_distinct_not_source_changes": true,
+  "targeted_scope_not_all_database_cases_or_full_Store_Runtime": true,
+  "remaining_findings": 0,
+  "new_compilation_network_DB_Docker_cache_or_product_runner_executed_by_reviewer": false,
+  "reserved_report_targets_not_yet_qualified_as_present": true
+}

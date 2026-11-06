@@ -1,0 +1,15 @@
+{
+  "step": "pg16-runtime",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/runtime",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "runner_pid": 68288,
+  "pid": 93093,
+  "started_unix": 1792070836.1983051,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 719.3242228031158,
+  "log_sha256": "8dfe377eaa74d7ac4ad53e1f58f234b6e888f353424faaff47d94b791c76dabb"
+}

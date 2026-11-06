@@ -49,6 +49,15 @@ protocol profiles, and production qualification remain release work.
 
 ## Startup binding
 
+The unreleased [nested Driver](durable-graph-runtime.md#experimental-namespaced-frames)
+requires the same provider to implement `direct_usage_evidence`; its default
+declines complete framework accounting. The Loop installs this provider on both
+Driver and lifecycle coordinator. `AgentLoopOutcome::FrameWaiting` forwards the
+already-committed scoped Wait and lease release; authorized Wait resolution and
+a fresh scheduler claim own resumption. It does not request another Root Wait
+commit. These additions remain under Draft RFC-0022 and are absent from
+`0.1.0-alpha.1`.
+
 Install all three standard Driver, lifecycle, and cancellation audit schemas
 before freezing the executable registry.
 Construct the scheduler only after migrations and all application schemas,
@@ -124,6 +133,19 @@ artifacts, and cumulative usage relationships. Evidence failure causes the
 Agent Loop to perform a bounded best-effort exact-fence release; the run stays
 recoverable instead of being partially finalized.
 
+For a fresh generic blocked failure handoff, lifecycle contains a panic both
+while constructing the `failure_evidence` future and while polling it. Both map
+to `GraphLifecycleError::Evidence(GraphLifecycleEvidenceError::Unavailable)`.
+The Agent Loop then follows its existing bounded exact-fence release before
+returning the error; cleanup failures retain the existing combined error report.
+The failed observation leaves the parent checkpoint, journal and recorded failed
+DIRECT usage intact. It neither registers a failure-close decision nor settles
+an admitted child: the child's stored terminal usage, including unpriced cost,
+remains complete. Unpriced child usage is accounting evidence; it does not imply
+`ToolInvocationState::Unknown` or establish an external-effect outcome. This
+experimental behavior changes no Supported status, implements no MCP stdio
+transport, and does not close R1 or confer complete Native/CI qualification.
+
 ## Atomic lifecycle edges
 
 ### Wait
@@ -170,6 +192,35 @@ time from the database clock, and appends the public-safe confirmation event
 with `ConfirmCancellation` in one transaction that clears the lease. If exact
 evidence is unavailable, the run remains `cancellation_requested`; no zero
 usage or fictitious terminal state is written.
+
+For a fresh Root handoff without a scoped leaf, the experimental evidence
+observation also obeys the Agent Loop's shutdown signal and existing
+`node_execution_timeout`. Standalone `confirm_cancellation` uses the default
+Driver node timeout. Fresh scope, checkpoint, revision, request and live-fence
+validation precede a successful shutdown release. Shutdown during this read-only
+observation returns `GraphBarrierLifecycleOutcome::Released`, exposed by the
+Agent Loop as `AgentLoopOutcome::RecoveryReleased`; the Run remains
+`cancellation_requested`. Evidence timeout returns
+`GraphLifecycleError::Evidence` carrying
+`GraphLifecycleEvidenceError::TemporarilyUnavailable`; a provider factory or
+future-poll panic returns the same wrapper carrying
+`GraphLifecycleEvidenceError::Unavailable`.
+The Agent Loop retains its existing exact-fence cleanup and combined cleanup
+error reporting.
+
+During observation, the shared cancellation guardian renews only the original
+fence with the configured Store lease duration. The runtime drains every
+in-flight renewal and retry ACK before applying complete child accounting and
+checking the same live fence against a fresh database clock. Cleanup may finish
+after the admitted Run deadline; it grants no new execution authority. The
+terminal append and its complete COMMIT ACK remain outside the cancellable
+observation. Existing child settlement, Unknown and unpriced-cost rules are
+unchanged; incomplete evidence is never replaced with zero usage.
+
+An already committed cancellation retry restores the original event, completion
+time and usage without consulting the evidence provider or starting a guardian
+or requiring a fresh live lease. This description asserts no execution or CI
+qualification and does not change Supported status or close R1.
 
 ## Lost acknowledgements and stale handoffs
 

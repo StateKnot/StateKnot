@@ -1,0 +1,838 @@
+{
+  "reference_commit": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+  "checked_paths": [
+    "crates/stateknot-core/src",
+    "crates/stateknot-store-postgres/src",
+    "crates/stateknot-store-postgres/migrations",
+    "Cargo.toml",
+    "Cargo.lock",
+    "rust-toolchain.toml"
+  ],
+  "file_count": 137,
+  "all_bytes_exact": true,
+  "differences": [],
+  "files": [
+    {
+      "path": "Cargo.lock",
+      "same_as_commit": true,
+      "commit_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94",
+      "frozen_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+    },
+    {
+      "path": "Cargo.toml",
+      "same_as_commit": true,
+      "commit_sha256": "d73912078dd7ea3c34ff854cebc84088b6c1dade7a675ddfc6b3a23c3643a622",
+      "frozen_sha256": "d73912078dd7ea3c34ff854cebc84088b6c1dade7a675ddfc6b3a23c3643a622"
+    },
+    {
+      "path": "crates/stateknot-core/src/accounting.rs",
+      "same_as_commit": true,
+      "commit_sha256": "28bb0445c720ec4bf72490e8efbd27976645fa75807bcc878bd175acccc43105",
+      "frozen_sha256": "28bb0445c720ec4bf72490e8efbd27976645fa75807bcc878bd175acccc43105"
+    },
+    {
+      "path": "crates/stateknot-core/src/agent.rs",
+      "same_as_commit": true,
+      "commit_sha256": "6728344875b24905de494feb894c00a7092db3da6c84863e7c7b5dc535efeaa5",
+      "frozen_sha256": "6728344875b24905de494feb894c00a7092db3da6c84863e7c7b5dc535efeaa5"
+    },
+    {
+      "path": "crates/stateknot-core/src/agent_admission.rs",
+      "same_as_commit": true,
+      "commit_sha256": "0ec39d06e60eb0a79b615afaab3dd107179c312ad3e24379d6eeae96be91b91e",
+      "frozen_sha256": "0ec39d06e60eb0a79b615afaab3dd107179c312ad3e24379d6eeae96be91b91e"
+    },
+    {
+      "path": "crates/stateknot-core/src/agent_runtime.rs",
+      "same_as_commit": true,
+      "commit_sha256": "8799f192721ac13d74c0293dcd9ddb33dc9174a6fe7daead5bf0135b6ac7e107",
+      "frozen_sha256": "8799f192721ac13d74c0293dcd9ddb33dc9174a6fe7daead5bf0135b6ac7e107"
+    },
+    {
+      "path": "crates/stateknot-core/src/artifact.rs",
+      "same_as_commit": true,
+      "commit_sha256": "28231522021f2941231c209f627cfd3ab02415d4788e1808c0c787cec9a9af60",
+      "frozen_sha256": "28231522021f2941231c209f627cfd3ab02415d4788e1808c0c787cec9a9af60"
+    },
+    {
+      "path": "crates/stateknot-core/src/barrier.rs",
+      "same_as_commit": true,
+      "commit_sha256": "b19ba45c52c8636453e41564f5be3b1fbbae329301b4a482ad8348b3a0ee8b22",
+      "frozen_sha256": "b19ba45c52c8636453e41564f5be3b1fbbae329301b4a482ad8348b3a0ee8b22"
+    },
+    {
+      "path": "crates/stateknot-core/src/budget.rs",
+      "same_as_commit": true,
+      "commit_sha256": "795f75213e461ae3d1dead5bfa11a4da1e1ff1390aa8813123581ae95f99bdfa",
+      "frozen_sha256": "795f75213e461ae3d1dead5bfa11a4da1e1ff1390aa8813123581ae95f99bdfa"
+    },
+    {
+      "path": "crates/stateknot-core/src/budget_reservation.rs",
+      "same_as_commit": true,
+      "commit_sha256": "bea0edd87a1dab59284de9da6b93692e03a25d2eec77ddc9f01af7447d43f555",
+      "frozen_sha256": "bea0edd87a1dab59284de9da6b93692e03a25d2eec77ddc9f01af7447d43f555"
+    },
+    {
+      "path": "crates/stateknot-core/src/budget_reservation_tests.rs",
+      "same_as_commit": true,
+      "commit_sha256": "1bd0d72287d9dfffce58bf7816155df73477e9e23add71cad6e74f5252eca973",
+      "frozen_sha256": "1bd0d72287d9dfffce58bf7816155df73477e9e23add71cad6e74f5252eca973"
+    },
+    {
+      "path": "crates/stateknot-core/src/canonical.rs",
+      "same_as_commit": true,
+      "commit_sha256": "a80827966dd5e6fdb7d48164366bb1af11af7df0023eab8bbd89b61403bd7f13",
+      "frozen_sha256": "a80827966dd5e6fdb7d48164366bb1af11af7df0023eab8bbd89b61403bd7f13"
+    },
+    {
+      "path": "crates/stateknot-core/src/capability.rs",
+      "same_as_commit": true,
+      "commit_sha256": "58a8432605e8bd2bfd8c2884e7ddbc49531287e822b4b0d9cf14af27d2e30122",
+      "frozen_sha256": "58a8432605e8bd2bfd8c2884e7ddbc49531287e822b4b0d9cf14af27d2e30122"
+    },
+    {
+      "path": "crates/stateknot-core/src/checkpoint.rs",
+      "same_as_commit": true,
+      "commit_sha256": "ebf2b62484c2f85f6ad702ad0f656144e76c1dca3182a081f38edd18caa0a167",
+      "frozen_sha256": "ebf2b62484c2f85f6ad702ad0f656144e76c1dca3182a081f38edd18caa0a167"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_join.rs",
+      "same_as_commit": true,
+      "commit_sha256": "ac0dbec0b6368be8e39cd7a99dc952ab497153ed510758ed766e87c5e89711f1",
+      "frozen_sha256": "ac0dbec0b6368be8e39cd7a99dc952ab497153ed510758ed766e87c5e89711f1"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_join_tests.rs",
+      "same_as_commit": true,
+      "commit_sha256": "cb1f7007615a6a5f12bbb148d970828a6ec78f19591c0a4b9ce1682428931c0f",
+      "frozen_sha256": "cb1f7007615a6a5f12bbb148d970828a6ec78f19591c0a4b9ce1682428931c0f"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run.rs",
+      "same_as_commit": true,
+      "commit_sha256": "009084c40f52ce08bee9e2f12f300b11ffdb81b7b2b091c31d6b80eff1d80fd1",
+      "frozen_sha256": "009084c40f52ce08bee9e2f12f300b11ffdb81b7b2b091c31d6b80eff1d80fd1"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_admission.rs",
+      "same_as_commit": true,
+      "commit_sha256": "ac18e6819226662125bf0c675cc516d04f1a2b5d1982885a334c8c6df8680fbf",
+      "frozen_sha256": "ac18e6819226662125bf0c675cc516d04f1a2b5d1982885a334c8c6df8680fbf"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_admission_tests.rs",
+      "same_as_commit": true,
+      "commit_sha256": "1aefce5a8d4547aa2ebee85872df300af67eee8a6eacbcbf6d2a098d2f9ed7b7",
+      "frozen_sha256": "1aefce5a8d4547aa2ebee85872df300af67eee8a6eacbcbf6d2a098d2f9ed7b7"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_budget.rs",
+      "same_as_commit": true,
+      "commit_sha256": "91209dfcd37989e295731a4a36c6188a9dc0220b7fcd653917a18a8b33b2a367",
+      "frozen_sha256": "91209dfcd37989e295731a4a36c6188a9dc0220b7fcd653917a18a8b33b2a367"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_budget_tests.rs",
+      "same_as_commit": true,
+      "commit_sha256": "edb9974aa78ce42cee792593d27d0a726de4795da0a278b37c685ece676aebfe",
+      "frozen_sha256": "edb9974aa78ce42cee792593d27d0a726de4795da0a278b37c685ece676aebfe"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_frame_tests.rs",
+      "same_as_commit": true,
+      "commit_sha256": "f169567abc555d0d8e80e532ef2b61af62b825be9ea142012cf1dd9b0f94bfc3",
+      "frozen_sha256": "f169567abc555d0d8e80e532ef2b61af62b825be9ea142012cf1dd9b0f94bfc3"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_policy.rs",
+      "same_as_commit": true,
+      "commit_sha256": "01cfc8e07804daf5e38d00d7dfcba50a6d09936131222be8f4c2f73f66934c35",
+      "frozen_sha256": "01cfc8e07804daf5e38d00d7dfcba50a6d09936131222be8f4c2f73f66934c35"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_policy_tests.rs",
+      "same_as_commit": true,
+      "commit_sha256": "1671f4a89c837832e168ed486ea2cfe033c6c3197e13e2a4416e66f4f55cdeee",
+      "frozen_sha256": "1671f4a89c837832e168ed486ea2cfe033c6c3197e13e2a4416e66f4f55cdeee"
+    },
+    {
+      "path": "crates/stateknot-core/src/child_run_tests.rs",
+      "same_as_commit": true,
+      "commit_sha256": "9c4222a461c4c3549df4cbc792c23fc2e00d500a0627b83f65c298e43012a1a4",
+      "frozen_sha256": "9c4222a461c4c3549df4cbc792c23fc2e00d500a0627b83f65c298e43012a1a4"
+    },
+    {
+      "path": "crates/stateknot-core/src/content.rs",
+      "same_as_commit": true,
+      "commit_sha256": "032c4e951c53873d9074c60b584f39f5a1239f9a5eacfa8dadae52928e92a715",
+      "frozen_sha256": "032c4e951c53873d9074c60b584f39f5a1239f9a5eacfa8dadae52928e92a715"
+    },
+    {
+      "path": "crates/stateknot-core/src/decimal.rs",
+      "same_as_commit": true,
+      "commit_sha256": "2aecf9ab5b8ac23572c8a28aa09479493d54f642c5fa4e429ebf1d2b105e3ad3",
+      "frozen_sha256": "2aecf9ab5b8ac23572c8a28aa09479493d54f642c5fa4e429ebf1d2b105e3ad3"
+    },
+    {
+      "path": "crates/stateknot-core/src/digest.rs",
+      "same_as_commit": true,
+      "commit_sha256": "f6b84c589c7d7ac790c118aea4bbe93198154f08cff5aa37f8b2feb8a06a38d6",
+      "frozen_sha256": "f6b84c589c7d7ac790c118aea4bbe93198154f08cff5aa37f8b2feb8a06a38d6"
+    },
+    {
+      "path": "crates/stateknot-core/src/extension.rs",
+      "same_as_commit": true,
+      "commit_sha256": "b2d74d10b7ab33486b5f3272f4389d3d04bd703aa656b52319af0c7a0f79fe30",
+      "frozen_sha256": "b2d74d10b7ab33486b5f3272f4389d3d04bd703aa656b52319af0c7a0f79fe30"
+    },
+    {
+      "path": "crates/stateknot-core/src/failure.rs",
+      "same_as_commit": true,
+      "commit_sha256": "845253ac1947ec3cb167b65bda67adee65e10862540bdf9483f512bd83fd7a81",
+      "frozen_sha256": "845253ac1947ec3cb167b65bda67adee65e10862540bdf9483f512bd83fd7a81"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph.rs",
+      "same_as_commit": true,
+      "commit_sha256": "3367c58bb17e242168a8e76a54c741790a04d39bc91b0581701cb2462a3eec95",
+      "frozen_sha256": "3367c58bb17e242168a8e76a54c741790a04d39bc91b0581701cb2462a3eec95"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_composition.rs",
+      "same_as_commit": true,
+      "commit_sha256": "ff79d9c7ed88f903ab66f190c48d221f2e803f6b4129a6ce6a8f8c5fcf01be8f",
+      "frozen_sha256": "ff79d9c7ed88f903ab66f190c48d221f2e803f6b4129a6ce6a8f8c5fcf01be8f"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_composition_tests.rs",
+      "same_as_commit": true,
+      "commit_sha256": "b2762103f7f309a87938f0b0e9e11e5ef0a5d71b16292b210f8095f7a080c866",
+      "frozen_sha256": "b2762103f7f309a87938f0b0e9e11e5ef0a5d71b16292b210f8095f7a080c866"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_frame.rs",
+      "same_as_commit": true,
+      "commit_sha256": "9c599703dd6c3eb0d885b5d6f71121203b712c89993a8ee6cc6a98c7a37d5a1a",
+      "frozen_sha256": "9c599703dd6c3eb0d885b5d6f71121203b712c89993a8ee6cc6a98c7a37d5a1a"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_frame_barrier.rs",
+      "same_as_commit": true,
+      "commit_sha256": "59fb2d37367c8c80b608a9d7e2c326ad8654cb824c6b5700cde0cecd756432bc",
+      "frozen_sha256": "59fb2d37367c8c80b608a9d7e2c326ad8654cb824c6b5700cde0cecd756432bc"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_frame_call.rs",
+      "same_as_commit": true,
+      "commit_sha256": "6e2494a64af988e7061bf9ef9b532a878ba4cd1d189f1a25fd563d97d1b07561",
+      "frozen_sha256": "6e2494a64af988e7061bf9ef9b532a878ba4cd1d189f1a25fd563d97d1b07561"
+    },
+    {
+      "path": "crates/stateknot-core/src/graph_frame_entry.rs",
+      "same_as_commit": true,
+      "commit_sha256": "92bec66dfe3e8dee3259bca13e99ce4de6926c33e8dbe73a81594aedc5a5f94b",
+      "frozen_sha256": "92bec66dfe3e8dee3259bca13e99ce4de6926c33e8dbe73a81594aedc5a5f94b"
+    },
+    {
+      "path": "crates/stateknot-core/src/identity.rs",
+      "same_as_commit": true,
+      "commit_sha256": "f0c5f371cc043344b9066d253fc8d2cd5b63c98ca5145bcaa03526fc9877e47d",
+      "frozen_sha256": "f0c5f371cc043344b9066d253fc8d2cd5b63c98ca5145bcaa03526fc9877e47d"
+    },
+    {
+      "path": "crates/stateknot-core/src/ids.rs",
+      "same_as_commit": true,
+      "commit_sha256": "82fe3c3bfadfa8619519ae562178dc62c5db8c5a24cee93eda4d104b736d8338",
+      "frozen_sha256": "82fe3c3bfadfa8619519ae562178dc62c5db8c5a24cee93eda4d104b736d8338"
+    },
+    {
+      "path": "crates/stateknot-core/src/journal.rs",
+      "same_as_commit": true,
+      "commit_sha256": "959ed9cb76103eb29d25d38cfe82b081c51355d195ffc4605390bec1a627b6ff",
+      "frozen_sha256": "959ed9cb76103eb29d25d38cfe82b081c51355d195ffc4605390bec1a627b6ff"
+    },
+    {
+      "path": "crates/stateknot-core/src/json.rs",
+      "same_as_commit": true,
+      "commit_sha256": "0fb50179570c28f511f5938ec4e40e8d138e080455d72c486f623f366e3087fa",
+      "frozen_sha256": "0fb50179570c28f511f5938ec4e40e8d138e080455d72c486f623f366e3087fa"
+    },
+    {
+      "path": "crates/stateknot-core/src/lease.rs",
+      "same_as_commit": true,
+      "commit_sha256": "c0220dbbd58468d92c5bf7130861f722e139e5cffd14643286cf6c14fe46dafc",
+      "frozen_sha256": "c0220dbbd58468d92c5bf7130861f722e139e5cffd14643286cf6c14fe46dafc"
+    },
+    {
+      "path": "crates/stateknot-core/src/lib.rs",
+      "same_as_commit": true,
+      "commit_sha256": "4918d8fe4f3e56b706e7ddca7f81ed07f9ff9c72da3288ec8da3ada89dd1ab76",
+      "frozen_sha256": "4918d8fe4f3e56b706e7ddca7f81ed07f9ff9c72da3288ec8da3ada89dd1ab76"
+    },
+    {
+      "path": "crates/stateknot-core/src/message.rs",
+      "same_as_commit": true,
+      "commit_sha256": "4df6af8d86c7df5d2fab8c93d3882e6f736a55ad25004e3662fe632e9a939101",
+      "frozen_sha256": "4df6af8d86c7df5d2fab8c93d3882e6f736a55ad25004e3662fe632e9a939101"
+    },
+    {
+      "path": "crates/stateknot-core/src/model.rs",
+      "same_as_commit": true,
+      "commit_sha256": "c9a716c92463e7222dd9fe723a57b864db5188fecd18b0cbc47787b4000d48fd",
+      "frozen_sha256": "c9a716c92463e7222dd9fe723a57b864db5188fecd18b0cbc47787b4000d48fd"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_event.rs",
+      "same_as_commit": true,
+      "commit_sha256": "9cf9bd7162d34a3e57d32f2012b3036e3efda5f1c4152c1095ad1d01367586f9",
+      "frozen_sha256": "9cf9bd7162d34a3e57d32f2012b3036e3efda5f1c4152c1095ad1d01367586f9"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_invocation.rs",
+      "same_as_commit": true,
+      "commit_sha256": "5f18db3e39722c71b9764558ae47f9fe3123b28251dd9e2dd21ad8ec5a0361a6",
+      "frozen_sha256": "5f18db3e39722c71b9764558ae47f9fe3123b28251dd9e2dd21ad8ec5a0361a6"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_request.rs",
+      "same_as_commit": true,
+      "commit_sha256": "a6f12858ca705860fa652c6aae8d85aca0f049d5f46447d8ea6c1d0644bd5239",
+      "frozen_sha256": "a6f12858ca705860fa652c6aae8d85aca0f049d5f46447d8ea6c1d0644bd5239"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_response.rs",
+      "same_as_commit": true,
+      "commit_sha256": "3e32eecb70dcf86166019ab039387bf82eb184e897767ef47fdf7bdff32118fa",
+      "frozen_sha256": "3e32eecb70dcf86166019ab039387bf82eb184e897767ef47fdf7bdff32118fa"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_runtime.rs",
+      "same_as_commit": true,
+      "commit_sha256": "08203aa96f9c5e5d986e97d9342ba078ec931555ae2c633a0fca9c43cb163056",
+      "frozen_sha256": "08203aa96f9c5e5d986e97d9342ba078ec931555ae2c633a0fca9c43cb163056"
+    },
+    {
+      "path": "crates/stateknot-core/src/model_transcript.rs",
+      "same_as_commit": true,
+      "commit_sha256": "7b2ab5d248dc643c1c12f31ce12234ea5554a3c861790e6fb2af67391f630312",
+      "frozen_sha256": "7b2ab5d248dc643c1c12f31ce12234ea5554a3c861790e6fb2af67391f630312"
+    },
+    {
+      "path": "crates/stateknot-core/src/node_attempt.rs",
+      "same_as_commit": true,
+      "commit_sha256": "50a9b9f605416ded729981592a6254d8294505f5e327e3616cfa5ff4a5f5d202",
+      "frozen_sha256": "50a9b9f605416ded729981592a6254d8294505f5e327e3616cfa5ff4a5f5d202"
+    },
+    {
+      "path": "crates/stateknot-core/src/node_result.rs",
+      "same_as_commit": true,
+      "commit_sha256": "1dc92dcdf9f7cc47ae7a90f534f197d1a72dc807c87d1736c8ccfb923640ecfd",
+      "frozen_sha256": "1dc92dcdf9f7cc47ae7a90f534f197d1a72dc807c87d1736c8ccfb923640ecfd"
+    },
+    {
+      "path": "crates/stateknot-core/src/outbox.rs",
+      "same_as_commit": true,
+      "commit_sha256": "17f38d06022823bc5b90b994cfca507ad069245a1abd69d67de46db8511fb805",
+      "frozen_sha256": "17f38d06022823bc5b90b994cfca507ad069245a1abd69d67de46db8511fb805"
+    },
+    {
+      "path": "crates/stateknot-core/src/recovery.rs",
+      "same_as_commit": true,
+      "commit_sha256": "5a101a4dc1ee6f994cec88fe64271a30e9833533dbcd474f951fe05ad37da1ab",
+      "frozen_sha256": "5a101a4dc1ee6f994cec88fe64271a30e9833533dbcd474f951fe05ad37da1ab"
+    },
+    {
+      "path": "crates/stateknot-core/src/run.rs",
+      "same_as_commit": true,
+      "commit_sha256": "44bd379ae1ee62b46c6357b7376c7dd7a8de7d1db70a4aaa3db5e7cbcd534a75",
+      "frozen_sha256": "44bd379ae1ee62b46c6357b7376c7dd7a8de7d1db70a4aaa3db5e7cbcd534a75"
+    },
+    {
+      "path": "crates/stateknot-core/src/schema.rs",
+      "same_as_commit": true,
+      "commit_sha256": "4986174c5d5b520eb4eed8040471058a2854f35a1f28027a7207d35e2fbd09e9",
+      "frozen_sha256": "4986174c5d5b520eb4eed8040471058a2854f35a1f28027a7207d35e2fbd09e9"
+    },
+    {
+      "path": "crates/stateknot-core/src/scope.rs",
+      "same_as_commit": true,
+      "commit_sha256": "7c3e65c3da6c545a6c277621678edd95fb714e49e3c28d89fceecb766c7742b8",
+      "frozen_sha256": "7c3e65c3da6c545a6c277621678edd95fb714e49e3c28d89fceecb766c7742b8"
+    },
+    {
+      "path": "crates/stateknot-core/src/skill_authorization.rs",
+      "same_as_commit": true,
+      "commit_sha256": "5539c83dc6cba4dcc7dfb6d18de44345a510095ea548dbf2e685256af29d7148",
+      "frozen_sha256": "5539c83dc6cba4dcc7dfb6d18de44345a510095ea548dbf2e685256af29d7148"
+    },
+    {
+      "path": "crates/stateknot-core/src/time.rs",
+      "same_as_commit": true,
+      "commit_sha256": "66a26f7c2a646f1e2929c2be61ce08141fef6ca6bfc7dcc725007966b27f1727",
+      "frozen_sha256": "66a26f7c2a646f1e2929c2be61ce08141fef6ca6bfc7dcc725007966b27f1727"
+    },
+    {
+      "path": "crates/stateknot-core/src/tool.rs",
+      "same_as_commit": true,
+      "commit_sha256": "7b8675a32869b258ff1bb6fb8d1c27eac1f3fdb07d6420c3a12dfa7ceabbbc28",
+      "frozen_sha256": "7b8675a32869b258ff1bb6fb8d1c27eac1f3fdb07d6420c3a12dfa7ceabbbc28"
+    },
+    {
+      "path": "crates/stateknot-core/src/tool_authorization.rs",
+      "same_as_commit": true,
+      "commit_sha256": "4de16981c2406535c197f2c6c42a4b68c8df95b5293a0a61fc506bd7e9816b04",
+      "frozen_sha256": "4de16981c2406535c197f2c6c42a4b68c8df95b5293a0a61fc506bd7e9816b04"
+    },
+    {
+      "path": "crates/stateknot-core/src/tool_invocation.rs",
+      "same_as_commit": true,
+      "commit_sha256": "7af0154477818153152707a7c02c3209447018b9ba9fb521a9e036e1e08a016a",
+      "frozen_sha256": "7af0154477818153152707a7c02c3209447018b9ba9fb521a9e036e1e08a016a"
+    },
+    {
+      "path": "crates/stateknot-core/src/tool_runtime.rs",
+      "same_as_commit": true,
+      "commit_sha256": "a3d97a1d305948a7e004ac762c8f1aa4c7ba68b900646b0897b538385fc1b013",
+      "frozen_sha256": "a3d97a1d305948a7e004ac762c8f1aa4c7ba68b900646b0897b538385fc1b013"
+    },
+    {
+      "path": "crates/stateknot-core/src/version.rs",
+      "same_as_commit": true,
+      "commit_sha256": "42d82fc8e7d07c552fddbc531bf36206128807a237ea7e2cd1c494ee6e988ec5",
+      "frozen_sha256": "42d82fc8e7d07c552fddbc531bf36206128807a237ea7e2cd1c494ee6e988ec5"
+    },
+    {
+      "path": "crates/stateknot-core/src/wait.rs",
+      "same_as_commit": true,
+      "commit_sha256": "a878e94aeda2880e63f15afbe1f4917948f379095661702b79759ea9373ff13f",
+      "frozen_sha256": "a878e94aeda2880e63f15afbe1f4917948f379095661702b79759ea9373ff13f"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0001_initial.sql",
+      "same_as_commit": true,
+      "commit_sha256": "89ade328070157ab1444d37dc66046ad4fa2e8c62b1c9019e23488e4092bf946",
+      "frozen_sha256": "89ade328070157ab1444d37dc66046ad4fa2e8c62b1c9019e23488e4092bf946"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0002_checkpoints.sql",
+      "same_as_commit": true,
+      "commit_sha256": "195d01d3ca535e4928589d146aa48aa67dac69090bbb714a49910425cc37ba2b",
+      "frozen_sha256": "195d01d3ca535e4928589d146aa48aa67dac69090bbb714a49910425cc37ba2b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0003_tool_invocations.sql",
+      "same_as_commit": true,
+      "commit_sha256": "40b9a26946d44f5faaf80d9997e8069f15cba17993ed69a76a04bcbd1c2a66bc",
+      "frozen_sha256": "40b9a26946d44f5faaf80d9997e8069f15cba17993ed69a76a04bcbd1c2a66bc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0004_model_invocations.sql",
+      "same_as_commit": true,
+      "commit_sha256": "bd315f7395d5d3e2dcb3f3a9270810ae1a9a5d6ed54de21bd4bfc52edf931ab4",
+      "frozen_sha256": "bd315f7395d5d3e2dcb3f3a9270810ae1a9a5d6ed54de21bd4bfc52edf931ab4"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0005_pending_node_results.sql",
+      "same_as_commit": true,
+      "commit_sha256": "0cac233d6229cb328f367980f14431a2c321da2c4469c03912302103779cda91",
+      "frozen_sha256": "0cac233d6229cb328f367980f14431a2c321da2c4469c03912302103779cda91"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0006_node_attempts.sql",
+      "same_as_commit": true,
+      "commit_sha256": "18b9ea07eacfbbd562661c2427016b800178c7225d426c0b7a151e3fdaf75528",
+      "frozen_sha256": "18b9ea07eacfbbd562661c2427016b800178c7225d426c0b7a151e3fdaf75528"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0007_scheduler_readiness.sql",
+      "same_as_commit": true,
+      "commit_sha256": "a31c9ba1648cdaa07adef97fb7dbe62a5035ae44aaa67048654a859f8152a5ae",
+      "frozen_sha256": "a31c9ba1648cdaa07adef97fb7dbe62a5035ae44aaa67048654a859f8152a5ae"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0008_transactional_outbox.sql",
+      "same_as_commit": true,
+      "commit_sha256": "ccdaace50b1232e6493a57668319a398d221fafa23eb7304648bc42b9065e8dd",
+      "frozen_sha256": "ccdaace50b1232e6493a57668319a398d221fafa23eb7304648bc42b9065e8dd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0009_durable_waits.sql",
+      "same_as_commit": true,
+      "commit_sha256": "03f246ef5cc40f62b705637e6b820da8ef87b9c4a5afe822f6b33472e3b916ec",
+      "frozen_sha256": "03f246ef5cc40f62b705637e6b820da8ef87b9c4a5afe822f6b33472e3b916ec"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0010_run_quarantines.sql",
+      "same_as_commit": true,
+      "commit_sha256": "6c750e2635fdf70719d71b734fe36ef23f752f50e80037c26e51a33e62db4d21",
+      "frozen_sha256": "6c750e2635fdf70719d71b734fe36ef23f752f50e80037c26e51a33e62db4d21"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0011_fenced_recovery_quarantines.sql",
+      "same_as_commit": true,
+      "commit_sha256": "1109d639b89c49bae349d3537d83fff7790acdd31f7e106001eb9c0013247f3d",
+      "frozen_sha256": "1109d639b89c49bae349d3537d83fff7790acdd31f7e106001eb9c0013247f3d"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0012_delayed_retry_wakeup.sql",
+      "same_as_commit": true,
+      "commit_sha256": "bd74a9de569b793cf315e63051f3ae8d5f773e9538a2adb8b55a0f5fc37bc551",
+      "frozen_sha256": "bd74a9de569b793cf315e63051f3ae8d5f773e9538a2adb8b55a0f5fc37bc551"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0013_graph_registry.sql",
+      "same_as_commit": true,
+      "commit_sha256": "d5b5ac27c9fa86298ed2ce797d32760bda32deef987afae0fd49e30dd8f63fa8",
+      "frozen_sha256": "d5b5ac27c9fa86298ed2ce797d32760bda32deef987afae0fd49e30dd8f63fa8"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0014_scheduler_fairness.sql",
+      "same_as_commit": true,
+      "commit_sha256": "80da3ed8e1ea588506ee5e24f4ad7dc00d7759ab138adba4f7887f9fb7aa81d3",
+      "frozen_sha256": "80da3ed8e1ea588506ee5e24f4ad7dc00d7759ab138adba4f7887f9fb7aa81d3"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0015_agent_admissions.sql",
+      "same_as_commit": true,
+      "commit_sha256": "ee0ea2c3d2fb4d21dd63ee86834de36ffea30eb83f700beb9b2236aaf879c038",
+      "frozen_sha256": "ee0ea2c3d2fb4d21dd63ee86834de36ffea30eb83f700beb9b2236aaf879c038"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0016_agent_submission_keys.sql",
+      "same_as_commit": true,
+      "commit_sha256": "f40ba773d5aa9fbccd1b695838db81c12e0fa482b644b82ff8fa53d597cbfad4",
+      "frozen_sha256": "f40ba773d5aa9fbccd1b695838db81c12e0fa482b644b82ff8fa53d597cbfad4"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0017_terminal_tool_result_bindings.sql",
+      "same_as_commit": true,
+      "commit_sha256": "a2797bc36ba2968aa32939f159387b74893ccf6d81f9b5ec24c06573bac5b015",
+      "frozen_sha256": "a2797bc36ba2968aa32939f159387b74893ccf6d81f9b5ec24c06573bac5b015"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0018_artifact_registry.sql",
+      "same_as_commit": true,
+      "commit_sha256": "f6d9f55c89b36131463bd65a1c4c10b24ad0f8a3e9f9e4ad9ce8a61de09e7011",
+      "frozen_sha256": "f6d9f55c89b36131463bd65a1c4c10b24ad0f8a3e9f9e4ad9ce8a61de09e7011"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0019_terminal_model_failure_bindings.sql",
+      "same_as_commit": true,
+      "commit_sha256": "a72795574d0aa5b84550a641d882d5aa2f75ed2b0eabcdf088110c17e7c801b3",
+      "frozen_sha256": "a72795574d0aa5b84550a641d882d5aa2f75ed2b0eabcdf088110c17e7c801b3"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0020_child_run_ownership.sql",
+      "same_as_commit": true,
+      "commit_sha256": "c6d946373a705ca7faca7b933a1e3de49bc2303f475e704b27999286c03f790d",
+      "frozen_sha256": "c6d946373a705ca7faca7b933a1e3de49bc2303f475e704b27999286c03f790d"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0021_child_run_cancellation.sql",
+      "same_as_commit": true,
+      "commit_sha256": "c6beef2ca07bf131a0ffbf4f69cb9b6e4b9abbf3ef5dfcdcc5c6a99200c411dc",
+      "frozen_sha256": "c6beef2ca07bf131a0ffbf4f69cb9b6e4b9abbf3ef5dfcdcc5c6a99200c411dc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0022_child_run_joins.sql",
+      "same_as_commit": true,
+      "commit_sha256": "29261b54c43f68c4a6433226cf48420779e62e704798c9a7ce88a360568af91b",
+      "frozen_sha256": "29261b54c43f68c4a6433226cf48420779e62e704798c9a7ce88a360568af91b"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0023_agent_deadlines.sql",
+      "same_as_commit": true,
+      "commit_sha256": "87dcdf1128f146c9770ce0b090de33233c0de2336487be26f27f5da15fcc7652",
+      "frozen_sha256": "87dcdf1128f146c9770ce0b090de33233c0de2336487be26f27f5da15fcc7652"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0024_run_failure_closes.sql",
+      "same_as_commit": true,
+      "commit_sha256": "096ba75282cbf8a7ff6bd00df0184a4d14978b2fb06337d8ee075712e6848b38",
+      "frozen_sha256": "096ba75282cbf8a7ff6bd00df0184a4d14978b2fb06337d8ee075712e6848b38"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0025_tool_authorization_receipts.sql",
+      "same_as_commit": true,
+      "commit_sha256": "1f2c22071a171d598876794f1795c9567fc0956b8677060776699d48de9e445f",
+      "frozen_sha256": "1f2c22071a171d598876794f1795c9567fc0956b8677060776699d48de9e445f"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0026_skill_activation_windows.sql",
+      "same_as_commit": true,
+      "commit_sha256": "cc0cd99713fbe7732a9183316018726341fac45af3e5f7d898c58bcd5c3ac1ec",
+      "frozen_sha256": "cc0cd99713fbe7732a9183316018726341fac45af3e5f7d898c58bcd5c3ac1ec"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0027_scoped_checkpoints.sql",
+      "same_as_commit": true,
+      "commit_sha256": "e15d6c2973734f212e9444a3179309e6a783025926b80ca0a97006f9cc2b88dd",
+      "frozen_sha256": "e15d6c2973734f212e9444a3179309e6a783025926b80ca0a97006f9cc2b88dd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0028_graph_frame_entries.sql",
+      "same_as_commit": true,
+      "commit_sha256": "5351de9b1b48700c4ebb0c5764164a82895db0016b97d876c7438e3ec7c6642e",
+      "frozen_sha256": "5351de9b1b48700c4ebb0c5764164a82895db0016b97d876c7438e3ec7c6642e"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0029_graph_frame_barriers.sql",
+      "same_as_commit": true,
+      "commit_sha256": "a58c4c2f27f534c3cbdedb5c29ca240b73a0a67658102f9467609917d050303a",
+      "frozen_sha256": "a58c4c2f27f534c3cbdedb5c29ca240b73a0a67658102f9467609917d050303a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0030_graph_frame_caller_bindings.sql",
+      "same_as_commit": true,
+      "commit_sha256": "a6d01278d32327fc4328faa08c238fa8a0ceb62ca2a517eb88a568db11e4898a",
+      "frozen_sha256": "a6d01278d32327fc4328faa08c238fa8a0ceb62ca2a517eb88a568db11e4898a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0031_graph_frame_returns.sql",
+      "same_as_commit": true,
+      "commit_sha256": "7c4874965560727980f81e33cafea5d2ea784612c32eb8c6cf599e19228d0e61",
+      "frozen_sha256": "7c4874965560727980f81e33cafea5d2ea784612c32eb8c6cf599e19228d0e61"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0032_graph_frame_waits.sql",
+      "same_as_commit": true,
+      "commit_sha256": "1b74d033351e1eda5ac8debce76f2161e32697c80e9200ba9ecd8b2c40230e38",
+      "frozen_sha256": "1b74d033351e1eda5ac8debce76f2161e32697c80e9200ba9ecd8b2c40230e38"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0033_graph_frame_closures.sql",
+      "same_as_commit": true,
+      "commit_sha256": "3496c0a846950d3026dee6a2fb3b7db8c567a38deeee6b1072462a8743520574",
+      "frozen_sha256": "3496c0a846950d3026dee6a2fb3b7db8c567a38deeee6b1072462a8743520574"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0034_root_graph_barriers.sql",
+      "same_as_commit": true,
+      "commit_sha256": "931964864cc4952297eff419babe92eb11882309558292712723b9eb71cd4168",
+      "frozen_sha256": "931964864cc4952297eff419babe92eb11882309558292712723b9eb71cd4168"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/migrations/0035_trusted_root_graph_barriers.sql",
+      "same_as_commit": true,
+      "commit_sha256": "027c0ac24b12a31846db75c766599c4d78a5ab78895731572e400a50c3babd58",
+      "frozen_sha256": "027c0ac24b12a31846db75c766599c4d78a5ab78895731572e400a50c3babd58"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/agent_deadline_catalog.json",
+      "same_as_commit": true,
+      "commit_sha256": "836ddfb1a854b90c24593a9b03829390678bda1235cac9c80707521d12fa913c",
+      "frozen_sha256": "836ddfb1a854b90c24593a9b03829390678bda1235cac9c80707521d12fa913c"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/agent_deadlines.rs",
+      "same_as_commit": true,
+      "commit_sha256": "331927eb0a6ebf27c2a1d7a7f76eefbcafeb50aeeacf20f74aea0c04533c7520",
+      "frozen_sha256": "331927eb0a6ebf27c2a1d7a7f76eefbcafeb50aeeacf20f74aea0c04533c7520"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_cancellation.rs",
+      "same_as_commit": true,
+      "commit_sha256": "6d4e2b65f2403d2187ce98623115f6d876ff147e4772b352fe87ef784060c284",
+      "frozen_sha256": "6d4e2b65f2403d2187ce98623115f6d876ff147e4772b352fe87ef784060c284"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_join_catalog.json",
+      "same_as_commit": true,
+      "commit_sha256": "471f30edf53ef611b9509fea5cdf87451a60d1136e7adbb7f1b0eb63099b1f91",
+      "frozen_sha256": "471f30edf53ef611b9509fea5cdf87451a60d1136e7adbb7f1b0eb63099b1f91"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_joins.rs",
+      "same_as_commit": true,
+      "commit_sha256": "d8b99bed81e49bb576fb9e0358a13acb71290122f65ac5ce36efedb635538707",
+      "frozen_sha256": "d8b99bed81e49bb576fb9e0358a13acb71290122f65ac5ce36efedb635538707"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_run_scope.rs",
+      "same_as_commit": true,
+      "commit_sha256": "63bd88b975746511af9651e9ffc65da7943e9e6944f4f75034463e33379a4bbc",
+      "frozen_sha256": "63bd88b975746511af9651e9ffc65da7943e9e6944f4f75034463e33379a4bbc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/child_runs.rs",
+      "same_as_commit": true,
+      "commit_sha256": "e41e4faa9a079cf77ccdd20939f22024fe668f5ceb961ab4e69d4816b1498cf2",
+      "frozen_sha256": "e41e4faa9a079cf77ccdd20939f22024fe668f5ceb961ab4e69d4816b1498cf2"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/config.rs",
+      "same_as_commit": true,
+      "commit_sha256": "f2039152c46fa6884fe80b96fee7532f9c2098e859c3165b4bb9c87d46cfa0b0",
+      "frozen_sha256": "f2039152c46fa6884fe80b96fee7532f9c2098e859c3165b4bb9c87d46cfa0b0"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/error.rs",
+      "same_as_commit": true,
+      "commit_sha256": "7064c167d0597865e8bcb5f25cc4424ff11e6674a00981f4a8a2b99b4eadfb00",
+      "frozen_sha256": "7064c167d0597865e8bcb5f25cc4424ff11e6674a00981f4a8a2b99b4eadfb00"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/failure_close_catalog.json",
+      "same_as_commit": true,
+      "commit_sha256": "b6f2e4bac11d045404dd2e43c03fa69067c41ef04557d6fd9ffa6b9847a7d9db",
+      "frozen_sha256": "b6f2e4bac11d045404dd2e43c03fa69067c41ef04557d6fd9ffa6b9847a7d9db"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/failure_closes.rs",
+      "same_as_commit": true,
+      "commit_sha256": "6982d9fbd4a78fcf7a4723e9fdf764717fd003881eae5f53537bf80967fa89b1",
+      "frozen_sha256": "6982d9fbd4a78fcf7a4723e9fdf764717fd003881eae5f53537bf80967fa89b1"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/frame_recovery.rs",
+      "same_as_commit": true,
+      "commit_sha256": "7d659f407ec729d9c557ddd91eed8bedcfef1b64d162c0ba4636faca50b27c08",
+      "frozen_sha256": "7d659f407ec729d9c557ddd91eed8bedcfef1b64d162c0ba4636faca50b27c08"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/frame_retry.rs",
+      "same_as_commit": true,
+      "commit_sha256": "acc0626b7280784b340af192b890870c7444523e664117f15aa4116af2ed9e09",
+      "frozen_sha256": "acc0626b7280784b340af192b890870c7444523e664117f15aa4116af2ed9e09"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frame_catalog.json",
+      "same_as_commit": true,
+      "commit_sha256": "13ac26b2af7068bb9fc8591647451ae61012161140a54af5529b0dea5ecc85c8",
+      "frozen_sha256": "13ac26b2af7068bb9fc8591647451ae61012161140a54af5529b0dea5ecc85c8"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frame_catalog.sql",
+      "same_as_commit": true,
+      "commit_sha256": "9ea7b7528a55f9b82a669d7ceabd2e4e1392a774ca2b36fd44f324abbfdec562",
+      "frozen_sha256": "9ea7b7528a55f9b82a669d7ceabd2e4e1392a774ca2b36fd44f324abbfdec562"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames.rs",
+      "same_as_commit": true,
+      "commit_sha256": "18feb6c0ff073a2e9306b08f7f085a922fbf0aaa08b9cfd6368c00ee98b51e8a",
+      "frozen_sha256": "18feb6c0ff073a2e9306b08f7f085a922fbf0aaa08b9cfd6368c00ee98b51e8a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/active.rs",
+      "same_as_commit": true,
+      "commit_sha256": "bfe95b8d64b92744b64fbcfaec85bf8feaf9ec2d26fe619f0e0e2c0801bcdc47",
+      "frozen_sha256": "bfe95b8d64b92744b64fbcfaec85bf8feaf9ec2d26fe619f0e0e2c0801bcdc47"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/application_replay.rs",
+      "same_as_commit": true,
+      "commit_sha256": "116b37652a789c0a70147a188f041022b02947bac9dd678e05c6d56af98f6578",
+      "frozen_sha256": "116b37652a789c0a70147a188f041022b02947bac9dd678e05c6d56af98f6578"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/barriers.rs",
+      "same_as_commit": true,
+      "commit_sha256": "dcac4d88e87c6aa7f1b7ce9790712cdecaf42b2876f7ded51888aebb34e0925a",
+      "frozen_sha256": "dcac4d88e87c6aa7f1b7ce9790712cdecaf42b2876f7ded51888aebb34e0925a"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs",
+      "same_as_commit": true,
+      "commit_sha256": "6af9628ab035226496323df8750f98490fabec02a883aa392242f4d76bff2602",
+      "frozen_sha256": "6af9628ab035226496323df8750f98490fabec02a883aa392242f4d76bff2602"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/closures.rs",
+      "same_as_commit": true,
+      "commit_sha256": "7d87f05b9bdf0c1eb3ab3408852d23900f76b9198505a2017566d934e79340b8",
+      "frozen_sha256": "7d87f05b9bdf0c1eb3ab3408852d23900f76b9198505a2017566d934e79340b8"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/replay.rs",
+      "same_as_commit": true,
+      "commit_sha256": "095a6f653021475fda00c691a9b57ddc17f388a18aa9d6122dc9949709ab0a95",
+      "frozen_sha256": "095a6f653021475fda00c691a9b57ddc17f388a18aa9d6122dc9949709ab0a95"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/returns.rs",
+      "same_as_commit": true,
+      "commit_sha256": "dc18bfd800e4f1413e04ded4edd4e951ff6afd200380c1b8687990f7fe780cd1",
+      "frozen_sha256": "dc18bfd800e4f1413e04ded4edd4e951ff6afd200380c1b8687990f7fe780cd1"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/root_prefix.rs",
+      "same_as_commit": true,
+      "commit_sha256": "9255b08e2102e9a6ae5097121cbd26aa3d8bd0db997910042552b310e03439c7",
+      "frozen_sha256": "9255b08e2102e9a6ae5097121cbd26aa3d8bd0db997910042552b310e03439c7"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/lib.rs",
+      "same_as_commit": true,
+      "commit_sha256": "3fae7f9664d2c4afc31ad220e5e34e3085c32886290bc9220af21f7969123cf9",
+      "frozen_sha256": "3fae7f9664d2c4afc31ad220e5e34e3085c32886290bc9220af21f7969123cf9"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/model.rs",
+      "same_as_commit": true,
+      "commit_sha256": "3f080509c163c102c134949bd72a01eadf88ee3feebfcd7d18f601b4a9daaa6e",
+      "frozen_sha256": "3f080509c163c102c134949bd72a01eadf88ee3feebfcd7d18f601b4a9daaa6e"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barrier_catalog.json",
+      "same_as_commit": true,
+      "commit_sha256": "95810d1656abfaf398f0e746142a81ad7c9e22ad07d4c6aebc31a9f1ea338567",
+      "frozen_sha256": "95810d1656abfaf398f0e746142a81ad7c9e22ad07d4c6aebc31a9f1ea338567"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barrier_catalog.sql",
+      "same_as_commit": true,
+      "commit_sha256": "2026e795923273bd020cf92493f0dc0000cb2bb48ad0af817be9b4c21481aea0",
+      "frozen_sha256": "2026e795923273bd020cf92493f0dc0000cb2bb48ad0af817be9b4c21481aea0"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/root_graph_barriers.rs",
+      "same_as_commit": true,
+      "commit_sha256": "37598ebdc1d2e9fb67e809833aad07ade5d210eee551f5d9108102416ab022dc",
+      "frozen_sha256": "37598ebdc1d2e9fb67e809833aad07ade5d210eee551f5d9108102416ab022dc"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/scoped_checkpoint_catalog.json",
+      "same_as_commit": true,
+      "commit_sha256": "5d458a45e65406f3343a1642650b995112a64042569b065d7b42ef8edeeedd57",
+      "frozen_sha256": "5d458a45e65406f3343a1642650b995112a64042569b065d7b42ef8edeeedd57"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/scoped_checkpoints.rs",
+      "same_as_commit": true,
+      "commit_sha256": "9bd5ea26bc7cb04d745b633f7aaf6be888adbcc427fbc117fd6e3aabcc35ec16",
+      "frozen_sha256": "9bd5ea26bc7cb04d745b633f7aaf6be888adbcc427fbc117fd6e3aabcc35ec16"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/skill_activation_windows.rs",
+      "same_as_commit": true,
+      "commit_sha256": "e9176285a2eae03b1966cdecc5c369848bffbebaa6baba697d5bb73583f1aa83",
+      "frozen_sha256": "e9176285a2eae03b1966cdecc5c369848bffbebaa6baba697d5bb73583f1aa83"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/store.rs",
+      "same_as_commit": true,
+      "commit_sha256": "66b50cc372e96591f4ceb1ae26dbbdb2e0ee181a8f5e5bd3091af467e94d5d9c",
+      "frozen_sha256": "66b50cc372e96591f4ceb1ae26dbbdb2e0ee181a8f5e5bd3091af467e94d5d9c"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/tool_authorization_receipts.rs",
+      "same_as_commit": true,
+      "commit_sha256": "de24861556419cab272bcfa00e13af377f78d110f0bffee32ceb02ff03fbb855",
+      "frozen_sha256": "de24861556419cab272bcfa00e13af377f78d110f0bffee32ceb02ff03fbb855"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/trusted_graph_root.rs",
+      "same_as_commit": true,
+      "commit_sha256": "c94ea20859fb64e034e29148c682a69b55802b42e135be150e8e50dcde28c715",
+      "frozen_sha256": "c94ea20859fb64e034e29148c682a69b55802b42e135be150e8e50dcde28c715"
+    },
+    {
+      "path": "rust-toolchain.toml",
+      "same_as_commit": true,
+      "commit_sha256": "2f441c124b2cfabc1558c8b3f990f44fde197b62c3aa3e36b7d8d79d330af858",
+      "frozen_sha256": "2f441c124b2cfabc1558c8b3f990f44fde197b62c3aa3e36b7d8d79d330af858"
+    }
+  ]
+}

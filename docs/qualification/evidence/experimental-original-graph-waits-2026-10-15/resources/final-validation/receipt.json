@@ -1,0 +1,54 @@
+{
+  "actual_free_KiB": 323956848,
+  "cleanup_performed": false,
+  "cache_retention": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+      "cargo_cachedir_tag": true,
+      "git_tracked": false,
+      "du_KiB": 2731540,
+      "open_file_probe_return": 1,
+      "open_file_output_empty": true,
+      "cargo_lock": "nonblocking exclusive acquired and released",
+      "retained": true,
+      "purpose": "Task rebuildable strict verification cache retained for qualification follow-up; all logs, source, binary artifacts already outside cache."
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint-nightly",
+      "cargo_cachedir_tag": true,
+      "git_tracked": false,
+      "du_KiB": 427292,
+      "open_file_probe_return": 1,
+      "open_file_output_empty": true,
+      "cargo_lock": "nonblocking exclusive acquired and released",
+      "retained": true,
+      "purpose": "Task rebuildable strict verification cache retained for qualification follow-up; all logs, source, binary artifacts already outside cache."
+    }
+  ],
+  "disk_scope": "Actual df; per-cache du values are not added or claimed as released APFS blocks.",
+  "DB_or_existing_volume_cleanup_performed": false,
+  "PITR_original_cleanup_readonly_inventory": {
+    "16": {
+      "new_pitr_containers_remaining": [],
+      "new_pitr_volumes_remaining": [
+        "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1"
+      ],
+      "all_prior_container_identities_retained": true,
+      "prior_volumes_retained": true,
+      "container_name_delta": [],
+      "volume_name_delta": [
+        "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1"
+      ]
+    },
+    "17": {
+      "new_pitr_containers_remaining": [],
+      "new_pitr_volumes_remaining": [],
+      "all_prior_container_identities_retained": true,
+      "prior_volumes_retained": true,
+      "container_name_delta": [],
+      "volume_name_delta": []
+    }
+  },
+  "PITR_resource_status": "exact_execution_passed_resource_cleanup_open",
+  "retained_own_PITR_wal_volume": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1"
+}

@@ -1,0 +1,54 @@
+{
+  "baseline_commit": "ff7fea7db88a611e2f0db29ceedf6b0b4b48f5fa",
+  "files": [
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+      "baseline_bytes": 14303,
+      "baseline_sha256": "271296c418b3d2ba7c48a39ab515dc410fa2f2aca26e82a6712faa11c4aade77",
+      "candidate_bytes": 14414,
+      "candidate_sha256": "eec8eb79475501045f1542e45cb80f9fe8fae8a592aa85f3cad17ee6859ad19e"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "baseline_bytes": 137913,
+      "baseline_sha256": "17ef6c6bb5fc546bc3d2bc21e80d028b9e48237c8850ad378cd06fa5c8ec1845",
+      "candidate_bytes": 137986,
+      "candidate_sha256": "f8b6f5f043beed350e63d9ad56e54a8f14a43e7bfad077e143f99736708eff87"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs",
+      "baseline_bytes": 0,
+      "baseline_sha256": null,
+      "candidate_bytes": 23822,
+      "candidate_sha256": "fdb57aa1ac77a55ebfa958edb78f6a3c4195a9903b18975f42a95e5b95ad2dd0"
+    }
+  ],
+  "patch_bytes": 25643,
+  "patch_sha256": "2fa385243a001ff17356668c8e98428a66381b10675834ab8d18e251485ba5de",
+  "gzip_patch_sha256": "9fc459495d6b636b1dfe24eb32b712b61114fb8b6d504b81e266a2ffeace444e",
+  "matrix_sha256": "481ebaab277b3a21daaf911ba7626a31e358d37e7d46730e3793f353653fb0ff",
+  "snapshot_tables": [
+    "runs",
+    "run_events",
+    "run_attempt_claims",
+    "node_attempts",
+    "node_attempt_completions",
+    "pending_node_results",
+    "pending_node_result_consumptions",
+    "run_checkpoints",
+    "graph_frame_entries",
+    "graph_frame_caller_bindings",
+    "graph_frame_returns",
+    "graph_frame_barriers",
+    "graph_frame_heads",
+    "graph_frame_stacks",
+    "graph_wait_conditions",
+    "run_wait_registrations",
+    "interrupt_resolutions",
+    "timer_firings",
+    "wait_abandonments",
+    "graph_frame_closures",
+    "graph_frame_closed_callers",
+    "run_quarantines"
+  ]
+}

@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-publication-preparation-v1/candidate/docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/verify-component.py", line 126, in <module>
+    main()
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-publication-preparation-v1/candidate/docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/verify-component.py", line 122, in main
+    assert (len(data),sha(data))==(row['bytes'],row['sha256']),row['path']
+AssertionError: crates/stateknot-integrations/src/mcp_client.rs
+Traceback (most recent call last):
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-publication-preparation-v1/candidate/docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/verify.py", line 18, in <module>
+    subprocess.run(command,check=True)
+  File "/Library/Developer/CommandLineTools/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/subprocess.py", line 528, in run
+    raise CalledProcessError(retcode, process.args,
+subprocess.CalledProcessError: Command '['/Library/Developer/CommandLineTools/usr/bin/python3', '/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-publication-preparation-v1/candidate/docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/verify-component.py', '--repository-root', '/Users/jiawy/Documents/RustAgentFramework', '--workspace']' returned non-zero exit status 1.

@@ -1,0 +1,5 @@
+{
+  "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint/debug/.cargo-lock",
+  "exists": true,
+  "open_files_test": "lsof +D entire target returned 1 with empty stdout/stderr"
+}

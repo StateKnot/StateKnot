@@ -1,0 +1,312 @@
+{
+  "profile": "experimental-scoped-attempt-base-proof",
+  "date": "2026-10-15",
+  "status": "complete_static_and_four_local_native_suites_plus_independent_restore_pitr_pass",
+  "release_qualified": false,
+  "r1_complete": false,
+  "rfc_0022_status": "Draft",
+  "source": {
+    "tested_files": 899,
+    "tested_manifest_sha256": "5cc4e2cd0ab5824b87510dfaea6e95c08e3f1cf0cd20f6e8ebcad0da0b103645",
+    "tested_archive_sha256": "317306a46bfeb907d8613274082273868d25c584915eb4be08fd2423deaae427",
+    "prior_unerased_manifest_sha256": "1d2bc684388ae64e1d5dc1d0318f9ed5618871ca610a952a8e9706cab4789e1b",
+    "layout_baseline_manifest_sha256": "2629e47bb772ae27ff506707cdc9fbacd7afcd0a0f016b2e63a1f7ee303e1d2b",
+    "adopted_rust_sha256": {
+      "crates/stateknot-store-postgres/src/store.rs": "66b50cc372e96591f4ceb1ae26dbbdb2e0ee181a8f5e5bd3091af467e94d5d9c",
+      "crates/stateknot-store-postgres/tests/postgres/proof_base_reuse.rs": "75eadbdf73c2c6b377c9c065828a9bde88ae8750413aecb69565bea548aaf071",
+      "crates/stateknot-store-postgres/tests/postgres.rs": "641470043e47299cc9373d109ad5654a562f9d3bf8e71fa3cbcc1d0d26cb6e03"
+    },
+    "all_adopted_rust_matches_tested_input": true,
+    "crate_and_build_configuration_inputs_checked": 515,
+    "qualification_docs_added_after_tests": true,
+    "manifest": "evidence/scoped-attempt-base-proof-2026-10-15/source-manifest.json"
+  },
+  "build": {
+    "exit_code": 0,
+    "artifact_fresh": false,
+    "binary_sha256": "8abd33d1dbd7077608a7a3fd16cf77d4beb3b94ecc8bf7261c312e846b2883ad",
+    "source_manifest_sha256": "5cc4e2cd0ab5824b87510dfaea6e95c08e3f1cf0cd20f6e8ebcad0da0b103645",
+    "explicit_package_clean": true,
+    "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/build/receipt.json"
+  },
+  "environment": {
+    "rust_toolchain": "1.88.0-aarch64-apple-darwin",
+    "fixed_nightly": "nightly-2026-10-07",
+    "overrides": {
+      "CARGO_INCREMENTAL": "0",
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "RUSTFLAGS": "-D warnings",
+      "RUSTDOCFLAGS": "-D warnings"
+    },
+    "RUST_MIN_STACK_set": false,
+    "database_variables_cleared_for_static_gates": true,
+    "original_leases_deadlines_and_resource_limits": true
+  },
+  "gates": [
+    {
+      "gate": "fmt",
+      "command": [
+        "cargo",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 5.48769211769104,
+      "log": "evidence/scoped-attempt-base-proof-2026-10-15/gates/fmt.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "gate": "clippy",
+      "command": [
+        "cargo",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 136.73271584510803,
+      "log": "evidence/scoped-attempt-base-proof-2026-10-15/gates/clippy.log",
+      "log_sha256": "4636328e62c838e5c72d7c8de801d482ee40031ca6f9d5e7ed090aae572a582e"
+    },
+    {
+      "gate": "workspace",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 312.7389361858368,
+      "log": "evidence/scoped-attempt-base-proof-2026-10-15/gates/workspace.log.gz",
+      "log_sha256": "a3b454fe1bfaec65a5305be173827c13bc3e2069f8b4d4d0b45e72260db070c5",
+      "suites": 98,
+      "passed": 2048,
+      "failed": 0,
+      "ignored": 6,
+      "log_sha256_is_uncompressed": true
+    },
+    {
+      "gate": "doctests",
+      "command": [
+        "cargo",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 11.501849889755249,
+      "log": "evidence/scoped-attempt-base-proof-2026-10-15/gates/doctests.log.gz",
+      "log_sha256": "598cfa044e339cead2dace33c35b199bd7ade94c0528b50c8d794acd7c61674c",
+      "suites": 10,
+      "passed": 45,
+      "failed": 0,
+      "ignored": 0,
+      "log_sha256_is_uncompressed": true
+    },
+    {
+      "gate": "rustdoc",
+      "command": [
+        "cargo",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 41.00623321533203,
+      "log": "evidence/scoped-attempt-base-proof-2026-10-15/gates/rustdoc.log",
+      "log_sha256": "e49f98d608b3c19b2c340012de4c549265c90a3ef5630855c4f4d80444e51624"
+    },
+    {
+      "gate": "nightly",
+      "command": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 150.3958818912506,
+      "log": "evidence/scoped-attempt-base-proof-2026-10-15/gates/nightly.log",
+      "log_sha256": "47e3a237cf07d8a3a71dec07b835891aea94ab884eb8b1801ece04358f457a9e"
+    }
+  ],
+  "workspace_counts_are_native_evidence": false,
+  "selected_native_tests": [
+    "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+    "frame_dispatch::scoped_success_commits_exact_attempt_result_and_reloads_after_takeover",
+    "frame_dispatch::ordinary_node_completion_cannot_release_framework_owned_caller",
+    "frame_returns::checksum_valid_return_substitution_is_rejected_by_all_whole_readers",
+    "node_attempt_reads_fail_closed_and_attempt_ids_are_run_wide",
+    "pending_node_result_bindings_prove_exact_committed_tool_and_model_revisions"
+  ],
+  "native": [
+    {
+      "postgres_major": 16,
+      "server_version": "16.15 (Debian 16.15-1.pgdg13+2)",
+      "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+      "schema_version": 35,
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "default_stack": true,
+      "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/native-pg16/receipt.json"
+    },
+    {
+      "postgres_major": 17,
+      "server_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+      "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+      "schema_version": 35,
+      "passed": 6,
+      "failed": 0,
+      "ignored": 0,
+      "default_stack": true,
+      "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/native-pg17/receipt.json"
+    }
+  ],
+  "full_native_qualified": false,
+  "runtime_higher_fence_requalified": true,
+  "runtime_seven_level_requalified": true,
+  "compiler_repair": {
+    "original_error": "E0275",
+    "original_error_count": 2,
+    "original_log": "evidence/scoped-attempt-base-proof-2026-10-15/workspace-clippy-before.log",
+    "complete_private_future_erasure": "verify_node_attempt_start_with_base",
+    "body_tokens_unchanged": 123,
+    "sql_literals_unchanged_in_source_order": 139,
+    "unchanged_complete_verifier_functions": 5,
+    "recursion_limit_increased": false,
+    "thread_stack_or_resources_increased": false,
+    "independent_findings": 0,
+    "independent_review_scope": "Only the complete Future-erasure patch",
+    "review": "evidence/scoped-attempt-base-proof-2026-10-15/independent-review.json",
+    "source_proof": "evidence/scoped-attempt-base-proof-2026-10-15/source-proof.json",
+    "erasure_patch": "evidence/scoped-attempt-base-proof-2026-10-15/erase-only.patch.gz",
+    "erasure_patch_uncompressed_sha256": "331cb10c0e41fddd31c2c1fae506aacfffafac5d126151c2d50f8e3998b4964c"
+  },
+  "diagnostic_observations": [
+    {
+      "candidate": "baseline",
+      "postgres_major": 16,
+      "binary_sha256": "21af432fe2ae779969e18a344113c4a1577ae8d4ef1dde54cd0517b385378f0b",
+      "trials": 5,
+      "sql_statements_per_public_read": 93,
+      "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/diagnostic/baseline-pg16/receipt.json"
+    },
+    {
+      "candidate": "baseline",
+      "postgres_major": 17,
+      "binary_sha256": "21af432fe2ae779969e18a344113c4a1577ae8d4ef1dde54cd0517b385378f0b",
+      "trials": 5,
+      "sql_statements_per_public_read": 93,
+      "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/diagnostic/baseline-pg17/receipt.json"
+    },
+    {
+      "candidate": "a",
+      "postgres_major": 16,
+      "binary_sha256": "ce564af521e3ca6c27e0758d980cd858f4ec64a75b513f9a284cf9a69e21992d",
+      "trials": 5,
+      "sql_statements_per_public_read": 53,
+      "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/diagnostic/a-pg16/receipt.json"
+    },
+    {
+      "candidate": "a",
+      "postgres_major": 17,
+      "binary_sha256": "ce564af521e3ca6c27e0758d980cd858f4ec64a75b513f9a284cf9a69e21992d",
+      "trials": 5,
+      "sql_statements_per_public_read": 53,
+      "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/diagnostic/a-pg17/receipt.json"
+    }
+  ],
+  "diagnostic_counts_apply_to_final_binary": false,
+  "latency_improvement_claimed": false,
+  "capacity_qualified": false,
+  "prior_ci": {
+    "head_sha": "1fccf1816a2549d8ca7296b635434b52b30140e9",
+    "url": "https://github.com/StateKnot/StateKnot/actions/runs/38700608003",
+    "conclusion": "cancelled",
+    "other_successful_jobs": 11,
+    "postgres_job_limit_minutes": 30,
+    "postgres_job_termination": "original job timeout; API conclusion cancelled",
+    "store_passed_per_major": 251,
+    "runtime_and_subsequent_qualification_complete": false,
+    "qualifies_this_candidate": false,
+    "observation": "evidence/scoped-attempt-base-proof-2026-10-15/ci-1fcc/observed.json"
+  },
+  "open_gates": [
+    "Linux complete deep/serial/AgentLoop recovery and all dedicated CI qualification steps",
+    "final schema36 and scoped ChildJoin composition",
+    "complete combined process/COMMIT, corruption and cancellation fault matrix",
+    "released N-1/N-2 compatibility",
+    "capacity and R1-R7 production/release gates"
+  ],
+  "evidence_manifest": "evidence/scoped-attempt-base-proof-2026-10-15/evidence-manifest.json",
+  "evidence_manifest_sha256": "afa602b01632635779498ba628f29f82cb15ca7394bc101cb97a9fc2837735ed",
+  "verification_command": "python3 docs/qualification/evidence/scoped-attempt-base-proof-2026-10-15/verify.py --workspace",
+  "full_native_scope": "The four named local suites passed; qualification of all dedicated Native/CI profiles remains open",
+  "runtime_requalification_host": "aarch64-apple-darwin; original default stacks, deadlines and resources",
+  "full_native": {
+    "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/full-native/receipt.json",
+    "source_adoption_commit": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+    "source_adoption_tree": "781d3d550c5b45554dada9723707508d93dc8703",
+    "passed_per_major": {
+      "store": 252,
+      "runtime": 185,
+      "integrations": 2,
+      "example": 1
+    },
+    "harness_passed_per_major": 440,
+    "failed": 0,
+    "ignored": 0,
+    "conditional_entry_inventory": {
+      "ordinary_database_scenario": 164,
+      "auxiliary_subprocess_worker": 15,
+      "independent_logical_restore_resource_gate": 1,
+      "independent_pitr_resource_gate": 1,
+      "harness_or_protocol_self_test": 4
+    },
+    "ordinary_runtime_resource_branches_proven_executed": false
+  },
+  "independent_resource_gates": {
+    "receipt": "evidence/scoped-attempt-base-proof-2026-10-15/resources/receipt.json",
+    "forced_logical_restore_passed_per_major": 1,
+    "linux_named_pitr_passed_per_major": 1,
+    "pitr_source_binding": "actual synthetic merge checkout complete tree equals adoption head tree; exact Cargo.lock",
+    "all_ci_qualification_passed": false
+  },
+  "four_local_native_suites_qualified": true,
+  "all_native_ci_profiles_qualified": false,
+  "current_ci": {
+    "run_id": 38709873198,
+    "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+    "url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198",
+    "conclusion": "cancelled",
+    "total_jobs": 13,
+    "successful_jobs": 11,
+    "cancelled_jobs": 2,
+    "ordinary_postgres_job_limit_minutes": 30,
+    "runtime_and_following_ci_qualification_complete": false,
+    "runtime_assertion_failure_proven": false,
+    "full_ci_passed": false,
+    "throughput_or_capacity_claimed": false,
+    "store_passed_per_major": 252,
+    "runtime_harness_entries_started_per_major": 185,
+    "observation": "evidence/scoped-attempt-base-proof-2026-10-15/ci-83559/observed.json"
+  }
+}

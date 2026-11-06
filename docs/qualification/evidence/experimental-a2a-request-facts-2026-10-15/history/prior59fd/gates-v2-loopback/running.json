@@ -1,0 +1,16 @@
+{
+  "runner_pid": 24431,
+  "pid": 25496,
+  "step": "workspace",
+  "command": [
+    "cargo",
+    "test",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ],
+  "started_unix": 1792066098.375615,
+  "source_tree": "59fd524f0e21460a9ffc8edf7de8cc6ad4d0f95d69384c6515200675364bbea6",
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base"
+}

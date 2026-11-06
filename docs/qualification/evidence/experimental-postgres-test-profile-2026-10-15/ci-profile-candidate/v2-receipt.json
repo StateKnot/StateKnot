@@ -1,0 +1,14 @@
+{
+  "v1_candidate_sha256": "6bead2659391392d43076624c56473b5cfae366d63efc5d985559009ed76336a",
+  "v2_candidate_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7",
+  "baseline_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004",
+  "only_v1_to_v2_change": {
+    "before": "# This changes only test compilation, not leases, fixtures or job budgets.",
+    "after": "# Build/test profile only; leases, fixtures and job budgets are unchanged."
+  },
+  "new_lines_against_baseline": 9,
+  "removed_lines": 0,
+  "semantic_environment_unchanged_from_reviewed_v1": true,
+  "original_workflow_exact_after_removing_nine_line_block": true,
+  "actual_ci_execution_of_v2": false
+}

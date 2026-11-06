@@ -1,0 +1,20 @@
+{
+  "command": [
+    "cargo",
+    "clippy",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "exit_code": 101,
+  "seconds": 12.085628271102905,
+  "source_tree": "341915b8591583df412cc7a5ec6ceb83b89e8dcdc8015c8f39aaabcab6ffed01",
+  "source_before_after_exact": true,
+  "log_sha256": "200787b672ec0caff4d1b9358cadff125e3d98e174d030ef6c672484f58f1739",
+  "original_opt0_profile": true,
+  "native_database_execution": false
+}

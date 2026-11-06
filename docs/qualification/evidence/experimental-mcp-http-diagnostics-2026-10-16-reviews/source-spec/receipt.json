@@ -1,0 +1,22 @@
+{
+  "candidate_patch_sha256": "bdd9c4e3355f167f7aa2caf425edc448c632a1b31b3f3bb8a2940f88aba9b2e2",
+  "compiled_canonical_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "compiled_input_count": 536,
+  "input_bindings_sha256": "fc1eb3f9a52cead9ff5672f5999584adc3001b9b7882b04d2b4caa2be710d592",
+  "no_build_DB_Docker_CI_cache_or_main_index_modification": true,
+  "no_product_or_network_execution_by_reviewer": true,
+  "only_writes": ".local-verification/2026-10-16/evidence/mcp-http-debug-spec-review-v1",
+  "red_observation": "Old production first JSON Complete ordinary Debug actual canary failure only, not all8branch coverage",
+  "report_sha256": "853a3424fd081b26aa4639ce5cc1625ffc98176ce5911b6667a419d2e075a73c",
+  "role": "Independent source/test Spec review of four HTTP MCP Debug types; not Standards or execution qualification",
+  "root_v3_gate_results_not_qualified_by_this_review": true,
+  "schema": 1,
+  "source_before_after_against_fixed_manifest_exact": true,
+  "source_file_count": 928,
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "spec_finding_count": 0,
+  "spec_findings": [],
+  "standards_review": "separate reviewer; not claimed here",
+  "v2_provisional_observations_preserved": true,
+  "v3_increment": "test helper id reference only; production and assertions unchanged"
+}

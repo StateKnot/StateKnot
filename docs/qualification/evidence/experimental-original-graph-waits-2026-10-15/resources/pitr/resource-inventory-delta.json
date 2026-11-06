@@ -1,0 +1,22 @@
+{
+  "16": {
+    "new_pitr_containers_remaining": [],
+    "new_pitr_volumes_remaining": [
+      "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1"
+    ],
+    "all_prior_container_identities_retained": true,
+    "prior_volumes_retained": true,
+    "container_name_delta": [],
+    "volume_name_delta": [
+      "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1"
+    ]
+  },
+  "17": {
+    "new_pitr_containers_remaining": [],
+    "new_pitr_volumes_remaining": [],
+    "all_prior_container_identities_retained": true,
+    "prior_volumes_retained": true,
+    "container_name_delta": [],
+    "volume_name_delta": []
+  }
+}

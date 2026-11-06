@@ -1,0 +1,210 @@
+{
+  "observed_utc": "2026-10-16T04:27:09.510415+00:00",
+  "role": "independent non-author Standards source review; Spec separately owned",
+  "standards": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/CONTRIBUTING.md",
+      "bytes": 3407,
+      "sha256": "eced710f5f2f5e5408576ddd5ff3720ec41ab0283270c0c984edadbda01ac523"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/docs/rfcs/README.md",
+      "bytes": 4432,
+      "sha256": "f42302c5d6f7b01a7fb4a46013d13c862194c5afab6c6127481330ee1a876851"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/docs/rfcs/0025-protocol-identity-and-authority.md",
+      "bytes": 25475,
+      "sha256": "3c5e5f14c7d14ad12bef2628c6d726191b0f7a3cec2d5f3bf340cd33f49296e4"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "bytes": 20927,
+      "sha256": "b739aaebca66c6d18206291a6be2b2498a527c496f6c2811e0bb5863f6534e3a"
+    },
+    {
+      "path": "/Users/jiawy/.codex/plugins/cache/mattpocock/mattpocock-skills/1.3.1/skills/engineering/code-review/SKILL.md",
+      "bytes": 6670,
+      "sha256": "09eb147f793e4647949edd32dbad278f0554dfb56e0d46b699cd4c2c55bf0357"
+    },
+    {
+      "path": "/Users/jiawy/.codex/plugins/cache/mattpocock/mattpocock-skills/1.3.1/skills/engineering/codebase-design/SKILL.md",
+      "bytes": 6446,
+      "sha256": "2c20617f87ec8af6a434859f381b2f061a69b530444e74eb39e78bb016a6d1e2"
+    }
+  ],
+  "contract": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-adjacent-a2a-subscription-contract-v1/CONTRACT.zh-CN.md",
+      "bytes": 7237,
+      "sha256": "f9d0586224e24640e00fde5e9da1db892436607f752d1c5e50ad25021ebcff30"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-adjacent-a2a-subscription-contract-v1/acceptance-matrix.json",
+      "bytes": 9476,
+      "sha256": "67a8cbda8fc19fafcbef2d0a6cd3cc4a0bbb2d65a6730043c8f6335a28ba9b0a"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-adjacent-a2a-subscription-contract-v1/public-interface.rs.txt",
+      "bytes": 1113,
+      "sha256": "ef60a0600ebfc03b48fa7dcf5b4b14842adc7b96a18adbb7cef16f356c5e64a2"
+    }
+  ],
+  "candidate": {
+    "source_tree_sha256": "d994771b87e580ef6b15e28dc101e35e52c2a97f9b9984ded83c060bc7968b56",
+    "source_count": 930,
+    "compiled_count": 538,
+    "compiled_sha256": "c04f7bf97b13395753f4a704da1e0c8f992403d00ceb8cf5c93ba2aa59ae9cd5",
+    "manifest": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v3/frozen-source-manifest.json",
+      "bytes": 169297,
+      "sha256": "490bb4ccee88f4d96408c2231eb08b6f98e03c8a36d5b4f353775fab9441b4fb"
+    },
+    "compiled_manifest": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v3/compiled-inputs.json",
+      "bytes": 101942,
+      "sha256": "ca08bcd223438e3dab1c7f0950630ee139e9a6a9612ed6df6dc3f1d83283eb84"
+    }
+  },
+  "baseline": {
+    "source_count": 928,
+    "source_tree_sha256": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+    "compiled_count": 536,
+    "compiled_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c"
+  },
+  "exact_source_delta": {
+    "changed": [
+      "crates/stateknot-integrations/src/a2a_server.rs"
+    ],
+    "added": [
+      "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+      "crates/stateknot-integrations/tests/a2a_server_subscription.rs"
+    ],
+    "removed": [],
+    "all_other927_paths_unchanged": true
+  },
+  "original_methods_byte_equal": [
+    {
+      "method": "prepare",
+      "sha256": "abf15b261377b1faa310982f4ae17c3678651bb3a48b6d0640e0aab92bc776fd",
+      "bytes": 2635
+    },
+    {
+      "method": "unary",
+      "sha256": "bc6b150e13fd6e8dde413240a0515525de30b4f973ec9327ee26b1bb536c43b2",
+      "bytes": 645
+    },
+    {
+      "method": "stream",
+      "sha256": "60710a5ddb8ea8a46f131dfed925e4da6f658967cec1c1e85dd3419d8ef9be15",
+      "bytes": 1105
+    },
+    {
+      "method": "bounded_stream",
+      "sha256": "2f23dfd0bda4c961cce78b169e25417fa76dcdcf2d39381abb14b3825465f4eb",
+      "bytes": 2698
+    },
+    {
+      "method": "send_message",
+      "sha256": "f10d5d75037693bb7bc89c4719b63c1e7f0431f23478bd4b43d20e64c21aad59",
+      "bytes": 717
+    },
+    {
+      "method": "send_streaming_message",
+      "sha256": "b4bd7c02f949f70e644075a37026edad8632ae5b8f8604ec0e1be5cbcb8586fa",
+      "bytes": 799
+    },
+    {
+      "method": "get_task",
+      "sha256": "ba78b4d1a2608aa87e0a2d65434a122921e9f051bea95e489732fc7e460ef80d",
+      "bytes": 574
+    },
+    {
+      "method": "list_tasks",
+      "sha256": "ba6393f617df1795917abdf6f959542db2969463c50a0ff2ce9952b59c9be4e9",
+      "bytes": 565
+    },
+    {
+      "method": "cancel_task",
+      "sha256": "263c0eb89228c49a73aed62e5c2b85b329a36c4de185e41e201c3fedbaffdfd6",
+      "bytes": 589
+    },
+    {
+      "method": "create_push_config",
+      "sha256": "9eb73884070f86355e4605be211c86f10456aff7ab75b495bcc51d71ad2a59a2",
+      "bytes": 770
+    },
+    {
+      "method": "get_push_config",
+      "sha256": "b80fd8c184936081a65e19f1e26fe82f63c3ffce93a5b29a728c17ccd7ee6d98",
+      "bytes": 788
+    },
+    {
+      "method": "list_push_configs",
+      "sha256": "3445c1304ba8e20644cffc51da2f3e36303048dde38bb44570ff685b5d3700bc",
+      "bytes": 751
+    },
+    {
+      "method": "delete_push_config",
+      "sha256": "2890c6597024e68f0cb4d369fb2bc2c46c5a5dc3a6276fbcd87366231ec2c158",
+      "bytes": 966
+    },
+    {
+      "method": "get_extended_agent_card",
+      "sha256": "6f16525fbc5a971f0e9d700644b36610a7ba6d2e253a66d3482dddabefcf38c1",
+      "bytes": 713
+    }
+  ],
+  "v2_to_v3_production_and_private_test_byte_equal": true,
+  "reviewed_changed_files": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v3/crates/stateknot-integrations/src/a2a_server.rs",
+      "bytes": 98954,
+      "sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v3/crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+      "bytes": 14864,
+      "sha256": "6fae77ae9bb89aaa7b54096b126cf5352bd4ab668b733827d0aca847c74ce0b8"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v3/crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+      "bytes": 41418,
+      "sha256": "fcea742f4e0cbaaafc187efd39e4a44d7656929c59d3cbb27cb7bc804d392b52"
+    }
+  ],
+  "known_tooling_failure": {
+    "receipt": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v3/clippy.receipt.json",
+      "bytes": 1557,
+      "sha256": "ba103fd9823c4a39dbbdc31163e9a0b8d9ac89164aa9d51a249aa43d96757b91"
+    },
+    "log": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v3/clippy.log",
+      "bytes": 5789,
+      "sha256": "9152d15ed966317e7173b8e82a8048eaff4f5f8bcc3eb3fec24ccebab6d77e1a"
+    },
+    "exit_code": 101,
+    "diagnostic_count": 7,
+    "diagnostics": [
+      "very complex type used. Consider factoring parts into `type` definitions",
+      "item in documentation is missing backticks",
+      "more than 3 bools in a struct",
+      "this argument is passed by value, but not consumed in the function body",
+      "you seem to be trying to use `match` for destructuring a single pattern. Consider using `if let`",
+      "this argument is passed by value, but not consumed in the function body",
+      "consider adding a `;` to the last statement for consistent formatting"
+    ],
+    "diagnostics_only_test_paths": true,
+    "not_a_full_strict_gate_pass": true
+  },
+  "source_before_after_exact": true,
+  "new_code_standard_violations_excluding_tooling_findings": [],
+  "actionable_non_tooling_smells": [],
+  "known_delivery_obligations": [
+    "CONTRIBUTING requires user-visible guide documentation and Unreleased CHANGELOG before adoption.",
+    "RFC25 remains Draft; append experimental Interface and precise scope without declaring stable supported authority/backend.",
+    "Current-host-policy and bounded nonblocking callbacks; no bearer reauthentication, after-yield retraction, periodic guarantee or durable backend claim."
+  ],
+  "qualification_limit": "source review only; known v3 strict Clippy101 retained; v4 incremental review and final gates remain separate"
+}

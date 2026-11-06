@@ -117,132 +117,136 @@ impl PostgresStore {
     }
 
     #[allow(clippy::too_many_lines)]
-    async fn request_agent_deadline_cancellation_inner<V: GraphSchemaValidator + ?Sized>(
-        &self,
-        tenant: &TenantId,
+    fn request_agent_deadline_cancellation_inner<'a, V: GraphSchemaValidator + ?Sized>(
+        &'a self,
+        tenant: &'a TenantId,
         run_id: RunId,
         event_id: EventId,
         failure_id: FailureId,
-        schema: &SchemaReference,
-        schemas: &V,
-    ) -> Result<AgentDeadlineCancellationOutcome, StoreError> {
-        // No tree/ancestor locks: like every ordinary cancellation writer, the
-        // parent row serializes spawn and triggers bounded direct-child capture.
-        let mut tx = self.begin_mutation("Agent deadline cancellation").await?;
-        let run = decode_run(fetch_locked_run_row(&mut tx, tenant, run_id).await?)?;
-        verify_current_wait_set(&mut tx, &run).await?;
-        let row = load_agent_admission_row(&mut tx, tenant, run_id)
-            .await?
-            .ok_or(StoreError::AgentAdmissionNotFound)?;
-        let stored = verify_stored_agent_admission(&mut tx, run, row).await?;
-        let run = stored.run();
-        let deadline = stored.admission().intent().budget().deadline();
-        let indexed = query_scalar::<_, Option<DateTime<Utc>>>(
-            "SELECT agent_deadline_at FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2",
-        )
-        .bind(tenant.as_str())
-        .bind(*run_id.as_uuid())
-        .fetch_one(&mut *tx)
-        .await
-        .map_err(|source| StoreError::database("Agent deadline projection", source))?;
-        if indexed.map(from_database_time).transpose()? != Some(deadline) {
-            return Err(StoreError::corrupt("Agent deadline projection"));
-        }
-        if let Some(request) = run.lifecycle().cancellation_request() {
-            return Ok(AgentDeadlineCancellationOutcome::AlreadyRequested(
-                Box::new(request.clone()),
-            ));
-        }
-        if run.lifecycle().status().is_terminal() {
-            return Ok(AgentDeadlineCancellationOutcome::Terminal(
-                run.lifecycle().status(),
-            ));
-        }
-        if run.is_quarantined() {
-            return Err(StoreError::RunQuarantined);
-        }
-        if failure_closes::exists(&mut tx, tenant, run_id).await? {
-            return Ok(AgentDeadlineCancellationOutcome::FailureClosing);
-        }
-        let observed_at = database_now(&mut tx, "Agent deadline clock").await?;
-        if observed_at < deadline {
-            return Ok(AgentDeadlineCancellationOutcome::NotDue {
-                deadline,
-                observed_at,
-            });
-        }
-        let head = run.journal_head().ok_or(StoreError::InvalidAgentDeadline)?;
-        let at = observed_at.max(head.recorded_at());
-        let failure = Failure::new(
-            failure_id,
-            FailureCategory::Cancelled,
-            FailureCode::new("agent.deadline.expired").expect("static failure code"),
-            FailureOrigin::new("stateknot.runtime.agent_deadlines").expect("static failure origin"),
-            FailureMessage::new(
-                "The admitted Agent deadline expired; cooperative cancellation was requested.",
+        schema: &'a SchemaReference,
+        schemas: &'a V,
+    ) -> stateknot_core::BoxFuture<'a, Result<AgentDeadlineCancellationOutcome, StoreError>> {
+        Box::pin(async move {
+            // No tree/ancestor locks: like every ordinary cancellation writer, the
+            // parent row serializes spawn and triggers bounded direct-child capture.
+            let mut tx = self.begin_mutation("Agent deadline cancellation").await?;
+            let run = decode_run(fetch_locked_run_row(&mut tx, tenant, run_id).await?)?;
+            verify_current_wait_set(&mut tx, &run).await?;
+            let row = load_agent_admission_row(&mut tx, tenant, run_id)
+                .await?
+                .ok_or(StoreError::AgentAdmissionNotFound)?;
+            let stored = verify_stored_agent_admission(&mut tx, run, row).await?;
+            let run = stored.run();
+            let deadline = stored.admission().intent().budget().deadline();
+            let indexed = query_scalar::<_, Option<DateTime<Utc>>>(
+                "SELECT agent_deadline_at FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2",
             )
-            .expect("static public-safe failure message"),
-            RetryAdvice::Never,
-        )
-        .expect("static cancellation semantics")
-        .with_caused_by_event(event_id);
-        let request = RunCancellationRequest::new(failure, at)
-            .map_err(|_| StoreError::InvalidAgentDeadline)?;
-        let transition = RunTransition::RequestCancellation { request };
-        let projection = RunProjection::transition(run.lifecycle().revision(), transition.clone());
-        let prepared = prepare_durable_wait_projection(
-            run,
-            tenant,
-            run_id,
-            run.lifecycle().revision(),
-            transition,
-            at,
-        )?;
-        let data = BoundedJson::try_from_value(serde_json::json!({
-            "operation":"agent_deadline_cancellation_requested",
-            "admission_digest": hex_digest(stored.admission().digest()),
-            "deadline":deadline.to_string(), "failure_id":failure_id.to_string(),
-        }))
-        .map_err(|_| StoreError::InvalidAgentDeadline)?;
-        schemas
-            .validate(schema, &data)
-            .map_err(|_| StoreError::InvalidAgentDeadline)?;
-        let payload = JournalPayload::new(
-            schema.clone(),
-            JournalEventKind::new("agent-deadline-cancellation-requested")
-                .expect("static event kind"),
-            data,
-        )
-        .map_err(|_| StoreError::InvalidAgentDeadline)?;
-        let append = JournalAppend::new(
-            JournalExpectation::exact(head.clone()),
-            JournalEventIntent::control_plane(tenant.clone(), run_id, event_id, payload)
-                .map_err(|_| StoreError::InvalidAgentDeadline)?,
-        )
-        .map_err(|_| StoreError::InvalidAgentDeadline)?;
-        let waits = child_cancellation::cancellation_waits(&mut tx, run).await?;
-        let digest = if waits.is_empty() {
-            projection_digest(&projection)?
-        } else {
-            wait_abandonment_projection_digest(&projection, &waits)?
-        };
-        let event =
-            JournalEvent::commit(append, at).map_err(|error| map_event_commit_error(&error))?;
-        insert_event(&mut tx, &event, digest).await?;
-        for wait in waits {
-            let abandonment = materialize_wait_abandonment(
-                wait,
-                WaitAbandonmentReason::RunCancellation,
-                event.head(),
-            )?;
-            insert_wait_abandonment(&mut tx, &abandonment).await?;
-            project_wait_abandonment(&mut tx, &abandonment).await?;
-        }
-        update_run_head(&mut tx, &event, Some(&prepared)).await?;
-        tx.commit()
+            .bind(tenant.as_str())
+            .bind(*run_id.as_uuid())
+            .fetch_one(&mut *tx)
             .await
-            .map_err(|source| StoreError::database("Agent deadline commit", source))?;
-        Ok(AgentDeadlineCancellationOutcome::Requested(event.head()))
+            .map_err(|source| StoreError::database("Agent deadline projection", source))?;
+            if indexed.map(from_database_time).transpose()? != Some(deadline) {
+                return Err(StoreError::corrupt("Agent deadline projection"));
+            }
+            if let Some(request) = run.lifecycle().cancellation_request() {
+                return Ok(AgentDeadlineCancellationOutcome::AlreadyRequested(
+                    Box::new(request.clone()),
+                ));
+            }
+            if run.lifecycle().status().is_terminal() {
+                return Ok(AgentDeadlineCancellationOutcome::Terminal(
+                    run.lifecycle().status(),
+                ));
+            }
+            if run.is_quarantined() {
+                return Err(StoreError::RunQuarantined);
+            }
+            if failure_closes::exists(&mut tx, tenant, run_id).await? {
+                return Ok(AgentDeadlineCancellationOutcome::FailureClosing);
+            }
+            let observed_at = database_now(&mut tx, "Agent deadline clock").await?;
+            if observed_at < deadline {
+                return Ok(AgentDeadlineCancellationOutcome::NotDue {
+                    deadline,
+                    observed_at,
+                });
+            }
+            let head = run.journal_head().ok_or(StoreError::InvalidAgentDeadline)?;
+            let at = observed_at.max(head.recorded_at());
+            let failure = Failure::new(
+                failure_id,
+                FailureCategory::Cancelled,
+                FailureCode::new("agent.deadline.expired").expect("static failure code"),
+                FailureOrigin::new("stateknot.runtime.agent_deadlines")
+                    .expect("static failure origin"),
+                FailureMessage::new(
+                    "The admitted Agent deadline expired; cooperative cancellation was requested.",
+                )
+                .expect("static public-safe failure message"),
+                RetryAdvice::Never,
+            )
+            .expect("static cancellation semantics")
+            .with_caused_by_event(event_id);
+            let request = RunCancellationRequest::new(failure, at)
+                .map_err(|_| StoreError::InvalidAgentDeadline)?;
+            let transition = RunTransition::RequestCancellation { request };
+            let projection =
+                RunProjection::transition(run.lifecycle().revision(), transition.clone());
+            let prepared = prepare_durable_wait_projection(
+                run,
+                tenant,
+                run_id,
+                run.lifecycle().revision(),
+                transition,
+                at,
+            )?;
+            let data = BoundedJson::try_from_value(serde_json::json!({
+                "operation":"agent_deadline_cancellation_requested",
+                "admission_digest": hex_digest(stored.admission().digest()),
+                "deadline":deadline.to_string(), "failure_id":failure_id.to_string(),
+            }))
+            .map_err(|_| StoreError::InvalidAgentDeadline)?;
+            schemas
+                .validate(schema, &data)
+                .map_err(|_| StoreError::InvalidAgentDeadline)?;
+            let payload = JournalPayload::new(
+                schema.clone(),
+                JournalEventKind::new("agent-deadline-cancellation-requested")
+                    .expect("static event kind"),
+                data,
+            )
+            .map_err(|_| StoreError::InvalidAgentDeadline)?;
+            let append = JournalAppend::new(
+                JournalExpectation::exact(head.clone()),
+                JournalEventIntent::control_plane(tenant.clone(), run_id, event_id, payload)
+                    .map_err(|_| StoreError::InvalidAgentDeadline)?,
+            )
+            .map_err(|_| StoreError::InvalidAgentDeadline)?;
+            let waits = child_cancellation::cancellation_waits(&mut tx, run).await?;
+            let digest = if waits.is_empty() {
+                projection_digest(&projection)?
+            } else {
+                wait_abandonment_projection_digest(&projection, &waits)?
+            };
+            let event =
+                JournalEvent::commit(append, at).map_err(|error| map_event_commit_error(&error))?;
+            insert_event(&mut tx, &event, digest).await?;
+            for wait in waits {
+                let abandonment = materialize_wait_abandonment(
+                    wait,
+                    WaitAbandonmentReason::RunCancellation,
+                    event.head(),
+                )?;
+                insert_wait_abandonment(&mut tx, &abandonment).await?;
+                project_wait_abandonment(&mut tx, &abandonment).await?;
+            }
+            update_run_head(&mut tx, &event, Some(&prepared)).await?;
+            tx.commit()
+                .await
+                .map_err(|source| StoreError::database("Agent deadline commit", source))?;
+            Ok(AgentDeadlineCancellationOutcome::Requested(event.head()))
+        })
     }
 }
 

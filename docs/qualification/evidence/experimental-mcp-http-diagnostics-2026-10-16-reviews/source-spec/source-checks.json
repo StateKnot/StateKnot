@@ -1,0 +1,41 @@
+{
+  "actual_old_production_red": "first JSON Complete ordinary Debug canary only",
+  "compiled_canonical_recomputed": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "compiled_rows_rehashed": 536,
+  "entire_error_network_parser_original_unit_suffix_byte_exact": true,
+  "four_debug_fields": {
+    "McpCompleteToolResult": [
+      "content_count",
+      "has_structured_content",
+      "is_error"
+    ],
+    "McpNotification": [
+      "has_params"
+    ],
+    "McpRemoteError": [
+      "code",
+      "has_data"
+    ],
+    "McpToolCallResponse": [
+      "outcome",
+      "notification_count"
+    ]
+  },
+  "legacy_durable_mcp_rs_and_all_other_files_match_baseline_manifest": true,
+  "new_test_family_inventory": 1,
+  "new_v3_gates_not_assessed_or_transferred": true,
+  "nonDebug_nonDoc_normalized_lines_equal_69af": true,
+  "old_test_357_lines_13917_bytes_prefix_exact": true,
+  "old_v2_clippy101_preserved": true,
+  "only_changed_paths": [
+    "crates/stateknot-integrations/src/mcp_client.rs",
+    "crates/stateknot-integrations/tests/mcp_client_contract.rs"
+  ],
+  "raw_resume_request_capture_path_read": true,
+  "red_not_compiler_or_fixture_failure": true,
+  "source_rows_rehashed": 928,
+  "spec_findings": [],
+  "static_transport_outcome_cases": 8,
+  "v2_to_v3_only_test_id_reference_change": true,
+  "v3_all_production_bytes_equal_v2": true
+}

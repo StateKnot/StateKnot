@@ -1,0 +1,8 @@
+{
+  "product_commands_started": false,
+  "expected_inputs": 531,
+  "actual_inputs": 531,
+  "path_bytes_SHA_maps_equal": true,
+  "cause": "list ordering mismatch in runner assertion; source is unchanged",
+  "original_runner_sha256": "af77b84e9fe006c5767dcd0c847dff8467278732d639b77ecc82401ce0a7c7f8"
+}

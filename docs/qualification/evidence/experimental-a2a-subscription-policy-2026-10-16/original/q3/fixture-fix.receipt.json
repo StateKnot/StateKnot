@@ -1,0 +1,12 @@
+{
+  "previous_source": "81098cf022f35564c70153c640d06bad5909916e9e3f30cce9e079d32a18ef2e",
+  "source_tree": "d994771b87e580ef6b15e28dc101e35e52c2a97f9b9984ded83c060bc7968b56",
+  "compiled_relative_path_string_sorted_sha256": "c04f7bf97b13395753f4a704da1e0c8f992403d00ceb8cf5c93ba2aa59ae9cd5",
+  "only_changed_path": "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+  "production_and_private_unit_bytes_unchanged": true,
+  "timestamp_validated_RFC3339_UTC_then_only_timestamp_normalized": true,
+  "complete_stable_wire_error_shape_values_asserted": true,
+  "v2_TCP_fixture_failure_retained": true,
+  "unit_rerun_deferred_to_final_workspace_gate": true,
+  "patch_raw_sha256": "612513e40566cbc07bb41e27b4f8cc909bf1fb1e69b769bf8b4f6873717761c0"
+}

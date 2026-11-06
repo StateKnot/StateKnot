@@ -1,0 +1,12 @@
+{
+  "schema": "stateknot.composed-local-gates-seal.v1",
+  "manifest_sha256": "dc7062376e3cf64c822b45706abab9d25d868575f00e586ce8c0d7d99242fcf8",
+  "reports": {
+    "experimental-composed-request-facts-pitr-2026-10-15.md": "bdbe9fb11d9db5cd5e6ca73f5a156b58bb2aedb947e80eb0919cdcae0bb95e40",
+    "experimental-composed-request-facts-pitr-2026-10-15.zh-CN.md": "b1314b851b54de842444f4c2f07562f82d28de6565dbce5f2cbf4a680b241bbb",
+    "experimental-composed-request-facts-pitr-2026-10-15.json": "9b0904d76d848722982d2be831f2c7e4a12603490d8aa8abd5fcdb691b8fd25a"
+  },
+  "local_six_gates_passed": true,
+  "Native_database_execution": false,
+  "full_CI_or_R1_qualified": false
+}

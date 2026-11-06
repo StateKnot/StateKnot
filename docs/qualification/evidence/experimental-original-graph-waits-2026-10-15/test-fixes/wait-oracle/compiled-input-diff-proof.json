@@ -1,0 +1,11 @@
+{
+  "only_changed_file": "crates/stateknot-store-postgres/tests/postgres/frame_application_replay.rs",
+  "only_this_test_function_changed": true,
+  "all_production_Rust_SQL_config_and_other_tests_byte_equal": true,
+  "original_now_plus_500000_unchanged": true,
+  "original_future_load_wait_fire_body_unchanged_ignoring_indentation": true,
+  "original_common_fence_replay_transition_and_reducer_tail_unchanged": true,
+  "no_diagnostic_prints_added": true,
+  "qualification_not_inherited": true,
+  "source_tree_sha256": "7c95defc78ea3d9829d30139baea143bb49ba10d2eafdec9586b8396b70de5b7"
+}

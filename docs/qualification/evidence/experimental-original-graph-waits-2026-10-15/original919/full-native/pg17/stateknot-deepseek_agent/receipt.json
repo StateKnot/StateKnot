@@ -1,0 +1,32 @@
+{
+  "package": "stateknot-deepseek_agent",
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "source_files": 919,
+  "source_unchanged": true,
+  "binary": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/full-native-v1/fresh-additional-build/stateknot-deepseek_agent",
+  "binary_sha256": "524df71aeb6876eec65ec262077c2224fbd71a6981b4e01a663a28786ac5b461",
+  "postgres_major": "17",
+  "database": "stateknot_r1_a36_full_native_oct15v1",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/full-native-v1/fresh-additional-build/stateknot-deepseek_agent",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "expected_tests": 1,
+  "exit_code": 0,
+  "seconds": 3.0858659744262695,
+  "summaries": [
+    [
+      "ok",
+      "1",
+      "0",
+      "0"
+    ]
+  ],
+  "exact_all_tests_passed": true,
+  "default_stack": true,
+  "original_resources_and_assertions": true,
+  "log_sha256": "45b4f95ebe800598ada0bff392d2740b993f0fa37459a6f0659804f7336fd438",
+  "backup_and_PITR_conditional_requires_separate_evidence": true
+}

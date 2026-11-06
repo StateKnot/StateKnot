@@ -1,0 +1,65 @@
+{
+  "state": "source only; mandatory dual-PostgreSQL and network execution NOT RUN",
+  "files": [
+    {
+      "path": "README.zh-CN.md",
+      "bytes": 4694,
+      "sha256": "020bb88620fb63d370a3c5e767311fec58a35a62ddc28f2f2faf23801b88bc55"
+    },
+    {
+      "path": "after-source-manifest.json",
+      "bytes": 168465,
+      "sha256": "ad8baeb45dd0ab9e8d32e049e8a0c4bec972f0d046039d8f3e8a0a0bd86772dd"
+    },
+    {
+      "path": "before/mcp_durable.rs",
+      "bytes": 37782,
+      "sha256": "f499d5d0f6fddc99dbaf7a080df753e11799ec63b5edc612241d8fbce8fe0480"
+    },
+    {
+      "path": "before-source-manifest.json",
+      "bytes": 168090,
+      "sha256": "c38abd3ac92c4a8831b9b5d6cffe209ede9407da61d9fdf3d355005db0645633"
+    },
+    {
+      "path": "candidate/crates/stateknot-integrations/tests/a2a_client_contract/authorization_facts.rs",
+      "bytes": 20247,
+      "sha256": "17c1ffcd1b26875f743795331178027b5bf59a4fb5a159e671c0ba870e4e37da"
+    },
+    {
+      "path": "candidate/crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "bytes": 78189,
+      "sha256": "c722f75a3f38626bf736d0ac408f07b7dfded5c0726c2f786245a10900e6d4b5"
+    },
+    {
+      "path": "candidate/crates/stateknot-integrations/tests/mcp_durable.rs",
+      "bytes": 50068,
+      "sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    },
+    {
+      "path": "mcp-durable-v1.patch",
+      "bytes": 21905,
+      "sha256": "f213570bc15fdfdec9f3064e6e498fb28ad4152de925cdf958bf41a5830a836b"
+    },
+    {
+      "path": "preservation-checks.json",
+      "bytes": 1391,
+      "sha256": "17d965422e7adc95add370727d4a1a87737351a6a382fca6eea2ecaca5d0dc34"
+    },
+    {
+      "path": "rustfmt-check.log",
+      "bytes": 123,
+      "sha256": "6324030d006c41d273f9c33068cd27d89fc8387727a83e4990e6c6decfa991fb"
+    },
+    {
+      "path": "status.json",
+      "bytes": 1660,
+      "sha256": "87b1af2df22427f2cd1de259e08ebea518dce48496ffad8d460b18694b97f774"
+    },
+    {
+      "path": "test-delta.patch",
+      "bytes": 26019,
+      "sha256": "39bcd536ed2679ebd2e8c23e36eeaafcb533d30dbcf47bfa7e8090d7b6fda4d6"
+    }
+  ]
+}

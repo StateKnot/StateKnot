@@ -1,0 +1,24 @@
+{
+  "schema": "stateknot.qualification-seal.v1",
+  "status": "sealed-exact-execution-with-open-cleanup",
+  "source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "compiled_input_count": 530,
+  "manifest_sha256": "a63a2bc355884dc1da25c93b190d6e6d97865fa33b9e73a22d302d207dd1bfe7",
+  "reports": {
+    "experimental-original-graph-waits-2026-10-15.md": "ea2492a9f5972506c61b31fec1e3b4e0251cb1c6d01f1bb7784950c94c4cc21e",
+    "experimental-original-graph-waits-2026-10-15.zh-CN.md": "94fdfc4eef6651de2f0ea9ba38c1cdf960dca4bea5c09863e6c1b4912b26ab54",
+    "experimental-original-graph-waits-2026-10-15.json": "fce4033faa3612109b1d5f8c61206576bf39f8a75a6f8c23380ebb8283b172c6"
+  },
+  "exact_execution_gates_passed": 12,
+  "Native_libtest_executions": 916,
+  "resource_cleanup_complete": false,
+  "PITR16_cleanup_unresolved": true,
+  "full_CI_passed": false,
+  "R1_complete": false,
+  "native_execution_gates_passed": true,
+  "resource_cleanup_qualified": false,
+  "full_resource_lifecycle_qualified": false,
+  "overall_qualification": false,
+  "revision": "v2-baseline514-vs-actual-exporter-clarification",
+  "parent_v1_seal_sha256": "a64fb37eea030e1f26c80b7d6b6e796471e7d551ab2d97e50d354f9da4ef9cd0"
+}

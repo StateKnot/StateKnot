@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py", line 154, in <module>
+    if __name__=='__main__':main()
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py", line 66, in main
+    tree_check(source,files);assert sha(files['crates/stateknot-integrations/src/a2a_client.rs'])==PRODUCTION
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py", line 15, in tree_check
+    assert {x['path'] for x in rows}==set(files)
+AssertionError

@@ -5,16 +5,16 @@ use super::{AgentMaintenanceError, AgentMaintenanceJob, AgentMaintenanceJobRepor
 use crate::{
     AgentDeadlineSweepCursor, ChildJoinPublicationCursor, ChildReconciliationCursor,
     DurableAgentDeadlineReconciler, DurableChildJoinPublisher, DurableChildReconciler,
-    DurableChildReconcilerOptions, DurableGraphLifecycleOptions, DurableRunFailureCloser,
-    JsonSchemaRegistry, RunFailureCloseSweepCursor,
+    DurableChildReconcilerOptions, DurableFrameCancellationFinalizer, DurableGraphLifecycleOptions,
+    DurableRunFailureCloser, JsonSchemaRegistry, RunFailureCloseSweepCursor,
 };
 use stateknot_core::{CancellationSignal, TenantId};
-use stateknot_store_postgres::{PostgresStore, StoreError};
+use stateknot_store_postgres::{GraphFrameClosureCursor, PostgresStore, StoreError};
 
 /// Existing validated mutation retry policies, shared by the relevant jobs.
 #[derive(Clone, Copy, Debug, Default)]
 pub struct AgentMaintenanceMutationOptions {
-    /// Deadline and failure-close retries.
+    /// Deadline, failure-close and frame-cancellation retries.
     pub lifecycle: DurableGraphLifecycleOptions,
     /// Child cancellation/settlement and Join publication retries.
     pub child: DurableChildReconcilerOptions,
@@ -29,10 +29,17 @@ pub struct AgentMaintenanceBinding {
     child: DurableChildReconciler,
     join: DurableChildJoinPublisher,
     close: DurableRunFailureCloser,
+    frame_cancellation: DurableFrameCancellationFinalizer,
 }
 impl AgentMaintenanceBinding {
-    /// Requires 1–128 unique tenants and all four exact standard event schemas.
+    /// Requires 1–128 unique tenants and all five exact standard event schemas.
     /// Sorting is deterministic; duplicates fail closed rather than weighting work.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AgentMaintenanceError::InvalidTenants`] for an empty, oversized
+    /// or duplicate allowlist, or [`AgentMaintenanceError::SchemaUnavailable`]
+    /// when any exact maintenance schema, including Agent cancellation, is absent.
     pub fn new(
         store: PostgresStore,
         schemas: JsonSchemaRegistry,
@@ -57,8 +64,14 @@ impl AgentMaintenanceBinding {
                 .map_err(|_| AgentMaintenanceError::SchemaUnavailable)?,
             join: DurableChildJoinPublisher::new(store.clone(), schemas.clone(), options.child)
                 .map_err(|_| AgentMaintenanceError::SchemaUnavailable)?,
-            close: DurableRunFailureCloser::new(store.clone(), schemas, options.lifecycle)
+            close: DurableRunFailureCloser::new(store.clone(), schemas.clone(), options.lifecycle)
                 .map_err(|_| AgentMaintenanceError::SchemaUnavailable)?,
+            frame_cancellation: DurableFrameCancellationFinalizer::new(
+                store.clone(),
+                schemas,
+                options.lifecycle,
+            )
+            .map_err(|_| AgentMaintenanceError::SchemaUnavailable)?,
             store,
             tenants,
         })
@@ -78,6 +91,7 @@ impl AgentMaintenanceBinding {
                     Progress::Child(tenant.clone(), None),
                     Progress::Join(tenant.clone(), None),
                     Progress::Close(tenant.clone(), None),
+                    Progress::FrameCancellation(tenant.clone(), None),
                 ]
             })
             .collect()
@@ -146,6 +160,20 @@ impl AgentMaintenanceBinding {
                         .count(),
                 )
             }
+            Progress::FrameCancellation(tenant, cursor) => {
+                let tick = self
+                    .frame_cancellation
+                    .tick(tenant.clone(), cursor.clone(), signal)
+                    .await?;
+                *cursor = tick.cursor().cloned();
+                (
+                    tick.items().len(),
+                    tick.items()
+                        .iter()
+                        .filter(|item| item.result().is_err())
+                        .count(),
+                )
+            }
         };
         Ok(AgentMaintenanceJobReport {
             completed_ticks: 1,
@@ -159,6 +187,7 @@ pub(super) enum Progress {
     Child(TenantId, Option<Box<ChildReconciliationCursor>>),
     Join(TenantId, Option<ChildJoinPublicationCursor>),
     Close(TenantId, Option<RunFailureCloseSweepCursor>),
+    FrameCancellation(TenantId, Option<GraphFrameClosureCursor>),
 }
 impl Progress {
     pub(super) const fn job(&self) -> AgentMaintenanceJob {
@@ -167,6 +196,7 @@ impl Progress {
             Self::Child(..) => AgentMaintenanceJob::Child,
             Self::Join(..) => AgentMaintenanceJob::Join,
             Self::Close(..) => AgentMaintenanceJob::FailureClose,
+            Self::FrameCancellation(..) => AgentMaintenanceJob::FrameCancellation,
         }
     }
 }

@@ -1,0 +1,132 @@
+{
+  "source930_exact": true,
+  "source_tree": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "compiled538_exact": true,
+  "compiled_canonical_sha256": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "only_existing_compiled_file_changed": [
+    "crates/stateknot-integrations/src/a2a_server.rs"
+  ],
+  "new_test_paths": [
+    "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs"
+  ],
+  "production_v1_through_v5_hashes": {
+    "1": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+    "2": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+    "3": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+    "4": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+    "5": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5"
+  },
+  "complete_production_normalization_to_4e726": true,
+  "production_patch_hunks": 7,
+  "baseline_production_sha256": "ab57758507782b3102863316abaaf9847236e7e0c1a0f2c08eddf15120aeb48a",
+  "production_only_pre_module_sha256": "cd5845de656d93dc36d3b18fc152d198b234ffc7d8d28a2ef52f839279b561ca",
+  "original_methods_exact": {
+    "async fn prepare(": {
+      "byte_equal": true,
+      "sha256": "abf15b261377b1faa310982f4ae17c3678651bb3a48b6d0640e0aab92bc776fd"
+    },
+    "async fn unary<T>": {
+      "byte_equal": true,
+      "sha256": "bc6b150e13fd6e8dde413240a0515525de30b4f973ec9327ee26b1bb536c43b2"
+    },
+    "async fn stream(": {
+      "byte_equal": true,
+      "sha256": "60710a5ddb8ea8a46f131dfed925e4da6f658967cec1c1e85dd3419d8ef9be15"
+    },
+    "fn bounded_stream(": {
+      "byte_equal": true,
+      "sha256": "d4023679eaf6862e9d9cf5deb2fd6436d1442ad8560e59d11106b2c706b8a00e"
+    },
+    "async fn send_streaming_message(": {
+      "byte_equal": true,
+      "sha256": "b4bd7c02f949f70e644075a37026edad8632ae5b8f8604ec0e1be5cbcb8586fa"
+    }
+  },
+  "six_actual_gate_receipts_and_raw_hashes_verified": [
+    {
+      "gate": "fmt",
+      "exit_code": 0,
+      "receipt": ".local-verification/2026-10-16/a2a-subscription-qualification-v5/fmt.receipt.json",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "source_before_after_exact": true
+    },
+    {
+      "gate": "clippy",
+      "exit_code": 0,
+      "receipt": ".local-verification/2026-10-16/a2a-subscription-qualification-v5/clippy.receipt.json",
+      "log_sha256": "7fd9a4a64ac444b1a2504a10b0a2d6d8ef183a1fcb339ec20eb45054a3a5ce4e",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "source_before_after_exact": true
+    },
+    {
+      "gate": "workspace",
+      "exit_code": 0,
+      "receipt": ".local-verification/2026-10-16/a2a-subscription-qualification-v5-network-enabled-retry-v1/workspace.receipt.json",
+      "log_sha256": "629dce8cd9a88b7422e81ab8997068315cc6d61023fceae7e7d161babcc6086e",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "source_before_after_exact": true
+    },
+    {
+      "gate": "doctests",
+      "exit_code": 0,
+      "receipt": ".local-verification/2026-10-16/a2a-subscription-qualification-v5-network-enabled-retry-v1/doctests.receipt.json",
+      "log_sha256": "a85263da7a94817406e2f4c1763aa109729dc2cecfcb65c4eef37da681245122",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "source_before_after_exact": true
+    },
+    {
+      "gate": "rustdoc",
+      "exit_code": 0,
+      "receipt": ".local-verification/2026-10-16/a2a-subscription-qualification-v5-network-enabled-retry-v1/rustdoc.receipt.json",
+      "log_sha256": "a45d8ae9d361046dfc13af4c60bd0a8d2e16725e2338e53a7618037da4b4c857",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "source_before_after_exact": true
+    },
+    {
+      "gate": "nightly",
+      "exit_code": 0,
+      "receipt": ".local-verification/2026-10-16/a2a-subscription-qualification-v5-network-enabled-retry-v1/nightly.receipt.json",
+      "log_sha256": "0eb5f0e50d020d84a0f1e32a1464d843fe7a1cab8209f666231ae8e1e41c0e29",
+      "runner_sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6",
+      "source_before_after_exact": true
+    }
+  ],
+  "workspace_actual_suites_pass_fail_ignore": [
+    100,
+    2108,
+    0,
+    6
+  ],
+  "doctest_actual_groups_pass_fail": [
+    10,
+    48,
+    0
+  ],
+  "new_private_test_functions_green": 8,
+  "new_real_TCP_family_green": 1,
+  "contract_matrix_ids": [
+    "default_legacy",
+    "enable_lifecycle",
+    "success_fixed_facts",
+    "pre_poll_forbidden",
+    "post_event_forbidden",
+    "pre_post_unavailable",
+    "callback_timeout",
+    "cumulative_idle_budget",
+    "ready_deadline_race",
+    "backend_lifecycle",
+    "shutdown_each_phase",
+    "tcp_disconnect",
+    "terminal_body_retained",
+    "backpressure_scope",
+    "non_subscription_isolation",
+    "initial_boundary_order",
+    "immutable_operation_context"
+  ],
+  "each_id_both_bindings_call_chain_read": true,
+  "reader_executed_compile_network_DB_Docker_or_cache": false,
+  "reader_authored_contract": true,
+  "reader_authored_production_or_tests": false
+}

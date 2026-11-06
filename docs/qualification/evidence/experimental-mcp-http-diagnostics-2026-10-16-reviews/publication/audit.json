@@ -1,0 +1,133 @@
+{
+  "candidate_manifest_sha256": "29815d58e4d758bd2e65e99966f5811e2785d5de73bc772edf859ebc19ecc679",
+  "freeze_sha256": "b51dadcb17feadce1aba0c2eb26db3e3f62bbc5b8ea33d93194b4e526cf31e29",
+  "candidate_paths": 98,
+  "candidate_bytes": 595170,
+  "Emanifest_sha256": "fa851d1a2e82d25dfbca99749a31fea315961109260370f1e5f8973c05d9349f",
+  "source_reconstruction_and_historical_derivation_verifier_exits": [
+    0,
+    0,
+    1
+  ],
+  "original_artifacts_compared_byte_exact": [
+    "execution/fmt.log",
+    "execution/fmt.receipt.json",
+    "execution/clippy.log",
+    "execution/clippy.receipt.json",
+    "execution/workspace.log",
+    "execution/workspace.receipt.json",
+    "execution/doctests.log",
+    "execution/doctests.receipt.json",
+    "execution/rustdoc.log",
+    "execution/rustdoc.receipt.json",
+    "execution/nightly.log",
+    "execution/nightly.receipt.json",
+    "execution/run-gate.py",
+    "execution/execute-six.py",
+    "execution/six-gates-summary.json",
+    "native/runner.py",
+    "native/inventory.json",
+    "native/summary.json",
+    "native/initial-inputs.json",
+    "native/final-inputs.json",
+    "native/initial.df",
+    "native/final.df",
+    "native/initial-cache-guard.json",
+    "native/final-cache-guard.json",
+    "native/initial-cache-lsof.stdout",
+    "native/initial-cache-lsof.stderr",
+    "native/final-cache-lsof.stdout",
+    "native/final-cache-lsof.stderr",
+    "native/pg16-identity.json",
+    "native/pg17-identity.json",
+    "native/rustc-version.log.gz",
+    "native/rustc-version.receipt.json",
+    "native/mcp_durable-binary.json",
+    "native/mcp_durable-fresh-build.log.gz",
+    "native/mcp_durable-fresh-build.receipt.json",
+    "native/mcp_durable-list.log.gz",
+    "native/mcp_durable-list.receipt.json",
+    "native/mcp_reconciliation-binary.json",
+    "native/mcp_reconciliation-fresh-build.log.gz",
+    "native/mcp_reconciliation-fresh-build.receipt.json",
+    "native/mcp_reconciliation-list.log.gz",
+    "native/mcp_reconciliation-list.receipt.json",
+    "native/pg16-mcp_durable.log.gz",
+    "native/pg16-mcp_durable.receipt.json",
+    "native/pg16-mcp_durable-qualification.json",
+    "native/pg16-mcp_durable-before-inputs.json",
+    "native/pg16-mcp_durable-after-inputs.json",
+    "native/pg16-mcp_reconciliation.log.gz",
+    "native/pg16-mcp_reconciliation.receipt.json",
+    "native/pg16-mcp_reconciliation-qualification.json",
+    "native/pg16-mcp_reconciliation-before-inputs.json",
+    "native/pg16-mcp_reconciliation-after-inputs.json",
+    "native/pg17-mcp_durable.log.gz",
+    "native/pg17-mcp_durable.receipt.json",
+    "native/pg17-mcp_durable-qualification.json",
+    "native/pg17-mcp_durable-before-inputs.json",
+    "native/pg17-mcp_durable-after-inputs.json",
+    "native/pg17-mcp_reconciliation.log.gz",
+    "native/pg17-mcp_reconciliation.receipt.json",
+    "native/pg17-mcp_reconciliation-qualification.json",
+    "native/pg17-mcp_reconciliation-before-inputs.json",
+    "native/pg17-mcp_reconciliation-after-inputs.json"
+  ],
+  "two_payloads_and18_source_refs": true,
+  "source31a_compiled536_1ec9": true,
+  "six_gate_runner_sources_retained_current_bytes_not_contemporaneous_runner_or_env_attestation": true,
+  "Native_runner_hash_env_profile_lists_and7_complete_JSON_objects_each_major_verified": true,
+  "schema24_legacy_profile_not_schema36_database": true,
+  "original_history_red101_and_fixture_lint101_preserved": true,
+  "EN_CN_JSON_scope_and_count_consistent": true,
+  "local_report_links": [
+    {
+      "document": "experimental-mcp-http-diagnostics-2026-10-16.md",
+      "target": "experimental-mcp-http-diagnostics-2026-10-16.json",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.json"
+    },
+    {
+      "document": "experimental-mcp-http-diagnostics-2026-10-16.md",
+      "target": "experimental-mcp-http-diagnostics-2026-10-16.zh-CN.md",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.zh-CN.md"
+    },
+    {
+      "document": "experimental-mcp-http-diagnostics-2026-10-16.md",
+      "target": "evidence/experimental-mcp-http-diagnostics-2026-10-16/manifest.json",
+      "resolved": "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/manifest.json"
+    },
+    {
+      "document": "experimental-mcp-http-diagnostics-2026-10-16.md",
+      "target": "evidence/experimental-mcp-http-diagnostics-2026-10-16/seal.json",
+      "resolved": "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/seal.json"
+    },
+    {
+      "document": "experimental-mcp-http-diagnostics-2026-10-16.zh-CN.md",
+      "target": "experimental-mcp-http-diagnostics-2026-10-16.json",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.json"
+    },
+    {
+      "document": "experimental-mcp-http-diagnostics-2026-10-16.zh-CN.md",
+      "target": "experimental-mcp-http-diagnostics-2026-10-16.md",
+      "resolved": "docs/qualification/experimental-mcp-http-diagnostics-2026-10-16.md"
+    },
+    {
+      "document": "experimental-mcp-http-diagnostics-2026-10-16.zh-CN.md",
+      "target": "evidence/experimental-mcp-http-diagnostics-2026-10-16/manifest.json",
+      "resolved": "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/manifest.json"
+    },
+    {
+      "document": "experimental-mcp-http-diagnostics-2026-10-16.zh-CN.md",
+      "target": "evidence/experimental-mcp-http-diagnostics-2026-10-16/seal.json",
+      "resolved": "docs/qualification/evidence/experimental-mcp-http-diagnostics-2026-10-16/seal.json"
+    }
+  ],
+  "binary_cache_full_archive_credential_URL_or_private_key_payloads_found": false,
+  "workspace_negative_rejects_unadopted_mcp_client_source": true,
+  "all_saved_runners_examined_not_executed": true,
+  "no_product_build_network_DB_Docker_cache_main_or_original_candidate_write": true,
+  "limitations": [
+    "Direct published verifier validates the evidence closure and selected JSON source/scope fields; the outer candidate manifest independently binds all98 current files including EN/CN/JSON reports. Its workspace mode checks536 product inputs, not all documentation/CI/Git-tree files.",
+    "This review validates the fixed supplied artifact set and original observable facts; it is not new execution or a source Spec review."
+  ]
+}

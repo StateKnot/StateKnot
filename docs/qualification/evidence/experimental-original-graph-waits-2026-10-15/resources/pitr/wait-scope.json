@@ -1,0 +1,9 @@
+{
+  "required_parent_chains": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg16/receipt.json",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/full-native-v1/pg17/receipt.json"
+  ],
+  "gate": "Both fixed922 four-suite chains AND their separately mandatory backup-restore are terminal before any PITR resource operation.",
+  "no_DB_environment": true,
+  "no_source_or_run_chain_report_change": true
+}

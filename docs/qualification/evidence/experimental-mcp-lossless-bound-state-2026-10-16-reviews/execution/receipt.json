@@ -1,0 +1,37 @@
+{
+  "schema": "mcp-lossless-execution-appendix-independent-standards/v1",
+  "reviewer": "/root/validate_cleanup_sql37/mcp_docs_standards",
+  "author_of_appendix": false,
+  "raw_execution_owner": false,
+  "findings_count": 0,
+  "findings": [],
+  "publication_manifest_sha256": "588373a3a917c9764fdf4fcb6f8fb33fb7be3a39b2c910978cb8948874a95d85",
+  "evidence_manifest_sha256": "96206529c1dc6cf4480d1cb3f9623d552014cd0528ff343ffc8dee43730d1b2e",
+  "seal_sha256": "002b3200657b0c1d9ee13ff747ca5eda60eb57c7cd35e4b24814874971f7c90b",
+  "files": 55,
+  "gzip_originals": 49,
+  "all_source_originals_byte_checked": true,
+  "offline_exit": 0,
+  "workspace_exit": 0,
+  "prior_F1_collection_gap_resolved_by_separate_appendix": true,
+  "original_P2_claim_not_retroactively_changed": true,
+  "scope": "Independent execution appendix Standards/fact check only; not complete source/test Spec.",
+  "artifacts": [
+    {
+      "path": "input-audit.json",
+      "sha256": "c66c3ab64070459e55be37b00fbfd8bef427240094c6a46157075014221197f6"
+    },
+    {
+      "path": "offline.receipt.json",
+      "sha256": "d1ab0e71df6e7a39ca69c4e3d640ab598990f1a5828fa98fd5b65d7f7a919659"
+    },
+    {
+      "path": "workspace.receipt.json",
+      "sha256": "380216c848f0c67b7cc3ac39eb12a9fd63b42aeac43b4fbfdd074225ec3f89f0"
+    },
+    {
+      "path": "review.md",
+      "sha256": "c73d621ba4f885bbd692295236919177750948eeb55fd60c968f02a252d5674d"
+    }
+  ]
+}

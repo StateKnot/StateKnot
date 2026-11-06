@@ -1,0 +1,1 @@
+Authored design requirements only, not implementation or independent approval. Read acceptance-matrix.json first, then public-interface.rs.txt and CONTRACT.zh-CN.md. All original source and evidence remain unchanged. Source-level resource ownership and actual TCP observations must both be validated by future implementation tests; no self-review verdict is supplied.

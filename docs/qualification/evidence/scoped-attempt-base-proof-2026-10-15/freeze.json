@@ -1,0 +1,25 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source",
+  "files": 899,
+  "source_manifest_sha256": "5cc4e2cd0ab5824b87510dfaea6e95c08e3f1cf0cd20f6e8ebcad0da0b103645",
+  "source_archive_sha256": "317306a46bfeb907d8613274082273868d25c584915eb4be08fd2423deaae427",
+  "erase_patch_sha256": "331cb10c0e41fddd31c2c1fae506aacfffafac5d126151c2d50f8e3998b4964c",
+  "original_a_source_unchanged": true,
+  "complete_helper_body_tokens_equal": true,
+  "independent_review_findings": 0,
+  "recursion_limit_resource_changes": false,
+  "status": "Complete for this isolated E0275 repair: all six static gates and the original six Native tests on each PG passed",
+  "changed_against_layout_baseline": [
+    "crates/stateknot-store-postgres/src/store.rs",
+    "crates/stateknot-store-postgres/tests/postgres/proof_base_reuse.rs",
+    "crates/stateknot-store-postgres/tests/postgres.rs"
+  ],
+  "production_patch_sha256": "0cf1eb62fef994c7f64eb7e4e42cbbf30bb7a45ba3e86be98b60fe31b5b17400",
+  "tests_patch_sha256": "80a90f0a76eeccc8000227ab614882d2ef0ddc96a18eee816984b2fe3a2db15b",
+  "combined_patch_sha256": "3cff3c3269b0e09b0cacb975fa40697d9df860f5679d64ed538ca60a0528ef99",
+  "default_stack_qualified_scope": "Only the six exact Store Native tests per PostgreSQL major",
+  "runtime_higher_fence_qualification": false,
+  "runtime_seven_level_qualification": false,
+  "full_native_suite_qualification": false,
+  "r1_qualification": false
+}

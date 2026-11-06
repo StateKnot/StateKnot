@@ -20,6 +20,11 @@ policy for fresh approval, fetches only requested manifest entries from the
 same client binding, verifies exact size and SHA-256, and retains the approved
 entry for the complete acting window.
 
+Local activation IDs are monotonic within a Host. Exhaustion returns
+`McpSkillHostError::ActivationIdExhausted` when constructing the local activation;
+the Host never wraps or reuses an activation ID. Approval, content verification
+and durable window state still follow the lifecycle below.
+
 The normative sources are the
 [MCP Skills extension](https://modelcontextprotocol.io/extensions/skills/overview),
 the [stable extension specification](https://github.com/modelcontextprotocol/ext-skills/blob/main/specification/stable/skills.mdx),

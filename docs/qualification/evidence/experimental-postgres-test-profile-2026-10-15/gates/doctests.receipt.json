@@ -1,0 +1,19 @@
+{
+  "step": "gate-doctests",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "--workspace",
+    "--doc",
+    "--all-features",
+    "--locked"
+  ],
+  "runner_pid": 68288,
+  "pid": 83628,
+  "started_unix": 1792070329.181246,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 4.916798830032349,
+  "log_sha256": "a1e2878771768262b34a1aecf562377d7288e4a373dcf5343d7621001af0c055"
+}

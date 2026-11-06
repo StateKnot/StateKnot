@@ -1,0 +1,355 @@
+{
+  "format": "lossless original UTF-8 texts, not a new execution",
+  "files": [
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-final.json",
+      "basename": "inputs-final.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-clippy-after.json",
+      "basename": "inputs-gate-clippy-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-clippy-before.json",
+      "basename": "inputs-gate-clippy-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-doctests-after.json",
+      "basename": "inputs-gate-doctests-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-doctests-before.json",
+      "basename": "inputs-gate-doctests-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-fmt-after.json",
+      "basename": "inputs-gate-fmt-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-fmt-before.json",
+      "basename": "inputs-gate-fmt-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-nightly-after.json",
+      "basename": "inputs-gate-nightly-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-nightly-before.json",
+      "basename": "inputs-gate-nightly-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-rustdoc-after.json",
+      "basename": "inputs-gate-rustdoc-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-rustdoc-before.json",
+      "basename": "inputs-gate-rustdoc-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-workspace-after.json",
+      "basename": "inputs-gate-workspace-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-gate-workspace-before.json",
+      "basename": "inputs-gate-workspace-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-initial.json",
+      "basename": "inputs-initial.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-example-after.json",
+      "basename": "inputs-list-example-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-example-before.json",
+      "basename": "inputs-list-example-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-facts-after.json",
+      "basename": "inputs-list-facts-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-facts-before.json",
+      "basename": "inputs-list-facts-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-provider-after.json",
+      "basename": "inputs-list-provider-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-provider-before.json",
+      "basename": "inputs-list-provider-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-runtime-after.json",
+      "basename": "inputs-list-runtime-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-runtime-before.json",
+      "basename": "inputs-list-runtime-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-store-after.json",
+      "basename": "inputs-list-store-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-list-store-before.json",
+      "basename": "inputs-list-store-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-create-new-db-after.json",
+      "basename": "inputs-pg16-create-new-db-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-create-new-db-before.json",
+      "basename": "inputs-pg16-create-new-db-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-example-after.json",
+      "basename": "inputs-pg16-example-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-example-before.json",
+      "basename": "inputs-pg16-example-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-facts-after.json",
+      "basename": "inputs-pg16-facts-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-facts-before.json",
+      "basename": "inputs-pg16-facts-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-provider-after.json",
+      "basename": "inputs-pg16-provider-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-provider-before.json",
+      "basename": "inputs-pg16-provider-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-runtime-after.json",
+      "basename": "inputs-pg16-runtime-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-runtime-before.json",
+      "basename": "inputs-pg16-runtime-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-store-after.json",
+      "basename": "inputs-pg16-store-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg16-store-before.json",
+      "basename": "inputs-pg16-store-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-create-new-db-after.json",
+      "basename": "inputs-pg17-create-new-db-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-create-new-db-before.json",
+      "basename": "inputs-pg17-create-new-db-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-example-after.json",
+      "basename": "inputs-pg17-example-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-example-before.json",
+      "basename": "inputs-pg17-example-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-facts-after.json",
+      "basename": "inputs-pg17-facts-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-facts-before.json",
+      "basename": "inputs-pg17-facts-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-provider-after.json",
+      "basename": "inputs-pg17-provider-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-provider-before.json",
+      "basename": "inputs-pg17-provider-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-runtime-after.json",
+      "basename": "inputs-pg17-runtime-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-runtime-before.json",
+      "basename": "inputs-pg17-runtime-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-store-after.json",
+      "basename": "inputs-pg17-store-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-pg17-store-before.json",
+      "basename": "inputs-pg17-store-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-workspace-fresh-build-after.json",
+      "basename": "inputs-workspace-fresh-build-after.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    },
+    {
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/inputs-workspace-fresh-build-before.json",
+      "basename": "inputs-workspace-fresh-build-before.json",
+      "raw_bytes": 368,
+      "raw_sha256": "1152c1ab9061cea240774241b8c8d832bb3a235811f071de1c8ade8d72d7140c",
+      "raw_text": "{\n  \"source_tree\": \"3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c\",\n  \"file_count\": 923,\n  \"source_manifest_sha256\": \"55e1325f2230d04b5e6b74474fbd715c9ba1d7bdb435df7c32129cc485f31db0\",\n  \"compiled_input_manifest_sha256\": \"a154a135b94d96b18ddcc0bfb49c3d52b28885fffcb333cff1228a9555d91564\",\n  \"full_snapshot_and_main_compilation_inputs_equal\": true\n}\n"
+    }
+  ]
+}

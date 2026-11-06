@@ -36,6 +36,9 @@ use serde_json::{Map, Value, json};
 use stateknot_core::{BoxFuture, Digest};
 use thiserror::Error;
 
+use crate::McpServerBoundStateProfile;
+use crate::mcp_server_bound_state::{check_context, require_bound_principal};
+
 use crate::{
     McpServerApplicationOptions, McpServerCacheScope, McpServerPrincipal, mcp_server_principal,
     mcp_server_tool::append_digest_part,
@@ -755,6 +758,7 @@ pub struct McpServerSkillService {
     catalog: McpServerSkillCatalog,
     options: McpServerApplicationOptions,
     authorization: Arc<dyn McpServerSkillAuthorization>,
+    bound_state: Option<McpServerBoundStateProfile>,
 }
 
 impl McpServerSkillService {
@@ -779,7 +783,28 @@ impl McpServerSkillService {
             catalog,
             options,
             authorization: Arc::new(authorization),
+            bound_state: None,
         })
+    }
+
+    /// Enforces host-bound private cursors and MRTR state on this service.
+    ///
+    /// The existing host policy still checks current mapping/generation after
+    /// queueing. Private applies to catalog metadata and continuation identity;
+    /// independently selected Public Resource contents are not made private.
+    /// Clones and later Completion configuration retain this immutable profile.
+    pub fn with_bound_state(
+        mut self,
+        profile: McpServerBoundStateProfile,
+    ) -> Result<Self, McpServerSkillServiceBuildError> {
+        if self.bound_state.is_some() {
+            return Err(McpServerSkillServiceBuildError::BoundStateAlreadyConfigured);
+        }
+        if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
+            return Err(McpServerSkillServiceBuildError::PublicCacheWithBoundState);
+        }
+        self.bound_state = Some(profile);
+        Ok(self)
     }
 
     /// Returns the immutable backing catalog.
@@ -805,21 +830,35 @@ impl McpServerSkillService {
         capabilities
     }
 
-    fn scope_tag(&self, principal: &McpServerPrincipal) -> String {
+    fn cursor_version(&self) -> &'static str {
+        if self.bound_state.is_some() {
+            "v2"
+        } else {
+            "v1"
+        }
+    }
+
+    fn scope_tag(&self, principal: &McpServerPrincipal) -> Result<String, ErrorData> {
+        if self.bound_state.is_some() {
+            return Ok(require_bound_principal(principal)?.hex());
+        }
         if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
-            return "public".to_owned();
+            return Ok("public".to_owned());
         }
         let mut material = principal.subject().as_bytes().to_vec();
         for scope in principal.scopes() {
             append_digest_part(&mut material, scope.as_bytes());
         }
-        digest_hex(material)
+        Ok(digest_hex(material))
     }
 
     fn cursor(&self, kind: &str, scope: &str, offset: usize) -> String {
         format!(
-            "v1.{kind}.{}.{}.{}",
-            self.catalog.inner.digest, scope, offset
+            "{}.{kind}.{}.{}.{}",
+            self.cursor_version(),
+            self.catalog.inner.digest,
+            scope,
+            offset
         )
     }
 
@@ -828,7 +867,7 @@ impl McpServerSkillService {
             return Err(invalid_cursor());
         }
         let mut parts = value.split('.');
-        let valid = parts.next() == Some("v1")
+        let valid = parts.next() == Some(self.cursor_version())
             && parts.next() == Some(kind)
             && parts.next() == Some(self.catalog.inner.digest.as_ref())
             && parts.next() == Some(scope);
@@ -883,7 +922,7 @@ impl McpServerSkillService {
     ) -> Result<CustomResult, ErrorData> {
         let params = parse_list_params(request)?;
         let principal = required_principal(context)?;
-        let scope = self.scope_tag(principal);
+        let scope = self.scope_tag(principal)?;
         let visible = self
             .visible_skills(principal, McpServerSkillOperation::List)
             .await?;
@@ -958,7 +997,7 @@ impl McpServerSkillService {
             .iter()
             .filter(|(_, binding)| visible_skills.contains(binding.skill_uri.as_ref()))
             .collect::<Vec<_>>();
-        let scope = self.scope_tag(principal);
+        let scope = self.scope_tag(principal)?;
         let start = request
             .and_then(|params| params.cursor.as_deref())
             .map_or(Ok(0), |cursor| {
@@ -1053,6 +1092,7 @@ impl McpServerSkillService {
         request: CustomRequest,
         context: RequestContext<RoleServer>,
     ) -> Result<CustomResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         match request.method.as_str() {
             SKILL_LIST_METHOD => self.list_skills(&request, &context).await,
             SKILL_GET_METHOD => self.get_skill(&request, &context).await,
@@ -1069,6 +1109,7 @@ impl McpServerSkillService {
         request: ReadResourceRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         self.read_skill_resource(request, &context).await
     }
 }
@@ -1103,8 +1144,9 @@ impl ServerHandler for McpServerSkillService {
 
     async fn discover(
         &self,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<DiscoverResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         Ok(
             DiscoverResult::from_server_info(vec![ProtocolVersion::V_2026_07_28], self.get_info())
                 .with_ttl_ms(self.options.cache_ttl_ms)
@@ -1117,6 +1159,7 @@ impl ServerHandler for McpServerSkillService {
         request: CustomRequest,
         context: RequestContext<RoleServer>,
     ) -> Result<CustomResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         self.dispatch_custom(request, context).await
     }
 
@@ -1125,14 +1168,16 @@ impl ServerHandler for McpServerSkillService {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         self.list_skill_resources(request.as_ref(), &context).await
     }
 
     async fn list_resource_templates(
         &self,
         _request: Option<PaginatedRequestParams>,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         Ok(ListResourceTemplatesResult::with_all_items(Vec::new())
             .with_ttl_ms(self.options.cache_ttl_ms)
             .with_cache_scope(self.options.cache_scope.into()))
@@ -1143,7 +1188,77 @@ impl ServerHandler for McpServerSkillService {
         request: ReadResourceRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         self.read_skill_resource(request, &context).await
+    }
+    async fn complete(
+        &self,
+        request: rmcp::model::CompleteRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CompleteResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::complete(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn get_prompt(
+        &self,
+        request: rmcp::model::GetPromptRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::GetPromptResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::get_prompt(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_prompts(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListPromptsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_prompts(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn call_tool(
+        &self,
+        request: rmcp::model::CallToolRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CallToolResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::call_tool(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_tools(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListToolsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_tools(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
     }
 }
 
@@ -1151,6 +1266,12 @@ impl ServerHandler for McpServerSkillService {
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum McpServerSkillServiceBuildError {
+    /// Bound state was configured more than once.
+    #[error("MCP bound state is already configured")]
+    BoundStateAlreadyConfigured,
+    /// An explicit strong profile requires Private catalog caching.
+    #[error("MCP bound state requires a private catalog cache")]
+    PublicCacheWithBoundState,
     /// Scope-filtered Skills cannot be described as a public cache.
     #[error("scope-restricted MCP Skills require a private catalog cache")]
     PublicCacheWithScopedSkills,

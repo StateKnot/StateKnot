@@ -1,0 +1,70 @@
+{
+  "files": [
+    {
+      "path": "CONTRACT.zh-CN.md",
+      "bytes": 6462,
+      "sha256": "05b5872df021a49a6347b46b86ca30201ba8b61d41e96fb4480c195c4680e352"
+    },
+    {
+      "path": "acceptance.json",
+      "bytes": 8320,
+      "sha256": "a89f9bbf5f46a13c536040394fa0f06c834cf7f26f840e5354886c3e9ee8fca0"
+    },
+    {
+      "path": "body-path-matrix.json",
+      "bytes": 2684,
+      "sha256": "4d0965331f134e84af45c1c3e22ac6b08ff4d3a9af2bbbae5d582ebb209b9d04"
+    },
+    {
+      "path": "decision.zh-CN.md",
+      "bytes": 1748,
+      "sha256": "dba5b5f7876111fe3ad4b11a901fa1b29460e8e2b990cfe27ea7bcb9b1111844"
+    },
+    {
+      "path": "entry-matrix.json",
+      "bytes": 8922,
+      "sha256": "aece97e3744a96f6b62eeb5e3e5a62d95846673597139b925ce9c5507e202f97"
+    },
+    {
+      "path": "observed-main-status.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "prior-contract-binding.json",
+      "bytes": 668,
+      "sha256": "a35b4ffeb92130eb51e9bc1ad4a654942219572eb84746728ea593ce5a82cd46"
+    },
+    {
+      "path": "push-buffer-interface.md",
+      "bytes": 2838,
+      "sha256": "23d9e6e085acec8f45f6ecae1c85287a2e4fba442bb9c644ad918a6fd2e8a2c7"
+    },
+    {
+      "path": "receipt.json",
+      "bytes": 1308,
+      "sha256": "39074d81505a5af222ce21dc168854622718a042c188d25ecfe20cb9736464c1"
+    },
+    {
+      "path": "sources.json",
+      "bytes": 6344,
+      "sha256": "480661063b0cd270732835ca119e4bae8af0d3b817fe697d1563e9cecaee4587"
+    },
+    {
+      "path": "static-validation.stderr.txt",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "static-validation.stdout.json",
+      "bytes": 236,
+      "sha256": "817c1acb4ede4783c88dfdfa8a31e4a0e5dbcdb660daec05320a50d90fee91e6"
+    },
+    {
+      "path": "verify.py",
+      "bytes": 3535,
+      "sha256": "17298b9a04608aac4ecce0137f48aec8420ecb6935c02ae20fa290cf670785d4"
+    }
+  ],
+  "count": 13
+}

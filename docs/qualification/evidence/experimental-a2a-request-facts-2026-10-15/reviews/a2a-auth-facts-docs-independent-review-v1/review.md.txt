@@ -1,0 +1,53 @@
+# A2A request-facts adoption docs: fixed v1 review
+
+Standards: **0 findings**. Spec: **1 P2 finding** (accepted by the parent).
+This is a read-only review of five ignored future adoption documents at baseline
+`a9b265d5b3a96e0e5bbed604b7558f4ae9edc136`, bound by [freeze.json](freeze.json).
+Production candidate SHA is `46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216`;
+it remains an independent, uncompiled candidate. No source/main change, compile,
+Native run, stage or commit was performed by this reviewer.
+
+## Standards
+
+0 actionable findings against supplied production-grade instructions,
+CONTRIBUTING, RFC lifecycle, and mattpocock code-review/design principles.
+The Interface stays additive and keeps the existing provider Seam. Both guides
+accurately describe normalized URL/query and already-serialized body, unchanged
+absolute deadline, bounded synchronous policy work, raw sensitive getters,
+retained shared body clones, and the limited Debug redaction. Legacy/static and
+Anonymous paths do not acquire implicit input-aware policy. Draft RFC-25 retains
+its historical source baseline and distinguishes the selected experimental
+Interface. The schema36 CHANGELOG entry is a separately owned adoption-doc rebase,
+not evidence that A2A changes were tested with schema36. All local file links
+resolve; details are in [link-check.json](link-check.json).
+
+## Spec
+
+**[P2] Scope the duplicate no-policy promise to the same committed attempt receipt.**
+
+The new EN RFC acceptance text (line 248) says that “refusal/duplicate recovery”
+performs no business send or second policy call. The CN counterpart (line 92)
+has the same broad promise. Fresh recovery GetTask queries require current policy;
+attested MessageIdReplay requires authorization of its newly prepared actual
+request and may issue its configured business send. This differs from rereading
+or recovering the acknowledgement of the same committed durable Failed/Unknown
+attempt receipt. The adjacent text correctly requires current-policy checks, so
+these two claims need an explicit distinction.
+
+Separate these three cases: refusal sends no business request; duplicate retrieval/
+ack recovery of the same committed attempt receipt creates no new send or second
+policy evaluation; a fresh probe/attested replay reauthorizes and may send under
+its existing contract. No code or retry-policy change is requested.
+
+Other reviewed requirements have no actionable finding: HTTP GET/DELETE may
+have no body whereas JSON-RPC reads use a POST envelope; replay keeps the business
+message identity while fresh RPC rounds allocate correlation IDs, so different
+transport envelopes must not be required byte-equal. Existing Debug identity,
+tenant/task/scope/attempt fields remain visible, and body/URL access is intentional
+release to trusted host code. Clone may retain the payload. Facts are not policy,
+consent, issuer verification or universal header authorization. RFC acceptance,
+R1 closure, compilation and production qualification remain open.
+
+The original five v1 documents, their baseline snapshots and complete diff are
+preserved. The parent will correct only the two RFC sentences in an independent
+v2 directory; this v1 finding and seal must remain unchanged.

@@ -1,0 +1,22 @@
+{
+  "gate": "nightly",
+  "command": [
+    "cargo",
+    "+nightly-2026-10-07",
+    "check",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ],
+  "runner_pid": 11699,
+  "pid": 11709,
+  "start_unix": 1792075323.312023,
+  "source_tree": "eeddc9f7e9c92023a0b0c1f9a7220cccc1b4c5d846ae4281d4a4aeff9b0f30f4",
+  "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+  "exit_code": 0,
+  "seconds": 0.49742817878723145,
+  "log_sha256": "0c00795ebee589578be25eaf877cba0b7783ae7cee66d7440c5efe3621fd2d53",
+  "source_before_after_exact": true,
+  "native_database_execution": false
+}

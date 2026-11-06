@@ -1,0 +1,19 @@
+{
+  "files": [
+    {
+      "path": "docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.json",
+      "bytes": 9226,
+      "sha256": "1935ea42f5f9b8684c6ec454d76582dc67cf6cf6e03333d9fb7a5dacb54e46e9"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.md",
+      "bytes": 8668,
+      "sha256": "b87fc0917fd083cb6eff0c754c2de868ed1af213265574ac80361aabd5037858"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.zh-CN.md",
+      "bytes": 7160,
+      "sha256": "3f200e6208f2a4b1ab57ec84fa947c29c9cddfab129feb077931c0f21b92324f"
+    }
+  ]
+}

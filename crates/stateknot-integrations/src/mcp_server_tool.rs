@@ -30,6 +30,11 @@ use stateknot_core::{BoxFuture, Digest};
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
+use crate::McpServerBoundStateProfile;
+use crate::mcp_server_bound_state::{
+    BoundOperation, check_context, operation_binding, require_bound_principal, validate_wire_state,
+};
+
 use crate::{McpServerPrincipal, mcp_server_principal};
 
 const JSON_SCHEMA_2020_12: &str = "https://json-schema.org/draft/2020-12/schema";
@@ -841,6 +846,19 @@ impl McpServerInputRequired {
         })
     }
 
+    pub(crate) fn bind_for_profile(
+        mut self,
+        profile: &McpServerBoundStateProfile,
+        associated_data: &[u8],
+    ) -> Result<Self, ErrorData> {
+        self.request_state = Some(
+            profile
+                .seal_outbound(self.request_state.as_deref(), associated_data)?
+                .into_boxed_str(),
+        );
+        Ok(self)
+    }
+
     pub(crate) fn into_protocol(self) -> InputRequiredResult {
         let requests = if self.requests.is_empty() {
             None
@@ -1103,6 +1121,11 @@ impl McpServerToolCall {
     }
 
     /// Returns untrusted request state echoed by the client.
+    ///
+    /// With an explicit bound-state profile, decoded authorization sees the
+    /// untrusted wire envelope; the business callback sees restored inner
+    /// application state only after the framework verifies the outer binding.
+    /// Without that profile the original opaque-state behavior is unchanged.
     #[must_use]
     pub fn request_state(&self) -> Option<&str> {
         self.request_state.as_deref()
@@ -1153,6 +1176,10 @@ impl McpServerToolContext {
     }
 
     /// Returns associated data bound to principal, Tool, and canonical arguments.
+    ///
+    /// An explicitly configured bound-state profile supplies its full host and
+    /// scope-bound v3 associated data. Unconfigured services retain legacy AD;
+    /// the presence of a host-bound principal alone does not enable enforcement.
     #[must_use]
     pub fn request_state_binding(&self) -> &[u8] {
         &self.request_state_binding
@@ -1670,6 +1697,7 @@ pub struct McpServerToolService {
     registry: McpServerToolRegistry,
     options: McpServerApplicationOptions,
     authorization: Arc<dyn McpServerToolAuthorization>,
+    bound_state: Option<McpServerBoundStateProfile>,
 }
 
 impl McpServerToolService {
@@ -1700,7 +1728,28 @@ impl McpServerToolService {
             registry,
             options,
             authorization,
+            bound_state: None,
         })
+    }
+
+    /// Enforces host-bound private cursors and MRTR state on this service.
+    ///
+    /// The existing host policy still checks current mapping/generation after
+    /// queueing. Private applies to catalog metadata and continuation identity;
+    /// independently selected Public Resource contents are not made private.
+    /// Clones and later Completion configuration retain this immutable profile.
+    pub fn with_bound_state(
+        mut self,
+        profile: McpServerBoundStateProfile,
+    ) -> Result<Self, McpServerToolServiceBuildError> {
+        if self.bound_state.is_some() {
+            return Err(McpServerToolServiceBuildError::BoundStateAlreadyConfigured);
+        }
+        if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
+            return Err(McpServerToolServiceBuildError::PublicCacheWithBoundState);
+        }
+        self.bound_state = Some(profile);
+        Ok(self)
     }
 
     fn page(
@@ -1708,7 +1757,7 @@ impl McpServerToolService {
         principal: &McpServerPrincipal,
         cursor: Option<&str>,
     ) -> Result<(Vec<Tool>, Option<String>), ErrorData> {
-        let scope_tag = self.catalog_scope_tag(principal);
+        let scope_tag = self.catalog_scope_tag(principal)?;
         let start = cursor.map_or(Ok(0), |cursor| self.parse_cursor(cursor, &scope_tag))?;
         let visible = self
             .registry
@@ -1741,23 +1790,40 @@ impl McpServerToolService {
         Ok((tools, next))
     }
 
-    fn catalog_scope_tag(&self, principal: &McpServerPrincipal) -> String {
+    fn cursor_version(&self) -> &'static str {
+        if self.bound_state.is_some() {
+            "v2"
+        } else {
+            "v1"
+        }
+    }
+
+    fn catalog_scope_tag(&self, principal: &McpServerPrincipal) -> Result<String, ErrorData> {
+        if self.bound_state.is_some() {
+            return Ok(require_bound_principal(principal)?.hex());
+        }
         if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
-            return "public".to_owned();
+            return Ok("public".to_owned());
         }
         let mut material = principal.subject().as_bytes().to_vec();
         for scope in principal.scopes() {
             append_digest_part(&mut material, scope.as_bytes());
         }
         let digest = Digest::sha256(material).to_string();
-        digest
+        Ok(digest
             .strip_prefix("sha256:")
             .expect("StateKnot SHA-256 digest has stable prefix")
-            .to_owned()
+            .to_owned())
     }
 
     fn cursor(&self, scope_tag: &str, offset: usize) -> String {
-        format!("v1.{}.{}.{}", self.registry.inner.digest, scope_tag, offset)
+        format!(
+            "{}.{}.{}.{}",
+            self.cursor_version(),
+            self.registry.inner.digest,
+            scope_tag,
+            offset
+        )
     }
 
     fn parse_cursor(&self, cursor: &str, scope_tag: &str) -> Result<usize, ErrorData> {
@@ -1768,7 +1834,7 @@ impl McpServerToolService {
             ));
         }
         let mut parts = cursor.split('.');
-        let valid_version = parts.next() == Some("v1");
+        let valid_version = parts.next() == Some(self.cursor_version());
         let valid_digest = parts.next() == Some(self.registry.inner.digest.as_ref());
         let valid_scope = parts.next() == Some(scope_tag);
         let offset = parts.next().and_then(|value| value.parse::<usize>().ok());
@@ -1786,11 +1852,36 @@ impl McpServerToolService {
         Ok(offset.expect("validated cursor offset exists"))
     }
 
+    // Bound decoded wire facts before invoking policy. Keep response presence
+    // distinct from an empty map so a strict continuation cannot omit state.
+    fn bounded_wire_call(
+        &self,
+        request: CallToolRequestParams,
+    ) -> Result<(McpServerToolCall, bool), ErrorData> {
+        let arguments = request.arguments.unwrap_or_default();
+        let input_responses_was_present = request.input_responses.is_some();
+        let input_responses = request.input_responses.unwrap_or_default();
+        if self.bound_state.is_some() {
+            validate_wire_state(request.request_state.as_deref())?;
+            validate_inbound_mrtr(&input_responses, None)?;
+        } else {
+            validate_inbound_mrtr(&input_responses, request.request_state.as_deref())?;
+        }
+        let call = McpServerToolCall {
+            name: Arc::from(request.name.into_owned()),
+            arguments: Arc::new(arguments),
+            input_responses: Arc::new(input_responses),
+            request_state: request.request_state.map(Arc::from),
+        };
+        Ok((call, input_responses_was_present))
+    }
+
     async fn dispatch(
         &self,
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let Some(registered) = self
             .registry
             .inner
@@ -1811,15 +1902,7 @@ impl McpServerToolService {
             return Err(unavailable_tool());
         }
 
-        let arguments = request.arguments.unwrap_or_default();
-        let input_responses = request.input_responses.unwrap_or_default();
-        validate_inbound_mrtr(&input_responses, request.request_state.as_deref())?;
-        let call = McpServerToolCall {
-            name: Arc::from(request.name.into_owned()),
-            arguments: Arc::new(arguments),
-            input_responses: Arc::new(input_responses),
-            request_state: request.request_state.map(Arc::from),
-        };
+        let (call, input_responses_was_present) = self.bounded_wire_call(request)?;
         let authorization_request = McpServerToolAuthorizationRequest {
             principal: principal.clone(),
             definition: registered.definition.clone(),
@@ -1844,7 +1927,21 @@ impl McpServerToolService {
             ));
         }
 
-        let tool_context = build_tool_context(&context, principal, &call)?;
+        let tool_context =
+            build_tool_context(&context, principal, &call, self.bound_state.as_ref())?;
+        let state_binding = tool_context.request_state_binding.clone();
+        let call = if let Some(profile) = &self.bound_state {
+            McpServerToolCall {
+                request_state: profile.open_inbound(
+                    call.request_state(),
+                    input_responses_was_present,
+                    &state_binding,
+                )?,
+                ..call
+            }
+        } else {
+            call
+        };
         let outcome = registered
             .handler
             .call(call, tool_context)
@@ -1870,7 +1967,13 @@ impl McpServerToolService {
                 }
                 Ok(result.into_protocol().into())
             }
-            McpServerToolOutcome::InputRequired(result) => Ok(result.into_protocol().into()),
+            McpServerToolOutcome::InputRequired(result) => {
+                let result = match &self.bound_state {
+                    Some(profile) => result.bind_for_profile(profile, &state_binding)?,
+                    None => result,
+                };
+                Ok(result.into_protocol().into())
+            }
         }
     }
 }
@@ -1905,8 +2008,9 @@ impl ServerHandler for McpServerToolService {
 
     async fn discover(
         &self,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<DiscoverResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         Ok(
             DiscoverResult::from_server_info(vec![ProtocolVersion::V_2026_07_28], self.get_info())
                 .with_ttl_ms(self.options.cache_ttl_ms)
@@ -1927,6 +2031,7 @@ impl ServerHandler for McpServerToolService {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListToolsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let principal = mcp_server_principal(&context)
             .ok_or_else(|| ErrorData::internal_error("MCP server boundary is missing", None))?;
         let (tools, next_cursor) = self.page(
@@ -1945,7 +2050,105 @@ impl ServerHandler for McpServerToolService {
         request: CallToolRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<CallToolResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         self.dispatch(request, context).await
+    }
+    async fn complete(
+        &self,
+        request: rmcp::model::CompleteRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CompleteResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::complete(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn get_prompt(
+        &self,
+        request: rmcp::model::GetPromptRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::GetPromptResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::get_prompt(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_prompts(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListPromptsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_prompts(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_resources(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListResourcesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_resources(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_resource_templates(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListResourceTemplatesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_resource_templates(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn read_resource(
+        &self,
+        request: rmcp::model::ReadResourceRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ReadResourceResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::read_resource(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn on_custom_request(
+        &self,
+        request: rmcp::model::CustomRequest,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CustomResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::on_custom_request(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
     }
 }
 
@@ -1953,6 +2156,12 @@ impl ServerHandler for McpServerToolService {
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum McpServerToolServiceBuildError {
+    /// Bound state was configured more than once.
+    #[error("MCP bound state is already configured")]
+    BoundStateAlreadyConfigured,
+    /// An explicit strong profile requires Private catalog caching.
+    #[error("MCP bound state requires a private catalog cache")]
+    PublicCacheWithBoundState,
     /// A catalog with scope-restricted entries cannot be shared-cacheable.
     #[error("scope-restricted MCP tools require a private catalog cache")]
     PublicCacheWithScopedTools,
@@ -1993,6 +2202,7 @@ fn build_tool_context(
     context: &RequestContext<RoleServer>,
     principal: McpServerPrincipal,
     call: &McpServerToolCall,
+    profile: Option<&McpServerBoundStateProfile>,
 ) -> Result<McpServerToolContext, ErrorData> {
     let client = context.client_info();
     if let Some(client) = &client {
@@ -2002,7 +2212,18 @@ fn build_tool_context(
     let capabilities = context.client_capabilities().unwrap_or_default();
     let capabilities_value = serde_json::to_value(&capabilities)
         .map_err(|_| ErrorData::internal_error("Failed to retain client capabilities", None))?;
-    let binding = request_state_binding(&principal, call)?;
+    let binding = if profile.is_some() {
+        operation_binding(
+            &require_bound_principal(&principal)?,
+            BoundOperation::Tool {
+                name: call.name(),
+                arguments: call.arguments(),
+            },
+        )?
+        .to_vec()
+    } else {
+        request_state_binding(&principal, call)?
+    };
     let progress = context
         .meta
         .get_progress_token()

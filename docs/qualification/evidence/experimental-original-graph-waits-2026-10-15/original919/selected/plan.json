@@ -1,0 +1,185 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "source_files": 919,
+  "binary_build_receipt": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/receipt.json",
+  "artifacts": {
+    "stateknot-store-postgres": {
+      "package": "stateknot-store-postgres",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+      "sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "fresh": false
+    },
+    "stateknot-runtime": {
+      "package": "stateknot-runtime",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+      "sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "fresh": false
+    }
+  },
+  "database": "stateknot_r1_a36_feedback_oct15v1",
+  "per_major": {
+    "16": [
+      {
+        "exact_test": "frame_waits::elapsed::expired_original_interrupt_blocks_elapsed_ready_without_any_partial_commit",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-01-pg16"
+      },
+      {
+        "exact_test": "frame_waits::elapsed::maximum_original_wait_inventory_retains_all_sixty_four_real_owners",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-02-pg16"
+      },
+      {
+        "exact_test": "frame_waits::elapsed::mixed_original_conditions_release_only_the_real_remaining_registrations",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-03-pg16"
+      },
+      {
+        "exact_test": "frame_waits::elapsed::original_condition_corruption_blocks_complete_read_and_ack_without_writes",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-04-pg16"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-05-pg16"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::expired_root_interrupt_cannot_turn_mixed_wait_into_ready_or_partially_commit",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-06-pg16"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::root_mixed_originals_register_only_remaining_conditions_and_keep_waiting_ack",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-07-pg16"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::root_ready_checks_original_expiry_after_the_actual_deferred_guard",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-08-pg16"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::root_ready_reloads_actual_successor_bytes_before_returning_the_receipt",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-09-pg16"
+      },
+      {
+        "exact_test": "frame_waits::elapsed_faults::substituted_canonical_scoped_wait_wire_rolls_back_the_complete_commit",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-fault-canonical-wire-pg16"
+      },
+      {
+        "exact_test": "frame_waits::elapsed_faults::substituted_ready_lease_cannot_extend_the_original_commit_authority",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-fault-original-lease-pg16"
+      },
+      {
+        "exact_test": "nested_driver::elapsed_graph_waits::root_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "package": "stateknot-runtime",
+        "origin_label": "elapsed36-ready-v2-root-wait-pg16"
+      },
+      {
+        "exact_test": "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "package": "stateknot-runtime",
+        "origin_label": "elapsed36-ready-v2-scoped-wait-pg16"
+      },
+      {
+        "exact_test": "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "package": "stateknot-runtime",
+        "origin_label": "elapsed36-ready-v2-sql-role-pg16"
+      },
+      {
+        "exact_test": "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+        "package": "stateknot-store-postgres",
+        "origin_label": "new A selected regression"
+      }
+    ],
+    "17": [
+      {
+        "exact_test": "frame_waits::elapsed::expired_original_interrupt_blocks_elapsed_ready_without_any_partial_commit",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-01-pg17"
+      },
+      {
+        "exact_test": "frame_waits::elapsed::maximum_original_wait_inventory_retains_all_sixty_four_real_owners",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-02-pg17"
+      },
+      {
+        "exact_test": "frame_waits::elapsed::mixed_original_conditions_release_only_the_real_remaining_registrations",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-03-pg17"
+      },
+      {
+        "exact_test": "frame_waits::elapsed::original_condition_corruption_blocks_complete_read_and_ack_without_writes",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-04-pg17"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-05-pg17"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::expired_root_interrupt_cannot_turn_mixed_wait_into_ready_or_partially_commit",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-06-pg17"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::root_mixed_originals_register_only_remaining_conditions_and_keep_waiting_ack",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-07-pg17"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::root_ready_checks_original_expiry_after_the_actual_deferred_guard",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-08-pg17"
+      },
+      {
+        "exact_test": "root_graph_barriers::elapsed::root_ready_reloads_actual_successor_bytes_before_returning_the_receipt",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-extra-09-pg17"
+      },
+      {
+        "exact_test": "frame_waits::elapsed_faults::substituted_canonical_scoped_wait_wire_rolls_back_the_complete_commit",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-fault-canonical-wire-pg17"
+      },
+      {
+        "exact_test": "frame_waits::elapsed_faults::substituted_ready_lease_cannot_extend_the_original_commit_authority",
+        "package": "stateknot-store-postgres",
+        "origin_label": "elapsed36-ready-v2-fault-original-lease-pg17"
+      },
+      {
+        "exact_test": "nested_driver::elapsed_graph_waits::root_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "package": "stateknot-runtime",
+        "origin_label": "elapsed36-ready-v2-root-wait-pg17"
+      },
+      {
+        "exact_test": "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "package": "stateknot-runtime",
+        "origin_label": "elapsed36-ready-v2-scoped-wait-pg17"
+      },
+      {
+        "exact_test": "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "package": "stateknot-runtime",
+        "origin_label": "elapsed36-ready-v2-sql-role-pg17"
+      },
+      {
+        "exact_test": "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+        "package": "stateknot-store-postgres",
+        "origin_label": "new A selected regression"
+      }
+    ]
+  },
+  "case_count": 30,
+  "per_major_count": 15,
+  "original_ready_28_preserved": true,
+  "prior_two_upgrade_cases_not_repeated": true,
+  "default_stack_original_resources": true,
+  "no_compile": true
+}

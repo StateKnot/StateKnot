@@ -1,0 +1,86 @@
+{
+  "label": "full-red-pg16",
+  "database": "stateknot_r1_a36_full_native_oct15v1",
+  "major": "16",
+  "run": {
+    "tenant_id": "application-replay-wait-01a13eff-2a1c-7363-b145-bc78a881f3b1",
+    "run_id": "01a13eff-2a1c-7363-b145-bc7925b32f68",
+    "lifecycle_status": "active",
+    "unresolved_wait_count": 0,
+    "journal_sequence": 6,
+    "next_timer_due_at": null
+  },
+  "conditions": [
+    {
+      "wait_id": "01a13eff-2a18-76f8-b838-ab512d2c3108",
+      "profile": "graph_registered",
+      "wait_kind": "interrupt",
+      "due_at": null,
+      "journal_sequence": 5,
+      "journal_recorded_at": "2026-10-15T09:57:52.833892+00:00",
+      "source_sequence": 4,
+      "source_recorded_at": "2026-10-15T09:57:52.682041+00:00"
+    },
+    {
+      "wait_id": "01a13eff-2a18-76f8-b838-ab52f03b233b",
+      "profile": "graph_elapsed",
+      "wait_kind": "timer",
+      "due_at": "2026-10-15T09:57:52.779233+00:00",
+      "journal_sequence": 5,
+      "journal_recorded_at": "2026-10-15T09:57:52.833892+00:00",
+      "source_sequence": 4,
+      "source_recorded_at": "2026-10-15T09:57:52.682041+00:00"
+    }
+  ],
+  "registration": [
+    {
+      "wait_id": "01a13eff-2a18-76f8-b838-ab512d2c3108",
+      "wait_kind": "interrupt",
+      "due_at": null,
+      "registered_at": "2026-10-15T09:57:52.833892+00:00",
+      "status": "resolved",
+      "registration_sequence": 5,
+      "terminal_sequence": 6,
+      "terminal_recorded_at": "2026-10-15T09:57:53.479584+00:00"
+    }
+  ],
+  "events": [
+    {
+      "sequence": 1,
+      "event_kind": "agent-admitted",
+      "recorded_at": "2026-10-15T09:57:52.349602+00:00",
+      "event_id": "01a13eff-2a44-7187-9928-556f6e61bc67"
+    },
+    {
+      "sequence": 2,
+      "event_kind": "graph-frame-entered",
+      "recorded_at": "2026-10-15T09:57:52.466327+00:00",
+      "event_id": "01a13eff-2aa5-7538-8ae4-b0e77d42b370"
+    },
+    {
+      "sequence": 3,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T09:57:52.584146+00:00",
+      "event_id": "01a13eff-2b16-721f-b6e8-fb7e70d7399e"
+    },
+    {
+      "sequence": 4,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T09:57:52.682041+00:00",
+      "event_id": "01a13eff-2b57-70a7-a38c-1e1b89ac1931"
+    },
+    {
+      "sequence": 5,
+      "event_kind": "graph-frame-barrier-committed",
+      "recorded_at": "2026-10-15T09:57:52.833892+00:00",
+      "event_id": "01a13eff-2bfa-705f-aa65-e5b9173056d3"
+    },
+    {
+      "sequence": 6,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T09:57:53.479584+00:00",
+      "event_id": "01a13eff-2e4d-75e8-81a2-4b4404d105f4"
+    }
+  ],
+  "full_fixture_sha256": "a9d03e7e039b399003eb03d54cac9e1f57be89795aba1ec6d39675b8b76b3eb7"
+}

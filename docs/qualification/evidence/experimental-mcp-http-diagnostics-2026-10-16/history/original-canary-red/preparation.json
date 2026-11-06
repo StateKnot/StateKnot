@@ -1,0 +1,10 @@
+{
+  "formatted_source_tree": "99861ea4d92e931a28608411f3611144d468c0c3d514ec880589a4e0752c8774",
+  "source_files": 928,
+  "compiled_inputs": 536,
+  "compiled_canonical_sha256": "b212d64c1d77ced579fcdcceeeb259cb36b08b5d0d7d11c7030f980c1a8ee8e8",
+  "red_source_tree": "262754645fd0265a31fd1da53dd3150079b1a2bf31f6fd27768cda574e263300",
+  "red_probe": "same new real TCP test; prior69af production mcp_client.rs; no new diagnostics implementations",
+  "format_exit_code": 0,
+  "main_source_untouched": true
+}

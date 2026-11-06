@@ -1,0 +1,1169 @@
+{
+  "status": "frozen, main untouched; independent final publication review pending",
+  "base_commit": "85f3fd556ff7623ef148da7e335b67e08dd022ad",
+  "file_count": 224,
+  "stored_bytes": 1362286,
+  "files": [
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/candidate.patch.gz",
+      "bytes": 1105,
+      "sha256": "6bf96dedcdf28c6dda5ffc2813bd48aee51b77f76a6be2190e7b4d95633712d2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/candidate.yml.gz",
+      "bytes": 7282,
+      "sha256": "291a13e3db87d92e9c16bd92b9a6418e9075cf9ee08bac6a84408d3d3d8217e6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/receipt.json.gz",
+      "bytes": 2459,
+      "sha256": "c2a61d744f0f1a4cf1895dff9dc7809638023250c791af41cd9d4c5fa4aa523f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/candidate-documents.json.gz",
+      "bytes": 947,
+      "sha256": "fbffa61892a89aa547e1624df62dae5f56db3aedf94288c25ff0844bcaca1e9e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/freeze.json.gz",
+      "bytes": 434,
+      "sha256": "b49354cdcdcb7a4a47d78c36e9141d97334c66bdc4fdcf774a613185426e28e0"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/manifest.json.gz",
+      "bytes": 1527,
+      "sha256": "395ef2eceb24f6f4a488ba22ed2554f3182c7ac8c36a15bf5095eb61e6ddcf57"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/receipt.json.gz",
+      "bytes": 831,
+      "sha256": "e6ad38310c994af7e464409d29850e6ea455b3f17fe28423964374d36f1bb8c5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/artifact-index.json",
+      "bytes": 90094,
+      "sha256": "5516c2c36b00cea9933361a8b17988b660e7cc35424d69a1fdd1135d769e54ab"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/collection-state.json",
+      "bytes": 371,
+      "sha256": "1a9224388890233cf952b251ebbaa43a0ba35d2088eb08beac221699069a459f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/final-resource-observation.json.gz",
+      "bytes": 730,
+      "sha256": "730d40881745ec566ceb46be11bdff02a088cc17c32ebe03f040dc3f1a008083"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/fix-receipt.json.gz",
+      "bytes": 445,
+      "sha256": "7cb9443c65117ef74b66a7ad3541227a9c06bcfa6aa780b5ccce22d3f5722d3f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/fix.patch.gz",
+      "bytes": 270,
+      "sha256": "8e30825782faa5de74eb15338cb7547caeb66f71f2b404949198ac4cbfd499c5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/clippy.log.gz",
+      "bytes": 194,
+      "sha256": "6f169442664563c2e26726a67492fd67a9479d60345658c2fd7ea7751f43c1ab"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/clippy.receipt.json",
+      "bytes": 653,
+      "sha256": "7538fa7b0c60fa72396cca4bf3ca1a297a97bf9290940109abd80d908244dfc7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/doctests.log.gz",
+      "bytes": 1033,
+      "sha256": "8c65c3388e34a93284338bb819504fac3a731db27f4678717c03810f4f475630"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/doctests.receipt.json",
+      "bytes": 608,
+      "sha256": "c4ce18b0b18bfe543d482bab3d1f0733fcac5c6ded7a2d92cc1b3540816f4142"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/fmt.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/fmt.receipt.json",
+      "bytes": 561,
+      "sha256": "10b96c4d39665eefbfb63f7839e6fc574721782fc7293053f894f084f7e2fb1b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/nightly.log.gz",
+      "bytes": 194,
+      "sha256": "37b19789bfb077349171d4d3ffda47b5fd2b806453e3f576f58a4f7851857c43"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/nightly.receipt.json",
+      "bytes": 630,
+      "sha256": "7ab6398ff1c3a6d26135482160e7a932f9ad6c8ffdb2c06a54176b921583f4f8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/rustdoc.log.gz",
+      "bytes": 242,
+      "sha256": "b43ced84b357dc0beb1bc6a45aaf6b251e1a8705b6b1bf9d293d50f5d99a2425"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/rustdoc.receipt.json",
+      "bytes": 610,
+      "sha256": "9f2163f06d442eb8376224e212a520d83737131a5cfd96ff9ed5a816c143a205"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/workspace.log.gz",
+      "bytes": 37948,
+      "sha256": "fb346aa35bc7df45ccf8389cbc82dd28c08f9d48e71ca331fec479561c9c328f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/workspace.receipt.json",
+      "bytes": 617,
+      "sha256": "9616a40d2ba5d4311ab88989686663cdefb9c7f29ad8b2b098e73258f2dc593e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/binary.json.gz",
+      "bytes": 1158,
+      "sha256": "289dd4d742f8e306180e6c341ca9b7c8729fab7c3542bd6d41485d54646d19df"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/build.log.gz",
+      "bytes": 22052,
+      "sha256": "28c83e3acb6d1919dc2cb7e232aab3ee0f71f201aedcdc878af532b745b6039e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/build.receipt.json.gz",
+      "bytes": 281,
+      "sha256": "408bce73e18d536cbffcf1580c10e7b33575e6022ed0114dbf950018c0471387"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/container-identities.json",
+      "bytes": 1258,
+      "sha256": "2c7abaaa7f5755338c38dabd202f87493362260d80c2d166067aec978a50332c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final-binary-lsof.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final-binary-lsof.stdout.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final.df.gz",
+      "bytes": 166,
+      "sha256": "28d651eccf31ae075bbf271135cc949003927b2579bd92a7807d32aeda6c7744"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/initial.df.gz",
+      "bytes": 166,
+      "sha256": "f2bd66e2ce71208f1f8f61a44c3125d7b5b3a868ec6f9bc0b2511ef237c36aea"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/input-checks.json",
+      "bytes": 4028,
+      "sha256": "143415b7eec53db86a4ffced9d0c47015297f7a009f759f6987a19605f4eb956"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/list.log.gz",
+      "bytes": 574,
+      "sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/list.receipt.json.gz",
+      "bytes": 341,
+      "sha256": "df1f7410fd13986215d7c1e704b0a12915ac7384718596244dfabb88c345c314"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16-database.json.gz",
+      "bytes": 254,
+      "sha256": "5ee0c744361bec7986450274ae4c6331cb2e04e375617f176665d2645caa91a7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16.log.gz",
+      "bytes": 731,
+      "sha256": "fec81d9c17d134e47b4d6695c7d9d6f430048c6145fba5149dffef5e5a8b24ef"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16.receipt.json.gz",
+      "bytes": 358,
+      "sha256": "229363762c6e562fba28a257d76f79fc2e4cfb7bd558d967150d1ff071f7a4ce"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17-database.json.gz",
+      "bytes": 254,
+      "sha256": "51d7c28756391d0dd968cd2f265c517c984c5ba553df8a13786087e2cfa3b7c6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17.log.gz",
+      "bytes": 731,
+      "sha256": "db4f1228f1d611f70b40be9e323eb640d5f1e003a317b4746ce7f4f3b9d2b5bf"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17.receipt.json.gz",
+      "bytes": 359,
+      "sha256": "d2ef5ce281b6c504829731b5aec884b14d850f98c9b7325b90a80c212c6bca60"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/summary.json.gz",
+      "bytes": 670,
+      "sha256": "d895e1b7d32f93aae5bd1674e87361497a3319bd2201c0ab4d77a38a8f0f8a60"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/final.df.gz",
+      "bytes": 167,
+      "sha256": "88d91b87f2b9432db836a0093e4c2a36cfa19e6eb40a796f3ede7ee981551f89"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/native_saved_program.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/native_saved_program.stdout.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/nightly_reused_cache.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/nightly_reused_cache.stdout.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/stable_reused_cache.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/stable_reused_cache.stdout.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/run-gate.py.gz",
+      "bytes": 1595,
+      "sha256": "2c8b83762c5d9882362a74c9fcd8cc1cf2b69e54a8ea57656a0f69174c9873d7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/run-native.py.gz",
+      "bytes": 3028,
+      "sha256": "5ff0ee4ecfa3c4587150b1288781a7ddf179722e6d7ef5f6841b3a75514c44e3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/six-gates-summary.json.gz",
+      "bytes": 1036,
+      "sha256": "fe01527b0be83e6ac27988b14403a1c015fc0e41d03a1f0bf5bcc41d6a9239db"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/collection-state.json",
+      "bytes": 214,
+      "sha256": "bf4e63fee0d188a4f19d2d2e8c16065718adcb2f579cc5cdba3d3536ea63acfa"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/fix-receipt.json.gz",
+      "bytes": 450,
+      "sha256": "5ea0f38885495eece1f7142e84b6436f2e2c2580e4ef606d17765a24f224801b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/fix.patch.gz",
+      "bytes": 264,
+      "sha256": "7ff2750c305ec01f4cd37c159cf4176d73c67b7edf7935f65e4908852d8bbfd3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/clippy.log.gz",
+      "bytes": 196,
+      "sha256": "dce940c99f6d21b75eed527baf6c51b287a6489771d25414fb1c4d78cb37f9a7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/clippy.receipt.json.gz",
+      "bytes": 413,
+      "sha256": "97a8012e09b7fac29a4f0ec24f764825893287f720fdb8ddf678b3d80ed609cc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/doctests.log.gz",
+      "bytes": 1035,
+      "sha256": "e2ccb556476fefd26e68f14d2bc97550592f9e0849ea2f184ca9f2032ef64ea6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/doctests.receipt.json.gz",
+      "bytes": 396,
+      "sha256": "65612a16151477581a51147123210e92ceee7ab41d2c6f4340a888815c74c039"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/fmt.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/fmt.receipt.json.gz",
+      "bytes": 375,
+      "sha256": "6d80d9f3b49990cbede4b965944814b39b42fcd614d53edf90d5bddb89a5bc69"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/nightly.log.gz",
+      "bytes": 270,
+      "sha256": "09ca75c4da6033a1537d21772c6c52f807b41e1e50b615d160caf5581441cfdd"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/nightly.receipt.json.gz",
+      "bytes": 407,
+      "sha256": "97b8e39a17d3341f6925bb3c55d40fd3c94cfe32ad43c454f6c0b1d20be75605"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/rustdoc.log.gz",
+      "bytes": 343,
+      "sha256": "0c54d5979c5792616d0b58ce7b20a4a5fb4c0fa9bc41797337f372ea38f74201"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/rustdoc.receipt.json.gz",
+      "bytes": 398,
+      "sha256": "2f4ee75e32094f9f285e0ab0f24ccc500d5c5b0e9415e9605910ff4df9c5e1b7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/workspace.log.gz",
+      "bytes": 37951,
+      "sha256": "5a33995146e33b4638dba10b03d839db7aa3c51a0d283768844255c5468d40f5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/workspace.receipt.json.gz",
+      "bytes": 397,
+      "sha256": "bcb1976174348e00f50d7b0d5c3b3fbb7ab158acc769f9e5db89fccfbbc6b698"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/binary.json.gz",
+      "bytes": 1158,
+      "sha256": "c8e9c81887f4e7d06311dd924d9bfcde534bc470e365ffc677c8601d622fe7d1"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/build.log.gz",
+      "bytes": 22030,
+      "sha256": "cadbc10374a08cfd94374155aee69a7ec19432c068d9d89c59958722593ed358"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/build.receipt.json.gz",
+      "bytes": 280,
+      "sha256": "e80d8986c5d7e4f170c7ce1663748e91b1a877a1760e12c2680f2c2d9ab55c10"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/list.log.gz",
+      "bytes": 574,
+      "sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg16.log.gz",
+      "bytes": 733,
+      "sha256": "0ecfb88072b51a21c72917cf8c06292db9513d2b1835fb24df9ab23350c4370d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg16.receipt.json.gz",
+      "bytes": 340,
+      "sha256": "eaac2bea262b3be6b926bb14afd87595754c1f8048cadc58b03be04dc0c10e10"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg17.log.gz",
+      "bytes": 733,
+      "sha256": "6a81c900af9de1189e2c36dd3a48a6a4356c22233a99fb69b253cfa66bc7a2cc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg17.receipt.json.gz",
+      "bytes": 339,
+      "sha256": "69b885a0bbbfedd0958bc9cafe8affa8b71241f981a02c071428eab0bcb298cc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/summary.json.gz",
+      "bytes": 671,
+      "sha256": "1ed4669a4c6d3533312c4aeeddc8e4afd17a790f7cf483a09ca6103d8685a398"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/reconstruction.json",
+      "bytes": 4595,
+      "sha256": "5d7805274f5edfb8a5d64ea4f8d5b38266677dc2c6172865ebec4dcabb3e2f27"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/six-gates-summary.json.gz",
+      "bytes": 1039,
+      "sha256": "02cf35af9720ada457aebc0372dc46bcc0ee7febb9de1771c606923699b0e8f4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/source-manifest.json.gz",
+      "bytes": 49255,
+      "sha256": "811f9ef452f3ac27893c9ae0d48aefe2da53abad89b5c050d20a3dcc20f4d175"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy-preservation.json",
+      "bytes": 330,
+      "sha256": "010ea0f08e117ba7e87f6c97acf18f1ff62e483703a01e44d9bb9c6c7624feaa"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy.log.gz",
+      "bytes": 1113,
+      "sha256": "eff080647bd1878092cad36fb48160e09444c1d66ac68a6af100ef3a32dbea24"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy.receipt.json",
+      "bytes": 493,
+      "sha256": "857e05901daa29797d8dff4be42aa62b35d400729b2c08d315e1f78ca36ab4e2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/source-manifest.json.gz",
+      "bytes": 49254,
+      "sha256": "03797dea3ae8553579f8b424c8679c3ea7a18ea5d82ee467557f065ab29c830c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/fix.patch.gz",
+      "bytes": 1027,
+      "sha256": "19dc522bef62c87424a09b59b06c72ed4c856520cf17f12b0ffcb8f5bac288cc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/phase-equivalence.json",
+      "bytes": 1077,
+      "sha256": "29149ef67c44ea6fb19431e2f11b76c8b585b98d7306d6b38f14a9416830c7cd"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/receipt.json",
+      "bytes": 1726,
+      "sha256": "5303b4fbd88d6e9b414bf78a04343f3b584bf02b2c8a0b5cb0d3ba71ae557107"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/fix-receipt.json",
+      "bytes": 983,
+      "sha256": "aa682d87627983266f9a0e51d67ee2fb1075c7081e4e412aa11f465c4b190017"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/binary.json.gz",
+      "bytes": 1159,
+      "sha256": "3c192f0c768cb60b80fb4b779158b512182177ef2437aa28a8a0537e1b83285c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/build.log.gz",
+      "bytes": 22037,
+      "sha256": "7c65879ffff294863eec51791fa677b162eaaa3f5978aa44cb8e65623892a123"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/build.receipt.json",
+      "bytes": 421,
+      "sha256": "32e76e8708353c6f1fbc2a0518885c22bfe3ac350661b6df1a847df9cfb8d510"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/list.log.gz",
+      "bytes": 574,
+      "sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/pg16.log.gz",
+      "bytes": 831,
+      "sha256": "d94ee4a4f7f5911390b1047f0e303617dba3395dbe96977a1448d95be8b15e17"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/pg16.receipt.json",
+      "bytes": 450,
+      "sha256": "4a0d29d425f5ecc1e9752a37502eda65e280c0da8de37061b74bffec3e0f2b38"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-clippy.log.gz",
+      "bytes": 195,
+      "sha256": "82bf0908075fb3b80815dc6106502aac7211c9df3ba7550aa268bbb6581814fb"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-clippy.receipt.json",
+      "bytes": 651,
+      "sha256": "dbd5ca3614f26f7dcbf4975178f1917145aa18e20aa5866553ce1232829778fd"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-workspace.log.gz",
+      "bytes": 37981,
+      "sha256": "311f30739605dbeb0d615898d94a5e8150c8e834c4322c0e17019f22c437ee64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-workspace.receipt.json",
+      "bytes": 614,
+      "sha256": "ef0c3b917e3551a46b7ee4e29795076afac9570fe2e28d01b46303c50fe35dcb"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/source-manifest.json.gz",
+      "bytes": 49252,
+      "sha256": "92bc0cf17a8e89d566deb29c38929241ae2fefa8fd3211fbc3d6fd7bfacb52e9"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/retry-clippy.log.gz",
+      "bytes": 1392,
+      "sha256": "fc00212e437ea121613810ea218642188f399a9bfe4c56ba0e708c0b2494fde3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/retry-clippy.receipt.json",
+      "bytes": 653,
+      "sha256": "aa59ae1d0adaf6a80a91e224dc636c8e9f7b2e6cdde2781a5d077a8e214b5ecd"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/source-manifest.json.gz",
+      "bytes": 49260,
+      "sha256": "92b4f438b3c51e870a325c474a6d9fbc2884783b1c5d324597f5ea0ca42360ce"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/serial-marker-red/receipt.json.gz",
+      "bytes": 660,
+      "sha256": "329fec8b2ce2f1224118489bebe5f7f376ea9adcf9f9663b00a2ec11d2c1e64f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/serial-marker-red/test.log.gz",
+      "bytes": 257,
+      "sha256": "591181a723b2c6ed7bf5aaa5acc06646ca0ce954f964058d9f1bdd38102cc6e0"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/fix-receipt.json",
+      "bytes": 1821,
+      "sha256": "527a154da5da440d6f27af3e59f4c3715f5d8c035845470c84cf2974e5aa206f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/minimized-repro.log.gz",
+      "bytes": 460,
+      "sha256": "0cbed2f7ad44331c172df5b68489b0b1e3a452f1147e9c7af5fa73aa35e6a310"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/minimized-repro.receipt.json",
+      "bytes": 781,
+      "sha256": "6688697fd1ad4be75d4c484331e584b8b21f446438d2a16c0b010d32478a5dad"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-clippy.log.gz",
+      "bytes": 226,
+      "sha256": "e325734e21f209a475e0f2a470cc3565565f10cccf2baba1e4697c7f194eb6b3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-clippy.receipt.json",
+      "bytes": 651,
+      "sha256": "a494d515c91e83e7cad02f1f4da181f03fa7defbdcf151a6153d113d699cde6f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-workspace.log.gz",
+      "bytes": 3488,
+      "sha256": "a2001f92a301844efa92f5f6c9bdb607b373c5054673a9c09a7122ff1a5e75fa"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-workspace.receipt.json",
+      "bytes": 617,
+      "sha256": "b5e2db56bd142258be4330678fc736fdf52657ed6a97601771db034a571e086d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/source-manifest.json.gz",
+      "bytes": 49257,
+      "sha256": "cc6e1eb8694981bbdb70b4c11ddc528ed7d4e3d38547d6601e9532f283530876"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history-artifact-index.json",
+      "bytes": 15174,
+      "sha256": "4b46205d99c94728de42ac4c7f4ffe5d3e06826ff733a12bbc1421541024294f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/manifest.json",
+      "bytes": 40369,
+      "sha256": "6921ba2f1355afda2934b365801d4acdae7360b1b30e6f6838457e78a950a883"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/publication-wording-corrections.json",
+      "bytes": 724,
+      "sha256": "6e78b1168741374f430452342f7a8237c19bd33d2739eb091a58ed5902ed5c6d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reports.json",
+      "bytes": 616,
+      "sha256": "6d888af1665e353dd0be39210c34e7d4dbbfd0fdc13370aa4f6e1e146e0c8147"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/mcp-bound-state-qualification.log.gz",
+      "bytes": 733,
+      "sha256": "0ecfb88072b51a21c72917cf8c06292db9513d2b1835fb24df9ab23350c4370d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/predicate.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/predicate.stdout.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/auxiliary-checks.json.gz",
+      "bytes": 1089,
+      "sha256": "88950a8efa6b5932f94ed187b583545622ccf1b1dc177434f7a7749df1ffbfdf"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/baseline.yml.gz",
+      "bytes": 6915,
+      "sha256": "b5157afe3e5b33493012a252cc326ee793245f0b98678b3d1078c662dfb7cacc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/candidate-predicates.sh.gz",
+      "bytes": 317,
+      "sha256": "2f50c526b02fbdae947595bd4f922bd2604e67b1f81b5d2ef2c4d992d0930168"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/candidate.yml.gz",
+      "bytes": 7282,
+      "sha256": "291a13e3db87d92e9c16bd92b9a6418e9075cf9ee08bac6a84408d3d3d8217e6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/fix.patch.gz",
+      "bytes": 270,
+      "sha256": "8e30825782faa5de74eb15338cb7547caeb66f71f2b404949198ac4cbfd499c5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/manifest.json.gz",
+      "bytes": 605,
+      "sha256": "56c072335e83e785001098b2895de0bbf7045a38f054ef715ff96dd5bd8f3c89"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/original-candidate-predicates.sh.gz",
+      "bytes": 317,
+      "sha256": "2f50c526b02fbdae947595bd4f922bd2604e67b1f81b5d2ef2c4d992d0930168"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/checker.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/checker.stdout.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/mcp-bound-state-qualification.log.gz",
+      "bytes": 731,
+      "sha256": "fec81d9c17d134e47b4d6695c7d9d6f430048c6145fba5149dffef5e5a8b24ef"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/checker.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/checker.stdout.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/mcp-bound-state-qualification.log.gz",
+      "bytes": 731,
+      "sha256": "db4f1228f1d611f70b40be9e323eb640d5f1e003a317b4746ce7f4f3b9d2b5bf"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review-inputs.json.gz",
+      "bytes": 2841,
+      "sha256": "4b2d022298fb727a985a9fcbba5686233b6bc0c138aa97d8d85c0ec19313b7b8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review-receipt.json.gz",
+      "bytes": 1072,
+      "sha256": "12d8870a151ed0306c5d88d34bc5afff8733b181759dd81a9e1f7d02e228625f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review.zh-CN.md.gz",
+      "bytes": 568,
+      "sha256": "18f1d01d92c4fcd81e1ad0c6a0b6255feb837d7aede81980876b1e956296a3cc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/findings.json.gz",
+      "bytes": 1060,
+      "sha256": "f860079a11530d46c6ae7dd65785f025b9945429ed326a21f4bd598ca41c2e35"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/manifest.json.gz",
+      "bytes": 926,
+      "sha256": "43204341f661fdae0baa8fa4639b150b8c75c9e23a5de52c1702b0b898e16a1c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/mcp-bound-state-qualification.log.gz",
+      "bytes": 733,
+      "sha256": "50f0acd75538df77aea5b633b7f0f7068f5a0f599f3898f18c5a2b801e3d196a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/predicate.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/predicate.stdout.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/new-step.sh.gz",
+      "bytes": 664,
+      "sha256": "40c642a4c872f3f3161e57388759850008644d46fbbd2c6a7d3cb019184b62fc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/pipeline.stderr.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/pipeline.stdout.gz",
+      "bytes": 47,
+      "sha256": "cda9be2337014fc0d168ee7189e94636ac801414229312ad722e26c1112d0e38"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review-inputs.json.gz",
+      "bytes": 626,
+      "sha256": "ac6c7045519356fa2ab4705e4e8a76da0a717023e025af9044522144b1491350"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review-receipt.json.gz",
+      "bytes": 1151,
+      "sha256": "96c5c8fe9d11f2fb4ff686afab9f7465b141d74f3524f5e0a75be228e866b48a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review.zh-CN.md.gz",
+      "bytes": 706,
+      "sha256": "6c831818f30410c68628b02d394ad4b15a3e7bd98d74d255dd22136089fd7fb8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/synthetic-pipeline.log.gz",
+      "bytes": 47,
+      "sha256": "cda9be2337014fc0d168ee7189e94636ac801414229312ad722e26c1112d0e38"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/audit-receipt.json.gz",
+      "bytes": 2128,
+      "sha256": "ae9be67df90d8830b57b8b31e98db4d5ae9d2bf0a774e656f18fe9c0048cd182"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/audit.py.gz",
+      "bytes": 2833,
+      "sha256": "f1422840db431fee07c9097d4ccdd7ec98bdb2547eab3e67431a54aa9fc23752"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/input-identities.json.gz",
+      "bytes": 3165,
+      "sha256": "88ad27418d3026e3504e64c7f4dd71bc654e33e11b34e7250f6808a7b24b9a3a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/manifest.json.gz",
+      "bytes": 683,
+      "sha256": "6f5ada187f467082802a03eef6117493481873ab44c08390397d6f3cfffd1a84"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/offline-verifier.stderr.txt.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/offline-verifier.stdout.json.gz",
+      "bytes": 452,
+      "sha256": "9de1e7138bf25dd4f0f4ff3a415f5a9f979ccfbc038d7d0274f88185420c47d0"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/receipt.json.gz",
+      "bytes": 1632,
+      "sha256": "f0939e0b642d96c92163b3a1a46dfbdb8103f74bea0292f5822f4674dd873c4b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/review.md.gz",
+      "bytes": 2080,
+      "sha256": "b3f7206cf420061980c27483abf24d24e93366d1db15dc4105c0c1bc7ed63f05"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/manifest.json.gz",
+      "bytes": 246,
+      "sha256": "c57ab0bccf07073c0251ba922e3fc3cfa7a46056b209dccc2022a509247585c6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/receipt.json.gz",
+      "bytes": 1264,
+      "sha256": "df3f591ab00ba71180f32149ce583a40ba5847e628d1fe16c6896f0146f4d52d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/review.md.gz",
+      "bytes": 936,
+      "sha256": "31b9e15b3c191e87e3dfd3762711ff493d777d50e7f0656a825b439adc44e14c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/conservative-536-inputs.json.gz",
+      "bytes": 28308,
+      "sha256": "e6e512d9e0bb741b06b31d59797f5fdb67113d9322d0e9b75bd77c8a4e1fb8ff"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/input-identities.json.gz",
+      "bytes": 1008,
+      "sha256": "9c6b5f762b0f2af893883c47fc530d2e960b3191f734136f8f36943080ea4c05"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/manifest.json.gz",
+      "bytes": 386,
+      "sha256": "98c83b0cf57b8fa3e7265c57675a997d98131e5ef17e9c03372c8d70a3c1591b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/raw-command-checks.json.gz",
+      "bytes": 2105,
+      "sha256": "3fcfe60c12893a27b2f20b2932aea6072b941c9528290ba3a7f741091ce06abe"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/receipt.json.gz",
+      "bytes": 2676,
+      "sha256": "9623569c7ffb50cb6ac49f6fd0901450e436f0affe5725b1ab22b1dc963a5ca3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/review.md.gz",
+      "bytes": 1322,
+      "sha256": "7141dc9ad9c4863397abf158f13ed02c3888a080bd9229e793538dde2803c0a2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/manifest.json.gz",
+      "bytes": 207,
+      "sha256": "e2fce1e41ba732e7854a07e65a29edba7af6ba420d6215231b5e1d48663df788"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/receipt.json.gz",
+      "bytes": 1716,
+      "sha256": "bc4a59506617e5f0c1b4567b8a600db69d43f7e91df98c0c980cc0ae66fc4d59"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/review.md.gz",
+      "bytes": 718,
+      "sha256": "56c6006d54435e58cb44e241cc124402506154ea575d25e6f29d2c9085e83286"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/manifest.json.gz",
+      "bytes": 482,
+      "sha256": "98689bee7fe9330a347601c31b95d7a2b1bfd62e8f82f4189ecac0de4dca1f98"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/requirements-review.json.gz",
+      "bytes": 3157,
+      "sha256": "83eeb62c9758125ac88e7ca1665fe00110a9bff8799cd1c45c68cb5d8ff3431d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review-inputs.json.gz",
+      "bytes": 2105,
+      "sha256": "3907d6c3937763313cfbb3a5a5d7a0bc175a8780eda88c52003cf9f54d299b50"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review-receipt.json.gz",
+      "bytes": 1080,
+      "sha256": "1774c1f9b9fffedcc35db6d85453c3aa6c1032dd5edf9604506e208c77e9af78"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review.zh-CN.md.gz",
+      "bytes": 581,
+      "sha256": "54805e75ea37b5e6eccc35f268a193fa9636b477685284ed6bd85c1baf0aab42"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/reviewed-source.patch.gz",
+      "bytes": 26755,
+      "sha256": "0864b1689649f46ac902c9258353232c32be417dde9706594b645caa9ec0c11f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/constructor-context.json.gz",
+      "bytes": 408,
+      "sha256": "df763056eabb2d77f51c6771c9e0f2843b2ded6e82989deba389aa0861142856"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/final-source-manifest.json.gz",
+      "bytes": 49255,
+      "sha256": "811f9ef452f3ac27893c9ae0d48aefe2da53abad89b5c050d20a3dcc20f4d175"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/fixture-increment.patch.gz",
+      "bytes": 275,
+      "sha256": "22706ef724b85e87956d2764996295e0fef896fb77b8e23afdaa82d100af6c89"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/manifest.json.gz",
+      "bytes": 423,
+      "sha256": "b80ce9a2e2d556f30acf240cc373d65bf05ef7ce24a2897e1abbaf23c78e1cc9"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/review-receipt.json.gz",
+      "bytes": 1070,
+      "sha256": "a9961a15ca7db2bba0592b33532dbee22f90a16db19a488b7e2ffbc5ff922b96"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/review.zh-CN.md.gz",
+      "bytes": 573,
+      "sha256": "46f44329f3861c5d5c09d51537d0216bd4d6f1463e7be4d3a45fe6adcd8296a8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-helper-increment.patch.gz",
+      "bytes": 658,
+      "sha256": "92ec9c6b5806150bd39fb2410017d0834643598bd66ef14e1d6b1d2c31ac7598"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-increment-input-verification.json.gz",
+      "bytes": 429,
+      "sha256": "a7ae44599c881a9bf32fee20e988041d55829dfc7bc809ce7be831cd2b9f839d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-review.diff.gz",
+      "bytes": 26782,
+      "sha256": "2aa1d81b091962db65058b6be819193b095e4683adb46cc8b5d1cc21acb6899e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-source-manifest.json.gz",
+      "bytes": 49252,
+      "sha256": "92bc0cf17a8e89d566deb29c38929241ae2fefa8fd3211fbc3d6fd7bfacb52e9"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/input-verification.json.gz",
+      "bytes": 1372,
+      "sha256": "58b2996df565ef0ffae06e11f549cdbbb268879843c7dc4b8d0c629d2623cbe4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/manifest.json.gz",
+      "bytes": 683,
+      "sha256": "54a239f9ba56e30c862294785989e5b2b49f504572cd376c239f514846c881bc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/protected-input-verification.json.gz",
+      "bytes": 20536,
+      "sha256": "4218839ab4a6005442eb01bc80c8fec78c209743c5a268b1ed60af4e9fc82de6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review-receipt.json.gz",
+      "bytes": 2813,
+      "sha256": "3d530214ba0567d214a31b042eaf188692c431ccec263cd3cd7882351f69c6dc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review.diff.gz",
+      "bytes": 26601,
+      "sha256": "62b395ab9cecd1c0ea718385248948bbf561a8126e75323086ef19ab5d641498"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review.zh-CN.md.gz",
+      "bytes": 657,
+      "sha256": "98e8fd9ca9bd0169c0c3b784a874b3e23ce9da4ecd6c1fa49f30b95c2e86ff3a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/standards-sources.json.gz",
+      "bytes": 1454,
+      "sha256": "0d35636ded8090d264593638f9dc45c8e5aa2d05c00918578ad49abccaa55436"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/seal.json",
+      "bytes": 1966,
+      "sha256": "eb185524ccf360991b7bdf1631672402c17c890e73f580ccf95627da56446cc2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/adoption-files.json",
+      "bytes": 4756,
+      "sha256": "068f27cef16abb7e3becb76513cab40b39b065b34bdbf947c9d21a0ab2353ed2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/base-references.json",
+      "bytes": 895,
+      "sha256": "a04d4425f30ae10ebebc448c4888d258b016e9512764e4364fd01c83c96060c4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/candidate.patch.gz",
+      "bytes": 27006,
+      "sha256": "69f926c8d949fd09cbee4440e56594ec389efe328e4ad59241380e314a15d5dc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/compiled-inputs.json",
+      "bytes": 101558,
+      "sha256": "133820f142ec417fd9b4fb46548cf7b36f2e5b51cb395fa95ec232ff247fa17c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/final-reconstruction.json",
+      "bytes": 4691,
+      "sha256": "cc470c72b1d07ba2679323899a1c31c739357be2df7e5840fe6667d5b50abfdc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/final-source-manifest.json.gz",
+      "bytes": 49256,
+      "sha256": "f6d8f35aa903eed8907c2edc49881573e06e9193ff022206259088528d1182a1"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/historical-reconstruction.json",
+      "bytes": 20377,
+      "sha256": "87083639c9c1c547eec05dae60309e4d635e21d75d567335f042a83591caf3a2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/main-boundary.json",
+      "bytes": 1124,
+      "sha256": "9ab4bcc8a767ffb93dd335b40034404a53c5a0377c06232fa57e36bb4a05d4db"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/0748ccec2da55113c01dc8e6b3dcd5eabd921c4cfcc9892b98ca4a17874768bd.txt.gz",
+      "bytes": 6008,
+      "sha256": "7e04ecc9189ca8a98db8c0ed1e06d5f91cd15b34ec643c932f4608a5c905309e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560.txt.gz",
+      "bytes": 5561,
+      "sha256": "4865a696bc97dfb577991b3e0d7e522a05d184e4cbbe45fc6417847290695622"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8.txt.gz",
+      "bytes": 11112,
+      "sha256": "29d3d251fb36ca848eaa73413b387337d0d2abae17661bf0fae527f72446ecd8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca.txt.gz",
+      "bytes": 505,
+      "sha256": "1bd838aeb7b294f78fa4dd03202f09a62a8d403af2b1127d21ea1d59d555f59e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4c326a037a8d84e1be12889377738a5d90d833689ef4b5deedae118c57d264d9.txt.gz",
+      "bytes": 5330,
+      "sha256": "6790dcab3e7b845f6972d6eab1692f86373cfc2d01ff452cc3e469fdba9e9a98"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4fa232b251ae06ff6140bda3655a1b74a153e33acd546b11ab34b29f3dd26010.txt.gz",
+      "bytes": 3146,
+      "sha256": "7d2d641e546cc071849c788c6557bab5106f0af58e63650fa7342612666990be"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/5150f79356c5ea6ed091c1abd8d107560f912601d25214133a9af54691145615.txt.gz",
+      "bytes": 3144,
+      "sha256": "506785df4b9bd14c99a21d819e54429f2ff306039c7736f7da30af4633fc33b8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a.txt.gz",
+      "bytes": 11869,
+      "sha256": "87069c4d37c1a943e6df0a9abf84fc5a4f78c6d09bb6cfc3fbd3d42c201b4a3c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/69aacce70e0826f011cc956deaace864513a50ba7815ccb71bb4ccda912d22ed.txt.gz",
+      "bytes": 19524,
+      "sha256": "9d1a1d59aa2928c7ec604e1c6242451284ba424a0c81f5b12143e0069f5391a7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/6d22e3b162187d446c4fa243cd6c5e58505d972a2065315c9f6a9b7bc2b5bdba.txt.gz",
+      "bytes": 5514,
+      "sha256": "3e22103d7a054f8a52f8c8488bdf4a7ea951f183f6746b37aab722c0620f10c2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/7eb1479003dd7c6e60ffcab3839b2bfc9763ee6dac578f2d9d6174460a94e737.txt.gz",
+      "bytes": 6001,
+      "sha256": "b81480eb2a6c825c73a338b89e62ed9852fc020547b5e1abb38d26ea23ece023"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3.txt.gz",
+      "bytes": 12949,
+      "sha256": "7afdc4db997c2f9edfe9610ff8c8e7f69a0190491039ecbfd9d677cb3baf93ab"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/9ffb892525a45226b6df0dcd2b91a9c30a3d0d328711ab1d123a8d28cec3802f.txt.gz",
+      "bytes": 502,
+      "sha256": "6bf020947caa7770478279cd5c680d796f6ff9461c18c2a3853aa4af22185d56"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/af082e8e4ba0dce9de4cb5e0df22ccb495785a8bc94d5551b7591271965cdf67.txt.gz",
+      "bytes": 11114,
+      "sha256": "1c562c65fd228d2920b1ad964e9b7acf570a424ac9bb82b44f271e7fd52e3541"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/bf373b080025d40e619e16b6144295a363754653ab3c162e7f9433773abd30b7.txt.gz",
+      "bytes": 6004,
+      "sha256": "ad5f87db367fbdedd5531a9709f79c23285cc1de2e721c00b79324372d92f449"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827.txt.gz",
+      "bytes": 5573,
+      "sha256": "cfa8d968582289c1f7088411580577d83f5a252349f922ec3f1de396e39638c5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335.txt.gz",
+      "bytes": 3227,
+      "sha256": "2c4179a959da58ba0f24bf5d08d453205be57268b6c4a1b5d48009c010639da7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a.txt.gz",
+      "bytes": 11350,
+      "sha256": "eaa728cc884aa0ab6205268de3a215d2f253a343fbf327d7659a494071a3e785"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e1d9b4064f84a1606c0114483a4ff6a0d259fcc43c2e1d1c3e914b446678f8e5.txt.gz",
+      "bytes": 3145,
+      "sha256": "6121e203c35a0ec3c0ca3094c66b711bc20a6a779b18d323aa78f956dec6991c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e420f926b1d61b4eb462c8844378b0690b0e2bf54a0b55e59b15f17e69058fe6.txt.gz",
+      "bytes": 3146,
+      "sha256": "d9e1c4258b2621e51e284b897ef794fe9396f16836b9cd25593d511ba697a6cd"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e9e3618aeb18777035a0455da847786f7a1b72a9082c054dcc4351645c76827d.txt.gz",
+      "bytes": 5322,
+      "sha256": "aecb802d97c8445ca42dd4ce666d1d0b17a41b18857207d732a2bdae695cdf4d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b.txt.gz",
+      "bytes": 19636,
+      "sha256": "e39d772fcb1f1a31b9512fd6898ded7022b82054cf37ff895d9fff4737bfa1f5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/verify.py",
+      "bytes": 13664,
+      "sha256": "a446543641dcea5e539ced4d02ff9fafc5e46db78825ae0c6cd71627857eaa17"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.json",
+      "bytes": 8629,
+      "sha256": "b70f22cff9a10c9dc64958fd57b0ad140c78d91c8f4cb686786239681a94c1db"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.md",
+      "bytes": 9357,
+      "sha256": "2fddb7908c7438136aa707f2d9f64bd3e866b5702199d9a184c3ad0bfcb07440"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.zh-CN.md",
+      "bytes": 7806,
+      "sha256": "b131040f1c1062530ad36b530dc67fa9c6edcddf7b266483b6c7d4d15bcdcb77"
+    }
+  ],
+  "source_tree_sha256": "eeddc9f7e9c92023a0b0c1f9a7220cccc1b4c5d846ae4281d4a4aeff9b0f30f4",
+  "source_files": 928,
+  "conservative_supplied_inputs": 536,
+  "canonical_supplied_input_sha256": "31b3be83c5a1d38e8204d6d2fd9caf7989206b93d401aeac4045149e7f298807",
+  "product_execution_commands_all_exit_zero": 8,
+  "six_strict_gates_exit_zero": 6,
+  "dual_PG_serial_full_suite_exit_zero": 2,
+  "tests_per_PG_major": 14,
+  "reports": [
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.md",
+      "bytes": 9357,
+      "sha256": "2fddb7908c7438136aa707f2d9f64bd3e866b5702199d9a184c3ad0bfcb07440"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.zh-CN.md",
+      "bytes": 7806,
+      "sha256": "b131040f1c1062530ad36b530dc67fa9c6edcddf7b266483b6c7d4d15bcdcb77"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.json",
+      "bytes": 8629,
+      "sha256": "b70f22cff9a10c9dc64958fd57b0ad140c78d91c8f4cb686786239681a94c1db"
+    }
+  ],
+  "evidence_manifest_sha256": "6921ba2f1355afda2934b365801d4acdae7360b1b30e6f6838457e78a950a883",
+  "evidence_seal_sha256": "eb185524ccf360991b7bdf1631672402c17c890e73f580ccf95627da56446cc2",
+  "artifact_index_sha256": "5516c2c36b00cea9933361a8b17988b660e7cc35424d69a1fdd1135d769e54ab",
+  "offline_verifier_receipt": "verification/offline-final.receipt.json",
+  "actual_workspace_pre_adoption_receipt": "verification/workspace-before-adoption-final.receipt.json",
+  "actual_workspace_pre_adoption_result": "expected rejection at full536 input path set: actual main remains531",
+  "adoption_scope_this_package": "only the listed three qualification reports and their compact evidence",
+  "separate_source_adoption_scope": "exact12 MCP source files from source/adoption-files.json; never the whole928 source tree",
+  "separate_seven_docs_candidate": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-adoption-docs-v2/candidate",
+  "separate_seven_docs_manifest_sha256": "e024644b713da0b72e64d8aa0b198be8f016c7cdce621d475c975b79bd1cc23b",
+  "separate_seven_docs_review_receipt_sha256": "1df5e343cbb98f4e6a75983e37781eaa782308c7eaf2ff16b8073779d8674b66",
+  "pending_CI_workflow_sha256": "6568a90f4de078ef9f4bc7469e7891b72af7b00619301ee645dced64fea14fd9",
+  "actual_CI_Ubuntu_opt1_full_job_pending": true,
+  "existing_public_parent_source_and_PITR_reused": true,
+  "no_binary_cache_or_new_complete_source_archive": true,
+  "new_product_execution_by_collector": false
+}

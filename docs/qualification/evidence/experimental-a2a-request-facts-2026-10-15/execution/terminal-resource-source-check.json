@@ -1,0 +1,55 @@
+{
+  "state": "all authorized qualification stages terminal and passed",
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "file_count": 923,
+  "production_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "stage_summaries": [
+    {
+      "path": "gates-v1-loopback/summary.json",
+      "sha256": "c44e1ae2f917fe5973eb4f91ce8a69a6bbbe558e950b4399d4391c287fb65034"
+    },
+    {
+      "path": "build-v1/summary.json",
+      "sha256": "d871a6b138912cecfa74cbb7d4bbb8cb23204e42796f5c9576f99736ab22372d"
+    },
+    {
+      "path": "network-v1/summary.json",
+      "sha256": "01e15bfbbcca727319e0f34140e30731b8c0e0dedb93da13dabf626b305b5938"
+    },
+    {
+      "path": "native-v1/summary.json",
+      "sha256": "67ce9ce4f04b19ab8c998d96817109c85d650ecb909f896b9a1ea230df12d3ff"
+    }
+  ],
+  "runner_sessions_waited_to_exit_0": [
+    51307,
+    84444,
+    40570,
+    43264
+  ],
+  "active_matching_processes": [],
+  "task_caches": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+      "du_kib": 3007868,
+      "lsof_empty": true,
+      "unlocked": [
+        "debug/.cargo-lock"
+      ],
+      "retained_for_source_bound_followup": true
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base-nightly",
+      "du_kib": 427292,
+      "lsof_empty": true,
+      "unlocked": [
+        "debug/.cargo-lock"
+      ],
+      "retained_for_source_bound_followup": true
+    }
+  ],
+  "available_bytes": 330568151040,
+  "no_cache_deleted_at_finalization": true,
+  "no_database_dropped": true,
+  "checked_unix": 1792067208.1813319
+}

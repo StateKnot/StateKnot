@@ -1,0 +1,72 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "source_files": 919,
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/Cargo.toml",
+    "-p",
+    "stateknot-store-postgres",
+    "-p",
+    "stateknot-runtime",
+    "--test",
+    "postgres",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "exit_code": 0,
+  "seconds": 64.9935450553894,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+  "artifacts": [
+    {
+      "package": "stateknot-store-postgres",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+      "sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "fresh": false
+    },
+    {
+      "package": "stateknot-runtime",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+      "sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "fresh": false
+    }
+  ],
+  "workspace_only_clean": [
+    "cargo",
+    "clean",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/Cargo.toml",
+    "--target-dir",
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+    "-p",
+    "stateknot",
+    "-p",
+    "stateknot-artifact-store",
+    "-p",
+    "stateknot-core",
+    "-p",
+    "stateknot-integrations",
+    "-p",
+    "stateknot-runtime",
+    "-p",
+    "stateknot-store-postgres",
+    "-p",
+    "stateknot-testkit"
+  ],
+  "cache_inactive_before_clean": true,
+  "strict_environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings"
+  },
+  "database_tests_executed": false,
+  "qualification": "Strict Store and Runtime Native test binaries built only. No database tests or runtime qualification."
+}

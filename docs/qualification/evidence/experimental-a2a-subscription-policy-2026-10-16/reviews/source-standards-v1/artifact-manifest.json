@@ -1,0 +1,30 @@
+{
+  "scope": "independent source Standards review only;known tooling red not suppressed",
+  "files": [
+    {
+      "path": "report.zh-CN.md",
+      "bytes": 2405,
+      "sha256": "fc41e8ec0f562008834a887e89bbab46ec29a19b07df5bdaff6c9225fefbdf3f"
+    },
+    {
+      "path": "review-basis.json",
+      "bytes": 8814,
+      "sha256": "5ad477769d93f4b9864bcb3f44e2a20f214e3f8f70b5fa86ba9f25cc71a823bf"
+    },
+    {
+      "path": "review.py",
+      "bytes": 6574,
+      "sha256": "d4cacfcd823469cf8a7e80585cc59510a71d045c5b9b0f9d9b75476634e1d8b9"
+    },
+    {
+      "path": "reviewed-source.patch.gz",
+      "bytes": 13067,
+      "sha256": "7805b06d6d8b4f1d2c2ae838a4861b5c51f51c29f47b458d597f6604e5f6fede"
+    },
+    {
+      "path": "verify.py",
+      "bytes": 1115,
+      "sha256": "a66675d23fe68158ac6ee3f29547fd1aee21aa9d1a2e17780d860c9713e595a9"
+    }
+  ]
+}

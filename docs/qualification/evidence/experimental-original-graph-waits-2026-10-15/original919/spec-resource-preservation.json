@@ -1,0 +1,233 @@
+{
+  "checks": [
+    {
+      "method": "acquire_lease",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "4eae7af108d73117ebe413aecfed1c8d81b25cee0056cfbef91033769f97bcfe"
+    },
+    {
+      "method": "renew_lease",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "428010340b7c89bdd1b521fe7a72942fde529120af235cd2708140d89cc82fb3"
+    },
+    {
+      "method": "release_lease",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "9e10c97082aec24b1b2e7993bea07be57eb2e2028b0e19dcf5d1ed7451d7dca8"
+    },
+    {
+      "method": "authorize_worker",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "2999dda34544dbacaeae02ebd1c279a793da5ca5abc07e21eb6311f5ef2d20a2"
+    },
+    {
+      "file": "Cargo.toml",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "d73912078dd7ea3c34ff854cebc84088b6c1dade7a675ddfc6b3a23c3643a622"
+    },
+    {
+      "file": "Cargo.lock",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+    },
+    {
+      "file": "crates/stateknot-runtime/Cargo.toml",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "32898a71d17bc3d0de89d0929d3414f772bcdbb70d0f132161935edde38f2cfd"
+    },
+    {
+      "file": "crates/stateknot-store-postgres/Cargo.toml",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "a3d3479fdc1b19a95c14ea9102ca89035cf102dc987a4978e6dd5fe475495ca9"
+    },
+    {
+      "file": "crates/stateknot-core/Cargo.toml",
+      "bytes_identical_to_fixed_1fcc": true,
+      "sha256": "a7c5aba41fcd7dc6a6e4b3d05b83111a94381afe525dd4718de5fc1483eb4659"
+    }
+  ],
+  "migrations": [
+    {
+      "file": "0001_initial.sql",
+      "sha256": "89ade328070157ab1444d37dc66046ad4fa2e8c62b1c9019e23488e4092bf946",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0002_checkpoints.sql",
+      "sha256": "195d01d3ca535e4928589d146aa48aa67dac69090bbb714a49910425cc37ba2b",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0003_tool_invocations.sql",
+      "sha256": "40b9a26946d44f5faaf80d9997e8069f15cba17993ed69a76a04bcbd1c2a66bc",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0004_model_invocations.sql",
+      "sha256": "bd315f7395d5d3e2dcb3f3a9270810ae1a9a5d6ed54de21bd4bfc52edf931ab4",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0005_pending_node_results.sql",
+      "sha256": "0cac233d6229cb328f367980f14431a2c321da2c4469c03912302103779cda91",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0006_node_attempts.sql",
+      "sha256": "18b9ea07eacfbbd562661c2427016b800178c7225d426c0b7a151e3fdaf75528",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0007_scheduler_readiness.sql",
+      "sha256": "a31c9ba1648cdaa07adef97fb7dbe62a5035ae44aaa67048654a859f8152a5ae",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0008_transactional_outbox.sql",
+      "sha256": "ccdaace50b1232e6493a57668319a398d221fafa23eb7304648bc42b9065e8dd",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0009_durable_waits.sql",
+      "sha256": "03f246ef5cc40f62b705637e6b820da8ef87b9c4a5afe822f6b33472e3b916ec",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0010_run_quarantines.sql",
+      "sha256": "6c750e2635fdf70719d71b734fe36ef23f752f50e80037c26e51a33e62db4d21",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0011_fenced_recovery_quarantines.sql",
+      "sha256": "1109d639b89c49bae349d3537d83fff7790acdd31f7e106001eb9c0013247f3d",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0012_delayed_retry_wakeup.sql",
+      "sha256": "bd74a9de569b793cf315e63051f3ae8d5f773e9538a2adb8b55a0f5fc37bc551",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0013_graph_registry.sql",
+      "sha256": "d5b5ac27c9fa86298ed2ce797d32760bda32deef987afae0fd49e30dd8f63fa8",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0014_scheduler_fairness.sql",
+      "sha256": "80da3ed8e1ea588506ee5e24f4ad7dc00d7759ab138adba4f7887f9fb7aa81d3",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0015_agent_admissions.sql",
+      "sha256": "ee0ea2c3d2fb4d21dd63ee86834de36ffea30eb83f700beb9b2236aaf879c038",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0016_agent_submission_keys.sql",
+      "sha256": "f40ba773d5aa9fbccd1b695838db81c12e0fa482b644b82ff8fa53d597cbfad4",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0017_terminal_tool_result_bindings.sql",
+      "sha256": "a2797bc36ba2968aa32939f159387b74893ccf6d81f9b5ec24c06573bac5b015",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0018_artifact_registry.sql",
+      "sha256": "f6d9f55c89b36131463bd65a1c4c10b24ad0f8a3e9f9e4ad9ce8a61de09e7011",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0019_terminal_model_failure_bindings.sql",
+      "sha256": "a72795574d0aa5b84550a641d882d5aa2f75ed2b0eabcdf088110c17e7c801b3",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0020_child_run_ownership.sql",
+      "sha256": "c6d946373a705ca7faca7b933a1e3de49bc2303f475e704b27999286c03f790d",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0021_child_run_cancellation.sql",
+      "sha256": "c6beef2ca07bf131a0ffbf4f69cb9b6e4b9abbf3ef5dfcdcc5c6a99200c411dc",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0022_child_run_joins.sql",
+      "sha256": "29261b54c43f68c4a6433226cf48420779e62e704798c9a7ce88a360568af91b",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0023_agent_deadlines.sql",
+      "sha256": "87dcdf1128f146c9770ce0b090de33233c0de2336487be26f27f5da15fcc7652",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0024_run_failure_closes.sql",
+      "sha256": "096ba75282cbf8a7ff6bd00df0184a4d14978b2fb06337d8ee075712e6848b38",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0025_tool_authorization_receipts.sql",
+      "sha256": "1f2c22071a171d598876794f1795c9567fc0956b8677060776699d48de9e445f",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0026_skill_activation_windows.sql",
+      "sha256": "cc0cd99713fbe7732a9183316018726341fac45af3e5f7d898c58bcd5c3ac1ec",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0027_scoped_checkpoints.sql",
+      "sha256": "e15d6c2973734f212e9444a3179309e6a783025926b80ca0a97006f9cc2b88dd",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0028_graph_frame_entries.sql",
+      "sha256": "5351de9b1b48700c4ebb0c5764164a82895db0016b97d876c7438e3ec7c6642e",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0029_graph_frame_barriers.sql",
+      "sha256": "a58c4c2f27f534c3cbdedb5c29ca240b73a0a67658102f9467609917d050303a",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0030_graph_frame_caller_bindings.sql",
+      "sha256": "a6d01278d32327fc4328faa08c238fa8a0ceb62ca2a517eb88a568db11e4898a",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0031_graph_frame_returns.sql",
+      "sha256": "7c4874965560727980f81e33cafea5d2ea784612c32eb8c6cf599e19228d0e61",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0032_graph_frame_waits.sql",
+      "sha256": "1b74d033351e1eda5ac8debce76f2161e32697c80e9200ba9ecd8b2c40230e38",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0033_graph_frame_closures.sql",
+      "sha256": "3496c0a846950d3026dee6a2fb3b7db8c567a38deeee6b1072462a8743520574",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0034_root_graph_barriers.sql",
+      "sha256": "931964864cc4952297eff419babe92eb11882309558292712723b9eb71cd4168",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0035_trusted_root_graph_barriers.sql",
+      "sha256": "027c0ac24b12a31846db75c766599c4d78a5ab78895731572e400a50c3babd58",
+      "exact_ready_parent": true
+    },
+    {
+      "file": "0036_elapsed_graph_waits.sql",
+      "sha256": "2b0c29bff090abf8c946a44b3a8c5a2c25748f2ad3d39ee7ac9dc96c50ab7a30",
+      "exact_ready_parent": true
+    }
+  ],
+  "schema37_absent": true,
+  "no_database_or_compile_run_by_review": true
+}

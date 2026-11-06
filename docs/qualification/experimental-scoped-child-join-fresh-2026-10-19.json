@@ -1,0 +1,911 @@
+{
+  "schema": "stateknot-g2-adoption-evidence-input-v2",
+  "status": "awaiting_final_source_qualification",
+  "record_date": "2026-10-19",
+  "documentation_candidate_only": true,
+  "final_qualification": false,
+  "source_candidate_before_documentation_overlay": {
+    "directory": "scoped-child-join-g2-complete-source-v1",
+    "source_count": 959,
+    "source_tree_sha256": "5f5c726a420de718fbacc329c21753432df31e3907dd40dfb1a086ace40edd68",
+    "compiled_count": 560,
+    "compiled_inputs_sha256": "c0a88f666c4704a7636901dbf65a8e72cf8de9e0adfa894b4740cac2b0fbd2e1",
+    "frozen_source_manifest": {
+      "path": ".local-verification/2026-10-18/scoped-child-join-g2-complete-preparation-root-v1/frozen-source-manifest.json",
+      "bytes": 175257,
+      "sha256": "a2eccdad610a015bbb49b5ab96e4aafc65630b914eb58b867af65089917b2e09"
+    },
+    "compiled_manifest": {
+      "path": ".local-verification/2026-10-18/scoped-child-join-g2-complete-preparation-root-v1/compiled-inputs.json",
+      "bytes": 106466,
+      "sha256": "c470e142423c42023a37b181dc16850cb484bc0af7d893c5772c524cbfc29fbe"
+    },
+    "selected_source_rows_verified": 959,
+    "compiled_exact_subset_verified": 560
+  },
+  "CI_inventory_pins": {
+    "store": 272,
+    "runtime": 216,
+    "qualifies_as_actual_inventory": false,
+    "qualifies_as_full_suite": false
+  },
+  "intermediate_root_evidence_index": {
+    "path": ".local-verification/2026-10-18/scoped-child-join-g2-current-evidence-root-v1/receipt.json",
+    "bytes": 7801,
+    "sha256": "fbcdec84cf356b87fdceaaef70047d9e0d1d7c381ecacf114f8fdaeef559e7fc"
+  },
+  "intermediate_results": [
+    {
+      "kind": "store-capacity",
+      "major": 16,
+      "case": 1,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 1.0221540927886963,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 270 filtered out; finished in 0.98s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg16-store-case1-v2/test.receipt.json",
+      "sha256": "49f883ff32863a7706a9a3be3e9508670def03a35e93d6d0ea27438376772d30",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 222,
+          "sha256": "58265c63d4969f2f42c47cc357ef8f1ed9e4bf8cf63d00515274a3bcdd23cf1e",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "store-capacity",
+      "major": 16,
+      "case": 2,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 0.8827950954437256,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 270 filtered out; finished in 0.87s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg16-store-case2-v2/test.receipt.json",
+      "sha256": "2c7c1e599a3566e730d011c81a5d05bc2d879dde36124d3e7ec8328f3e8f3467",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 227,
+          "sha256": "1926b901b00b23c3e7ce68592f707eceb0d08dd9e7de6c649698715f01606150",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "store-capacity",
+      "major": 16,
+      "case": 3,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 0.790557861328125,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 270 filtered out; finished in 0.77s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg16-store-case3-v2/test.receipt.json",
+      "sha256": "1ffe39a1fa1bd06d063070728f022a26a9ce9158e1790068a77e0667945b18bb",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 222,
+          "sha256": "a0380fb82cd75e18b6155c46a2fd3c593cf113123e4a1d34cbbde6ea968552b5",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "store-capacity",
+      "major": 16,
+      "case": 4,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 1.393111228942871,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 270 filtered out; finished in 1.35s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg16-store-case4-v2/test.receipt.json",
+      "sha256": "a14438bf6d98755ce88008b3bad1afc7d52815b638f78ad659e9aa1ee8ebac15",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 220,
+          "sha256": "5a95cc57b387cbcdac6ee77e23d77e7b1a045f8a8dfd09a6bfafd46e46364ab1",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "partial",
+      "major": 16,
+      "case": null,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 50.43020987510681,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 214 filtered out; finished in 50.39s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg16-partial-v2/test.receipt.json",
+      "sha256": "1cfc1f5f856c0037eb38beb104fa8a8b5811c8c293d59ef4cda6fb01022aa1bd",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 2393,
+          "sha256": "dc7ea6644c89e0059a354199b948d533378655a87609aa62e69d0f2142d6c22d",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "admission-registration",
+      "major": 16,
+      "case": null,
+      "exit": 101,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 9.5280020236969,
+      "summary": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 214 filtered out; finished in 9.47s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg16-admission-registration-v2/test.receipt.json",
+      "sha256": "131876996eec25e60d5988026b10d2b84775bd9cbf012cd917f89b83d5d8f65c",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 472,
+          "sha256": "413b0e63425c893499527177e2597c1c0d168ea7b2fd6529e6da1234f4c2dcbe",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 16894,
+          "sha256": "01f69b11a0666c427d95db6c86c8f138e2af51850c333c14b1edf25979e7f3f8",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "consumption",
+      "major": 16,
+      "case": null,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 78.31017994880676,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 214 filtered out; finished in 78.26s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg16-consumption-v2/test.receipt.json",
+      "sha256": "09313e0f7eccb04d1e916b69cd712e126f0e6e53e8379695abcd0a42f4c265e0",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 1586,
+          "sha256": "68faadc62ed1de9b9efc604530fbf318cded040d2ece5f4057ead5e291061ed0",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "parent-real-Succeeded",
+      "major": 16,
+      "case": null,
+      "exit": 0,
+      "source": "76e7143dc3a7c639658cc0836b04e96f58d0c0f8e4efe24881996c8a612399fd",
+      "compiled": "4136bc98ae2720df77d385b4457f72b858b7038dfd67ed43e35c92d61447420c",
+      "seconds": 26.90645694732666,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 215 filtered out; finished in 26.87s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-parent-terminal-pg16-v1/test.receipt.json",
+      "sha256": "8e1038c7a22576e3ce23bdc4be7212bbd0054cc8e98f40618cbfe8e7ca4c4f9c",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 503,
+          "sha256": "ba7017473967a9548725770a5b86a8e6a0997d621165036b45fc027bf265e82a",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "store-capacity",
+      "major": 17,
+      "case": 1,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 0.8245511054992676,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 270 filtered out; finished in 0.77s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg17-store-case1-v2/test.receipt.json",
+      "sha256": "2b04b12d3da4a015e6a828b02e048af2f33600da0d6aa2f7a6627f080ec4e8bd",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 222,
+          "sha256": "4140a9573c90216e21638040bfb76b8e6e47c03166625ce9043d52520a590ee9",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "store-capacity",
+      "major": 17,
+      "case": 2,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 0.708061933517456,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 270 filtered out; finished in 0.68s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg17-store-case2-v2/test.receipt.json",
+      "sha256": "c748820297add5344da8a9b01a6833edc564d60209d3c5c5a3e51cf386913313",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 227,
+          "sha256": "ae22a5726acda421e41fec4ad1a7ac3a08290cf8a5028edaf2f1af6853ffe6e6",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "store-capacity",
+      "major": 17,
+      "case": 3,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 0.650968074798584,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 270 filtered out; finished in 0.64s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg17-store-case3-v2/test.receipt.json",
+      "sha256": "6b24dc917e4aaa495105bf291aaaa25bae3950a96613a84c4ef08d281f4543c5",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 222,
+          "sha256": "0ab3261b7d24cc5342e66c501c2fc82b1b4876b425c5ac0f394a0adac5eee9f2",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "store-capacity",
+      "major": 17,
+      "case": 4,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 1.0190668106079102,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 270 filtered out; finished in 1.00s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg17-store-case4-v2/test.receipt.json",
+      "sha256": "08d108a94b7e4aab458c059f91b4f67fc1d5466d3dedda21977fdac2d19c5d76",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 220,
+          "sha256": "2f6dd47e209fff60e6f3c593132da41e948d7682039f8ff09957b38614e15f0e",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "partial",
+      "major": 17,
+      "case": null,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 50.272796869277954,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 214 filtered out; finished in 50.25s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg17-partial-v2/test.receipt.json",
+      "sha256": "67503509a666dfaa176332df69fc6d759f11d16f24033f6112dc723f288a7b62",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 2393,
+          "sha256": "475b8f0e3b684b732765b7df3299b056123384a744b9ba5d66d20b0657c22c51",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "admission-registration",
+      "major": 17,
+      "case": null,
+      "exit": 101,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 9.337531089782715,
+      "summary": "test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 214 filtered out; finished in 9.29s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg17-admission-registration-v2/test.receipt.json",
+      "sha256": "45e85ceffacf024c9996f7cb8dc4ec1dce706dbc5b80480697c124b42116fba2",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 472,
+          "sha256": "0765a73b4c47a2454180233ba65ac3157c7799fece4ed32b5e61291e55f366c6",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 16894,
+          "sha256": "06526357d3fab246e7417cbe1c4f75181edc15c164a835e9958b61a607f65174",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "consumption",
+      "major": 17,
+      "case": null,
+      "exit": 0,
+      "source": "b1cd1f5861d2f966129681b8cc131e566f1bca070dfd018e2fe65b2228c6a37b",
+      "compiled": "34e0fd4c5f14faa2b46ab91912b2b70d19776ea8a4a729ef7ea60b8565bf69ba",
+      "seconds": 77.88208317756653,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 214 filtered out; finished in 77.85s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-fault-pg17-consumption-v2/test.receipt.json",
+      "sha256": "ec0a561f89c543193dcffcd912d9e296afc3abc10476154a535e28cc91d89cb7",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 1586,
+          "sha256": "09039e373c9c029176b15ae1d8c4ce0e1ddef3b8083982c026c6981faf66c24d",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    },
+    {
+      "kind": "parent-real-Succeeded",
+      "major": 17,
+      "case": null,
+      "exit": 0,
+      "source": "76e7143dc3a7c639658cc0836b04e96f58d0c0f8e4efe24881996c8a612399fd",
+      "compiled": "4136bc98ae2720df77d385b4457f72b858b7038dfd67ed43e35c92d61447420c",
+      "seconds": 27.11080503463745,
+      "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 215 filtered out; finished in 27.05s",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-parent-terminal-pg17-v1/test.receipt.json",
+      "sha256": "283712a689698fabca33106849fb62f03342bbc7443defa1f63d6f8d0ea61d62",
+      "raw_streams": {
+        "test.stdout": {
+          "bytes": 503,
+          "sha256": "59d5a47873faf41ae150eadd418742201f6a6c6504919b0d0b39ea65e8577ad9",
+          "redactions": 0
+        },
+        "test.stderr": {
+          "bytes": 0,
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "redactions": 0
+        }
+      }
+    }
+  ],
+  "intermediate_totals": {
+    "actual_receipts": 16,
+    "passed": 14,
+    "failed": 2,
+    "distinct_source_compiled_pairs": 2,
+    "final_candidate_qualification": false
+  },
+  "source_contract_anchors": [
+    {
+      "path": "crates/stateknot-core/src/child_run_admission.rs",
+      "bytes": 17829,
+      "sha256": "ac18e6819226662125bf0c675cc516d04f1a2b5d1982885a334c8c6df8680fbf"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/frame.rs",
+      "bytes": 42184,
+      "sha256": "94ab1105be3fa0fcc117d8394e95e64833e34fadd8fe28af82ffcb764c7ebe29"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/driver/node_batch.rs",
+      "bytes": 8534,
+      "sha256": "de823c33b4da34bc7b6ae137f8a93b90ba8de2f99ea7d6e3c81f1b257ee4a4c4"
+    },
+    {
+      "path": "crates/stateknot-runtime/src/lifecycle.rs",
+      "bytes": 64097,
+      "sha256": "d94a488e8232db968cd1fb031c0798d78499baa50d43e7f1762d18cf07cdfefa"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/scoped_child_join_admission_registration_faults.rs",
+      "bytes": 51548,
+      "sha256": "7c226a47f3b99c137be0c32f45658c1e73025d8ca9b6666fb3b1ba7e9bf4b3d0"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/scoped_child_join_parent_terminal.rs",
+      "bytes": 29310,
+      "sha256": "70b106b785ae5fc1b4e23ebc4c099a14da45d84891716a1e4cf65dd9a6d6b4ea"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/scoped_child_join_partial_spawn.rs",
+      "bytes": 63659,
+      "sha256": "ed0ca81fe40bcefecddfdb59f1a0872da31de304d2f891f159dd31f16bde3dbd"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/src/graph_frames/caller_bindings.rs",
+      "bytes": 36566,
+      "sha256": "0694f63647cb8a0dfa1b52fc33d2803005841f4d1a86238f73fa100de546d8a9"
+    },
+    {
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_child_takeover_concurrency.rs",
+      "bytes": 14604,
+      "sha256": "fe387243077025a7ce82179da5e843926f113a9e3bc2006936e8bf4ed141b691"
+    }
+  ],
+  "unchanged_G1_qualification_documents": [
+    {
+      "path": "docs/qualification/experimental-scoped-child-join-resume-2026-10-19.json",
+      "bytes": 23141,
+      "sha256": "aaea137412f0a25cf3f59fa372db4969d766830dce5dc07a13aea530a383c1e4"
+    },
+    {
+      "path": "docs/qualification/experimental-scoped-child-join-resume-2026-10-19.md",
+      "bytes": 2974,
+      "sha256": "c661374b7dd8e1d266e4c0f556f676b89b2960e97c5b055989e582680f9cba57"
+    },
+    {
+      "path": "docs/qualification/experimental-scoped-child-join-resume-2026-10-19.zh-CN.md",
+      "bytes": 7327,
+      "sha256": "c84ebeaa595c42f034faf733aab94b7167d16751aa3621220c55efdbb5d78731"
+    }
+  ],
+  "preserved_G1_identity": {
+    "head": "343b244d59a9f13987139fe98f802491a474640b",
+    "run_id": 39228803615,
+    "G2_included": false
+  },
+  "scope_limits": {
+    "parent_terminal_actuals_from_older_source": true,
+    "old_admission_budget_failures_preserved": true,
+    "admission_v5_executed_at_cutoff": "no actual result bound in this document",
+    "new_caller_terminal_overlap_executed_at_cutoff": true,
+    "OS_loss_not_proved_by_parent_terminal_case": true,
+    "reservation_is_spent": false,
+    "child_usage_preadded": false,
+    "Root_handoff_is_Succeeded": false,
+    "general_scoped_cancellation_qualified": false,
+    "R1_R6_R7_closed": false
+  },
+  "required_final_inputs": [
+    {
+      "kind": "exact_final_source_and_documentation_overlay",
+      "status": "missing",
+      "fields": [
+        "final_selected_source_manifest_size_sha256_count",
+        "final_compiled_manifest_size_sha256_count",
+        "byte_exact_noncompiled_overlay_or_rebuild_binding"
+      ]
+    },
+    {
+      "kind": "fresh_default_profile_native_builds_and_inventories",
+      "status": "partially_present_Store272_only_other_final_bindings_missing",
+      "fields": [
+        "Store_actual_inventory_complete_raw_receipts",
+        "Runtime_actual_inventory_complete_raw_receipts",
+        "binary_and_compiled_inputs_binding",
+        "default_features_stack_debug_assertions_overflow"
+      ]
+    },
+    {
+      "kind": "six_local_gates_same_final_source",
+      "status": "v1_Clippy101_preserved_final_style_gates_missing",
+      "fields": [
+        "fmt",
+        "strict_Clippy",
+        "workspace_summary_with_original_ignored",
+        "independent_doctests",
+        "strict_Rustdoc",
+        "pinned_nightly"
+      ]
+    },
+    {
+      "kind": "mandatory_PG16_and_PG17_final_cases",
+      "status": "partial_overlap_both_present_other_final_cases_missing",
+      "fields": [
+        "fresh_real_child_positive",
+        "partial_spawn_OS_process_loss",
+        "admission_registration_all_four_commit_cuts_v5_and_typed_old_budget_negative",
+        "consumption_both_commit_cuts",
+        "real_parent_Succeeded_and_original_ACK_once",
+        "four_Store_capacity_cases",
+        "deterministic_caller_terminal_overlap",
+        "required_original_negative_and_regression_cases"
+      ]
+    },
+    {
+      "kind": "actual_adoption_publication",
+      "status": "missing",
+      "fields": [
+        "exact_head_single_parent343_raw_DCO_commit",
+        "complete_parent_final_Git_tree_and_exact_delta",
+        "publication_plan_and_original_receipts_hashes"
+      ]
+    },
+    {
+      "kind": "new_actual_complete_CI",
+      "status": "missing",
+      "fields": [
+        "actual_new_run_pull_request_identity",
+        "actual_checkout_S_from_logs_ordered_base_newhead_parents",
+        "same_source_tree_compiled_rows_and_CI5payload",
+        "21_actual_success_jobs",
+        "60_required_steps_both_majors_120_states_no_skip",
+        "both_full_Native_exact_final_inventory_and_live_owner_proof",
+        "all_artifact_ZIP_digests_members_and_raw_logs_annotations",
+        "strict_offline_analyzer_exit0_all_components_true_no_errors"
+      ]
+    }
+  ],
+  "evidence_update_policy": "Record future actual inputs in a new immutable version; never rewrite this cutoff or transplant earlier source results.",
+  "self_hash_policy": "This JSON contains no digest of itself or the enclosing author manifest. The separate author manifest indexes this file; future receipts pin prior immutable versions without a cyclic digest.",
+  "local_index_not_portable_archive": true,
+  "prior_immutable_documentation_candidate": {
+    "directory": "scoped-child-join-g2-adoption-documentation-authoring-v1",
+    "manifest_sha256": "850abfa52e51c5d316976fd06d0a23d6c1c89c5f93411330b6cc425c8fa97438",
+    "status": "preserved prior cutoff; not overwritten"
+  },
+  "additional_same_candidate_evidence": {
+    "source": "5f5c726a420de718fbacc329c21753432df31e3907dd40dfb1a086ace40edd68",
+    "compiled": "c0a88f666c4704a7636901dbf65a8e72cf8de9e0adfa894b4740cac2b0fbd2e1",
+    "store_build_and_inventory": {
+      "summary": {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-complete-native-store-v1/build-summary.json",
+        "bytes": 5703,
+        "sha256": "7c8e1277f3668fd1f0d3364ed5c0846aac5fc22c02c3492c8ca556b970543b12"
+      },
+      "build_receipt": {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-complete-native-store-v1/build.receipt.json",
+        "bytes": 2426,
+        "sha256": "5b4af79ebe6723a2aa9ff87c2d94c3918d54157e3e680547599a7cf174e5def1"
+      },
+      "inventory": {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-complete-native-store-v1/inventory.stdout",
+        "bytes": 23826,
+        "sha256": "6bb4e4cd731f0bed30a0d7166a85a667790490988c1644bc80a6b57d29de9758"
+      },
+      "source": "5f5c726a420de718fbacc329c21753432df31e3907dd40dfb1a086ace40edd68",
+      "compiled": "c0a88f666c4704a7636901dbf65a8e72cf8de9e0adfa894b4740cac2b0fbd2e1",
+      "count": 272,
+      "binary_sha256": "7d48b69c924d428830f48e4d0a29d16048240626f430657183630e30e619acf4",
+      "build_exit": 0,
+      "inventory_exit": 0,
+      "full_suite_executed_by_this_evidence": false
+    },
+    "overlap_results": [
+      {
+        "kind": "caller-terminal-overlap",
+        "major": 16,
+        "actual_exit": 0,
+        "source": "5f5c726a420de718fbacc329c21753432df31e3907dd40dfb1a086ace40edd68",
+        "compiled": "c0a88f666c4704a7636901dbf65a8e72cf8de9e0adfa894b4740cac2b0fbd2e1",
+        "binary_sha256": "7d48b69c924d428830f48e4d0a29d16048240626f430657183630e30e619acf4",
+        "selector": "frame_children::takeover::concurrency::terminal_commit_overlaps_f2_caller_with_a_consistent_complete_account",
+        "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-complete-pg16-terminal-overlap-v1/test.receipt.json",
+        "receipt_sha256": "a66703c9ae8a3511c5d4169594aca18bffdb9cba530adc35a6743831f56fe786",
+        "seconds": 1.335434913635254,
+        "raw_streams": {
+          "test.stdout": {
+            "bytes": 235,
+            "sha256": "4d1edffcc831e7118b72953030ebc8ed07e347ef1300cbdca0a4d3cdc58db22b",
+            "redactions": 0
+          },
+          "test.stderr": {
+            "bytes": 2719,
+            "sha256": "ac231bbbe2c89d35406d9c642e068763451b54e158491cffaef7ea8c15d12642",
+            "redactions": 0
+          }
+        }
+      },
+      {
+        "kind": "caller-terminal-overlap",
+        "major": 17,
+        "actual_exit": 0,
+        "source": "5f5c726a420de718fbacc329c21753432df31e3907dd40dfb1a086ace40edd68",
+        "compiled": "c0a88f666c4704a7636901dbf65a8e72cf8de9e0adfa894b4740cac2b0fbd2e1",
+        "binary_sha256": "7d48b69c924d428830f48e4d0a29d16048240626f430657183630e30e619acf4",
+        "selector": "frame_children::takeover::concurrency::terminal_commit_overlaps_f2_caller_with_a_consistent_complete_account",
+        "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-complete-pg17-terminal-overlap-v1/test.receipt.json",
+        "receipt_sha256": "1c6acf34a05e99f75001e49d46178f3a7c7b21d89086a341f82c5782fb4e59c7",
+        "seconds": 4.2166688442230225,
+        "raw_streams": {
+          "test.stdout": {
+            "bytes": 235,
+            "sha256": "df671ad346a38637921787e7c275054e0374d65b22f174a49e5d2b3fd42b025c",
+            "redactions": 0
+          },
+          "test.stderr": {
+            "bytes": 2719,
+            "sha256": "60b4deebc317d00d65f26f3c628098fa10bbd1bb10116046aba4d350a9699a00",
+            "redactions": 0
+          }
+        }
+      }
+    ],
+    "strict_Clippy_failure": {
+      "source": "5f5c726a420de718fbacc329c21753432df31e3907dd40dfb1a086ace40edd68",
+      "exit": 101,
+      "diagnostics": 2,
+      "receipt": {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-complete-checks-v1/clippy.receipt.json",
+        "bytes": 1587,
+        "sha256": "33c312dddccd4feb66168c9758034b3d0d81a71a92ca0b5d3c1661914250cbbc"
+      },
+      "log": {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-complete-checks-v1/clippy.log",
+        "bytes": 2851,
+        "sha256": "1c3383851b78f4f70b465ed5ea80e0ccb2840f9a8599ddfb80160cc98cdd4843"
+      },
+      "later_style_overlay_qualified": false
+    },
+    "full_qualification": false
+  },
+  "diagnosis_2026_10_20": {
+    "record_date": "2026-10-20",
+    "status": "source_specific_final_v1_evidence_and_unqualified_repair_diagnosis",
+    "observed_source_before_this_overlay": {
+      "directory": "scoped-child-join-g2-final-source-v1",
+      "source_count": 962,
+      "compiled_count": 560,
+      "source_tree_sha256": "3379f8afd0f2768c067c369c06ad5b7e409dce27e2cf99897a6c12a65fd30135",
+      "compiled_inputs_sha256": "19b4dad60ba020a1888049215bc411bfe554282a557907c46dce14d1046c13de",
+      "not_the_source_identity_of_this_documentation_or_future_repair_overlay": true
+    },
+    "six_gates": {
+      "all_actual_exit_zero": true,
+      "gates_directory": "scoped-child-join-g2-final-gates-v2",
+      "workspace_passed": 2155,
+      "workspace_existing_ignored": 6,
+      "doctests_passed": 48,
+      "summary_receipt": ".local-verification/2026-10-18/scoped-child-join-g2-final-six-gates-summary-v1/receipt.json"
+    },
+    "complete_native_v2": {
+      "platform": "macOS harness with retained PostgreSQL16/17 containers; no Linux host qualification",
+      "all_four_suites_passed": false,
+      "results": [
+        {
+          "suite": "store",
+          "postgres_major": 16,
+          "actual_exit": 0,
+          "actual_summary": "test result: ok. 272 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 604.10s",
+          "seconds": 604.186662197113,
+          "monotonic_seconds": 604.1332488329999,
+          "clock_difference_seconds": 0.05341336411311204,
+          "binary_sha256": "a509a061a9a26e671124638083ba112a2730551ae9dcfc42f9a08b76489c95aa",
+          "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg16-v2/test.receipt.json",
+          "observations": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg16-v2/observations.json"
+        },
+        {
+          "suite": "store",
+          "postgres_major": 17,
+          "actual_exit": 0,
+          "actual_summary": "test result: ok. 272 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 599.11s",
+          "seconds": 599.1893038749695,
+          "monotonic_seconds": 599.135917958,
+          "clock_difference_seconds": 0.0533859169694324,
+          "binary_sha256": "a509a061a9a26e671124638083ba112a2730551ae9dcfc42f9a08b76489c95aa",
+          "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg17-v2/test.receipt.json",
+          "observations": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg17-v2/observations.json"
+        },
+        {
+          "suite": "runtime",
+          "postgres_major": 16,
+          "actual_exit": 101,
+          "actual_summary": "test result: FAILED. 215 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1590.33s",
+          "seconds": 1590.3539340496063,
+          "monotonic_seconds": 1590.355253625,
+          "clock_difference_seconds": -0.0013195753936088295,
+          "binary_sha256": "955d35d2a32f175f337925a82ca33296eb575c36810b67cbb75cc6f09c675beb",
+          "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg16-v2/test.receipt.json",
+          "observations": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg16-v2/observations.json"
+        },
+        {
+          "suite": "runtime",
+          "postgres_major": 17,
+          "actual_exit": 0,
+          "actual_summary": "test result: ok. 216 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1583.09s",
+          "seconds": 1583.1453931331635,
+          "monotonic_seconds": 1583.146698542,
+          "clock_difference_seconds": -0.0013054088365151983,
+          "binary_sha256": "955d35d2a32f175f337925a82ca33296eb575c36810b67cbb75cc6f09c675beb",
+          "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg17-v2/test.receipt.json",
+          "observations": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg17-v2/observations.json"
+        }
+      ],
+      "stable_clock_observed": true,
+      "root_reported_no_sleep_interference_in_this_v2_round": true,
+      "earlier_sleep_affected_native_v1_failures_retained": true
+    },
+    "partial_pg16_exact_diagnostic": {
+      "actual_exit": 0,
+      "seconds": 47.08106231689453,
+      "passed": 1,
+      "failed": 0,
+      "ignored": 0,
+      "filtered_out": 215,
+      "binary_sha256": "955d35d2a32f175f337925a82ca33296eb575c36810b67cbb75cc6f09c675beb",
+      "selector": "scoped_join_close_process_faults::fresh_join::partial_spawn::two_slot_partial_spawn_survives_real_process_loss_without_duplicate_accounts",
+      "receipt": ".local-verification/2026-10-18/scoped-child-join-g2-partial-pg16-exact-diagnosis-v1/test.receipt.json",
+      "same_saved_binary_as_full_runtime_v2": true,
+      "replaces_or_qualifies_failed_full_suite": false,
+      "performance_or_capacity_qualification": false
+    },
+    "failure_phase_limits": {
+      "actual_full_suite_failure": "PG16 Runtime215 passed/1 failed at unchanged90-second cold-process readiness wait",
+      "journal_last_observed": {
+        "sequence": 22,
+        "kind": "graph-node-attempt-succeeded",
+        "meaning": "Root node success is durable; it does not prove cold process ready publication or driver return"
+      },
+      "guardian_renewal_observed": true,
+      "precise_drive_phase_proven": false,
+      "possibilities": [
+        "end of first cold_driver.drive",
+        "later repeated cold_driver.drive at frozen source line1316 after first return; this drive need not append journal and starts its guardian"
+      ],
+      "not_a_proven_unique_DirectEvidence_or_first_drive_root_cause": true
+    },
+    "proposed_narrow_fixture_repair": {
+      "status": "candidate only, pending actual complete qualification",
+      "confirmed_work": "the same usage_at call repeatedly performs complete owning loads for child-event keys and repeated attempt/join identities",
+      "child": "load each complete ChildRunRecord once per key inside this call; rescan every original key for every spawn/settlement event and preserve uniqueness and all predicates",
+      "attempt": "load each complete physical AttemptId once within fixed tenant/run call",
+      "join": "load each complete activation Join once, retaining parent-activation consistency and registration/head predicates",
+      "new_call_reloads": [
+        "parent admission",
+        "complete child budget account",
+        "complete authenticated journal page and exact requested head",
+        "all per-key/attempt/activation readers needed by that call"
+      ],
+      "cross_call_cache": false,
+      "store_driver_live_quarantine_write_guards_changed": false,
+      "readiness_timeout_seconds_unchanged": 90,
+      "business_budgets_and_fences_unchanged": true,
+      "unique_timeout_root_cause_proven": false,
+      "performance_improvement_measured": false
+    },
+    "qualification_after_overlay": {
+      "new_source_and_binary_identity": "Root must independently compute after composition; deliberately not embedded here",
+      "new_six_gates_pending": true,
+      "new_complete_native_pg16_pg17_pending": true,
+      "new_ci_pending": true,
+      "publication_pending": true,
+      "R1_R6_R7_closed": false,
+      "RFC_accepted": false,
+      "G1_qualification_transferred": false
+    },
+    "retained_evidence": [
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-six-gates-summary-v1/receipt.json",
+        "bytes": 2834,
+        "sha256": "f747b62a2a21db218422417e7819679823e07904ca709f1b3e62c5defaf42f19"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-partial-pg16-exact-diagnosis-v1/test.receipt.json",
+        "bytes": 3059,
+        "sha256": "a6502985b1cff58932092e08ebae510f0df089fcd2a8e7ace64f840f5c503b7d"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-partial-pg16-exact-diagnosis-v1/observations.json",
+        "bytes": 565,
+        "sha256": "a60bb63cd046942af16b7498b9f9ed6fd4b36f7f0103f461e8cce50238da6aa0"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-partial-pg16-exact-diagnosis-v1/test.stdout",
+        "bytes": 2393,
+        "sha256": "d503190dfe1cb1d387bc3b0d2c0886cde3d94240cb78725854a4a3828c97e81f"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-partial-pg16-journal-diagnosis-v1/receipt.json",
+        "bytes": 736,
+        "sha256": "26224e748890596798bdce46338545859d20c2711aaba0fe04ce8655c58c1f24"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-partial-pg16-journal-diagnosis-v1/journal.stdout",
+        "bytes": 3134,
+        "sha256": "1bab2f5f7db9bb28114abaa1397db524136431ad6e4dc4831f1dca893314170a"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg16-v2/test.receipt.json",
+        "bytes": 2957,
+        "sha256": "4e4e912a370cbd96f7550b6fe02def3d2086d7a02ad04ffe0646c696bef675e0"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg16-v2/observations.json",
+        "bytes": 439,
+        "sha256": "d87a6c26c9f3560ef8c21926beb787dd209a337efff3f6f3c9213d85f4921918"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg16-v2/test.stdout",
+        "bytes": 25552,
+        "sha256": "d090dd8e9375f92a75d799d945ec3726cd5bca2e6d3c2fe9e6e1875f776d4315"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg17-v2/test.receipt.json",
+        "bytes": 2953,
+        "sha256": "a0f09606082e0d2672eee6337d3212b11a5b45b80db63808e63c8d164a76514e"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg17-v2/observations.json",
+        "bytes": 439,
+        "sha256": "4356664b667c8fd96d4b0d11cdd64ec8645cff7462ba41809a2591645dffe68c"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-store-pg17-v2/test.stdout",
+        "bytes": 25552,
+        "sha256": "f9c2cfad457f4bb94f6a7b6dc5a726a92fdf45883d75c6f01d884861b0de5b80"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg16-v2/test.receipt.json",
+        "bytes": 2968,
+        "sha256": "35b5ea4d4637f2754c4c19bb5ac38f77a2f04678f9c7e04e0b8d2836a0868353"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg16-v2/observations.json",
+        "bytes": 383,
+        "sha256": "df99092ca75e37f21a50961f068438b15eaeff6f0e475acf7b795ea156f1bcce"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg16-v2/test.stdout",
+        "bytes": 26500,
+        "sha256": "fd09fcc286baee29ad6ddb51cc584bd0efe62ce36b30a6fa5d153f0467d3457b"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg17-v2/test.receipt.json",
+        "bytes": 2967,
+        "sha256": "8f4afca490899d877aff7871a8981bbfc73b70ba014cb0ab85f3cd03191f6d91"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg17-v2/observations.json",
+        "bytes": 441,
+        "sha256": "eec82e1c2c7d940262d0f632867d50935e0329ee3076f4c875e6cc154498954d"
+      },
+      {
+        "path": ".local-verification/2026-10-18/scoped-child-join-g2-final-full-runtime-pg17-v2/test.stdout",
+        "bytes": 23823,
+        "sha256": "07d346d3ebbab245f29a42c78d774ea0cf2ecab27dd1270e75531c6bb58b9264"
+      }
+    ]
+  }
+}

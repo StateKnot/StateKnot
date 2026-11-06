@@ -1,0 +1,8 @@
+{
+  "state": "lexical audit only, not compiler result",
+  "false_positive_roots": [
+    "Bearer",
+    "Default"
+  ],
+  "correction": "Strip strings before line comments because http:// is inside strings; Default is in Rust prelude."
+}

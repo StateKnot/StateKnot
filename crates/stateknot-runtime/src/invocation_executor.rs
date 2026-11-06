@@ -2801,76 +2801,80 @@ impl DurableInvocationExecutor {
         }
     }
 
-    async fn advance_model_with_retry(
-        &self,
+    fn advance_model_with_retry<'a>(
+        &'a self,
         append: JournalAppend,
-        expected: &ModelInvocation,
+        expected: &'a ModelInvocation,
         transition: ModelInvocationTransition,
         child_budget: Option<Digest>,
-    ) -> Result<ModelInvocationCommitOutcome, StoreError> {
-        let mut attempt = 1_u8;
-        loop {
-            match self
-                .store
-                .advance_model_invocation_with_child_budget(
-                    append.clone(),
-                    &expected.head(),
-                    transition.clone(),
-                    child_budget,
-                )
-                .await
-            {
-                Ok(outcome) => return Ok(outcome),
-                Err(error)
-                    if attempt < self.options.maximum_mutation_attempts()
-                        && error.is_retryable() =>
+    ) -> BoxFuture<'a, Result<ModelInvocationCommitOutcome, StoreError>> {
+        Box::pin(async move {
+            let mut attempt = 1_u8;
+            loop {
+                match self
+                    .store
+                    .advance_model_invocation_with_child_budget(
+                        append.clone(),
+                        &expected.head(),
+                        transition.clone(),
+                        child_budget,
+                    )
+                    .await
                 {
-                    tokio::time::sleep(exponential_backoff(
-                        self.options.mutation_retry_initial_delay(),
-                        attempt,
-                    ))
-                    .await;
-                    attempt = attempt.saturating_add(1);
+                    Ok(outcome) => return Ok(outcome),
+                    Err(error)
+                        if attempt < self.options.maximum_mutation_attempts()
+                            && error.is_retryable() =>
+                    {
+                        tokio::time::sleep(exponential_backoff(
+                            self.options.mutation_retry_initial_delay(),
+                            attempt,
+                        ))
+                        .await;
+                        attempt = attempt.saturating_add(1);
+                    }
+                    Err(error) => return Err(error),
                 }
-                Err(error) => return Err(error),
             }
-        }
+        })
     }
 
-    async fn advance_tool_with_retry(
-        &self,
+    fn advance_tool_with_retry<'a>(
+        &'a self,
         append: JournalAppend,
-        expected: &ToolInvocation,
+        expected: &'a ToolInvocation,
         transition: ToolInvocationTransition,
         child_budget: Option<Digest>,
-    ) -> Result<ToolInvocationCommitOutcome, StoreError> {
-        let mut attempt = 1_u8;
-        loop {
-            match self
-                .store
-                .advance_tool_invocation_with_child_budget(
-                    append.clone(),
-                    &expected.head(),
-                    transition.clone(),
-                    child_budget,
-                )
-                .await
-            {
-                Ok(outcome) => return Ok(outcome),
-                Err(error)
-                    if attempt < self.options.maximum_mutation_attempts()
-                        && error.is_retryable() =>
+    ) -> BoxFuture<'a, Result<ToolInvocationCommitOutcome, StoreError>> {
+        Box::pin(async move {
+            let mut attempt = 1_u8;
+            loop {
+                match self
+                    .store
+                    .advance_tool_invocation_with_child_budget(
+                        append.clone(),
+                        &expected.head(),
+                        transition.clone(),
+                        child_budget,
+                    )
+                    .await
                 {
-                    tokio::time::sleep(exponential_backoff(
-                        self.options.mutation_retry_initial_delay(),
-                        attempt,
-                    ))
-                    .await;
-                    attempt = attempt.saturating_add(1);
+                    Ok(outcome) => return Ok(outcome),
+                    Err(error)
+                        if attempt < self.options.maximum_mutation_attempts()
+                            && error.is_retryable() =>
+                    {
+                        tokio::time::sleep(exponential_backoff(
+                            self.options.mutation_retry_initial_delay(),
+                            attempt,
+                        ))
+                        .await;
+                        attempt = attempt.saturating_add(1);
+                    }
+                    Err(error) => return Err(error),
                 }
-                Err(error) => return Err(error),
             }
-        }
+        })
     }
 
     fn event_payload(

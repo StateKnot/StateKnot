@@ -1,0 +1,163 @@
+{
+  "schema": "stateknot-experimental-scoped-wait-process-faults-v1",
+  "base_commit": "ff7fea7db88a611e2f0db29ceedf6b0b4b48f5fa",
+  "selected_source_count": 933,
+  "source_tree_sha256": "b286803afacf84278ffa579e8f898610e9474378bd982897e90f1c3c0f0c718c",
+  "supplied_compilation_count": 542,
+  "supplied_compilation_sha256": "43877dc8d16584c5a957356a1d0310ac4faea1525b743c05c4a159178780c305",
+  "adopt_only_test_paths": [
+    "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+    "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+    "crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs"
+  ],
+  "adopted_test_payloads": [
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+      "bytes": 14414,
+      "sha256": "eec8eb79475501045f1542e45cb80f9fe8fae8a592aa85f3cad17ee6859ad19e"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+      "bytes": 137986,
+      "sha256": "f8b6f5f043beed350e63d9ad56e54a8f14a43e7bfad077e143f99736708eff87"
+    },
+    {
+      "path": "crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs",
+      "bytes": 27846,
+      "sha256": "e41ee78898c7fbe7fbc75e3e4f82cbd5b45bceff9b69b6cdf70eb12baf3bff4e"
+    }
+  ],
+  "production_Rust_SQL_API_migrations_or_business_budgets_changed": false,
+  "evidence_root": "docs/qualification/evidence/experimental-scoped-wait-process-faults-2026-10-16",
+  "manifest_sha256": "a503bcbbdd88b94b9ba71fc3b67d6626b6b6734b1a68fa6f4bca71a750f727c5",
+  "original_artifact_index": {
+    "path": "artifact-index.json",
+    "version": 1,
+    "entries": 181,
+    "sha256": "db328636614104c5f408e5c5e7163287e75ffe70fd811d9190116ef7ab702f7c",
+    "modified": false
+  },
+  "artifact_index": {
+    "path": "artifact-index-v2.json",
+    "version": 2,
+    "entries": 184,
+    "sha256": "3834a4ca9a6f457bd9df83e298b72054623bd3b9743ebd5d815ccbfd6bf897e7"
+  },
+  "six_local_gates": {
+    "actual_driver_exit_code": 0,
+    "all_six_gates_actual_zero": true,
+    "profile": {
+      "opt_level": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "debug": 0,
+      "incremental": 0
+    },
+    "workspace_summaries": 100,
+    "workspace_passed": 2123,
+    "workspace_original_ignored": 6,
+    "workspace_failed": 0,
+    "doctest_summaries": 10,
+    "doctest_passed": 48,
+    "nightly": "nightly-2026-10-07"
+  },
+  "Native": {
+    "profile": {
+      "Rust": "1.88.0",
+      "test_opt_level": 1,
+      "default_features": true,
+      "selected_artifact_features": [],
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "debug": 0,
+      "incremental": 0,
+      "stack": "default"
+    },
+    "harness_os": "macos",
+    "harness_arch": "aarch64",
+    "PostgreSQL_container_os": "linux",
+    "versions": [
+      "16.15",
+      "17.11"
+    ],
+    "saved_binary_sha256": "ade87f1b40b8a1b28da07d1908e73114e40d77f0595a9d6e919ae6dc8306a1f8",
+    "inventory": 193,
+    "actual_exact_controllers": 2,
+    "selected_per_major": 1,
+    "filtered_per_major": 192,
+    "cuts_per_controller": 2,
+    "actual_process_and_wrapper_exit_codes": [
+      0,
+      0
+    ],
+    "seconds_by_major": {
+      "16": 17.161200761795044,
+      "17": 17.56702995300293
+    },
+    "all19_marker_fields_and_types_verified": true,
+    "original_stdout_stderr_zero_redactions": true,
+    "fsync_synchronous_commit_full_page_writes_before_after": [
+      "on",
+      "on",
+      "on"
+    ],
+    "binary_archived": false,
+    "offline_binary_scope": "Verifies consistency of originally checked SHA/bytes and independent execution receipt; does not recompute omitted executable bytes."
+  },
+  "scenario": {
+    "snapshot_fixture_tables": 22,
+    "immutable_Wait_bundle_tables": 5,
+    "immutable_Wait_bundle_rows": 6,
+    "authorized_Interrupt_conditions": 2,
+    "Before": {
+      "trusted_forced_supersede_while_Active": true,
+      "fresh_original_old_fence_Wait_write_rejected": true,
+      "cold_Driver_forms_new_request_not_original_ACK": true
+    },
+    "After": {
+      "Waiting_not_superseded": true,
+      "original_scenario_ACK_replayed_idempotently_in_cold_worker_before_Driver_and_after_Return": true,
+      "ACK_replay_adds_no_facts": true
+    },
+    "wrong_principal_and_scope_constructor_negatives_not_Store_or_IdP_qualification": true,
+    "Wait_application_redispatches": 0,
+    "scoped_successor_calls": 1,
+    "parent_application_calls": 1,
+    "effect_scope": "explicit zero-IO fixture only"
+  },
+  "history": {
+    "first_formatted_v1_fmt_exit_code": 0,
+    "first_formatted_v1_Clippy_exit_code": 101,
+    "original_Clippy_error": "resolve_all has too many lines (103/100)",
+    "v2_change": "Extract complete constructor authority/22-table no-write assertions into an awaited private helper before actual resolution, without new allow or altered assertion order.",
+    "original_failed_bytes_preserved": true
+  },
+  "independent_reviews": {
+    "raw_source_receipt_sha256": "b965565f471f3dbe98e087106a25c74cd6631fd5824c494b1c3313619beb0ce9",
+    "source_increment_receipt_sha256": "70a3753108ab7cacb1f0a179df1bb2e196a07fd059aa6c6ef749d8f272ced8e7",
+    "execution_receipt_sha256": "e6e3292b04be7cf6a9c4b9bb3b3077de3768d988ca5ae4b710fb2f303b2c9803",
+    "source_and_execution_findings": 0
+  },
+  "verification": {
+    "stdlib_only": true,
+    "archived_scripts_executed": false,
+    "default_scope": "Validate every stored/raw indexed byte, frozen source933 and compilation542 manifest digests, the three source payloads, original gates/build/Native receipts and outputs.",
+    "workspace_root_option": "Additionally compare all542 supplied compilation inputs; extra files are allowed. Does not reconstruct all933 selected files or prove a compiler read closure.",
+    "verifier_sha256": "68a01934380cdfe0d74f09a1e4dde94f9e90a08903f73d452bbdf24646edcbbb",
+    "author_offline_verifier_actual_exit_code": 0,
+    "delivery_independent_review_pending": true,
+    "author_check_target": "frozen graph-frame-wait-process-fault-source-v2 supplied542, not the unadopted main checkout",
+    "author_check_receipt_sha256": "ac8a7b19f0ba2cf687f555b8e5da03e56a15e8496502d81eacbcfb29241ab366"
+  },
+  "unqualified": [
+    "full Native Store264/Runtime193 suites on this source",
+    "Linux Runtime or whole final-head CI",
+    "current other CI head with541 supplied inputs cannot qualify this542-input Wait source",
+    "complete frame fault matrix/G4/R1/R2-R7",
+    "real elapsed Timer, WaitReleased or Root ReadyReleased process profile",
+    "natural lease expiry",
+    "scoped child Join/unknown external effects",
+    "stdio containment or named production deployment",
+    "capacity/independent security/release/production-supported RFC contract"
+  ]
+}

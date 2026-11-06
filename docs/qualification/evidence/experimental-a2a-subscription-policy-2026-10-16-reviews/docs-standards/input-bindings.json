@@ -1,0 +1,145 @@
+{
+  "candidate_manifest_sha256": "d269dd554d6074f86fdfa75fc1250f4b39fcb7decc59525689079f8d9e610d6a",
+  "candidate_freeze_sha256": "0c131042c744889d41d18e6a5a8a95fa9aa04a933e00c79baa3a050f0b9fac34",
+  "baseline_commit": "4e726b4c5a95d52a171690a2f4df315692c38d3c",
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "candidate_bytes": 81725,
+      "candidate_sha256": "e11140fd7676878418da2001e8e04742410d879b33c5bad49074c0084f0b22c2",
+      "actual_Git4e_baseline_sha256": "a0f5ba8434c98891234507c1bad1238a3513443f406bb8c49fd5e53d3d4e31e0",
+      "insertion_only": true
+    },
+    {
+      "path": "docs/a2a-server.md",
+      "candidate_bytes": 11466,
+      "candidate_sha256": "6c2741bd99ffcdc803e9ffd2df4507e94035883a32d44d9d1c54642204ed321b",
+      "actual_Git4e_baseline_sha256": "f9ef29454a29e050fbc309d81f813bc8ebbb9b3b78eff180a56d55609b29a941",
+      "insertion_only": true
+    },
+    {
+      "path": "docs/a2a-server.zh-CN.md",
+      "candidate_bytes": 10791,
+      "candidate_sha256": "04c931e245f903aba919413c4f7c6ef3941ca73d4592c3c7a1feaf7255dc377f",
+      "actual_Git4e_baseline_sha256": "a77368557082065525e3316e8cb76e57f772b3d6c60af56a472310d07b762930",
+      "insertion_only": true
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "candidate_bytes": 27743,
+      "candidate_sha256": "7d519a2896eabfa78e3219a7d1ea59c4ffd2564f96fceeb051f0ca60efb3596c",
+      "actual_Git4e_baseline_sha256": "3c5e5f14c7d14ad12bef2628c6d726191b0f7a3cec2d5f3bf340cd33f49296e4",
+      "insertion_only": true
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "candidate_bytes": 22989,
+      "candidate_sha256": "e499f47d74c4264cb35498a3bc553bcf824273274ea3627822a1a678883bdbb3",
+      "actual_Git4e_baseline_sha256": "b739aaebca66c6d18206291a6be2b2498a527c496f6c2811e0bb5863f6534e3a",
+      "insertion_only": true
+    }
+  ],
+  "codeblocks": [
+    {
+      "path": "CHANGELOG.md",
+      "old_codeblocks": 0,
+      "new_codeblocks": 0,
+      "old_blocks_exact": true
+    },
+    {
+      "path": "docs/a2a-server.md",
+      "old_codeblocks": 2,
+      "new_codeblocks": 3,
+      "old_blocks_exact": true
+    },
+    {
+      "path": "docs/a2a-server.zh-CN.md",
+      "old_codeblocks": 2,
+      "new_codeblocks": 3,
+      "old_blocks_exact": true
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "old_codeblocks": 0,
+      "new_codeblocks": 0,
+      "old_blocks_exact": true
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "old_codeblocks": 0,
+      "new_codeblocks": 0,
+      "old_blocks_exact": true
+    }
+  ],
+  "new_link_occurrences": [
+    {
+      "source": "CHANGELOG.md",
+      "target": "docs/a2a-server.md#experimental-current-policy-checks-for-task-subscriptions",
+      "resolved": "docs/a2a-server.md",
+      "observed_at": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-adoption-docs-v1/candidate/docs/a2a-server.md",
+      "present_in_main_claimed": false
+    },
+    {
+      "source": "docs/a2a-server.md",
+      "target": "qualification/experimental-a2a-subscription-policy-2026-10-16.md",
+      "resolved": "docs/qualification/experimental-a2a-subscription-policy-2026-10-16.md",
+      "observed_at": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/candidate/docs/qualification/experimental-a2a-subscription-policy-2026-10-16.md",
+      "present_in_main_claimed": false
+    },
+    {
+      "source": "docs/a2a-server.zh-CN.md",
+      "target": "qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md",
+      "resolved": "docs/qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md",
+      "observed_at": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/candidate/docs/qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md",
+      "present_in_main_claimed": false
+    },
+    {
+      "source": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../a2a-server.md#experimental-current-policy-checks-for-task-subscriptions",
+      "resolved": "docs/a2a-server.md",
+      "observed_at": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-adoption-docs-v1/candidate/docs/a2a-server.md",
+      "present_in_main_claimed": false
+    },
+    {
+      "source": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../qualification/experimental-a2a-subscription-policy-2026-10-16.md",
+      "resolved": "docs/qualification/experimental-a2a-subscription-policy-2026-10-16.md",
+      "observed_at": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/candidate/docs/qualification/experimental-a2a-subscription-policy-2026-10-16.md",
+      "present_in_main_claimed": false
+    },
+    {
+      "source": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../a2a-server.zh-CN.md#\u5b9e\u9a8c\u6027\u8ba2\u9605\u5f53\u524d\u7b56\u7565\u590d\u6838",
+      "resolved": "docs/a2a-server.zh-CN.md",
+      "observed_at": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-adoption-docs-v1/candidate/docs/a2a-server.zh-CN.md",
+      "present_in_main_claimed": false
+    },
+    {
+      "source": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md",
+      "resolved": "docs/qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md",
+      "observed_at": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/candidate/docs/qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md",
+      "present_in_main_claimed": false
+    }
+  ],
+  "raw_counts": {
+    "workspace": [
+      100,
+      2108,
+      0,
+      6,
+      0,
+      0
+    ],
+    "doctests": [
+      10,
+      48,
+      0,
+      0,
+      0,
+      0
+    ]
+  },
+  "actual_six_summary_sha256": "cc7606f390ddd767c4a24393410d337de13018398ce66c833bd758051a3904ca",
+  "public_method_source_sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5"
+}

@@ -1,0 +1,29 @@
+{
+  "status": "bounded component execution record; independent publication review pending",
+  "source_tree_sha256": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+  "conservative_inputs": 536,
+  "canonical_sorted_path_sha256": "cfd0f2f8b48e062567fb591be2e5c427781cb7db616ee20b942cc2174a775b2d",
+  "original_manifest_order_sha256": "ded1a866797889ed38df63f59f671c8a2c34a5b7373a688932cc714eae582794",
+  "manifest_sha256": "b026df3fcfbfcc90bd938b567dbc2de488cf41c202d8c0666a53fdf18148b171",
+  "evidence_files_excluding_manifest_and_seal": 444,
+  "reports": [
+    {
+      "path": "docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.json",
+      "bytes": 9226,
+      "sha256": "1935ea42f5f9b8684c6ec454d76582dc67cf6cf6e03333d9fb7a5dacb54e46e9"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.md",
+      "bytes": 8668,
+      "sha256": "b87fc0917fd083cb6eff0c754c2de868ed1af213265574ac80361aabd5037858"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-lossless-bound-state-2026-10-16.zh-CN.md",
+      "bytes": 7160,
+      "sha256": "3f200e6208f2a4b1ab57ec84fa947c29c9cddfab129feb077931c0f21b92324f"
+    }
+  ],
+  "old_eedd_adoptable": false,
+  "new_product_execution_by_collector": false,
+  "actual_main_future_sixgates_CI_RFC_R1_qualified": false
+}

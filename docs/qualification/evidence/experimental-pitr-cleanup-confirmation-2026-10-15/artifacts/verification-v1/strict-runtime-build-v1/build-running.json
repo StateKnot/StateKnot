@@ -1,0 +1,18 @@
+{
+  "pid": 58996,
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-pitr-cleanup-source/Cargo.toml",
+    "-p",
+    "stateknot-runtime",
+    "--test",
+    "postgres",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "started_unix": 1792067287.1143959
+}

@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "docker",
+    "exec",
+    "stateknot-r1-oct15-pg17",
+    "psql",
+    "-X",
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-U",
+    "postgres",
+    "-d",
+    "postgres",
+    "-At",
+    "-c",
+    "SELECT json_build_object('version',version(),'server_version_num',current_setting('server_version_num'),'fsync',current_setting('fsync'),'synchronous_commit',current_setting('synchronous_commit'),'full_page_writes',current_setting('full_page_writes'),'shared_buffers',current_setting('shared_buffers'),'max_connections',current_setting('max_connections'));"
+  ],
+  "start_unix": 1792139443.793697,
+  "seconds": 0.07105183601379395,
+  "exit_code": 0,
+  "stdout_sha256": "0cf482a5fe1b5e7415e4e2ce1e4d7ddf01495103d5548f4c3d923e5c79fe3a2b",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

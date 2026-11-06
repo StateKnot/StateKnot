@@ -591,59 +591,27 @@ impl AgentServiceV1 {
         Box::pin(self.submit_inner(caller, key, agent, request))
     }
 
-    async fn submit_inner(
-        &self,
+    fn submit_inner<'a>(
+        &'a self,
         caller: AgentServiceCaller,
-        key: &AgentSubmissionKey,
-        agent: &CapabilityIdentity,
+        key: &'a AgentSubmissionKey,
+        agent: &'a CapabilityIdentity,
         request: AgentRequest,
-    ) -> Result<AgentRunAdmissionOutcome, AgentServiceError> {
-        let grant = self
-            .authorizer
-            .authorize_submission(AgentServiceSubmissionAuthorization {
-                caller: caller.clone(),
-                agent: agent.clone(),
-                request: request.clone(),
-            })
-            .await?;
-        if grant.authority().principal() != caller.principal() {
-            return Err(AgentServiceError::AuthorizationPrincipalMismatch);
-        }
-        let binding = self.deployments.resolve(agent)?;
-        if let Some(outcome) = self
-            .recover_submission(
-                &caller,
-                key,
-                &binding.descriptor,
-                &request,
-                &binding.graph,
-                &grant,
-            )
-            .await?
-        {
-            return Ok(outcome);
-        }
-        let initial_state = binding.deployment.initial_state()?;
-        if initial_state.schema() != binding.graph.state_schema() {
-            return Err(AgentServiceError::Deployment(
-                AgentServiceDeploymentError::InvalidInitialState,
-            ));
-        }
-        let durable = DurableAgentAdmissionRequest::new(
-            caller.tenant_id().clone(),
-            AgentRunIds::generate(),
-            binding.descriptor.clone(),
-            request.clone(),
-            grant.budget_layers.clone(),
-            binding.graph.clone(),
-            grant.authority.clone(),
-            initial_state,
-        )?;
-        match self.runs.submit(key, durable).await {
-            Ok(outcome) => Ok(outcome),
-            Err(DurableAgentRunsError::Admission(DurableAgentAdmissionError::Store(
-                StoreError::AgentSubmissionConflict,
-            ))) => self
+    ) -> BoxFuture<'a, Result<AgentRunAdmissionOutcome, AgentServiceError>> {
+        Box::pin(async move {
+            let grant = self
+                .authorizer
+                .authorize_submission(AgentServiceSubmissionAuthorization {
+                    caller: caller.clone(),
+                    agent: agent.clone(),
+                    request: request.clone(),
+                })
+                .await?;
+            if grant.authority().principal() != caller.principal() {
+                return Err(AgentServiceError::AuthorizationPrincipalMismatch);
+            }
+            let binding = self.deployments.resolve(agent)?;
+            if let Some(outcome) = self
                 .recover_submission(
                     &caller,
                     key,
@@ -653,9 +621,43 @@ impl AgentServiceV1 {
                     &grant,
                 )
                 .await?
-                .ok_or(AgentServiceError::SubmissionConflict),
-            Err(error) => Err(error.into()),
-        }
+            {
+                return Ok(outcome);
+            }
+            let initial_state = binding.deployment.initial_state()?;
+            if initial_state.schema() != binding.graph.state_schema() {
+                return Err(AgentServiceError::Deployment(
+                    AgentServiceDeploymentError::InvalidInitialState,
+                ));
+            }
+            let durable = DurableAgentAdmissionRequest::new(
+                caller.tenant_id().clone(),
+                AgentRunIds::generate(),
+                binding.descriptor.clone(),
+                request.clone(),
+                grant.budget_layers.clone(),
+                binding.graph.clone(),
+                grant.authority.clone(),
+                initial_state,
+            )?;
+            match self.runs.submit(key, durable).await {
+                Ok(outcome) => Ok(outcome),
+                Err(DurableAgentRunsError::Admission(DurableAgentAdmissionError::Store(
+                    StoreError::AgentSubmissionConflict,
+                ))) => self
+                    .recover_submission(
+                        &caller,
+                        key,
+                        &binding.descriptor,
+                        &request,
+                        &binding.graph,
+                        &grant,
+                    )
+                    .await?
+                    .ok_or(AgentServiceError::SubmissionConflict),
+                Err(error) => Err(error.into()),
+            }
+        })
     }
 
     /// Authorizes before loading one tenant-scoped public run snapshot.

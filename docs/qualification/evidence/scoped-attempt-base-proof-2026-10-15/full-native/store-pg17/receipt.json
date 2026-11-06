@@ -1,0 +1,37 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source",
+  "binary_sha256": "8abd33d1dbd7077608a7a3fd16cf77d4beb3b94ecc8bf7261c312e846b2883ad",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased/fresh-store-build-v1/stateknot-store-postgres-postgres",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "postgres_major": "17",
+  "database": "stateknot_r1_a_full_20261015v1",
+  "exit_code": 0,
+  "expected_tests": 252,
+  "summary": [
+    [
+      "ok",
+      "252",
+      "0",
+      "0"
+    ]
+  ],
+  "all_expected_tests_passed": true,
+  "seconds": 1147.4962921142578,
+  "default_stack": true,
+  "log_sha256": "09e30d88a071c900bcc0c5e104a0e536d9b09f2910a9185b1d17c3925b47c6a1",
+  "environment": {
+    "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+    "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+    "task_label": "r1-oct15",
+    "database": "stateknot_r1_a_full_20261015v1",
+    "postgres_major": "17",
+    "host": "Darwin",
+    "server": {
+      "server_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+      "database": "stateknot_r1_a_full_20261015v1"
+    }
+  }
+}

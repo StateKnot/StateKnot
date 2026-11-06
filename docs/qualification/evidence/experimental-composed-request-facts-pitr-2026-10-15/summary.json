@@ -1,0 +1,22 @@
+{
+  "state": "passed",
+  "gates": 6,
+  "original_opt_level": 0,
+  "compiled_input_files": 531,
+  "whole_main_input_files": 2182,
+  "source_before_after_exact": true,
+  "workspace_suites": 98,
+  "workspace_counts": [
+    2073,
+    0,
+    6
+  ],
+  "doctest_counts": [
+    45,
+    0,
+    0
+  ],
+  "seconds": 65.42882704734802,
+  "native_database_execution": false,
+  "full_CI_qualification": false
+}

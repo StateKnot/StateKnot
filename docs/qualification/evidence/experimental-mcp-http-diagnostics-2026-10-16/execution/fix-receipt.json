@@ -1,0 +1,9 @@
+{
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "canonical536": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "only_fixture_reference_parameter_and_call_changed": true,
+  "production_bytes_exact_v2": true,
+  "original_clippy101_preserved": true,
+  "format_exit_code": 0,
+  "main_untouched": true
+}

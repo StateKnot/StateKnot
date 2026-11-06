@@ -1,0 +1,10 @@
+{
+  "previous_source": "51efb718783e9ee4c742935fe24d55100d9fb622d785f2dc899b0a72e8918b15",
+  "source_tree": "81098cf022f35564c70153c640d06bad5909916e9e3f30cce9e079d32a18ef2e",
+  "compiled_relative_path_string_sorted_sha256": "b968526264b09fc26c509e2c008e72ec827d36c86f0c31ed4e1db795d5483626",
+  "only_changed_path": "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+  "production_bytes_unchanged": true,
+  "all_first_return_resource_assertions_preserved": true,
+  "v1_fixture_failure_retained": true,
+  "patch_raw_sha256": "7c312bb5b17acb6a4660f8edb03ca3f7697f76a5050cd86fb264f23385dd05f1"
+}

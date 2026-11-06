@@ -147,12 +147,18 @@ async fn postgres_operations_authorization_privacy_and_revocation() {
             .unwrap()
             > 0
     );
+    let jobs = value["host"]["maintenance"]["jobs"].as_object().unwrap();
     assert_eq!(
-        value["host"]["maintenance"]["jobs"]
-            .as_object()
-            .unwrap()
-            .len(),
-        4
+        jobs.keys()
+            .map(String::as_str)
+            .collect::<std::collections::BTreeSet<_>>(),
+        std::collections::BTreeSet::from([
+            "child",
+            "deadline",
+            "failure_close",
+            "frame_cancellation",
+            "join",
+        ])
     );
     for secret in [
         f.caller.tenant_id().as_str(),

@@ -1,0 +1,37 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source",
+  "source_manifest_sha256": "5cc4e2cd0ab5824b87510dfaea6e95c08e3f1cf0cd20f6e8ebcad0da0b103645",
+  "all_frozen_files_match": true,
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/Cargo.toml",
+    "-p",
+    "stateknot",
+    "--example",
+    "deepseek_agent",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "exit_code": 0,
+  "seconds": 26.91537094116211,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-root-layout",
+  "artifacts": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased-example-v1/stateknot-deepseek_agent",
+      "sha256": "2f3c8608632f4267ea2535d6dc53f430281173e15e8949b950aad9902dc87a8d",
+      "fresh": false
+    }
+  ],
+  "same_source_cache": true,
+  "env_overrides": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings"
+  }
+}

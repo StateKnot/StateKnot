@@ -1,0 +1,40 @@
+{
+  "files": [
+    {
+      "bytes": 2978,
+      "path": "input-bindings.json",
+      "sha256": "fc1eb3f9a52cead9ff5672f5999584adc3001b9b7882b04d2b4caa2be710d592"
+    },
+    {
+      "bytes": 3469,
+      "path": "observed-v2.json",
+      "sha256": "56aa541d2e0ca518c6b91bdb3ce536e9ca10560c0473a07c1b09d9a76e4c0f2c"
+    },
+    {
+      "bytes": 1365,
+      "path": "receipt.json",
+      "sha256": "99ef783926551fdef9ebd9b396be2e753499090eb22a851faa2494f851112836"
+    },
+    {
+      "bytes": 2992,
+      "path": "review.md",
+      "sha256": "853a3424fd081b26aa4639ce5cc1625ffc98176ce5911b6667a419d2e075a73c"
+    },
+    {
+      "bytes": 17203,
+      "path": "reviewed-candidate.patch",
+      "sha256": "bdd9c4e3355f167f7aa2caf425edc448c632a1b31b3f3bb8a2940f88aba9b2e2"
+    },
+    {
+      "bytes": 1367,
+      "path": "source-checks.json",
+      "sha256": "66fe89447ac3bcd40cc64f73ee2d77b34e7bc45deb5607e436ef2d24160a157d"
+    },
+    {
+      "bytes": 920,
+      "path": "v2-to-v3-test-only.patch",
+      "sha256": "d0cbeaf0cfb61acb99f82f25cc81ffb9a2f4358052572fdb2b450928d8a1b752"
+    }
+  ],
+  "schema": 1
+}

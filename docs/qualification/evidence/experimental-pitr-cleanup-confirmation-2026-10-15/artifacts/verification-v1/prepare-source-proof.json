@@ -1,0 +1,10 @@
+{
+  "source_files": 922,
+  "tree": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+  "all_manifest_members_exact": true,
+  "only_changed": [
+    "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs"
+  ],
+  "freeze_sha256": "0610b9d0e2e3ee7e110fd9a4c0e3e42c4c691f7b9b7a0f988005a0ece8290c8b",
+  "no_compilation_or_Docker_execution": true
+}

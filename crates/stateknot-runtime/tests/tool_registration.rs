@@ -15,10 +15,10 @@ use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
 use serde_json::{Value, json};
 use stateknot_core::{
-    BoundedJson, BudgetUsage, CancellationSignal, CapabilityLifecycle, Digest, DurationMillis,
-    Failure, ResolvedBudget, SchemaReference, TenantId, Timestamp, Tool, ToolAdapter,
-    ToolAdapterBuildError, ToolContext, ToolDescriptor, ToolError, ToolInput, ToolOutput,
-    ToolSchemaRole, Version,
+    ArtifactRepresentation, BoundedJson, BudgetUsage, CancellationSignal, CapabilityLifecycle,
+    Digest, DurationMillis, Failure, ResolvedBudget, SchemaReference, TenantId, Timestamp, Tool,
+    ToolAdapter, ToolAdapterBuildError, ToolContext, ToolDescriptor, ToolError, ToolInput,
+    ToolOutput, ToolSchemaRole, Version,
 };
 use stateknot_runtime::{
     JsonSchemaRegistry, JsonSchemaRegistryBuilder, JsonSchemaRegistryError,
@@ -486,6 +486,92 @@ fn output_pinned_with_the_legacy_input_generator_is_rejected_before_dispatch() {
         ),
         Err(ToolAdapterBuildError::SchemaContract {
             role: ToolSchemaRole::Output,
+            ..
+        })
+    ));
+    assert_eq!(calls.load(Ordering::SeqCst), 0);
+}
+
+#[tokio::test]
+async fn mixed_case_media_type_dispatches_and_actual_old_input_pin_fails_at_startup() {
+    let mut builder = JsonSchemaRegistryBuilder::default();
+    let input = builder
+        .register_rust_type::<ArtifactRepresentation>(
+            "https://schemas.example.com/artifact/input/2.0.0"
+                .parse()
+                .unwrap(),
+            Version::new(2, 0, 0),
+        )
+        .unwrap();
+    let output = builder
+        .register_rust_output_type::<String>(
+            "https://schemas.example.com/artifact/output/1.0.0"
+                .parse()
+                .unwrap(),
+            Version::new(1, 0, 0),
+        )
+        .unwrap();
+    let schemas = builder.build().unwrap();
+    let correct = descriptor(input.clone(), output.clone());
+    let calls = Arc::new(AtomicUsize::new(0));
+    let make_tool = |descriptor, calls| FixtureTool::<ArtifactRepresentation, String> {
+        descriptor,
+        calls,
+        output: |artifact| artifact.media_type().as_str().to_owned(),
+    };
+    let adapter = ToolAdapter::new(
+        make_tool(correct.clone(), Arc::clone(&calls)),
+        schemas.clone(),
+    )
+    .unwrap();
+    let fixture: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-artifact-v1.json"
+    ))
+    .unwrap();
+    let mut wire = fixture["representations"]["valid"][0].clone();
+    wire["media_type"] = json!("Application/PDF");
+    let context = context(&correct);
+    let result = stateknot_core::ErasedTool::call(
+        &adapter,
+        context.clone(),
+        ToolInput::new(input.clone(), BoundedJson::try_from_value(wire).unwrap()).unwrap(),
+    )
+    .await
+    .unwrap();
+    result.validate_for(&context, &correct).unwrap();
+    assert_eq!(result.output().as_value(), &json!("application/pdf"));
+    assert_eq!(calls.load(Ordering::SeqCst), 1);
+
+    // Generated from the exact previous source, not fabricated by weakening
+    // the corrected schema. Core also verifies the original document pin.
+    let baseline: Value = serde_json::from_str(include_str!(
+        "../../stateknot-core/tests/fixtures/core-media-type-input-schemas-v1.json"
+    ))
+    .unwrap();
+    let mut old = baseline["artifact_input_document"].clone();
+    old["$id"] = json!(input.id().as_str());
+    let legacy = SchemaReference::new(
+        input.id().clone(),
+        input.version(),
+        Digest::sha256(serde_json_canonicalizer::to_vec(&old).unwrap()),
+    );
+    assert_ne!(legacy.digest(), input.digest());
+    let mut old_builder = JsonSchemaRegistryBuilder::default();
+    old_builder.register(legacy.clone(), old).unwrap();
+    old_builder
+        .register(
+            output.clone(),
+            serde_json::from_slice(schemas.canonical_bytes(&output).unwrap()).unwrap(),
+        )
+        .unwrap();
+    let calls = Arc::new(AtomicUsize::new(0));
+    assert!(matches!(
+        ToolAdapter::new(
+            make_tool(descriptor(legacy, output), Arc::clone(&calls)),
+            old_builder.build().unwrap()
+        ),
+        Err(ToolAdapterBuildError::SchemaContract {
+            role: ToolSchemaRole::Input,
             ..
         })
     ));

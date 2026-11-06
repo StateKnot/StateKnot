@@ -1,0 +1,10 @@
+{
+  "stage": "Native launcher initialization before source/container/DB operations",
+  "exit_code": 1,
+  "error": "FileNotFoundError: full-native-v1/plan.json",
+  "cause": "The actual --list plan process was still running when PG16 launcher was started.",
+  "native_binary_executed": false,
+  "database_actions_executed": false,
+  "source_changed": false,
+  "correction": "Waited for prepare_full_native_plan session terminal0 and checked fixed plan exists before one fresh PG16 Native launch."
+}

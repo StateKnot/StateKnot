@@ -1,0 +1,20 @@
+{
+  "gate": "fmt",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "fmt",
+    "--all",
+    "--check"
+  ],
+  "runner_pid": 55745,
+  "pid": 55755,
+  "start_unix": 1792119987.5449548,
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+  "exit_code": 0,
+  "seconds": 2.7810401916503906,
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "source_before_after_exact": true,
+  "native_database_execution": false
+}

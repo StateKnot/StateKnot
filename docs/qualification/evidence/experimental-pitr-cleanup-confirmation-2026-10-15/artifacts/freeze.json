@@ -1,0 +1,13 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-pitr-cleanup-source",
+  "files": 922,
+  "source_tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+  "source_manifest_sha256": "65b9fb4b12ef96d27b24a679c1076eec14ebe09189cd4b7abe2910f07cc43c9a",
+  "source_tar_sha256": "61c5878ae5105f8e5c39e3c0ef32f59abed91fb8e3204aa76c4ca2983c9a2d4d",
+  "parent_source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "only_changed_path": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+  "production_runtime_store_core_and_SQL_unchanged": true,
+  "compiled_or_native_executed": false,
+  "main_changed_by_candidate": false,
+  "parent_open_cleanup_qualification_not_rewritten": true
+}

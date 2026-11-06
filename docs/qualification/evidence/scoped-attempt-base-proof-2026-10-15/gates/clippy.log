@@ -1,0 +1,8 @@
+    Checking stateknot-core v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-core)
+    Checking stateknot-testkit v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-testkit)
+    Checking stateknot-store-postgres v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-store-postgres)
+    Checking stateknot-integrations v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-integrations)
+    Checking stateknot-runtime v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-runtime)
+    Checking stateknot-artifact-store v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot-artifact-store)
+    Checking stateknot v0.1.0-alpha.1 (/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source/crates/stateknot)
+    Finished `dev` profile [unoptimized] target(s) in 2m 16s

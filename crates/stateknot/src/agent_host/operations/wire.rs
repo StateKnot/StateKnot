@@ -67,7 +67,7 @@ pub(super) fn snapshot(health: &AgentHostHealth, path: &str, id: EventId) -> (St
         let report = h.report();
         let failure = report.failure.map(|f| match f { AgentMaintenanceFailure::Store => "store", AgentMaintenanceFailure::TickDeadline => "tick_deadline", AgentMaintenanceFailure::Task => "task" });
         let jobs: serde_json::Map<String, Value> = AgentMaintenanceJob::ALL.into_iter().map(|job| {
-            let name = match job { AgentMaintenanceJob::Deadline => "deadline", AgentMaintenanceJob::Child => "child", AgentMaintenanceJob::Join => "join", AgentMaintenanceJob::FailureClose => "failure_close" };
+            let name = match job { AgentMaintenanceJob::Deadline => "deadline", AgentMaintenanceJob::Child => "child", AgentMaintenanceJob::Join => "join", AgentMaintenanceJob::FailureClose => "failure_close", AgentMaintenanceJob::FrameCancellation => "frame_cancellation" };
             let counts = report.job(job);
             (name.into(), json!({"completed_ticks":counts.completed_ticks.to_string(),"items":counts.items.to_string(),"item_failures":counts.item_failures.to_string()}))
         }).collect();

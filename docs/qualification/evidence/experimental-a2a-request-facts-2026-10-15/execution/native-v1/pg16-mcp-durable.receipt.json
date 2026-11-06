@@ -1,0 +1,15 @@
+{
+  "runner_pid": 58175,
+  "pid": 58182,
+  "step": "pg16-mcp-durable",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/mcp_durable",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "started_unix": 1792067118.0957692,
+  "exit_code": 0,
+  "seconds": 2.6967098712921143,
+  "log_sha256": "bea024e1a18bbfbc005102b8ff1fb9ea7f385e078f038324dc8740a60d591f30"
+}

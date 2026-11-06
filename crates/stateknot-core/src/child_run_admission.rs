@@ -11,8 +11,8 @@ use thiserror::Error;
 
 use crate::{
     AgentAdmission, AgentAdmissionIntent, AgentAdmissionIntentError, BudgetNarrowingError,
-    Checkpoint, CheckpointState, ChildRunKey, CompiledGraph, Digest, GraphSchemaValidationError,
-    GraphSchemaValidator, NodeActivation, Timestamp,
+    Checkpoint, CheckpointState, ChildRunKey, CompiledGraph, Digest, GraphFrameCheckpoint,
+    GraphSchemaValidationError, GraphSchemaValidator, NodeActivation, Timestamp,
 };
 
 const SPAWN_DOMAIN: &[u8] = b"stateknot.child-run-admission-intent.v1\0";
@@ -58,8 +58,34 @@ impl ChildRunAdmissionIntent {
         child_graph: CompiledGraph,
         initial_state: CheckpointState,
     ) -> Result<Self, ChildRunAdmissionIntentError> {
+        if !key.parent().graph_namespace().is_root() {
+            return Err(ChildRunAdmissionIntentError::UnsupportedParentNamespace);
+        }
         let intent = Self::build(key, parent.digest(), child, child_graph, initial_state)?;
         intent.validate_parent(parent)?;
+        Ok(intent)
+    }
+
+    /// Prepares a child owned by an actually ready ordinary node in a frame.
+    ///
+    /// The full frame must be restored from trusted storage. This preparation
+    /// grants no live leaf, declaration, ownership, budget or dispatch authority.
+    /// Storage must repeat [`Self::validate_for_frame`] against its locked scope.
+    ///
+    /// # Errors
+    ///
+    /// Rejects a different activation, parent admission, principal or budget.
+    pub fn for_frame(
+        parent: &AgentAdmission,
+        frame: &GraphFrameCheckpoint,
+        key: ChildRunKey,
+        child: AgentAdmissionIntent,
+        child_graph: CompiledGraph,
+        initial_state: CheckpointState,
+    ) -> Result<Self, ChildRunAdmissionIntentError> {
+        let intent = Self::build(key, parent.digest(), child, child_graph, initial_state)?;
+        intent.validate_parent(parent)?;
+        intent.validate_frame_scope(frame)?;
         Ok(intent)
     }
 
@@ -74,9 +100,6 @@ impl ChildRunAdmissionIntent {
             || key.parent_run_id() == child.provenance().run_id()
         {
             return Err(ChildRunAdmissionIntentError::ChildScopeMismatch);
-        }
-        if !key.parent().graph_namespace().is_root() {
-            return Err(ChildRunAdmissionIntentError::UnsupportedParentNamespace);
         }
         if child.graph() != &child_graph.reference()
             || child.descriptor().input_schema() != child_graph.input_schema()
@@ -103,7 +126,8 @@ impl ChildRunAdmissionIntent {
         if self.parent_admission_digest != parent.digest()
             || self.key.tenant_id() != admitted.provenance().tenant_id()
             || self.key.parent_run_id() != admitted.provenance().run_id()
-            || self.key.parent().base_checkpoint().graph() != admitted.graph()
+            || (self.key.parent().graph_namespace().is_root()
+                && self.key.parent().base_checkpoint().graph() != admitted.graph())
             || self
                 .key
                 .parent()
@@ -148,6 +172,9 @@ impl ChildRunAdmissionIntent {
         schemas: &V,
         observed_at: Timestamp,
     ) -> Result<(), ChildRunAdmissionIntentError> {
+        if !self.key.parent().graph_namespace().is_root() {
+            return Err(ChildRunAdmissionIntentError::UnsupportedParentNamespace);
+        }
         self.validate_parent(parent)?;
         if self.key.parent().base_checkpoint() != &checkpoint.head() {
             return Err(ChildRunAdmissionIntentError::ParentCheckpointMismatch);
@@ -158,6 +185,52 @@ impl ChildRunAdmissionIntent {
         if &activation != self.key.parent() {
             return Err(ChildRunAdmissionIntentError::ParentActivationMismatch);
         }
+        self.validate_external(parent, checkpoint, schemas, observed_at)
+    }
+
+    /// Revalidates a scoped child against the complete authenticated leaf.
+    ///
+    /// This does not replace live leaf/fence, declaration or shared Run-account
+    /// checks. Schema callbacks must run outside the mutation transaction.
+    ///
+    /// # Errors
+    ///
+    /// Rejects crossed scope, unavailable schemas, invalid clocks or deadlines.
+    pub fn validate_for_frame<V: GraphSchemaValidator + ?Sized>(
+        &self,
+        parent: &AgentAdmission,
+        frame: &GraphFrameCheckpoint,
+        schemas: &V,
+        observed_at: Timestamp,
+    ) -> Result<(), ChildRunAdmissionIntentError> {
+        self.validate_parent(parent)?;
+        self.validate_frame_scope(frame)?;
+        self.validate_external(parent, frame.checkpoint(), schemas, observed_at)
+    }
+
+    pub(crate) fn validate_frame_scope(
+        &self,
+        frame: &GraphFrameCheckpoint,
+    ) -> Result<(), ChildRunAdmissionIntentError> {
+        if self.key.parent().base_checkpoint() != &frame.checkpoint().head() {
+            return Err(ChildRunAdmissionIntentError::ParentCheckpointMismatch);
+        }
+        let activation = frame
+            .activation(self.key.parent().node_id().clone())
+            .map_err(|_| ChildRunAdmissionIntentError::ParentNotReady)?;
+        if &activation != self.key.parent() {
+            return Err(ChildRunAdmissionIntentError::ParentActivationMismatch);
+        }
+        Ok(())
+    }
+
+    fn validate_external<V: GraphSchemaValidator + ?Sized>(
+        &self,
+        parent: &AgentAdmission,
+        checkpoint: &Checkpoint,
+        schemas: &V,
+        observed_at: Timestamp,
+    ) -> Result<(), ChildRunAdmissionIntentError> {
         if observed_at < checkpoint.journal_head().recorded_at() {
             return Err(ChildRunAdmissionIntentError::ClockBeforeCheckpoint);
         }
@@ -304,8 +377,8 @@ pub enum ChildRunAdmissionIntentError {
     /// Child tenant differs or the child reuses the parent Run ID.
     #[error("child admission crosses scope or reuses its parent run")]
     ChildScopeMismatch,
-    /// Same-run nested namespaces do not yet have a readiness contract.
-    #[error("child admission requires a root-namespace parent activation")]
+    /// A Root-only API received a scoped activation.
+    #[error("Root child admission requires a Root-namespace parent activation")]
     UnsupportedParentNamespace,
     /// Child definition, graph, or schema pins differ.
     #[error("child admission graph or schema mismatch")]

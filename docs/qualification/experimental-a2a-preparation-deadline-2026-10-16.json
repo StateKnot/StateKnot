@@ -1,0 +1,72 @@
+{
+  "schema_version": 1,
+  "scope": "local component gates; source bytes and original process receipts",
+  "source_tree": "9a98cd929c10698f8cb866b99b3fd00a9b0f69dd840a68da1d01f5b30817f49d",
+  "source_rows_bound_but_not_fully_reconstructed": 931,
+  "supplied_compilation_inputs": 540,
+  "compiled_inputs_sha256": "c3c5ed5bb8f102d9b1b31bf1afbb21e75e1e05d4e2b37d523f4ba4ca2bc80edc",
+  "six_final_gates_exit0": true,
+  "workspace": {
+    "suites": 100,
+    "passed": 2119,
+    "failed": 0,
+    "ignored": 6
+  },
+  "doctests": {
+    "groups": 10,
+    "passed": 48,
+    "failed": 0,
+    "ignored": 0
+  },
+  "new_private_unit_tests": 3,
+  "new_integration_families": 8,
+  "old_subscription_matrix_ids": 17,
+  "old_subscription_matrix_bindings": 2,
+  "old_subscription_matrix_independent_test_count": 1,
+  "new_initial_policy_operations": 11,
+  "new_initial_policy_bindings": 2,
+  "new_case_inventory_is_not_independent_libtest_count": true,
+  "profile": {
+    "toolchain": "1.88.0",
+    "fixed_nightly": "nightly-2026-10-07",
+    "DEV_TEST_OPT_LEVEL": "0",
+    "DEV_TEST_DEBUG": "0",
+    "incremental": "0",
+    "debug_assertions": true,
+    "overflow_checks": true,
+    "warnings": "deny",
+    "stack_override_present": false,
+    "STATEKNOT_database_environment_cleared": true
+  },
+  "unforced_internal_races": [
+    "CPU time specifically inside SDK synchronous decode",
+    "zero-await interval between successful operation-slot acquisition and final guard"
+  ],
+  "noncooperative_host_code_preempted": false,
+  "truncated_TCP_is_conditional_original_response_comparison": true,
+  "invalid_UTF8_path_plus_invalid_body_precedence_may_change": true,
+  "Native_database_qualified": false,
+  "new_IdP_qualified": false,
+  "durable_task_backend_qualified": false,
+  "fullCI_qualified": false,
+  "cold30m_qualified": false,
+  "stdio_qualified": false,
+  "R1_complete": false,
+  "independent_publication_review_in_this_seal": false,
+  "independent_source_review_records_attached": true,
+  "package_author_authored_tests": true,
+  "actual_main_adoption_proved_in_this_seal": false,
+  "evidence_directory": "evidence/experimental-a2a-preparation-deadline-2026-10-16",
+  "offline_verifier": "evidence/experimental-a2a-preparation-deadline-2026-10-16/verify.py",
+  "evidence_manifest": "evidence/experimental-a2a-preparation-deadline-2026-10-16/manifest.json",
+  "seal": "evidence/experimental-a2a-preparation-deadline-2026-10-16/seal.json",
+  "original_summary": "evidence/experimental-a2a-preparation-deadline-2026-10-16/original/q5/summary.json",
+  "historic_failure_classification": {
+    "red": "actual original-product cumulative timeout failure; firstcase only",
+    "q1_TCP": "stale-target artifact; source hash alone not compiler read closure",
+    "q2_TCP": "fixture notification and four incorrect SDK RPC method names",
+    "q3_Clippy": "production helper size lint",
+    "q4_Clippy": "three fixture-only lints; target-request callback ownership observation added separately"
+  },
+  "integration_family_total_including_retained": 9
+}

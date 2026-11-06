@@ -1,0 +1,8 @@
+{
+  "manifest_sha256": "049daaa2076808668aa99881397bfa3f97c0219d7ddf73d19f0a9d8497473755",
+  "contract_bytes_frozen": true,
+  "actual_product_execution": false,
+  "independent_contract_review_claimed": false,
+  "new_runtime_Native_CI_R1_qualification": false,
+  "old_v2_bytes_preserved": true
+}

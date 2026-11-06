@@ -1,0 +1,54 @@
+{
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2385,
+      "sha256": "0580ac7fd93522288e2f7b57a866dbeb9ee6a8a3e8401c01120b499d45af1fd8"
+    },
+    {
+      "path": "adoption/code-docs-copy.receipt.json",
+      "bytes": 458,
+      "sha256": "4bb77ce54aeda8e0e69a4ff1ba332bb53c0a4722c1ffc0e91c1bb8eb0e761c94"
+    },
+    {
+      "path": "adoption/plan.json",
+      "bytes": 4779,
+      "sha256": "bc311dfe54b8bdc8107bf22f9a904ef48a6268a616eb50fe20ba266229ba3c2f"
+    },
+    {
+      "path": "adoption/publication-copy.receipt.json",
+      "bytes": 803,
+      "sha256": "eca12ab29feb6fab4a8c0665cd861e037c4d1bb6c68fadb6fd01e82d96f9d97a"
+    },
+    {
+      "path": "adoption/publication-plan.json",
+      "bytes": 45592,
+      "sha256": "2e093c0b46ced1cfdf9165eee505e8f5b21a98e1cdbb2aa5eeaac896131694cb"
+    },
+    {
+      "path": "adoption/publication-v4-copy.receipt.json",
+      "bytes": 879,
+      "sha256": "6d457dadc42e070196827e9cbfdcf917b6d5829b7ef232fe243328c0e653c532"
+    },
+    {
+      "path": "adoption/publication-v4-plan.json",
+      "bytes": 46076,
+      "sha256": "fa35984934531b282ef18a7c00938df37335f79e4f84ccb8933e817e2d1dfe50"
+    },
+    {
+      "path": "delivery.json",
+      "bytes": 44134,
+      "sha256": "a898cf58547c938247b1a6d8e9ca7d3027d3f87a28fac45e06ebcd90714b7c1b"
+    },
+    {
+      "path": "review-originals.tar.gz",
+      "bytes": 30663,
+      "sha256": "8fca968bc579ef6ee25d433cdcf614be31ce437187435b5f61a2c0445fd6b090"
+    },
+    {
+      "path": "verify.py",
+      "bytes": 9039,
+      "sha256": "da4f9eb8b2434007bff58d70e39568ae992d41237f8160352e929b709620f978"
+    }
+  ]
+}

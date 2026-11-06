@@ -1,0 +1,38 @@
+{
+  "base_compiled_inputs": 538,
+  "base_compiled_sha256": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "final_compiled_inputs": 540,
+  "final_compiled_sha256": "c3c5ed5bb8f102d9b1b31bf1afbb21e75e1e05d4e2b37d523f4ba4ca2bc80edc",
+  "reconstruct_all931_noncompiled_source_files": false,
+  "whole_Git_or_compiler_read_closure": false,
+  "changes": [
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server.rs",
+      "before_sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+      "bytes": 103838,
+      "after_sha256": "f24d78a4fe411782b97d7c1a62123012ba91edd0c44a14113c2c4fa031395a51",
+      "payload": "source/payloads/f24d78a4fe411782b97d7c1a62123012ba91edd0c44a14113c2c4fa031395a51.rs.gz"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server/preparation_tests.rs",
+      "before_sha256": null,
+      "bytes": 8217,
+      "after_sha256": "8a92483e8999a0ae64228708846d4c9ece915dcdb292fc4ef64cdc1b34387a46",
+      "payload": "source/payloads/8a92483e8999a0ae64228708846d4c9ece915dcdb292fc4ef64cdc1b34387a46.rs.gz"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+      "before_sha256": "ce8ca227d3c4e032dbf6c5d2ded45df7e560c13016c6c8e6ade4071431860458",
+      "bytes": 46660,
+      "after_sha256": "37b2015530cdf25600c365d566488b8aaa59792b225421ab639daced0a6bf5c3",
+      "payload": "source/payloads/37b2015530cdf25600c365d566488b8aaa59792b225421ab639daced0a6bf5c3.rs.gz"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs",
+      "before_sha256": null,
+      "bytes": 52733,
+      "after_sha256": "4df438c525fc87477d78af9f812409e6bfb0e92c306b598699dc6ec1e4d9398b",
+      "payload": "source/payloads/4df438c525fc87477d78af9f812409e6bfb0e92c306b598699dc6ec1e4d9398b.rs.gz"
+    }
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "scope": "independent source-v5 Standards increment only",
+  "files": [
+    {
+      "path": "report.zh-CN.md",
+      "bytes": 1874,
+      "sha256": "523bdded4d1cc9f9b60ea618b4e5895aa9c543eead90b03150463e280585632d"
+    },
+    {
+      "path": "review-basis.json",
+      "bytes": 6860,
+      "sha256": "3dc9af65e8fa91c864861122ff4b9afb10782a5e47537a9c1a56e3be97084728"
+    },
+    {
+      "path": "review.py",
+      "bytes": 4980,
+      "sha256": "35bad50b6c1087779231e708e96a295ea93b3d8cd64fb910ccb424fa7e1039ae"
+    },
+    {
+      "path": "v3-to-v5-fixture-only.patch.gz",
+      "bytes": 2290,
+      "sha256": "b05cbfe1a9e0f48e64a9a0a635f75fcdf376e93148b818be82842fc7444ea607"
+    },
+    {
+      "path": "verify.py",
+      "bytes": 925,
+      "sha256": "4f40931a2a8b987c5daa936e73ee460cf437d3868b25a9dace7bf94f09b59193"
+    }
+  ]
+}

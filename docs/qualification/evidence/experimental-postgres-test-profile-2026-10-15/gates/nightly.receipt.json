@@ -1,0 +1,19 @@
+{
+  "step": "gate-nightly",
+  "command": [
+    "cargo",
+    "+nightly-2026-10-07",
+    "check",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ],
+  "runner_pid": 68288,
+  "pid": 83808,
+  "started_unix": 1792070346.169814,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 40.264017820358276,
+  "log_sha256": "4aa8f7dae3f26354dbae8fb58749a6a66d1c9b3094d978c6f8a116dce4f4630b"
+}

@@ -1,0 +1,2062 @@
+[
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/candidate.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/candidate.patch.gz",
+    "raw_sha256": "6bf96dedcdf28c6dda5ffc2813bd48aee51b77f76a6be2190e7b4d95633712d2"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/candidate.yml.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/candidate.yml.gz",
+    "raw_sha256": "291a13e3db87d92e9c16bd92b9a6418e9075cf9ee08bac6a84408d3d3d8217e6"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/CI-candidate/receipt.json.gz",
+    "raw_sha256": "c2a61d744f0f1a4cf1895dff9dc7809638023250c791af41cd9d4c5fa4aa523f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/candidate-documents.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/candidate-documents.json.gz",
+    "raw_sha256": "fbffa61892a89aa547e1624df62dae5f56db3aedf94288c25ff0844bcaca1e9e"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/freeze.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/freeze.json.gz",
+    "raw_sha256": "b49354cdcdcb7a4a47d78c36e9141d97334c66bdc4fdcf774a613185426e28e0"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/manifest.json.gz",
+    "raw_sha256": "395ef2eceb24f6f4a488ba22ed2554f3182c7ac8c36a15bf5095eb61e6ddcf57"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/adoption-docs-v2/receipt.json.gz",
+    "raw_sha256": "e6ad38310c994af7e464409d29850e6ea455b3f17fe28423964374d36f1bb8c5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/artifact-index.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/artifact-index.json",
+    "raw_sha256": "5516c2c36b00cea9933361a8b17988b660e7cc35424d69a1fdd1135d769e54ab"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/collection-state.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/collection-state.json",
+    "raw_sha256": "1a9224388890233cf952b251ebbaa43a0ba35d2088eb08beac221699069a459f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/final-resource-observation.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/final-resource-observation.json.gz",
+    "raw_sha256": "730d40881745ec566ceb46be11bdff02a088cc17c32ebe03f040dc3f1a008083"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/fix-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/fix-receipt.json.gz",
+    "raw_sha256": "7cb9443c65117ef74b66a7ad3541227a9c06bcfa6aa780b5ccce22d3f5722d3f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/fix.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/fix.patch.gz",
+    "raw_sha256": "8e30825782faa5de74eb15338cb7547caeb66f71f2b404949198ac4cbfd499c5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/clippy.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/clippy.log.gz",
+    "raw_sha256": "6f169442664563c2e26726a67492fd67a9479d60345658c2fd7ea7751f43c1ab"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/clippy.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/clippy.receipt.json",
+    "raw_sha256": "7538fa7b0c60fa72396cca4bf3ca1a297a97bf9290940109abd80d908244dfc7"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/doctests.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/doctests.log.gz",
+    "raw_sha256": "8c65c3388e34a93284338bb819504fac3a731db27f4678717c03810f4f475630"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/doctests.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/doctests.receipt.json",
+    "raw_sha256": "c4ce18b0b18bfe543d482bab3d1f0733fcac5c6ded7a2d92cc1b3540816f4142"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/fmt.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/fmt.log.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/fmt.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/fmt.receipt.json",
+    "raw_sha256": "10b96c4d39665eefbfb63f7839e6fc574721782fc7293053f894f084f7e2fb1b"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/nightly.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/nightly.log.gz",
+    "raw_sha256": "37b19789bfb077349171d4d3ffda47b5fd2b806453e3f576f58a4f7851857c43"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/nightly.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/nightly.receipt.json",
+    "raw_sha256": "7ab6398ff1c3a6d26135482160e7a932f9ad6c8ffdb2c06a54176b921583f4f8"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/rustdoc.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/rustdoc.log.gz",
+    "raw_sha256": "b43ced84b357dc0beb1bc6a45aaf6b251e1a8705b6b1bf9d293d50f5d99a2425"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/rustdoc.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/rustdoc.receipt.json",
+    "raw_sha256": "9f2163f06d442eb8376224e212a520d83737131a5cfd96ff9ed5a816c143a205"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/workspace.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/workspace.log.gz",
+    "raw_sha256": "fb346aa35bc7df45ccf8389cbc82dd28c08f9d48e71ca331fec479561c9c328f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/workspace.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/gates/workspace.receipt.json",
+    "raw_sha256": "9616a40d2ba5d4311ab88989686663cdefb9c7f29ad8b2b098e73258f2dc593e"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/binary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/binary.json.gz",
+    "raw_sha256": "289dd4d742f8e306180e6c341ca9b7c8729fab7c3542bd6d41485d54646d19df"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/build.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/build.log.gz",
+    "raw_sha256": "28c83e3acb6d1919dc2cb7e232aab3ee0f71f201aedcdc878af532b745b6039e"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/build.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/build.receipt.json.gz",
+    "raw_sha256": "408bce73e18d536cbffcf1580c10e7b33575e6022ed0114dbf950018c0471387"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/container-identities.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/container-identities.json",
+    "raw_sha256": "2c7abaaa7f5755338c38dabd202f87493362260d80c2d166067aec978a50332c"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final-binary-lsof.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final-binary-lsof.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final-binary-lsof.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final-binary-lsof.stdout.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/final.df.gz",
+    "raw_sha256": "28d651eccf31ae075bbf271135cc949003927b2579bd92a7807d32aeda6c7744"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/initial.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/initial.df.gz",
+    "raw_sha256": "f2bd66e2ce71208f1f8f61a44c3125d7b5b3a868ec6f9bc0b2511ef237c36aea"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/input-checks.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/input-checks.json",
+    "raw_sha256": "143415b7eec53db86a4ffced9d0c47015297f7a009f759f6987a19605f4eb956"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/list.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/list.log.gz",
+    "raw_sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/list.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/list.receipt.json.gz",
+    "raw_sha256": "df1f7410fd13986215d7c1e704b0a12915ac7384718596244dfabb88c345c314"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16-database.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16-database.json.gz",
+    "raw_sha256": "5ee0c744361bec7986450274ae4c6331cb2e04e375617f176665d2645caa91a7"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16.log.gz",
+    "raw_sha256": "fec81d9c17d134e47b4d6695c7d9d6f430048c6145fba5149dffef5e5a8b24ef"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg16.receipt.json.gz",
+    "raw_sha256": "229363762c6e562fba28a257d76f79fc2e4cfb7bd558d967150d1ff071f7a4ce"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17-database.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17-database.json.gz",
+    "raw_sha256": "51d7c28756391d0dd968cd2f265c517c984c5ba553df8a13786087e2cfa3b7c6"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17.log.gz",
+    "raw_sha256": "db4f1228f1d611f70b40be9e323eb640d5f1e003a317b4746ce7f4f3b9d2b5bf"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/pg17.receipt.json.gz",
+    "raw_sha256": "d2ef5ce281b6c504829731b5aec884b14d850f98c9b7325b90a80c212c6bca60"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/summary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/native/summary.json.gz",
+    "raw_sha256": "d895e1b7d32f93aae5bd1674e87361497a3319bd2201c0ab4d77a38a8f0f8a60"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/final.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/final.df.gz",
+    "raw_sha256": "88d91b87f2b9432db836a0093e4c2a36cfa19e6eb40a796f3ede7ee981551f89"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/native_saved_program.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/native_saved_program.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/native_saved_program.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/native_saved_program.stdout.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/nightly_reused_cache.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/nightly_reused_cache.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/nightly_reused_cache.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/nightly_reused_cache.stdout.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/stable_reused_cache.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/stable_reused_cache.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/stable_reused_cache.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/resource-raw/stable_reused_cache.stdout.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/run-gate.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/run-gate.py.gz",
+    "raw_sha256": "2c8b83762c5d9882362a74c9fcd8cc1cf2b69e54a8ea57656a0f69174c9873d7"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/run-native.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/run-native.py.gz",
+    "raw_sha256": "5ff0ee4ecfa3c4587150b1288781a7ddf179722e6d7ef5f6841b3a75514c44e3"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/six-gates-summary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/execution/six-gates-summary.json.gz",
+    "raw_sha256": "fe01527b0be83e6ac27988b14403a1c015fc0e41d03a1f0bf5bcc41d6a9239db"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/collection-state.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/collection-state.json",
+    "raw_sha256": "bf4e63fee0d188a4f19d2d2e8c16065718adcb2f579cc5cdba3d3536ea63acfa"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/fix-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/fix-receipt.json.gz",
+    "raw_sha256": "5ea0f38885495eece1f7142e84b6436f2e2c2580e4ef606d17765a24f224801b"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/fix.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/fix.patch.gz",
+    "raw_sha256": "7ff2750c305ec01f4cd37c159cf4176d73c67b7edf7935f65e4908852d8bbfd3"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/clippy.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/clippy.log.gz",
+    "raw_sha256": "dce940c99f6d21b75eed527baf6c51b287a6489771d25414fb1c4d78cb37f9a7"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/clippy.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/clippy.receipt.json.gz",
+    "raw_sha256": "97a8012e09b7fac29a4f0ec24f764825893287f720fdb8ddf678b3d80ed609cc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/doctests.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/doctests.log.gz",
+    "raw_sha256": "e2ccb556476fefd26e68f14d2bc97550592f9e0849ea2f184ca9f2032ef64ea6"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/doctests.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/doctests.receipt.json.gz",
+    "raw_sha256": "65612a16151477581a51147123210e92ceee7ab41d2c6f4340a888815c74c039"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/fmt.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/fmt.log.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/fmt.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/fmt.receipt.json.gz",
+    "raw_sha256": "6d80d9f3b49990cbede4b965944814b39b42fcd614d53edf90d5bddb89a5bc69"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/nightly.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/nightly.log.gz",
+    "raw_sha256": "09ca75c4da6033a1537d21772c6c52f807b41e1e50b615d160caf5581441cfdd"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/nightly.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/nightly.receipt.json.gz",
+    "raw_sha256": "97b8e39a17d3341f6925bb3c55d40fd3c94cfe32ad43c454f6c0b1d20be75605"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/rustdoc.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/rustdoc.log.gz",
+    "raw_sha256": "0c54d5979c5792616d0b58ce7b20a4a5fb4c0fa9bc41797337f372ea38f74201"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/rustdoc.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/rustdoc.receipt.json.gz",
+    "raw_sha256": "2f4ee75e32094f9f285e0ab0f24ccc500d5c5b0e9415e9605910ff4df9c5e1b7"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/workspace.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/workspace.log.gz",
+    "raw_sha256": "5a33995146e33b4638dba10b03d839db7aa3c51a0d283768844255c5468d40f5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/workspace.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/gates/workspace.receipt.json.gz",
+    "raw_sha256": "bcb1976174348e00f50d7b0d5c3b3fbb7ab158acc769f9e5db89fccfbbc6b698"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/binary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/binary.json.gz",
+    "raw_sha256": "c8e9c81887f4e7d06311dd924d9bfcde534bc470e365ffc677c8601d622fe7d1"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/build.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/build.log.gz",
+    "raw_sha256": "cadbc10374a08cfd94374155aee69a7ec19432c068d9d89c59958722593ed358"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/build.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/build.receipt.json.gz",
+    "raw_sha256": "e80d8986c5d7e4f170c7ce1663748e91b1a877a1760e12c2680f2c2d9ab55c10"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/list.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/list.log.gz",
+    "raw_sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg16.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg16.log.gz",
+    "raw_sha256": "0ecfb88072b51a21c72917cf8c06292db9513d2b1835fb24df9ab23350c4370d"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg16.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg16.receipt.json.gz",
+    "raw_sha256": "eaac2bea262b3be6b926bb14afd87595754c1f8048cadc58b03be04dc0c10e10"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg17.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg17.log.gz",
+    "raw_sha256": "6a81c900af9de1189e2c36dd3a48a6a4356c22233a99fb69b253cfa66bc7a2cc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg17.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/pg17.receipt.json.gz",
+    "raw_sha256": "69b885a0bbbfedd0958bc9cafe8affa8b71241f981a02c071428eab0bcb298cc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/summary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/native/summary.json.gz",
+    "raw_sha256": "1ed4669a4c6d3533312c4aeeddc8e4afd17a790f7cf483a09ca6103d8685a398"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/reconstruction.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/reconstruction.json",
+    "raw_sha256": "5d7805274f5edfb8a5d64ea4f8d5b38266677dc2c6172865ebec4dcabb3e2f27"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/six-gates-summary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/six-gates-summary.json.gz",
+    "raw_sha256": "02cf35af9720ada457aebc0372dc46bcc0ee7febb9de1771c606923699b0e8f4"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/default-parallel-be326/source-manifest.json.gz",
+    "raw_sha256": "811f9ef452f3ac27893c9ae0d48aefe2da53abad89b5c050d20a3dcc20f4d175"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy-preservation.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy-preservation.json",
+    "raw_sha256": "010ea0f08e117ba7e87f6c97acf18f1ff62e483703a01e44d9bb9c6c7624feaa"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy.log.gz",
+    "raw_sha256": "eff080647bd1878092cad36fb48160e09444c1d66ac68a6af100ef3a32dbea24"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/first-clippy.receipt.json",
+    "raw_sha256": "857e05901daa29797d8dff4be42aa62b35d400729b2c08d315e1f78ca36ab4e2"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/first-clippy/source-manifest.json.gz",
+    "raw_sha256": "03797dea3ae8553579f8b424c8679c3ea7a18ea5d82ee467557f065ab29c830c"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/fix.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/fix.patch.gz",
+    "raw_sha256": "19dc522bef62c87424a09b59b06c72ed4c856520cf17f12b0ffcb8f5bac288cc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/phase-equivalence.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/phase-equivalence.json",
+    "raw_sha256": "29149ef67c44ea6fb19431e2f11b76c8b585b98d7306d6b38f14a9416830c7cd"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/lint-phase-fix/receipt.json",
+    "raw_sha256": "5303b4fbd88d6e9b414bf78a04343f3b584bf02b2c8a0b5cb0d3ba71ae557107"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/fix-receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/fix-receipt.json",
+    "raw_sha256": "aa682d87627983266f9a0e51d67ee2fb1075c7081e4e412aa11f465c4b190017"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/binary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/binary.json.gz",
+    "raw_sha256": "3c192f0c768cb60b80fb4b779158b512182177ef2437aa28a8a0537e1b83285c"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/build.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/build.log.gz",
+    "raw_sha256": "7c65879ffff294863eec51791fa677b162eaaa3f5978aa44cb8e65623892a123"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/build.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/build.receipt.json",
+    "raw_sha256": "32e76e8708353c6f1fbc2a0518885c22bfe3ac350661b6df1a847df9cfb8d510"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/list.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/list.log.gz",
+    "raw_sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/pg16.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/pg16.log.gz",
+    "raw_sha256": "d94ee4a4f7f5911390b1047f0e303617dba3395dbe96977a1448d95be8b15e17"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/pg16.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/native/pg16.receipt.json",
+    "raw_sha256": "4a0d29d425f5ecc1e9752a37502eda65e280c0da8de37061b74bffec3e0f2b38"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-clippy.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-clippy.log.gz",
+    "raw_sha256": "82bf0908075fb3b80815dc6106502aac7211c9df3ba7550aa268bbb6581814fb"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-clippy.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-clippy.receipt.json",
+    "raw_sha256": "dbd5ca3614f26f7dcbf4975178f1917145aa18e20aa5866553ce1232829778fd"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-workspace.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-workspace.log.gz",
+    "raw_sha256": "311f30739605dbeb0d615898d94a5e8150c8e834c4322c0e17019f22c437ee64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-workspace.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/retry-workspace.receipt.json",
+    "raw_sha256": "ef0c3b917e3551a46b7ee4e29795076afac9570fe2e28d01b46303c50fe35dcb"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/native-invalid-event-kind/source-manifest.json.gz",
+    "raw_sha256": "92bc0cf17a8e89d566deb29c38929241ae2fefa8fd3211fbc3d6fd7bfacb52e9"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/retry-clippy.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/retry-clippy.log.gz",
+    "raw_sha256": "fc00212e437ea121613810ea218642188f399a9bfe4c56ba0e708c0b2494fde3"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/retry-clippy.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/retry-clippy.receipt.json",
+    "raw_sha256": "aa59ae1d0adaf6a80a91e224dc636c8e9f7b2e6cdde2781a5d077a8e214b5ecd"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/second-clippy/source-manifest.json.gz",
+    "raw_sha256": "92b4f438b3c51e870a325c474a6d9fbc2884783b1c5d324597f5ea0ca42360ce"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/serial-marker-red/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/serial-marker-red/receipt.json.gz",
+    "raw_sha256": "329fec8b2ce2f1224118489bebe5f7f376ea9adcf9f9663b00a2ec11d2c1e64f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/serial-marker-red/test.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/serial-marker-red/test.log.gz",
+    "raw_sha256": "591181a723b2c6ed7bf5aaa5acc06646ca0ce954f964058d9f1bdd38102cc6e0"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/fix-receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/fix-receipt.json",
+    "raw_sha256": "527a154da5da440d6f27af3e59f4c3715f5d8c035845470c84cf2974e5aa206f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/minimized-repro.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/minimized-repro.log.gz",
+    "raw_sha256": "0cbed2f7ad44331c172df5b68489b0b1e3a452f1147e9c7af5fa73aa35e6a310"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/minimized-repro.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/minimized-repro.receipt.json",
+    "raw_sha256": "6688697fd1ad4be75d4c484331e584b8b21f446438d2a16c0b010d32478a5dad"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-clippy.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-clippy.log.gz",
+    "raw_sha256": "e325734e21f209a475e0f2a470cc3565565f10cccf2baba1e4697c7f194eb6b3"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-clippy.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-clippy.receipt.json",
+    "raw_sha256": "a494d515c91e83e7cad02f1f4da181f03fa7defbdcf151a6153d113d699cde6f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-workspace.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-workspace.log.gz",
+    "raw_sha256": "a2001f92a301844efa92f5f6c9bdb607b373c5054673a9c09a7122ff1a5e75fa"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-workspace.receipt.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/retry-workspace.receipt.json",
+    "raw_sha256": "b5e2db56bd142258be4330678fc736fdf52657ed6a97601771db034a571e086d"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history/workspace-HTTP-fixture/source-manifest.json.gz",
+    "raw_sha256": "cc6e1eb8694981bbdb70b4c11ddc528ed7d4e3d38547d6601e9532f283530876"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history-artifact-index.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/history-artifact-index.json",
+    "raw_sha256": "4b46205d99c94728de42ac4c7f4ffe5d3e06826ff733a12bbc1421541024294f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/manifest.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/manifest.json",
+    "raw_sha256": "6921ba2f1355afda2934b365801d4acdae7360b1b30e6f6838457e78a950a883"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/publication-wording-corrections.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/publication-wording-corrections.json",
+    "raw_sha256": "6e78b1168741374f430452342f7a8237c19bd33d2739eb091a58ed5902ed5c6d"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reports.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reports.json",
+    "raw_sha256": "6d888af1665e353dd0be39210c34e7d4dbbfd0fdc13370aa4f6e1e146e0c8147"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/mcp-bound-state-qualification.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/mcp-bound-state-qualification.log.gz",
+    "raw_sha256": "0ecfb88072b51a21c72917cf8c06292db9513d2b1835fb24df9ab23350c4370d"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/predicate.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/predicate.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/predicate.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/actual_parallel_pg16/predicate.stdout.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/auxiliary-checks.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/auxiliary-checks.json.gz",
+    "raw_sha256": "88950a8efa6b5932f94ed187b583545622ccf1b1dc177434f7a7749df1ffbfdf"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/baseline.yml.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/baseline.yml.gz",
+    "raw_sha256": "b5157afe3e5b33493012a252cc326ee793245f0b98678b3d1078c662dfb7cacc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/candidate-predicates.sh.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/candidate-predicates.sh.gz",
+    "raw_sha256": "2f50c526b02fbdae947595bd4f922bd2604e67b1f81b5d2ef2c4d992d0930168"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/candidate.yml.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/candidate.yml.gz",
+    "raw_sha256": "291a13e3db87d92e9c16bd92b9a6418e9075cf9ee08bac6a84408d3d3d8217e6"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/fix.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/fix.patch.gz",
+    "raw_sha256": "8e30825782faa5de74eb15338cb7547caeb66f71f2b404949198ac4cbfd499c5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/manifest.json.gz",
+    "raw_sha256": "56c072335e83e785001098b2895de0bbf7045a38f054ef715ff96dd5bd8f3c89"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/original-candidate-predicates.sh.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/original-candidate-predicates.sh.gz",
+    "raw_sha256": "2f50c526b02fbdae947595bd4f922bd2604e67b1f81b5d2ef2c4d992d0930168"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/checker.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/checker.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/checker.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/checker.stdout.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/mcp-bound-state-qualification.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg16-original-checker/mcp-bound-state-qualification.log.gz",
+    "raw_sha256": "fec81d9c17d134e47b4d6695c7d9d6f430048c6145fba5149dffef5e5a8b24ef"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/checker.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/checker.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/checker.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/checker.stdout.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/mcp-bound-state-qualification.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/pg17-original-checker/mcp-bound-state-qualification.log.gz",
+    "raw_sha256": "db4f1228f1d611f70b40be9e323eb640d5f1e003a317b4746ce7f4f3b9d2b5bf"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review-inputs.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review-inputs.json.gz",
+    "raw_sha256": "4b2d022298fb727a985a9fcbba5686233b6bc0c138aa97d8d85c0ec19313b7b8"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review-receipt.json.gz",
+    "raw_sha256": "12d8870a151ed0306c5d88d34bc5afff8733b181759dd81a9e1f7d02e228625f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/final-marker-fixture-increment-v1/review.zh-CN.md.gz",
+    "raw_sha256": "18f1d01d92c4fcd81e1ad0c6a0b6255feb837d7aede81980876b1e956296a3cc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/findings.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/findings.json.gz",
+    "raw_sha256": "f860079a11530d46c6ae7dd65785f025b9945429ed326a21f4bd598ca41c2e35"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/manifest.json.gz",
+    "raw_sha256": "43204341f661fdae0baa8fa4639b150b8c75c9e23a5de52c1702b0b898e16a1c"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/mcp-bound-state-qualification.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/mcp-bound-state-qualification.log.gz",
+    "raw_sha256": "50f0acd75538df77aea5b633b7f0f7068f5a0f599f3898f18c5a2b801e3d196a"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/predicate.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/predicate.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/predicate.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/modeled_successful_serialized_pretty_output/predicate.stdout.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/new-step.sh.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/new-step.sh.gz",
+    "raw_sha256": "40c642a4c872f3f3161e57388759850008644d46fbbd2c6a7d3cb019184b62fc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/pipeline.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/pipeline.stderr.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/pipeline.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/pipeline.stdout.gz",
+    "raw_sha256": "cda9be2337014fc0d168ee7189e94636ac801414229312ad722e26c1112d0e38"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review-inputs.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review-inputs.json.gz",
+    "raw_sha256": "ac6c7045519356fa2ab4705e4e8a76da0a717023e025af9044522144b1491350"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review-receipt.json.gz",
+    "raw_sha256": "96c5c8fe9d11f2fb4ff686afab9f7465b141d74f3524f5e0a75be228e866b48a"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/review.zh-CN.md.gz",
+    "raw_sha256": "6c831818f30410c68628b02d394ad4b15a3e7bd98d74d255dd22136089fd7fb8"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/synthetic-pipeline.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/CI/synthetic-pipeline.log.gz",
+    "raw_sha256": "cda9be2337014fc0d168ee7189e94636ac801414229312ad722e26c1112d0e38"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/audit-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/audit-receipt.json.gz",
+    "raw_sha256": "ae9be67df90d8830b57b8b31e98db4d5ae9d2bf0a774e656f18fe9c0048cd182"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/audit.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/audit.py.gz",
+    "raw_sha256": "f1422840db431fee07c9097d4ccdd7ec98bdb2547eab3e67431a54aa9fc23752"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/input-identities.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/input-identities.json.gz",
+    "raw_sha256": "88ad27418d3026e3504e64c7f4dd71bc654e33e11b34e7250f6808a7b24b9a3a"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/manifest.json.gz",
+    "raw_sha256": "6f5ada187f467082802a03eef6117493481873ab44c08390397d6f3cfffd1a84"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/offline-verifier.stderr.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/offline-verifier.stderr.txt.gz",
+    "raw_sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/offline-verifier.stdout.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/offline-verifier.stdout.json.gz",
+    "raw_sha256": "9de1e7138bf25dd4f0f4ff3a415f5a9f979ccfbc038d7d0274f88185420c47d0"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/receipt.json.gz",
+    "raw_sha256": "f0939e0b642d96c92163b3a1a46dfbdb8103f74bea0292f5822f4674dd873c4b"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/review.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/review.md.gz",
+    "raw_sha256": "b3f7206cf420061980c27483abf24d24e93366d1db15dc4105c0c1bc7ed63f05"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/manifest.json.gz",
+    "raw_sha256": "c57ab0bccf07073c0251ba922e3fc3cfa7a46056b209dccc2022a509247585c6"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/receipt.json.gz",
+    "raw_sha256": "df3f591ab00ba71180f32149ce583a40ba5847e628d1fe16c6896f0146f4d52d"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/review.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/adoption-docs-v2/standards-agent/review.md.gz",
+    "raw_sha256": "31b9e15b3c191e87e3dfd3762711ff493d777d50e7f0656a825b439adc44e14c"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/conservative-536-inputs.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/conservative-536-inputs.json.gz",
+    "raw_sha256": "e6e512d9e0bb741b06b31d59797f5fdb67113d9322d0e9b75bd77c8a4e1fb8ff"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/input-identities.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/input-identities.json.gz",
+    "raw_sha256": "9c6b5f762b0f2af893883c47fc530d2e960b3191f734136f8f36943080ea4c05"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/manifest.json.gz",
+    "raw_sha256": "98c83b0cf57b8fa3e7265c57675a997d98131e5ef17e9c03372c8d70a3c1591b"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/raw-command-checks.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/raw-command-checks.json.gz",
+    "raw_sha256": "3fcfe60c12893a27b2f20b2932aea6072b941c9528290ba3a7f741091ce06abe"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/receipt.json.gz",
+    "raw_sha256": "9623569c7ffb50cb6ac49f6fd0901450e436f0affe5725b1ab22b1dc963a5ca3"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/review.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/execution-facts/review.md.gz",
+    "raw_sha256": "7141dc9ad9c4863397abf158f13ed02c3888a080bd9229e793538dde2803c0a2"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/manifest.json.gz",
+    "raw_sha256": "e2fce1e41ba732e7854a07e65a29edba7af6ba420d6215231b5e1d48663df788"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/receipt.json.gz",
+    "raw_sha256": "bc4a59506617e5f0c1b4567b8a600db69d43f7e91df98c0c980cc0ae66fc4d59"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/review.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/interface/review.md.gz",
+    "raw_sha256": "56c6006d54435e58cb44e241cc124402506154ea575d25e6f29d2c9085e83286"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/manifest.json.gz",
+    "raw_sha256": "98689bee7fe9330a347601c31b95d7a2b1bfd62e8f82f4189ecac0de4dca1f98"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/requirements-review.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/requirements-review.json.gz",
+    "raw_sha256": "83eeb62c9758125ac88e7ca1665fe00110a9bff8799cd1c45c68cb5d8ff3431d"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review-inputs.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review-inputs.json.gz",
+    "raw_sha256": "3907d6c3937763313cfbb3a5a5d7a0bc175a8780eda88c52003cf9f54d299b50"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review-receipt.json.gz",
+    "raw_sha256": "1774c1f9b9fffedcc35db6d85453c3aa6c1032dd5edf9604506e208c77e9af78"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/review.zh-CN.md.gz",
+    "raw_sha256": "54805e75ea37b5e6eccc35f268a193fa9636b477685284ed6bd85c1baf0aab42"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/reviewed-source.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/spec/reviewed-source.patch.gz",
+    "raw_sha256": "0864b1689649f46ac902c9258353232c32be417dde9706594b645caa9ec0c11f"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/constructor-context.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/constructor-context.json.gz",
+    "raw_sha256": "df763056eabb2d77f51c6771c9e0f2843b2ded6e82989deba389aa0861142856"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/final-source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/final-source-manifest.json.gz",
+    "raw_sha256": "811f9ef452f3ac27893c9ae0d48aefe2da53abad89b5c050d20a3dcc20f4d175"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/fixture-increment.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/fixture-increment.patch.gz",
+    "raw_sha256": "22706ef724b85e87956d2764996295e0fef896fb77b8e23afdaa82d100af6c89"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/manifest.json.gz",
+    "raw_sha256": "b80ce9a2e2d556f30acf240cc373d65bf05ef7ce24a2897e1abbaf23c78e1cc9"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/review-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/review-receipt.json.gz",
+    "raw_sha256": "a9961a15ca7db2bba0592b33532dbee22f90a16db19a488b7e2ffbc5ff922b96"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/review.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-fixture-increment-v1/review.zh-CN.md.gz",
+    "raw_sha256": "46f44329f3861c5d5c09d51537d0216bd4d6f1463e7be4d3a45fe6adcd8296a8"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-helper-increment.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-helper-increment.patch.gz",
+    "raw_sha256": "92ec9c6b5806150bd39fb2410017d0834643598bd66ef14e1d6b1d2c31ac7598"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-increment-input-verification.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-increment-input-verification.json.gz",
+    "raw_sha256": "a7ae44599c881a9bf32fee20e988041d55829dfc7bc809ce7be831cd2b9f839d"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-review.diff.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-review.diff.gz",
+    "raw_sha256": "2aa1d81b091962db65058b6be819193b095e4683adb46cc8b5d1cc21acb6899e"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/final-source-manifest.json.gz",
+    "raw_sha256": "92bc0cf17a8e89d566deb29c38929241ae2fefa8fd3211fbc3d6fd7bfacb52e9"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/input-verification.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/input-verification.json.gz",
+    "raw_sha256": "58b2996df565ef0ffae06e11f549cdbbb268879843c7dc4b8d0c629d2623cbe4"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/manifest.json.gz",
+    "raw_sha256": "54a239f9ba56e30c862294785989e5b2b49f504572cd376c239f514846c881bc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/protected-input-verification.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/protected-input-verification.json.gz",
+    "raw_sha256": "4218839ab4a6005442eb01bc80c8fec78c209743c5a268b1ed60af4e9fc82de6"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review-receipt.json.gz",
+    "raw_sha256": "3d530214ba0567d214a31b042eaf188692c431ccec263cd3cd7882351f69c6dc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review.diff.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review.diff.gz",
+    "raw_sha256": "62b395ab9cecd1c0ea718385248948bbf561a8126e75323086ef19ab5d641498"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/review.zh-CN.md.gz",
+    "raw_sha256": "98e8fd9ca9bd0169c0c3b784a874b3e23ce9da4ecd6c1fa49f30b95c2e86ff3a"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/standards-sources.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/reviews/standards/standards-sources.json.gz",
+    "raw_sha256": "0d35636ded8090d264593638f9dc45c8e5aa2d05c00918578ad49abccaa55436"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/seal.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/seal.json",
+    "raw_sha256": "eb185524ccf360991b7bdf1631672402c17c890e73f580ccf95627da56446cc2"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/adoption-files.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/adoption-files.json",
+    "raw_sha256": "068f27cef16abb7e3becb76513cab40b39b065b34bdbf947c9d21a0ab2353ed2"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/base-references.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/base-references.json",
+    "raw_sha256": "a04d4425f30ae10ebebc448c4888d258b016e9512764e4364fd01c83c96060c4"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/candidate.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/candidate.patch.gz",
+    "raw_sha256": "69f926c8d949fd09cbee4440e56594ec389efe328e4ad59241380e314a15d5dc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/compiled-inputs.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/compiled-inputs.json",
+    "raw_sha256": "133820f142ec417fd9b4fb46548cf7b36f2e5b51cb395fa95ec232ff247fa17c"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/final-reconstruction.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/final-reconstruction.json",
+    "raw_sha256": "cc470c72b1d07ba2679323899a1c31c739357be2df7e5840fe6667d5b50abfdc"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/final-source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/final-source-manifest.json.gz",
+    "raw_sha256": "f6d8f35aa903eed8907c2edc49881573e06e9193ff022206259088528d1182a1"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/historical-reconstruction.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/historical-reconstruction.json",
+    "raw_sha256": "87083639c9c1c547eec05dae60309e4d635e21d75d567335f042a83591caf3a2"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/main-boundary.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/main-boundary.json",
+    "raw_sha256": "9ab4bcc8a767ffb93dd335b40034404a53c5a0377c06232fa57e36bb4a05d4db"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/0748ccec2da55113c01dc8e6b3dcd5eabd921c4cfcc9892b98ca4a17874768bd.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/0748ccec2da55113c01dc8e6b3dcd5eabd921c4cfcc9892b98ca4a17874768bd.txt.gz",
+    "raw_sha256": "7e04ecc9189ca8a98db8c0ed1e06d5f91cd15b34ec643c932f4608a5c905309e"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560.txt.gz",
+    "raw_sha256": "4865a696bc97dfb577991b3e0d7e522a05d184e4cbbe45fc6417847290695622"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8.txt.gz",
+    "raw_sha256": "29d3d251fb36ca848eaa73413b387337d0d2abae17661bf0fae527f72446ecd8"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca.txt.gz",
+    "raw_sha256": "1bd838aeb7b294f78fa4dd03202f09a62a8d403af2b1127d21ea1d59d555f59e"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4c326a037a8d84e1be12889377738a5d90d833689ef4b5deedae118c57d264d9.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4c326a037a8d84e1be12889377738a5d90d833689ef4b5deedae118c57d264d9.txt.gz",
+    "raw_sha256": "6790dcab3e7b845f6972d6eab1692f86373cfc2d01ff452cc3e469fdba9e9a98"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4fa232b251ae06ff6140bda3655a1b74a153e33acd546b11ab34b29f3dd26010.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/4fa232b251ae06ff6140bda3655a1b74a153e33acd546b11ab34b29f3dd26010.txt.gz",
+    "raw_sha256": "7d2d641e546cc071849c788c6557bab5106f0af58e63650fa7342612666990be"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/5150f79356c5ea6ed091c1abd8d107560f912601d25214133a9af54691145615.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/5150f79356c5ea6ed091c1abd8d107560f912601d25214133a9af54691145615.txt.gz",
+    "raw_sha256": "506785df4b9bd14c99a21d819e54429f2ff306039c7736f7da30af4633fc33b8"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/68d5b0e350dbce42a42ec05dac11db4cac6ce6c9f0d9337a162c7f1bfeb9c55a.txt.gz",
+    "raw_sha256": "87069c4d37c1a943e6df0a9abf84fc5a4f78c6d09bb6cfc3fbd3d42c201b4a3c"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/69aacce70e0826f011cc956deaace864513a50ba7815ccb71bb4ccda912d22ed.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/69aacce70e0826f011cc956deaace864513a50ba7815ccb71bb4ccda912d22ed.txt.gz",
+    "raw_sha256": "9d1a1d59aa2928c7ec604e1c6242451284ba424a0c81f5b12143e0069f5391a7"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/6d22e3b162187d446c4fa243cd6c5e58505d972a2065315c9f6a9b7bc2b5bdba.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/6d22e3b162187d446c4fa243cd6c5e58505d972a2065315c9f6a9b7bc2b5bdba.txt.gz",
+    "raw_sha256": "3e22103d7a054f8a52f8c8488bdf4a7ea951f183f6746b37aab722c0620f10c2"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/7eb1479003dd7c6e60ffcab3839b2bfc9763ee6dac578f2d9d6174460a94e737.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/7eb1479003dd7c6e60ffcab3839b2bfc9763ee6dac578f2d9d6174460a94e737.txt.gz",
+    "raw_sha256": "b81480eb2a6c825c73a338b89e62ed9852fc020547b5e1abb38d26ea23ece023"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3.txt.gz",
+    "raw_sha256": "7afdc4db997c2f9edfe9610ff8c8e7f69a0190491039ecbfd9d677cb3baf93ab"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/9ffb892525a45226b6df0dcd2b91a9c30a3d0d328711ab1d123a8d28cec3802f.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/9ffb892525a45226b6df0dcd2b91a9c30a3d0d328711ab1d123a8d28cec3802f.txt.gz",
+    "raw_sha256": "6bf020947caa7770478279cd5c680d796f6ff9461c18c2a3853aa4af22185d56"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/af082e8e4ba0dce9de4cb5e0df22ccb495785a8bc94d5551b7591271965cdf67.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/af082e8e4ba0dce9de4cb5e0df22ccb495785a8bc94d5551b7591271965cdf67.txt.gz",
+    "raw_sha256": "1c562c65fd228d2920b1ad964e9b7acf570a424ac9bb82b44f271e7fd52e3541"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/bf373b080025d40e619e16b6144295a363754653ab3c162e7f9433773abd30b7.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/bf373b080025d40e619e16b6144295a363754653ab3c162e7f9433773abd30b7.txt.gz",
+    "raw_sha256": "ad5f87db367fbdedd5531a9709f79c23285cc1de2e721c00b79324372d92f449"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827.txt.gz",
+    "raw_sha256": "cfa8d968582289c1f7088411580577d83f5a252349f922ec3f1de396e39638c5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335.txt.gz",
+    "raw_sha256": "2c4179a959da58ba0f24bf5d08d453205be57268b6c4a1b5d48009c010639da7"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/d529d4b5ad21597659099279a2f70a716e6770f321723f1e6f9145ab17b2871a.txt.gz",
+    "raw_sha256": "eaa728cc884aa0ab6205268de3a215d2f253a343fbf327d7659a494071a3e785"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e1d9b4064f84a1606c0114483a4ff6a0d259fcc43c2e1d1c3e914b446678f8e5.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e1d9b4064f84a1606c0114483a4ff6a0d259fcc43c2e1d1c3e914b446678f8e5.txt.gz",
+    "raw_sha256": "6121e203c35a0ec3c0ca3094c66b711bc20a6a779b18d323aa78f956dec6991c"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e420f926b1d61b4eb462c8844378b0690b0e2bf54a0b55e59b15f17e69058fe6.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e420f926b1d61b4eb462c8844378b0690b0e2bf54a0b55e59b15f17e69058fe6.txt.gz",
+    "raw_sha256": "d9e1c4258b2621e51e284b897ef794fe9396f16836b9cd25593d511ba697a6cd"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e9e3618aeb18777035a0455da847786f7a1b72a9082c054dcc4351645c76827d.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/e9e3618aeb18777035a0455da847786f7a1b72a9082c054dcc4351645c76827d.txt.gz",
+    "raw_sha256": "aecb802d97c8445ca42dd4ce666d1d0b17a41b18857207d732a2bdae695cdf4d"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/source/payloads/f2595e313ff0332cb1f0a0babc8ed52d3ba4116fa18e3f62828ad3ed3ed0eb1b.txt.gz",
+    "raw_sha256": "e39d772fcb1f1a31b9512fd6898ded7022b82054cf37ff895d9fff4737bfa1f5"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/verify.py",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/evidence/experimental-mcp-bound-state-2026-10-15/verify.py",
+    "raw_sha256": "a446543641dcea5e539ced4d02ff9fafc5e46db78825ae0c6cd71627857eaa17"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/experimental-mcp-bound-state-2026-10-15.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/experimental-mcp-bound-state-2026-10-15.json",
+    "raw_sha256": "b70f22cff9a10c9dc64958fd57b0ad140c78d91c8f4cb686786239681a94c1db"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/experimental-mcp-bound-state-2026-10-15.md",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/experimental-mcp-bound-state-2026-10-15.md",
+    "raw_sha256": "2fddb7908c7438136aa707f2d9f64bd3e866b5702199d9a184c3ad0bfcb07440"
+  },
+  {
+    "path": "history/old-eedd-publication/docs/qualification/experimental-mcp-bound-state-2026-10-15.zh-CN.md",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/docs/qualification/experimental-mcp-bound-state-2026-10-15.zh-CN.md",
+    "raw_sha256": "b131040f1c1062530ad36b530dc67fa9c6edcddf7b266483b6c7d4d15bcdcb77"
+  },
+  {
+    "path": "history/old-eedd-publication/publication-manifest.json",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-main-publication-v1/publication-manifest.json",
+    "raw_sha256": "698416c2a88df3adc07397d60dd38398710b34ac259dc49d82d30514348699a5"
+  },
+  {
+    "path": "source/final-source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/frozen-source-manifest.json",
+    "raw_sha256": "bb55b237ac2daaecf334c92297dc64a147eadfdc8dd4d730677110ce01837371"
+  },
+  {
+    "path": "source/root-compiled-inputs.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/compiled-inputs.json",
+    "raw_sha256": "6e035a6a2be46f689bf433b55c06392fd81a83767c304a6bebb7c057467e35e6"
+  },
+  {
+    "path": "source/actual-main-parent-before-adoption.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-main-publication-v2/actual-main-parent-read-receipt.json",
+    "raw_sha256": "6907643490532fbfe539494a5c52aa5e2b99e04c3b84a8b25a0238e47316c3a4"
+  },
+  {
+    "path": "history/numeric-alias-red/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-numeric-argument-probe-v1/receipt.json",
+    "raw_sha256": "7229eed6089135ca294a48a0caa8afca393ba4d61c6e801f055b3212cf5bcf77"
+  },
+  {
+    "path": "history/numeric-alias-red/test.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-numeric-argument-probe-v1/test.log",
+    "raw_sha256": "5428660fd12dc58c3f872c96917fd80fe254cc28991f4232c6452c299582bb0b"
+  },
+  {
+    "path": "history/numeric-alias-red/source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-numeric-argument-probe-v1/source-manifest.json",
+    "raw_sha256": "00e39d2b34d17868727a70f110db56bc7b98717b33cae712864365f354cde62d"
+  },
+  {
+    "path": "history/numeric-finding/counterexample-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/counterexample-receipt.json",
+    "raw_sha256": "7229eed6089135ca294a48a0caa8afca393ba4d61c6e801f055b3212cf5bcf77"
+  },
+  {
+    "path": "history/numeric-finding/counterexample.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/counterexample.log",
+    "raw_sha256": "5428660fd12dc58c3f872c96917fd80fe254cc28991f4232c6452c299582bb0b"
+  },
+  {
+    "path": "history/numeric-finding/finding.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/finding.json",
+    "raw_sha256": "cbf93a18a44561087d0f0a93ae48a8663267ea5c96a7314d0c1b96dfa510f117"
+  },
+  {
+    "path": "history/numeric-finding/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/manifest.json",
+    "raw_sha256": "f880641daed5a466b2f6418ccb30f78a9526e726b402634a5c727d0da63c8278"
+  },
+  {
+    "path": "history/numeric-finding/minimal-fix-design-review.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/minimal-fix-design-review.json",
+    "raw_sha256": "b999dca25f78b682ce58d6e5dd653d2b3a292da5ed8350c513299ba81a2ec6a5"
+  },
+  {
+    "path": "history/numeric-finding/probe-only-test.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/probe-only-test.patch",
+    "raw_sha256": "3cdfbd469e17813976e714c68f58921f9a0a0b044d5420714a982a9785234a22"
+  },
+  {
+    "path": "history/numeric-finding/prompt-reachability-narrowing-v1/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/prompt-reachability-narrowing-v1/manifest.json",
+    "raw_sha256": "4b76425094f33432a71cdc243c3802613057db2dbc3e6136e6280cdb92652645"
+  },
+  {
+    "path": "history/numeric-finding/prompt-reachability-narrowing-v1/review-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/prompt-reachability-narrowing-v1/review-receipt.json",
+    "raw_sha256": "b8d960d49a691141dc2c67fea24dec28b013befeef630e3ccf6a46dff79f7f4b"
+  },
+  {
+    "path": "history/numeric-finding/prompt-reachability-narrowing-v1/review.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/prompt-reachability-narrowing-v1/review.zh-CN.md",
+    "raw_sha256": "649a7221bb20ba4b484aa1c663ea79a4618bf0428aa18912639653c0eaf0f3b6"
+  },
+  {
+    "path": "history/numeric-finding/review-inputs.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/review-inputs.json",
+    "raw_sha256": "3ea4d97ad05ecce45205e69b8fb06922359773da1478d898aa5f7005169f0ae9"
+  },
+  {
+    "path": "history/numeric-finding/review-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/review-receipt.json",
+    "raw_sha256": "b52b522aa6a361d07698d4cf9ad5993b9628d85f4752c1a154e9bd8769089024"
+  },
+  {
+    "path": "history/numeric-finding/review.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/mcp-bound-state-numeric-binding-review-v1/review.zh-CN.md",
+    "raw_sha256": "bdce68de61bdc890ffeaa9265799678e7c5e0cd834ef4ece517138ddf747d7de"
+  },
+  {
+    "path": "history/a87-unit-lifetime-red/clippy.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v2/clippy.log",
+    "raw_sha256": "7067ce57e1a6c68bcfedd64650ec05e181d7f366e1a079d9be0baa52120eb8b3"
+  },
+  {
+    "path": "history/a87-unit-lifetime-red/clippy.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v2/clippy.receipt.json",
+    "raw_sha256": "57e72d0e2c4f18e78342833c100e8be0bb6c52be31883d3aba559c0ce9a7ff86"
+  },
+  {
+    "path": "history/a87-unit-lifetime-red/freeze.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v2/freeze.json",
+    "raw_sha256": "513b3e3654f7d0708fa29529971a4d35f4b82df2fca1905a1b731528c54e00df"
+  },
+  {
+    "path": "history/a87-unit-lifetime-red/frozen-source-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v2/frozen-source-manifest.json",
+    "raw_sha256": "02c1dca6d9362b00ac4f0db285231831c71f58bfac5e6acf5c7366a4981ff5a4"
+  },
+  {
+    "path": "history/a87-unit-lifetime-red/format.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v2/format.receipt.json",
+    "raw_sha256": "1c8882335732fb158eaa183b4f5e34ec3d40c0459bd53feb2b00d06e5c6f3bc0"
+  },
+  {
+    "path": "history/69af-sandbox-loopback-red/workspace.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/workspace.log",
+    "raw_sha256": "6ec5e7e2afb196b2db4b6f3beffd0a5208baec865fc6ac3edef53f2e079cfd71"
+  },
+  {
+    "path": "history/69af-sandbox-loopback-red/workspace.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/workspace.receipt.json",
+    "raw_sha256": "7fe06584f1aa741bda3499c192e7ceac798bf4f0a7cecf6877786e69c301174b"
+  },
+  {
+    "path": "history/69af-sandbox-loopback-red/freeze.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/freeze.json",
+    "raw_sha256": "5eb346151d2e9192f2bed4306ba6e911e9e95ad738c11683890172a6f7297bd3"
+  },
+  {
+    "path": "history/69af-sandbox-loopback-red/unit-lifetime-fix.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/unit-lifetime-fix.patch",
+    "raw_sha256": "ddc7b81d2c79a9063860f3cac5f6631cde5e48fd3880898a204fbfc571e9f111"
+  },
+  {
+    "path": "execution/retry-basis.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/retry-basis.json",
+    "raw_sha256": "b3e6f4d4db303f30c143e02254dd419104c2f1450f42f4a2de08448c0288ae78"
+  },
+  {
+    "path": "execution/parent-freeze.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/freeze.json",
+    "raw_sha256": "5eb346151d2e9192f2bed4306ba6e911e9e95ad738c11683890172a6f7297bd3"
+  },
+  {
+    "path": "execution/parent-execute-six.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/execute-six.py",
+    "raw_sha256": "523169e5ec77d659cf3afd5589f4939f86d4a8e9ec70ed2ed4941091e9c5ae89"
+  },
+  {
+    "path": "execution/gates/fmt.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/fmt.log",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/gates/fmt.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/fmt.receipt.json",
+    "raw_sha256": "b07075a678d941cc68e46569a23bcd3ab5da757565f0e712560b6674cf290f98"
+  },
+  {
+    "path": "execution/gates/fmt.before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/fmt-before.df",
+    "raw_sha256": "2e31c98cc6d4c1873d107899766f1fa20913675e911e2c10ac8826881c556fb9"
+  },
+  {
+    "path": "execution/gates/fmt.after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/fmt-after.df",
+    "raw_sha256": "2313108b07f566fa7753c6370f038e59eb83c3925cc29220093669c2b05412e8"
+  },
+  {
+    "path": "execution/gates/fmt.before-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/fmt-before-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/fmt.after-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/fmt-after-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/clippy.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/clippy.log",
+    "raw_sha256": "970c742910792bfbe48abef0e530c79a74dbeaab153744556de13c44dbdb2074"
+  },
+  {
+    "path": "execution/gates/clippy.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/clippy.receipt.json",
+    "raw_sha256": "dd46baeaa791739ecc8d3bd5be94760f57eca565c0dfee3a62f46888d064b640"
+  },
+  {
+    "path": "execution/gates/clippy.before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/clippy-before.df",
+    "raw_sha256": "3636648b28f5bae54ac7e502e0dd023b227f1313aa43ca7bf3064366a4cefacc"
+  },
+  {
+    "path": "execution/gates/clippy.after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/clippy-after.df",
+    "raw_sha256": "79563ef5405b7d46414c365f1b434f87bb0392f885747ff67db2f0da02d339ff"
+  },
+  {
+    "path": "execution/gates/clippy.before-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/clippy-before-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/clippy.after-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/clippy-after-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/workspace.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/workspace.log",
+    "raw_sha256": "dc3e9b0a16ad74bb41239b6f1cdbd2997c9f01dfec584dcb77d93d045da1e264"
+  },
+  {
+    "path": "execution/gates/workspace.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/workspace.receipt.json",
+    "raw_sha256": "8598ec23429809e92f5625ff52d34721db4ccdaa526ff5a535b7fb7dbf8181ad"
+  },
+  {
+    "path": "execution/gates/workspace.before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/workspace-before.df",
+    "raw_sha256": "38c4da07dc712891baa914de60343a6509de7928f256dba954cdc5caba2d17cc"
+  },
+  {
+    "path": "execution/gates/workspace.after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/workspace-after.df",
+    "raw_sha256": "3896bf3a97516422af25fd7d3d515ce7eb2ad2a22dc8e2e860cb2a24fedf14c5"
+  },
+  {
+    "path": "execution/gates/workspace.before-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/workspace-before-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/workspace.after-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/workspace-after-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/doctests.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/doctests.log",
+    "raw_sha256": "d365f49369b5ad4182ed6c89e86cf61ba0deeae7be35992c17fee616a7bec875"
+  },
+  {
+    "path": "execution/gates/doctests.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/doctests.receipt.json",
+    "raw_sha256": "d9ab85325fb0f4f371bf9d94f39d354aeb91eaa614070309020d80567e53051f"
+  },
+  {
+    "path": "execution/gates/doctests.before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/doctests-before.df",
+    "raw_sha256": "dd9cf71870192daf3ae9ba1a8de159f28b33f562933ef4a5ac6226d600cb4b41"
+  },
+  {
+    "path": "execution/gates/doctests.after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/doctests-after.df",
+    "raw_sha256": "465cb6396f9e89b5c81471a64c7392537bfe049feab3c2c0901ed5a5261c2c46"
+  },
+  {
+    "path": "execution/gates/doctests.before-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/doctests-before-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/doctests.after-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/doctests-after-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/rustdoc.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/rustdoc.log",
+    "raw_sha256": "750050c7f75a9bd4370591a4140ee98d8ca32700261d040ddf758a8064f27cca"
+  },
+  {
+    "path": "execution/gates/rustdoc.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/rustdoc.receipt.json",
+    "raw_sha256": "781fe2c70cb67f2b397ede421b7bc60726446b56478751b71be6f79b749e85df"
+  },
+  {
+    "path": "execution/gates/rustdoc.before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/rustdoc-before.df",
+    "raw_sha256": "8c0e9a0ff6c58594d87ae9e29af1912b199787d61a7281d6c69d6d23f8b24b22"
+  },
+  {
+    "path": "execution/gates/rustdoc.after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/rustdoc-after.df",
+    "raw_sha256": "2a6818e0caeee8dba719343e2648660567037ce7ce532145f80b33f96e5ba78b"
+  },
+  {
+    "path": "execution/gates/rustdoc.before-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/rustdoc-before-cache-budget.json",
+    "raw_sha256": "11ced6a75555dd1466c3f95e7657c68a6788b1dd2d4f18cb2b48ac042e58173f"
+  },
+  {
+    "path": "execution/gates/rustdoc.after-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/rustdoc-after-cache-budget.json",
+    "raw_sha256": "9f12e340d6d2fe007173eca62bc0f35d12435aa2e78d33cea9e00c9e19744e28"
+  },
+  {
+    "path": "execution/gates/nightly.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/nightly.log",
+    "raw_sha256": "809f0cdfff107f61bd8dd791c82c4562d6f53914149fc69b5353a8ad00e6c7ef"
+  },
+  {
+    "path": "execution/gates/nightly.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/nightly.receipt.json",
+    "raw_sha256": "1da3e761520268562551c3998f2412da39304bdc5900e94f26ff72714fe2d70c"
+  },
+  {
+    "path": "execution/gates/nightly.before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/nightly-before.df",
+    "raw_sha256": "b0d514b7427a424e4b8e9ebf3597d4b721ce8b4bd66f6d5949b8448922fd8eea"
+  },
+  {
+    "path": "execution/gates/nightly.after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/nightly-after.df",
+    "raw_sha256": "cb154e2c30847f6b4ee985e3a4c1747b9c53a5f1f11942f9dc4aaf1727964df0"
+  },
+  {
+    "path": "execution/gates/nightly.before-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/nightly-before-cache-budget.json",
+    "raw_sha256": "9f12e340d6d2fe007173eca62bc0f35d12435aa2e78d33cea9e00c9e19744e28"
+  },
+  {
+    "path": "execution/gates/nightly.after-cache-budget.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/nightly-after-cache-budget.json",
+    "raw_sha256": "88fee333d3e2492d01eb9ab1c555817cb85d01102d5c27cb487c909dda8558d4"
+  },
+  {
+    "path": "execution/six-gates-summary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/six-gates-summary.json",
+    "raw_sha256": "df606e23aeb0fb3ba25d43f8c4b6a74ab4f248138f8ef0ffb88452253c447ae7"
+  },
+  {
+    "path": "execution/execute-six.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/execute-six.py",
+    "raw_sha256": "523169e5ec77d659cf3afd5589f4939f86d4a8e9ec70ed2ed4941091e9c5ae89"
+  },
+  {
+    "path": "execution/run-native.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/run-native.py",
+    "raw_sha256": "50f692ae2c2ddf7146c3c7b4ecc2d41162746a960ec1e3817b84c2a2647bb712"
+  },
+  {
+    "path": "execution/final-resource-observation.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/final-resource-observation.json",
+    "raw_sha256": "bbc679752312de1dc1543fb4d1308ab601a198a60387bfb20ea179b86e160636"
+  },
+  {
+    "path": "execution/final-resource-raw/0-lsof.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/final-resource-observation/0-lsof.stderr",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/final-resource-raw/0-lsof.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/final-resource-observation/0-lsof.stdout",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/final-resource-raw/1-lsof.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/final-resource-observation/1-lsof.stderr",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/final-resource-raw/1-lsof.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/final-resource-observation/1-lsof.stdout",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/final-resource-raw/2-lsof.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/final-resource-observation/2-lsof.stderr",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/final-resource-raw/2-lsof.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/final-resource-observation/2-lsof.stdout",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/final-resource-raw/df.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/final-resource-observation/df.txt",
+    "raw_sha256": "c2a2352386c5cee687c1d6a0696889752dfa694d5abedaebf732480c849633f4"
+  },
+  {
+    "path": "source/compilation-identity-ordering/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/compilation-identity-ordering-v1/receipt.json",
+    "raw_sha256": "e32113140549eaf7c7d370644b0acd7ed27b01ab9a6e8cfe02210e059ef7df28"
+  },
+  {
+    "path": "source/compilation-identity-ordering/relative-path-sorted-inputs.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/compilation-identity-ordering-v1/relative-path-sorted-inputs.json",
+    "raw_sha256": "ef62bbff1971a3d4ba69c9f0182d8cb558fd6a897209da722b200fdb14c1fbb1"
+  },
+  {
+    "path": "source/root-main-source-adoption-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-main-adoption-v2/source-adoption-receipt.json",
+    "raw_sha256": "1e60b23d2ff69a7efcc2ba7ee0d03c2ec201ad9c1cb02f28ee47795c9eff441b"
+  },
+  {
+    "path": "execution/native/binary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/binary.json",
+    "raw_sha256": "3e75786aa20c0b6c45f871e0e77726440746277805a09d1eb9ea08d544d686ae"
+  },
+  {
+    "path": "execution/native/build-after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/build-after.df",
+    "raw_sha256": "3580422fccc008e9b75a7a80258708938cb80d10bc616425bf3f4ccfc7c6c841"
+  },
+  {
+    "path": "execution/native/build-before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/build-before.df",
+    "raw_sha256": "1bddf550c8768e8779de60917357770d05dd5edbd6c8411b0650e882ccc4bb3e"
+  },
+  {
+    "path": "execution/native/build.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/build.log",
+    "raw_sha256": "272571670e990563f5c7cc7402b22c8db8bb8badf74d583152715333f6ae2e1b"
+  },
+  {
+    "path": "execution/native/build.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/build.receipt.json",
+    "raw_sha256": "7ed557f2dbfbebff253cc48e439da2645a81e51ff25196529989d173c7b74241"
+  },
+  {
+    "path": "execution/native/final-binary-lsof.stderr.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/final-binary-lsof.stderr",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/native/final-binary-lsof.stdout.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/final-binary-lsof.stdout",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "execution/native/final.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/final.df",
+    "raw_sha256": "69552dfce3361e93a801534318ccf4821b2493946180c0511ed39b2882bea2ae"
+  },
+  {
+    "path": "execution/native/initial.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/initial.df",
+    "raw_sha256": "b70d2c3f442a69e085d2c53117022ffc78ef778ce26e6108b3b00e9fdd8cf50b"
+  },
+  {
+    "path": "execution/native/inputs-build-after.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-build-after.json",
+    "raw_sha256": "16c62973b4b6ee7ac5f866e8622ef1e9cc5a273c008f32fb6fcbb4d8aa463725"
+  },
+  {
+    "path": "execution/native/inputs-build-before.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-build-before.json",
+    "raw_sha256": "a89929a3d825d677b23ac688a722dae3515da26f3bebe1f73f5716ef6c3841c3"
+  },
+  {
+    "path": "execution/native/inputs-final.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-final.json",
+    "raw_sha256": "16c62973b4b6ee7ac5f866e8622ef1e9cc5a273c008f32fb6fcbb4d8aa463725"
+  },
+  {
+    "path": "execution/native/inputs-initial.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-initial.json",
+    "raw_sha256": "a89929a3d825d677b23ac688a722dae3515da26f3bebe1f73f5716ef6c3841c3"
+  },
+  {
+    "path": "execution/native/inputs-list-after.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-list-after.json",
+    "raw_sha256": "16c62973b4b6ee7ac5f866e8622ef1e9cc5a273c008f32fb6fcbb4d8aa463725"
+  },
+  {
+    "path": "execution/native/inputs-list-before.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-list-before.json",
+    "raw_sha256": "16c62973b4b6ee7ac5f866e8622ef1e9cc5a273c008f32fb6fcbb4d8aa463725"
+  },
+  {
+    "path": "execution/native/inputs-pg16-after.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-pg16-after.json",
+    "raw_sha256": "16c62973b4b6ee7ac5f866e8622ef1e9cc5a273c008f32fb6fcbb4d8aa463725"
+  },
+  {
+    "path": "execution/native/inputs-pg16-before.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-pg16-before.json",
+    "raw_sha256": "16c62973b4b6ee7ac5f866e8622ef1e9cc5a273c008f32fb6fcbb4d8aa463725"
+  },
+  {
+    "path": "execution/native/inputs-pg17-after.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-pg17-after.json",
+    "raw_sha256": "16c62973b4b6ee7ac5f866e8622ef1e9cc5a273c008f32fb6fcbb4d8aa463725"
+  },
+  {
+    "path": "execution/native/inputs-pg17-before.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/inputs-pg17-before.json",
+    "raw_sha256": "16c62973b4b6ee7ac5f866e8622ef1e9cc5a273c008f32fb6fcbb4d8aa463725"
+  },
+  {
+    "path": "execution/native/list-after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/list-after.df",
+    "raw_sha256": "a46bd933b72e9619981ad29bb233baa1c0fc861343c1cc12a9d233b7ee3f702c"
+  },
+  {
+    "path": "execution/native/list-before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/list-before.df",
+    "raw_sha256": "416a108f38c434be97013a116a8e814807d69eee1bb458b5f54164a4d4bf9d42"
+  },
+  {
+    "path": "execution/native/list.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/list.log",
+    "raw_sha256": "b1690026666ef909bead042f61732d690bff9f530fa3fbab23983b29ca84eb5d"
+  },
+  {
+    "path": "execution/native/list.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/list.receipt.json",
+    "raw_sha256": "f8ceb20933a54f067aecf7ad2847b561c6c8d60a46f6187a153094517c3f83df"
+  },
+  {
+    "path": "execution/native/pg16-after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg16-after.df",
+    "raw_sha256": "c0b5918ba1469cb3d89ad7f6cf441d9e3f0a7cb1e161e7914a6ce42cc8df0fb0"
+  },
+  {
+    "path": "execution/native/pg16-before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg16-before.df",
+    "raw_sha256": "4e1964ca2cfc0d1e125c1ea26d2c1758b58cfa072d993953fae6c7d03472fb03"
+  },
+  {
+    "path": "execution/native/pg16-database.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg16-database.json",
+    "raw_sha256": "3ebc16ec88c67b9343601ffaf5887c5361fe295d06713c796a333f508e291fea"
+  },
+  {
+    "path": "execution/native/pg16.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg16.log",
+    "raw_sha256": "0e9469442f880f644935b4c4c40504510bd7e68d22abd26305bf598f9ef9076c"
+  },
+  {
+    "path": "execution/native/pg16.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg16.receipt.json",
+    "raw_sha256": "df412b1fc042eb952ff0e2ef28961d743bc74cfc321c8a474edcc39477546684"
+  },
+  {
+    "path": "execution/native/pg17-after.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg17-after.df",
+    "raw_sha256": "0eba6c217d5b7d5c828e4917f5b30238f61e7e1cebfe34ac75378a31eb56fb8d"
+  },
+  {
+    "path": "execution/native/pg17-before.df.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg17-before.df",
+    "raw_sha256": "760b44d9dd1b42a529d58a2758673dc0895902e866c17f3ebe3f1103c94a2a3a"
+  },
+  {
+    "path": "execution/native/pg17-database.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg17-database.json",
+    "raw_sha256": "86622761d3a1386b1c1cea4ea70fd500cc8694bc6bc31b368b9333cda1051784"
+  },
+  {
+    "path": "execution/native/pg17.log.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg17.log",
+    "raw_sha256": "7e5144b94176c36dc1414482a79b94aa10b4f9916a67ba572dea958871daa1fa"
+  },
+  {
+    "path": "execution/native/pg17.receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/pg17.receipt.json",
+    "raw_sha256": "21fa1da16946e6677bd0328c73d2c2b6c7407396ef9e40f504296f843f0b0454"
+  },
+  {
+    "path": "execution/native/summary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-qualification-v3/network-enabled-retry-v1/native-serial-default-profile-v4/summary.json",
+    "raw_sha256": "e77500f95393bdb15b0126bf6e3512091c1604b8887875bd4786b952cf62368c"
+  },
+  {
+    "path": "reviews/interface-v2/CONTRACT.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/CONTRACT.md",
+    "raw_sha256": "3e0b88459c5450d1a06270585a0b7ca6204b363db28c9ec803666c40f6056623"
+  },
+  {
+    "path": "reviews/interface-v2/MIGRATION.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/MIGRATION.zh-CN.md",
+    "raw_sha256": "e8c2e382c0875c8d4a5c74fda09f41782f681a7a7cd21d2f34dcb83869a25798"
+  },
+  {
+    "path": "reviews/interface-v2/README.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/README.md",
+    "raw_sha256": "4604f701a92f90aab3773349f4d5c17c607e89389c34cb6d0ce54339cd207e22"
+  },
+  {
+    "path": "reviews/interface-v2/contract-checklist.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/contract-checklist.json",
+    "raw_sha256": "2aba0ca2a0f392d4ede891aa01dde562045e7e78fd2a07c543e8fdf57dffab3b"
+  },
+  {
+    "path": "reviews/interface-v2/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/manifest.json",
+    "raw_sha256": "b30ebd7a0fdae5a68cfa7212a8061c54aaf1a7cf82212690f8846b6cd96421ac"
+  },
+  {
+    "path": "reviews/interface-v2/private-interface.rs.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/private-interface.rs.txt",
+    "raw_sha256": "21ae5a17c54cb06f0e3b3dd875f65a05cd90b303525ef71716947f5a89cf8488"
+  },
+  {
+    "path": "reviews/interface-v2/public-interface.rs.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/public-interface.rs.txt",
+    "raw_sha256": "76d00a7ee6f43b7bec0e8a7666cb58f0af573d4d775afdf46a46b4f1e925372d"
+  },
+  {
+    "path": "reviews/interface-v2/seal.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/seal.json",
+    "raw_sha256": "8eb839dd4fa1cd6a6347a072e5e9106c2c9b7705b12090071928167002dc0918"
+  },
+  {
+    "path": "reviews/interface-v2/source-read-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/source-read-receipt.json",
+    "raw_sha256": "badaf37f512cf00a009786ab5e6105299f31ac210b8f004897081dc8291a7a66"
+  },
+  {
+    "path": "reviews/interface-v2/verify.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-bound-state-interface-v2/verify.py",
+    "raw_sha256": "6e5b64064f64bb0aa3823ef9544ce35dcdef0531f436683f4133d5d8c8a457f1"
+  },
+  {
+    "path": "reviews/standards/fixed-five-file.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-standards-review-v2/fixed-five-file.patch",
+    "raw_sha256": "0c39880e69cca728abd982a84fe2478696a564482a85e98eb9480424f73e99e2"
+  },
+  {
+    "path": "reviews/standards/input-identities.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-standards-review-v2/input-identities.json",
+    "raw_sha256": "41a1e85b10ab3942e3f056750bb1b82ceca222d60391a3743da7e161d1eacdbf"
+  },
+  {
+    "path": "reviews/standards/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-standards-review-v2/manifest.json",
+    "raw_sha256": "008fc32cc096ce3abb108ce3edd3f3332c99187ac6e099db5430dcdd8af67b1e"
+  },
+  {
+    "path": "reviews/standards/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-standards-review-v2/receipt.json",
+    "raw_sha256": "6a6684a029e28d291d7e0c7242ed64e2818a5c4821e4305873b225b3720223db"
+  },
+  {
+    "path": "reviews/standards/review.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-standards-review-v2/review.md",
+    "raw_sha256": "d0a5df78501cd8c5e925a5cb7ae3340f25f8dd2e48402dd9378fa40d8b9e4de7"
+  },
+  {
+    "path": "reviews/numeric-Spec/increment-vs-eedd.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-numeric-spec-review-v1/increment-vs-eedd.patch",
+    "raw_sha256": "0c39880e69cca728abd982a84fe2478696a564482a85e98eb9480424f73e99e2"
+  },
+  {
+    "path": "reviews/numeric-Spec/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-numeric-spec-review-v1/manifest.json",
+    "raw_sha256": "bcb83ebedcb0902ed6cb66da522fe9cf0cde0a2c03419972350759c012962d76"
+  },
+  {
+    "path": "reviews/numeric-Spec/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-numeric-spec-review-v1/receipt.json",
+    "raw_sha256": "c74e772b848ed2209aeaf6ce2da8e27fa3a9a10de5a264cf0d8340c11b1f2763"
+  },
+  {
+    "path": "reviews/numeric-Spec/review.zh-CN.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-numeric-spec-review-v1/review.zh-CN.md",
+    "raw_sha256": "4615582669323146d55afbc89048b7d7e543012ef488f6eb3bb8434f4e5c565d"
+  },
+  {
+    "path": "reviews/numeric-Spec/seal.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-numeric-spec-review-v1/seal.json",
+    "raw_sha256": "794339512e927d2dd35b8b121d487077e4e6cd4da50646261b87eef512809873"
+  },
+  {
+    "path": "reviews/numeric-Spec/source-read-facts.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-numeric-spec-review-v1/source-read-facts.json",
+    "raw_sha256": "badaf37f512cf00a009786ab5e6105299f31ac210b8f004897081dc8291a7a66"
+  },
+  {
+    "path": "reviews/adoption-Standards/input-audit.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-adoption-standards-review-v1/input-audit.json",
+    "raw_sha256": "2036d8fec5241d91cc5b4fd5e2c46e1d3dc7344e172c1fd9d347fad8ef7508bf"
+  },
+  {
+    "path": "reviews/adoption-Standards/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-adoption-standards-review-v1/manifest.json",
+    "raw_sha256": "05f51bbae2f1c0171a91ee1b26e18dd76b90193bd0171297127e2275a3489a30"
+  },
+  {
+    "path": "reviews/adoption-Standards/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-adoption-standards-review-v1/receipt.json",
+    "raw_sha256": "6605e56cfd7ae3b5db163b80bff431afdb070e032d3722fa161a867b0304f590"
+  },
+  {
+    "path": "reviews/adoption-Standards/review.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/mcp-lossless-adoption-standards-review-v1/review.md",
+    "raw_sha256": "f818a2f3988131232b961fbd4605626457df94b38022eccdeeb268d6956b59ba"
+  },
+  {
+    "path": "reviews/test-authoring/candidate.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-external-test-authoring-v2/candidate.patch",
+    "raw_sha256": "f130c38673d3d6d2c82b577f6424a541ce87179f7186520dec3daf220a923caf"
+  },
+  {
+    "path": "reviews/test-authoring/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-external-test-authoring-v2/manifest.json",
+    "raw_sha256": "ed2d7d937d3616a68f675d469ca21a8f84776f59ab9989b5a5cce257db854b1e"
+  },
+  {
+    "path": "reviews/test-authoring/network.rs.after.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-external-test-authoring-v2/network.rs.after.txt",
+    "raw_sha256": "13cd1ad067afe81df8e056ac8d59dffc5d3ad0ee80362505c41d7bade6511d87"
+  },
+  {
+    "path": "reviews/test-authoring/network.rs.before.txt.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-external-test-authoring-v2/network.rs.before.txt",
+    "raw_sha256": "ceb8b1eff98e6161344fe0b8d6b174869c4e24d40817e6f9d2f861a3a6dc5827"
+  },
+  {
+    "path": "reviews/test-authoring/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-external-test-authoring-v2/receipt.json",
+    "raw_sha256": "8d725096dc82e11c50d3ddda12e854eb10d1cb50057f9ab8cd55cd5920fdf456"
+  },
+  {
+    "path": "reviews/test-authoring/reviewer-tooling-note.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-external-test-authoring-v2/reviewer-tooling-note.json",
+    "raw_sha256": "6cbe581408ca5021d5f4f49bb0e5118ba3a9eb212bcc47afc61201786d138a96"
+  },
+  {
+    "path": "reviews/test-authoring/static-inventory.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-external-test-authoring-v2/static-inventory.json",
+    "raw_sha256": "54e96e9235d3905ccc6ce2044e1bfd7e448988139df13409e87cd7b2a826c9f4"
+  },
+  {
+    "path": "reviews/CI15-preparation/README.md.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/README.md",
+    "raw_sha256": "cf71158ea49ecc48fddb878971e24c3b7be67c2800fcafc368f9552e5bd80ea6"
+  },
+  {
+    "path": "reviews/CI15-preparation/baseline85f.yml.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/baseline85f.yml",
+    "raw_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7"
+  },
+  {
+    "path": "reviews/CI15-preparation/candidate.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/candidate.patch",
+    "raw_sha256": "0266f51db5ec9b9578beeaf93dab4c18d9d227de53043d18cd6821ee08d0ec73"
+  },
+  {
+    "path": "reviews/CI15-preparation/candidate.yml.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/candidate.yml",
+    "raw_sha256": "2c69f7e78b0b4c9b703e52864cdfd029b3cfc74d9ecceb31510768195b0e45ad"
+  },
+  {
+    "path": "reviews/CI15-preparation/check-guard.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/check-guard.py",
+    "raw_sha256": "4ad6325c6942d50f5566de7ce32f0289e5026f43533fd7cc9a3679e1ba17bd0f"
+  },
+  {
+    "path": "reviews/CI15-preparation/increment-from-parent.patch.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/increment-from-parent.patch",
+    "raw_sha256": "5922f5524b40dcd2d3d16963607d715a62de4b1434828499c3c20c6be13c37cb"
+  },
+  {
+    "path": "reviews/CI15-preparation/offline-old14/pg16-candidate15-negative.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/offline-old14/pg16-candidate15-negative.json",
+    "raw_sha256": "780285448c7b5a2ed147fecdb60f6a1b9cd3faa144f562164b40421fc1ff719f"
+  },
+  {
+    "path": "reviews/CI15-preparation/offline-old14/pg16-parent14-control.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/offline-old14/pg16-parent14-control.json",
+    "raw_sha256": "fba9bc0c1424804010c869cc7f8aba6e9485fe8c2de5f38c3f511f9f6c9a7e3f"
+  },
+  {
+    "path": "reviews/CI15-preparation/offline-old14/pg17-candidate15-negative.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/offline-old14/pg17-candidate15-negative.json",
+    "raw_sha256": "2fc5ef21edd07e88cd72674e6c7faa37da5cbbfaa7cca03b27e774caa6cec57a"
+  },
+  {
+    "path": "reviews/CI15-preparation/offline-old14/pg17-parent14-control.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/offline-old14/pg17-parent14-control.json",
+    "raw_sha256": "c5bab236db6e34e99eb486ca7cfbf987bdfcd32114312c53962713ee623efa04"
+  },
+  {
+    "path": "reviews/CI15-preparation/offline-old14/summary.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/offline-old14/summary.json",
+    "raw_sha256": "8f0f91b76d4210114dba4613290e3d7bce082d79362e16562e6af983e180b7e2"
+  },
+  {
+    "path": "reviews/CI15-preparation/parent-mcp-candidate-v1.yml.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/parent-mcp-candidate-v1.yml",
+    "raw_sha256": "6568a90f4de078ef9f4bc7469e7891b72af7b00619301ee645dced64fea14fd9"
+  },
+  {
+    "path": "reviews/CI15-preparation/preparation-manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/preparation-manifest.json",
+    "raw_sha256": "c36eef04720f5c297b0f012a6e0a8faedde989e1fa9ed85a2b67ab29e4355950"
+  },
+  {
+    "path": "reviews/CI15-preparation/preparation-receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/preparation-receipt.json",
+    "raw_sha256": "b6cd946e78d1acb52c354d4b912954231a47abe53e2cc8ace4df59d909017894"
+  },
+  {
+    "path": "reviews/CI15-preparation/preparation.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci-candidate-v2/preparation.json",
+    "raw_sha256": "31a2d90d94a9c36b024ed3e2e48e5135a96c88c822c1e8a96bd4e4ca12f42623"
+  },
+  {
+    "path": "reviews/CI15-positive/manifest.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci15-positive-v1/manifest.json",
+    "raw_sha256": "49e06aa21cfad12dd9857612b67fb17a1554ba2cb287e6bb7a137efef979ad47"
+  },
+  {
+    "path": "reviews/CI15-positive/pg16.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci15-positive-v1/pg16.json",
+    "raw_sha256": "682a9ba03514bd2f0ba78df84e08b3637a8a5619b7958cb87e718fdf85dd3b31"
+  },
+  {
+    "path": "reviews/CI15-positive/pg17.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci15-positive-v1/pg17.json",
+    "raw_sha256": "75f569d9c0912ff2672d0bfea10dae7ac0b07182d0c935027c25bbcbe4f487aa"
+  },
+  {
+    "path": "reviews/CI15-positive/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-ci15-positive-v1/receipt.json",
+    "raw_sha256": "1a0d9773c037757533a2d4ac7a8d9df3d6e6701fa5d7e8826724dbddc1eea464"
+  },
+  {
+    "path": "adoption-docs/manifest.json.gz",
+    "origin": ".local-verification/2026-10-16/mcp-lossless-adoption-docs-v3/manifest.json",
+    "raw_sha256": "7f5932336ba7c1bf0cc321c12c072a2e44164bf93cd1ef55fe8cd9ea4ba191e3"
+  },
+  {
+    "path": "adoption-docs/freeze.json.gz",
+    "origin": ".local-verification/2026-10-16/mcp-lossless-adoption-docs-v3/freeze.json",
+    "raw_sha256": "46a48917e0d68a15b680c49e87ed66bb60c1b19d6db0f221f2461b7a254fe9c0"
+  },
+  {
+    "path": "adoption-docs/receipt.json.gz",
+    "origin": ".local-verification/2026-10-16/mcp-lossless-adoption-docs-v3/receipt.json",
+    "raw_sha256": "0543605d1d39e17e1bcef3c865f119eb8277005993c795b5c2952890237c1e8c"
+  },
+  {
+    "path": "adoption-docs/candidate-documents.json.gz",
+    "origin": ".local-verification/2026-10-16/mcp-lossless-adoption-docs-v3/candidate-documents.json",
+    "raw_sha256": "ca5dbfe6efb0490f43bd178ce55f8290d1003e7701ab000ba0299d5f3d198504"
+  },
+  {
+    "path": "reviews/adoption-Spec/actual15-pg16.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/actual15-pg16.json",
+    "raw_sha256": "682a9ba03514bd2f0ba78df84e08b3637a8a5619b7958cb87e718fdf85dd3b31"
+  },
+  {
+    "path": "reviews/adoption-Spec/actual15-pg17.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/actual15-pg17.json",
+    "raw_sha256": "75f569d9c0912ff2672d0bfea10dae7ac0b07182d0c935027c25bbcbe4f487aa"
+  },
+  {
+    "path": "reviews/adoption-Spec/audit-exit.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/audit-exit.json",
+    "raw_sha256": "94e41c460e56f41ab37e3bdb45afdd130c2464affe4cba1e73939364a2c84b6b"
+  },
+  {
+    "path": "reviews/adoption-Spec/audit-receipt.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/audit-receipt.json",
+    "raw_sha256": "c0b8cde41987993c1ed51482733131f912d860545a85ade471c816819e93581e"
+  },
+  {
+    "path": "reviews/adoption-Spec/audit.py.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/audit.py",
+    "raw_sha256": "29fdab7e41dcf52a2b72c84b96442b40ecb34e71ddbe3ce8ce69726754204cfc"
+  },
+  {
+    "path": "reviews/adoption-Spec/audit.stderr.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/audit.stderr",
+    "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  {
+    "path": "reviews/adoption-Spec/audit.stdout.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/audit.stdout",
+    "raw_sha256": "73208af797f33825d186febab4eca73ce68bccdc49b0447c87dec167ea3e7399"
+  },
+  {
+    "path": "reviews/adoption-Spec/input-identities.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/input-identities.json",
+    "raw_sha256": "51504342161379ab9e5fcb4ba776855143e9934b3a99aa6c7c092b209ecacec2"
+  },
+  {
+    "path": "reviews/adoption-Spec/link-cross-check.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/link-cross-check.json",
+    "raw_sha256": "bd0a0a3c25678762bb33330b3f9dec430019a13549fff1a0a2842fc3df87f35d"
+  },
+  {
+    "path": "reviews/adoption-Spec/manifest.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/manifest.json",
+    "raw_sha256": "64abe66d42b73a98be62dd7cd04b338659802a8e739ce14a3967d952cd462ab5"
+  },
+  {
+    "path": "reviews/adoption-Spec/old14-pg16.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/old14-pg16.json",
+    "raw_sha256": "780285448c7b5a2ed147fecdb60f6a1b9cd3faa144f562164b40421fc1ff719f"
+  },
+  {
+    "path": "reviews/adoption-Spec/old14-pg17.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/old14-pg17.json",
+    "raw_sha256": "2fc5ef21edd07e88cd72674e6c7faa37da5cbbfaa7cca03b27e774caa6cec57a"
+  },
+  {
+    "path": "reviews/adoption-Spec/receipt.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/receipt.json",
+    "raw_sha256": "f3f73d29b52a88a634f12b729518a01c41b62044e1f8f258a946189e9d5299fc"
+  },
+  {
+    "path": "reviews/adoption-Spec/review.zh-CN.md.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/review.zh-CN.md",
+    "raw_sha256": "7e03753f12f59cb63996ed89dde6fd5d82cafa5fd4bbcbcf46d5c9568e3f85a8"
+  },
+  {
+    "path": "reviews/adoption-Spec/seal.json.gz",
+    "origin": ".local-verification/2026-10-16/evidence/mcp-lossless-adoption-spec-review-v1/seal.json",
+    "raw_sha256": "2b8f34c97125bfb96fdba16bf55dc49e2419de2d07c146bde104777f890c149d"
+  },
+  {
+    "path": "tooling/collector-preparation/collector-attempt1/collect.py.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-main-publication-v2/tooling/collector-attempt1/collect.py",
+    "raw_sha256": "c2205b4fe538ef1a41fd159d3a584a55a65dc224cc53ce7ec2b4e892f2fbdd52"
+  },
+  {
+    "path": "tooling/collector-preparation/collector-attempt1/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-main-publication-v2/tooling/collector-attempt1/receipt.json",
+    "raw_sha256": "5057c643172e751e42c2c125a71f59a4260aad59254ffb740eeafd34735907e8"
+  },
+  {
+    "path": "tooling/collector-preparation/collector-attempt2/receipt.json.gz",
+    "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-main-publication-v2/tooling/collector-attempt2/receipt.json",
+    "raw_sha256": "4c6d7fe6acda46e2fb186655cd01771a0361f99b07cb535987825a2dafc1ecf0"
+  }
+]

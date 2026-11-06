@@ -1,0 +1,19 @@
+{
+  "step": "gate-workspace",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ],
+  "runner_pid": 68288,
+  "pid": 83392,
+  "started_unix": 1792070274.6351721,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 53.908920764923096,
+  "log_sha256": "57efe784ce0fc3edbbde663328639411a9195dd5a7db6949972bfbe4b2d4a6d6"
+}

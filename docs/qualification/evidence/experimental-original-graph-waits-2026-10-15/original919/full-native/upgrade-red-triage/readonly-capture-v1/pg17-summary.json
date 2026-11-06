@@ -1,0 +1,33 @@
+{
+  "postgres_major": "17",
+  "database": "stateknot_frame_close_upgrade_01a13f0959d8743db9a012084d5f61d6",
+  "ledger_max": 36,
+  "conditions": [
+    {
+      "profile": "graph_registered",
+      "wait_kind": "timer",
+      "due_at": "2033-05-18T03:33:20+00:00",
+      "journal_recorded_at": "2026-10-15T10:09:01.758659+00:00",
+      "tenant_id": "frame-close-upgrade-wait-01a13f09-5de8-7454-b3a7-0637379ef347",
+      "run_id": "01a13f09-5de8-7454-b3a7-06383a13b467"
+    }
+  ],
+  "scoped_barrier_versions": [
+    {
+      "tenant_id": "frame-close-upgrade-wait-01a13f09-5de8-7454-b3a7-0637379ef347",
+      "run_id": "01a13f09-5de8-7454-b3a7-06383a13b467",
+      "sequence": 5,
+      "version": 3
+    },
+    {
+      "tenant_id": "frame-close-upgrade-return-01a13f09-62b8-7271-a5d0-dd61d4dfdb6f",
+      "run_id": "01a13f09-62b9-76c7-b0f9-7018ab7a39e6",
+      "sequence": 5,
+      "version": 1
+    }
+  ],
+  "first_revert_guard_nonlegacy_condition_present": true,
+  "first_revert_guard_scoped_v3_present": true,
+  "actual_firings": 0,
+  "full_fixture_sha256": "8b8c3364a499bfc17a381ca56ee92ad1793ecfbcabafd5362ad9ce95723b4bc2"
+}

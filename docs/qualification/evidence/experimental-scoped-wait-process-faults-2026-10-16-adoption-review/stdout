@@ -1,0 +1,46 @@
+{
+  "status": "passed",
+  "artifact_index_version": 2,
+  "indexed_artifacts": 184,
+  "source_manifest_files": 933,
+  "supplied_inputs": 542,
+  "workspace_inputs_compared": true,
+  "six_actual_gates_zero": true,
+  "workspace": [
+    100,
+    2123,
+    0,
+    6,
+    0,
+    0
+  ],
+  "doctests": [
+    10,
+    48,
+    0,
+    0,
+    0,
+    0
+  ],
+  "Native_exact_controllers": [
+    {
+      "major": 16,
+      "actual_test_exit_code": 0,
+      "actual_wrapper_exit_code": 0,
+      "seconds": 17.161200761795044,
+      "selected_passed": 1,
+      "filtered_out": 192
+    },
+    {
+      "major": 17,
+      "actual_test_exit_code": 0,
+      "actual_wrapper_exit_code": 0,
+      "seconds": 17.56702995300293,
+      "selected_passed": 1,
+      "filtered_out": 192
+    }
+  ],
+  "omitted_binary_bytes_recomputed": false,
+  "archived_scripts_Rust_DB_or_CI_executed": false,
+  "full_Native_CI_R1_or_release_qualification": false
+}

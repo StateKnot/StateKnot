@@ -1,0 +1,7 @@
+{
+  "manifest_sha256": "96206529c1dc6cf4480d1cb3f9623d552014cd0528ff343ffc8dee43730d1b2e",
+  "files_excluding_manifest_and_seal": 53,
+  "parent_P2_seal_unchanged": true,
+  "new_product_execution": false,
+  "collection_limitation_preserved": true
+}

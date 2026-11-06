@@ -1,0 +1,22 @@
+{
+  "expected_test_count": 1,
+  "valid_success_summary": true,
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source",
+  "binary_sha256": "2dc582601ae7471a87b1b85ac5c90dddd92c7665be71adfd05dd974996f585ab",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased-runtime-v1/stateknot-runtime-postgres",
+    "child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore",
+    "--exact",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "postgres_major": "16",
+  "database": "stateknot_r1_a_backup_20261015v1",
+  "exit_code": 0,
+  "seconds": 5.388052940368652,
+  "default_stack": true,
+  "log_sha256": "d591bf2b9a6a0b010b1b112341ac3aa4c397c0f125349d3dfb24530500bff4e8",
+  "result_lines": [
+    "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 184 filtered out; finished in 5.38s"
+  ]
+}

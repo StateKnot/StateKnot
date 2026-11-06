@@ -5,7 +5,7 @@
 
 use std::{
     sync::{
-        Arc,
+        Arc, Mutex,
         atomic::{AtomicUsize, Ordering},
     },
     time::{Duration, Instant},
@@ -16,20 +16,22 @@ use stateknot_core::{
     AgentResultProvenance, AttemptId, BoundedJson, BoxFuture, BudgetRemaining, BudgetUsage,
     CancellationSignal, CapabilityIdentity, CapabilityName, CapabilityReference, Checkpoint,
     CheckpointId, CheckpointState, CheckpointWrite, CompiledGraph, Digest, EventId,
-    GraphExecutionLimits, GraphNode, GraphReducerReference, GraphRoutes, InvocationId, IssuerId,
-    JournalAppend, JournalEventIntent, JournalEventKind, JournalExpectation, JournalPayload,
-    NodeActivation, NodeId, PrincipalIdentity, ReadyNodes, ResolvedBudget, RunId, RunTransition,
-    SchemaId, SchemaReference, SubjectId, Superstep, TenantId, ThreadId, ToolArtifacts,
-    ToolDescriptor, ToolInput, ToolInvocationIntent, ToolInvocationStatus, ToolResult,
-    ToolResultProvenance, Version,
+    FailureCategory, GraphExecutionLimits, GraphNode, GraphReducerReference, GraphRoutes,
+    InvocationId, IssuerId, JournalAppend, JournalEventIntent, JournalEventKind,
+    JournalExpectation, JournalPayload, NodeActivation, NodeId, PrincipalIdentity, ReadyNodes,
+    ResolvedBudget, RetryAdvice, RunId, RunTransition, SchemaId, SchemaReference, SubjectId,
+    Superstep, TenantId, ThreadId, ToolArtifacts, ToolDescriptor, ToolExternalEffect, ToolInput,
+    ToolInvocationHead, ToolInvocationIntent, ToolInvocationState, ToolInvocationStatus,
+    ToolResult, ToolResultProvenance, Version,
 };
 use stateknot_integrations::{
     A2aAgentCapabilities, A2aAgentCard, A2aAgentCardEndpoint, A2aAgentCardTrust, A2aAgentInterface,
-    A2aAgentSkill, A2aBinding, A2aClient, A2aClientInterfacePin, A2aClientOptions,
-    A2aClientSecurity, A2aRemoteAgent, A2aRemoteAgentDelivery, AnonymousMcpAuthorization, ApiKey,
-    McpAuthorization, McpAuthorizationError, McpHttpOptions, McpRemoteTool, McpServerIdentity,
-    McpToolApproval, McpToolAuthorizationRequest, McpToolAuthorizer, ProviderEndpoint,
-    a2a_agent_card_digest, mcp_tool_descriptor_digest,
+    A2aAgentSkill, A2aBearerTokenProvider, A2aBinding, A2aClient, A2aClientAuthorizationError,
+    A2aClientAuthorizationRequest, A2aClientInterfacePin, A2aClientOperation, A2aClientOptions,
+    A2aClientSecurity, A2aRemoteAgent, A2aRemoteAgentDelivery, A2aSecurityScheme,
+    AnonymousMcpAuthorization, ApiKey, McpAuthorization, McpAuthorizationError, McpHttpOptions,
+    McpRemoteTool, McpServerIdentity, McpToolApproval, McpToolAuthorizationRequest,
+    McpToolAuthorizer, ProviderEndpoint, a2a_agent_card_digest, mcp_tool_descriptor_digest,
 };
 use stateknot_runtime::{
     DurableInvocationExecutor, DurableInvocationExecutorOptions, InvocationAttemptEventIds,
@@ -53,6 +55,7 @@ use tokio::{
 
 const DATABASE_URL_ENV: &str = "STATEKNOT_TEST_DATABASE_URL";
 const REQUIRE_DATABASE_ENV: &str = "STATEKNOT_REQUIRE_POSTGRES_TESTS";
+const DURABLE_A2A_TOKEN: &str = "durable-a2a-attempt-scoped";
 
 struct PausedLostResponseMcpServer {
     endpoint: ProviderEndpoint,
@@ -69,51 +72,79 @@ struct PausedLostResponseA2aServer {
     call_seen: mpsc::Receiver<()>,
     release_call: Arc<Notify>,
     message_sends: Arc<AtomicUsize>,
+    send_url: String,
+    message_requests: Arc<Mutex<Vec<Vec<u8>>>>,
     task: JoinHandle<()>,
+}
+
+fn durable_a2a_card(interface_url: &str, authorized: bool) -> Value {
+    let builder = A2aAgentCard::builder(
+        "StateKnot durable A2A test",
+        "Applies one test message before losing its response.",
+        "1.0.0",
+    )
+    .unwrap()
+    .capabilities(A2aAgentCapabilities::new())
+    .interface(A2aAgentInterface::new(interface_url, A2aBinding::HttpJson).unwrap())
+    .unwrap()
+    .default_input_modes(vec!["application/json".to_string()])
+    .unwrap()
+    .default_output_modes(vec!["application/json".to_string()])
+    .unwrap()
+    .skill(
+        A2aAgentSkill::new(
+            "write_once",
+            "Write once",
+            "Applies exactly one durable test write.",
+            vec!["test".to_string()],
+        )
+        .unwrap()
+        .with_input_modes(vec!["application/json".to_string()])
+        .unwrap()
+        .with_output_modes(vec!["application/json".to_string()])
+        .unwrap(),
+    )
+    .unwrap();
+    let builder = if authorized {
+        builder
+            .security_scheme(
+                "oidc",
+                A2aSecurityScheme::open_id_connect(
+                    "https://issuer.example/.well-known/openid-configuration",
+                    None,
+                )
+                .unwrap(),
+            )
+            .unwrap()
+            .security_requirements(vec![std::collections::HashMap::from([(
+                "oidc".to_string(),
+                vec!["durable.invoke".to_string()],
+            )])])
+            .unwrap()
+    } else {
+        builder
+    };
+    builder.build().unwrap().to_json().unwrap()
 }
 
 impl PausedLostResponseA2aServer {
     async fn start() -> Self {
+        Self::start_authorized(false).await
+    }
+
+    async fn start_authorized(authorized: bool) -> Self {
         let listener = TcpListener::bind("127.0.0.1:0").await.unwrap();
         let address = listener.local_addr().unwrap();
         let interface_url = format!("http://{address}/a2a");
-        let card = A2aAgentCard::builder(
-            "StateKnot durable A2A test",
-            "Applies one test message before losing its response.",
-            "1.0.0",
-        )
-        .unwrap()
-        .capabilities(A2aAgentCapabilities::new())
-        .interface(A2aAgentInterface::new(&interface_url, A2aBinding::HttpJson).unwrap())
-        .unwrap()
-        .default_input_modes(vec!["application/json".to_string()])
-        .unwrap()
-        .default_output_modes(vec!["application/json".to_string()])
-        .unwrap()
-        .skill(
-            A2aAgentSkill::new(
-                "write_once",
-                "Write once",
-                "Applies exactly one durable test write.",
-                vec!["test".to_string()],
-            )
-            .unwrap()
-            .with_input_modes(vec!["application/json".to_string()])
-            .unwrap()
-            .with_output_modes(vec!["application/json".to_string()])
-            .unwrap(),
-        )
-        .unwrap()
-        .build()
-        .unwrap()
-        .to_json()
-        .unwrap();
+        let card = durable_a2a_card(&interface_url, authorized);
         let encoded_card = serde_json::to_vec(&card).unwrap();
         let (call_sender, call_seen) = mpsc::channel(1);
         let release_call = Arc::new(Notify::new());
         let release = Arc::clone(&release_call);
         let message_sends = Arc::new(AtomicUsize::new(0));
         let sends = Arc::clone(&message_sends);
+        let message_requests = Arc::new(Mutex::new(Vec::new()));
+        let requests = Arc::clone(&message_requests);
         let task = tokio::spawn(async move {
             let (mut socket, _) = listener.accept().await.unwrap();
             let discovery = read_request(&mut socket).await;
@@ -130,6 +161,15 @@ impl PausedLostResponseA2aServer {
             );
             let body: Value = serde_json::from_slice(request_body(&request)).unwrap();
             assert_eq!(body["configuration"]["returnImmediately"], true);
+            if authorized {
+                assert!(
+                    String::from_utf8_lossy(&request)
+                        .to_ascii_lowercase()
+                        .contains(&format!("authorization: bearer {DURABLE_A2A_TOKEN}"))
+                );
+                assert!(find_bytes(request_body(&request), DURABLE_A2A_TOKEN.as_bytes()).is_none());
+            }
+            requests.lock().unwrap().push(request);
             sends.fetch_add(1, Ordering::SeqCst);
             call_sender.send(()).await.unwrap();
             release.notified().await;
@@ -149,6 +189,8 @@ impl PausedLostResponseA2aServer {
             call_seen,
             release_call,
             message_sends,
+            send_url: format!("{interface_url}/message:send"),
+            message_requests,
             task,
         }
     }
@@ -647,20 +689,167 @@ async fn qualify_mcp_write(approved: bool, deny: bool) {
     store.close().await;
 }
 
+struct DurableA2aPolicy {
+    store: PostgresStore,
+    expected: Mutex<Option<ToolAttemptHandoff>>,
+    send_url: String,
+    deny: bool,
+    calls: AtomicUsize,
+    observations: Mutex<Vec<(ToolInvocationHead, A2aClientAuthorizationRequest)>>,
+}
+
+impl A2aBearerTokenProvider for DurableA2aPolicy {
+    fn resolve(
+        &self,
+        request: &A2aClientAuthorizationRequest,
+    ) -> BoxFuture<'_, Result<ApiKey, A2aClientAuthorizationError>> {
+        let request = request.clone();
+        Box::pin(async move {
+            self.calls.fetch_add(1, Ordering::SeqCst);
+            let expected = self.expected.lock().unwrap().clone().unwrap();
+            let attempt = request
+                .attempt()
+                .expect("durable adapter supplies its attempt");
+            assert_eq!(attempt.tenant_id(), expected.fence().tenant_id());
+            assert_eq!(attempt.run_id(), expected.fence().run_id());
+            assert_eq!(
+                attempt.invocation_id(),
+                expected.invocation().intent().invocation_id()
+            );
+            assert_eq!(attempt.attempt_id(), expected.attempt_id());
+
+            let invocation = self
+                .store
+                .load_tool_invocation(
+                    attempt.tenant_id(),
+                    attempt.run_id(),
+                    attempt.invocation_id(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(invocation.status(), ToolInvocationStatus::Executing);
+            assert_eq!(invocation.attempt_id(), Some(expected.attempt_id()));
+            assert_eq!(invocation.intent(), expected.invocation().intent());
+            assert_eq!(invocation.previous(), Some(&expected.invocation().head()));
+            assert_eq!(
+                invocation.journal_head().event_id(),
+                expected.events().start()
+            );
+            assert_eq!(
+                invocation.revision(),
+                expected.invocation().revision().checked_next().unwrap()
+            );
+            let (event, anchored) = self
+                .store
+                .load_tool_invocation_revision(
+                    attempt.tenant_id(),
+                    attempt.run_id(),
+                    attempt.invocation_id(),
+                    invocation.revision(),
+                )
+                .await
+                .unwrap();
+            assert_eq!(anchored.head(), invocation.head());
+            assert_eq!(&event.head(), invocation.journal_head());
+            assert_eq!(event.source().worker_fence(), Some(expected.fence()));
+            assert_eq!(event.payload().kind().as_str(), "tool-attempt-started");
+
+            assert_eq!(request.operation(), A2aClientOperation::SendMessage);
+            assert_eq!(request.binding(), A2aBinding::HttpJson);
+            assert_eq!(request.request_method(), "POST");
+            assert_eq!(request.request_url(), self.send_url);
+            assert_eq!(request.remote_tenant(), None);
+            assert_eq!(
+                request.required_scopes().collect::<Vec<_>>(),
+                ["durable.invoke"]
+            );
+            let bytes = request.request_body().expect("SendMessage has a body");
+            let body: Value = serde_json::from_slice(bytes).unwrap();
+            assert_eq!(
+                body,
+                json!({
+                    "message": {
+                        "messageId": format!("stateknot-attempt-{}", expected.attempt_id()),
+                        "role": "ROLE_USER",
+                        "parts": [{
+                            "data": invocation.intent().input().value().as_value(),
+                            "mediaType": "application/json"
+                        }]
+                    },
+                    "configuration": {
+                        "acceptedOutputModes": ["application/json"],
+                        "returnImmediately": true
+                    }
+                })
+            );
+            assert!(find_bytes(bytes, DURABLE_A2A_TOKEN.as_bytes()).is_none());
+            let debug = format!("{request:?}");
+            assert!(!debug.contains(request.request_url()));
+            assert!(!debug.contains("apply-once"));
+            self.observations
+                .lock()
+                .unwrap()
+                .push((invocation.head(), request));
+            if self.deny {
+                Err(A2aClientAuthorizationError::PermissionDenied)
+            } else {
+                Ok(ApiKey::new(DURABLE_A2A_TOKEN).unwrap())
+            }
+        })
+    }
+}
+
 #[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-#[allow(clippy::too_many_lines)]
 async fn a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched() {
+    Box::pin(qualify_a2a_send(false, false)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a2a_authorized_send_reads_the_durable_start_and_recovery_does_not_send_again() {
+    Box::pin(qualify_a2a_send(true, false)).await;
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+async fn a2a_authorized_denial_commits_once_without_business_send_or_policy_repeat() {
+    Box::pin(qualify_a2a_send(true, true)).await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn qualify_a2a_send(authorized: bool, deny: bool) {
     let Some(store) = test_store().await else {
         return;
     };
     let (schemas, input_schema, _, output_schema, _) = tool_schemas();
     let descriptor = a2a_write_descriptor(&input_schema, &output_schema);
-    let mut server = PausedLostResponseA2aServer::start().await;
+    let descriptor = if authorized {
+        let mut value = serde_json::to_value(&descriptor).unwrap();
+        value["resources"]["credentials"] = Value::Bool(true);
+        serde_json::from_value(value).unwrap()
+    } else {
+        descriptor
+    };
+    let mut server = if authorized {
+        PausedLostResponseA2aServer::start_authorized(true).await
+    } else {
+        PausedLostResponseA2aServer::start().await
+    };
+    let policy = Arc::new(DurableA2aPolicy {
+        store: store.clone(),
+        expected: Mutex::new(None),
+        send_url: server.send_url.clone(),
+        deny,
+        calls: AtomicUsize::new(0),
+        observations: Mutex::new(Vec::new()),
+    });
     let client = A2aClient::discover(
         server.card_endpoint.clone(),
         vec![server.interface_pin.clone()],
         A2aAgentCardTrust::CanonicalSha256(a2a_agent_card_digest(&server.card).unwrap()),
-        A2aClientSecurity::Anonymous,
+        if authorized {
+            A2aClientSecurity::bearer("oidc", policy.clone()).unwrap()
+        } else {
+            A2aClientSecurity::Anonymous
+        },
         Vec::new(),
         A2aClientOptions::default(),
     )
@@ -734,11 +923,82 @@ async fn a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched() {
         None,
     )
     .unwrap();
+    *policy.expected.lock().unwrap() = Some(handoff.clone());
     let executing_task = {
         let executor = executor.clone();
         let handoff = handoff.clone();
         tokio::spawn(async move { executor.execute_tool(handoff).await })
     };
+
+    if deny {
+        let outcome = tokio::time::timeout(Duration::from_secs(5), executing_task)
+            .await
+            .unwrap()
+            .unwrap()
+            .unwrap();
+        assert!(matches!(
+            outcome,
+            ToolAttemptOutcome::Dispatched {
+                terminal: ToolAttemptTerminalKind::Error,
+                ..
+            }
+        ));
+        let failed = store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap();
+        assert_eq!(failed.status(), ToolInvocationStatus::Failed);
+        let ToolInvocationState::Failed { error } = failed.state() else {
+            panic!("authorization denial must commit known failure evidence");
+        };
+        assert_eq!(error.external_effect(), ToolExternalEffect::NotStarted);
+        assert_eq!(error.failure().retry_advice(), RetryAdvice::Never);
+        assert_eq!(
+            error.failure().category(),
+            FailureCategory::PermissionDenied
+        );
+        assert_eq!(
+            error.failure().code().as_str(),
+            "authorization.permission_denied"
+        );
+        {
+            let observations = policy.observations.lock().unwrap();
+            assert_eq!(observations.len(), 1);
+            assert_eq!(failed.previous(), Some(&observations[0].0));
+        }
+        assert_eq!(
+            failed.journal_head().event_id(),
+            handoff.events().terminal()
+        );
+        assert!(matches!(
+            executor.execute_tool(handoff).await.unwrap(),
+            ToolAttemptOutcome::Recovered { .. }
+        ));
+        let duplicate = store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap();
+        assert_eq!(
+            failed.head(),
+            duplicate.head(),
+            "duplicate must not append a ledger revision"
+        );
+        assert_eq!(policy.calls.load(Ordering::SeqCst), 1);
+        assert_eq!(server.message_sends.load(Ordering::SeqCst), 0);
+        assert!(server.message_requests.lock().unwrap().is_empty());
+        assert!(
+            tokio::time::timeout(Duration::from_millis(150), server.call_seen.recv())
+                .await
+                .is_err()
+        );
+        server.task.abort();
+        assert!(server.task.await.unwrap_err().is_cancelled());
+        println!(
+            "\nSTATEKNOT_A2A_AUTHORIZATION_EVIDENCE={{\"case\":\"denial\",\"durable_start_verified\":true,\"payload_from_full_input\":true,\"calls\":0,\"policy_calls\":1,\"duplicate_ledger_unchanged\":true}}"
+        );
+        store.close().await;
+        return;
+    }
 
     tokio::time::timeout(Duration::from_secs(5), server.call_seen.recv())
         .await
@@ -763,14 +1023,11 @@ async fn a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched() {
             ..
         }
     ));
-    assert_eq!(
-        store
-            .load_tool_invocation(&tenant_id, run_id, invocation_id)
-            .await
-            .unwrap()
-            .status(),
-        ToolInvocationStatus::Unknown
-    );
+    let unknown = store
+        .load_tool_invocation(&tenant_id, run_id, invocation_id)
+        .await
+        .unwrap();
+    assert_eq!(unknown.status(), ToolInvocationStatus::Unknown);
     assert_eq!(server.message_sends.load(Ordering::SeqCst), 1);
     assert!(matches!(
         executor.execute_tool(handoff).await.unwrap(),
@@ -778,7 +1035,55 @@ async fn a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched() {
     ));
     assert_eq!(server.message_sends.load(Ordering::SeqCst), 1);
 
+    if authorized {
+        let duplicate = store
+            .load_tool_invocation(&tenant_id, run_id, invocation_id)
+            .await
+            .unwrap();
+        assert_eq!(unknown.head(), duplicate.head());
+        assert_eq!(policy.calls.load(Ordering::SeqCst), 1);
+        let ToolInvocationState::Unknown { error } = unknown.state() else {
+            panic!("lost response must retain the ambiguous effect");
+        };
+        assert_eq!(error.external_effect(), ToolExternalEffect::Unknown);
+        assert_eq!(
+            error.failure().category(),
+            FailureCategory::AmbiguousExternalOutcome
+        );
+        assert_eq!(error.failure().retry_advice(), RetryAdvice::ReconcileFirst);
+        let observations = policy.observations.lock().unwrap();
+        let requests = server.message_requests.lock().unwrap();
+        assert_eq!(observations.len(), 1);
+        assert_eq!(requests.len(), 1);
+        assert_eq!(unknown.previous(), Some(&observations[0].0));
+        assert_eq!(
+            observations[0].1.request_body(),
+            Some(request_body(&requests[0]))
+        );
+        let headers_end = find_bytes(&requests[0], b"\r\n\r\n").unwrap();
+        let headers = std::str::from_utf8(&requests[0][..headers_end]).unwrap();
+        let mut line = headers.lines().next().unwrap().split_ascii_whitespace();
+        assert_eq!(observations[0].1.request_method(), line.next().unwrap());
+        let target = line.next().unwrap();
+        let host = headers
+            .lines()
+            .find_map(|header| {
+                let (name, value) = header.split_once(':')?;
+                name.eq_ignore_ascii_case("host").then(|| value.trim())
+            })
+            .unwrap();
+        assert_eq!(
+            observations[0].1.request_url(),
+            format!("http://{host}{target}")
+        );
+    }
+
     server.task.await.unwrap();
+    if authorized {
+        println!(
+            "\nSTATEKNOT_A2A_AUTHORIZATION_EVIDENCE={{\"case\":\"lost_response\",\"durable_start_verified\":true,\"payload_from_full_input\":true,\"calls\":1,\"policy_calls\":1,\"duplicate_ledger_unchanged\":true}}"
+        );
+    }
     store.close().await;
 }
 

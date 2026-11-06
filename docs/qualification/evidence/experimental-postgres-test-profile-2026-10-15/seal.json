@@ -1,0 +1,45 @@
+{
+  "format": 1,
+  "scope": "bounded product execution record, original runner exit1; separate read-only audit; CIv2 execution pending",
+  "evidence_manifest": {
+    "path": "manifest.json",
+    "sha256": "191b48f005d2a8bd62e2a2c6e886d5a31f83a6165ee44b749f9aab09316e0cc6"
+  },
+  "original_execution_seal_sha256": "9b3853142130afacee6873668b51ae76c4a9671403902897a9f04851aad3877d",
+  "original_failure_sha256": "6d95b03135134a41293d10f776261f0f3e166862638bd065b5378473a809488a",
+  "reports_and_tracking": [
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 79248,
+      "sha256": "839d0000157c06621f6bea62938d07415545c690600aa46009db6637540f0c9f"
+    },
+    {
+      "path": "docs/production-milestones-2026-10-08.zh-CN.md",
+      "bytes": 50745,
+      "sha256": "1e798bbaa842fa65e7b161a1fba8212389f7a30f2a94c948174832787db51fb6"
+    },
+    {
+      "path": "docs/r1-contract-gap-ledger.zh-CN.md",
+      "bytes": 26376,
+      "sha256": "c94696d1dc0b4d403b9a456545cb6ad84ee34580e1bb65392062b33c07d7e8db"
+    },
+    {
+      "path": "docs/qualification/experimental-postgres-test-profile-2026-10-15.md",
+      "bytes": 7334,
+      "sha256": "905a2bf4cf6318b8a62c5c873af9a41f2a207792bc4886f6a795a22393874442"
+    },
+    {
+      "path": "docs/qualification/experimental-postgres-test-profile-2026-10-15.zh-CN.md",
+      "bytes": 6371,
+      "sha256": "3fa4cecc55d0abf3aff19be70d364c766f3a525ef3e00c1243f90c1358073a5e"
+    },
+    {
+      "path": "docs/qualification/experimental-postgres-test-profile-2026-10-15.json",
+      "bytes": 12249,
+      "sha256": "35496ff2126fb903cc2eb816eb970a6ca43655f248f6e73327f6d5b3eadf8d4c"
+    }
+  ],
+  "expected_CI_workflow_v2_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7",
+  "public_bundle_independent_review": "pending; execution/CI fact review not transferred",
+  "no_binaries_cache_or_new_full_source_archive": true
+}

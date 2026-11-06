@@ -1,0 +1,73 @@
+{
+  "status": "passed_exact_composed_main_original_opt0_six_local_gates_only",
+  "date": "2026-10-15",
+  "git_context": {
+    "HEAD_at_execution": "04608c6b20a7c18d6b042eeccc83dd38d096b1d1",
+    "working_tree": "A2A adopted; PITR helper plus127 publication paths applied but not committed at execution",
+    "whole_Git_tree_equality_claimed": false
+  },
+  "inputs": {
+    "compiled_files": 531,
+    "compiled_input_list_identity_sha256": "ddaf1aba9089af825b870d3c1466969d8967d59ee8805564b302b4c16eebc4b8",
+    "nonignored_input_files_at_execution": 2182,
+    "all2182_before_after_exact": true,
+    "later_report_and_tracking_publication_claimed_as_tested2182": false,
+    "new_complete_source_archive_or_binary_cache_included": false,
+    "reconstruction_references": "references.json"
+  },
+  "gates": {
+    "names": [
+      "fmt",
+      "strict_workspace_alltargets_allfeatures_clippy",
+      "workspace_alltargets_allfeatures_locked_tests",
+      "independent_allfeature_doctests",
+      "strict_rustdoc",
+      "pinned_nightly2026-10-07_check"
+    ],
+    "all_six_exit_zero": true,
+    "opt_level": 0,
+    "workspace_suites": 98,
+    "workspace_passed": 2073,
+    "workspace_failed": 0,
+    "original_ignored": 6,
+    "doctests_passed": 45,
+    "doctests_failed": 0,
+    "doctests_ignored": 0,
+    "elapsed_seconds": 65.42882704734802,
+    "elapsed_is_performance_qualification": false,
+    "default_stack_and_original_resources_preserved": true,
+    "DB_environment_removed": true,
+    "Native_database_execution": false
+  },
+  "preserved_preflight_failure": {
+    "product_commands_started": false,
+    "cause": "list ordering assertion only; expected and actual531 path/bytes/SHA maps already equal",
+    "original_runner_and_error_retained": true,
+    "source_or_product_assertions_changed": false
+  },
+  "history": {
+    "A2A_source923_network26_dualPG6_record_retained": true,
+    "PITR_source922_two_exact_success_path_cleanup_record_retained": true,
+    "PITR_original_top_level_pending_composition_text_kept_as_historical": true,
+    "old_PG16_WAL_and_old922_cleanup_open_record_retained": true,
+    "no_prior_seal_rewritten": true,
+    "prior916_or_any_Native_suite_transferred_to_composition": false
+  },
+  "claim_limits": {
+    "full_Runtime189_or_four_Native_suites_executed": false,
+    "full_CI_passed": false,
+    "independent_TCK_CLI_release_profiles_executed": false,
+    "all_failure_path_cleanup_qualified": false,
+    "capacity_latency_security_or_complete_production_qualification": false,
+    "R1_complete": false,
+    "RFC22": "Draft",
+    "RFC25": "Draft"
+  },
+  "verifier": "python3 docs/qualification/evidence/experimental-composed-request-facts-pitr-2026-10-15/verify.py --workspace",
+  "adopted_after_execution": {
+    "commit": "ae19684cc029b4309a3fdfb21f5150ebedb36451",
+    "same_531_compiled_input_bytes": true,
+    "original_execution_git_context_rewritten": false,
+    "new_report_publication_in_tested2182_claimed": false
+  }
+}

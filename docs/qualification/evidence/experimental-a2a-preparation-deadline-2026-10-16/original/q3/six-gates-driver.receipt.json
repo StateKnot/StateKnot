@@ -1,0 +1,17 @@
+{
+  "started_unix": 1792129063.0221598,
+  "seconds": 16.22282910346985,
+  "driver_sha256": "5046cb472e94a176c499b461704663c1bedb948e59e3307915875f65c254cf1c",
+  "runner_sha256": "a0ae9f901090d220c4323f9ee109049b8b01ef0ebcfafaf1479c67128393b658",
+  "actual_results": [
+    {
+      "gate": "fmt",
+      "exit_code": 0
+    },
+    {
+      "gate": "clippy",
+      "exit_code": 101
+    }
+  ],
+  "six_gates_all_passed": false
+}

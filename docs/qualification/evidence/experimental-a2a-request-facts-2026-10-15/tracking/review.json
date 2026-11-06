@@ -1,0 +1,27 @@
+{
+  "review": "collector read-only wording/evidence consistency check, not independent code review",
+  "base_commit": "0e8b4b544c444f42d6a7600070a6da6bc19b72b5",
+  "files": [
+    {
+      "path": "docs/r1-contract-gap-ledger.zh-CN.md",
+      "bytes": 24806,
+      "sha256": "11a56b52440c1eb49e31af58c7c277f1088826865fdadb1bc62951c23312b4a1",
+      "base0e8_sha256": "606600db7faa215e2b9701505b56a8cf92b0f5db29f012d8a2210d58af31a57f"
+    },
+    {
+      "path": "docs/production-milestones-2026-10-08.zh-CN.md",
+      "bytes": 48971,
+      "sha256": "6a5a393f194d63ef04e0900ffb54131aa92de06f9129e675619f43e274cdcef0",
+      "base0e8_sha256": "7edb978e70e9042c01cbf11a4249deb99314d1052ae5496ce13cc543abfe715c"
+    }
+  ],
+  "findings": [],
+  "checked": [
+    "facts interface delivered versus host policy/MCP principal rebind/backend still open",
+    "26 network,6 per PostgreSQL,2073/6 ignored/45 docs",
+    "HTTP-only attested replay and duplicate same committed Failed/Unknown receipt scope",
+    "old916 Native/fullCI not transferred",
+    "legacy Anonymous/Debug/Clone limits"
+  ],
+  "main_modified_by_review": false
+}

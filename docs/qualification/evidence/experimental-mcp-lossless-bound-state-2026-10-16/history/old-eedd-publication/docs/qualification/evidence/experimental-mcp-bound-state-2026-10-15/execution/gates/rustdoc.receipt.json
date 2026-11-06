@@ -1,0 +1,22 @@
+{
+  "gate": "rustdoc",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "doc",
+    "--workspace",
+    "--all-features",
+    "--no-deps",
+    "--locked"
+  ],
+  "runner_pid": 11672,
+  "pid": 11682,
+  "start_unix": 1792075321.760551,
+  "source_tree": "eeddc9f7e9c92023a0b0c1f9a7220cccc1b4c5d846ae4281d4a4aeff9b0f30f4",
+  "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+  "exit_code": 0,
+  "seconds": 1.008113145828247,
+  "log_sha256": "f67dbacb4fc4e886373c5ea5b01c9026dcee2e8af6adb3609d6a6d25e84b86e9",
+  "source_before_after_exact": true,
+  "native_database_execution": false
+}

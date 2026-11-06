@@ -150,8 +150,8 @@ let store = PostgresStore::connect(&runtime_url, options).await?;
 The migration role needs database `CONNECT`/`CREATE` and permission to create
 `public._sqlx_migrations` and the owned `stateknot` schema. It need not be a
 superuser. The executable [trusted-server role profile](postgresql-roles.md)
-([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema-26 table/column
-allowlist, transactional apply, effective-privilege audit and separate
+([简体中文](postgresql-roles.zh-CN.md)) supplies the exact schema37 table/column
+allowlist for all 54 tables, transactional apply, effective-privilege audit and separate
 reservation-retention credential. It grants no runtime DDL, DELETE or immutable
 evidence UPDATE, including node starts and submission mappings. Follow that
 guide's dedicated-database prerequisites and apply/audit the profile before
@@ -376,6 +376,14 @@ replay and before preparing durable work when consuming those pages manually.
 This composes a corruption-isolating
 checkpoint-and-suffix input without treating a read as dispatch authority;
 node/model/tool/outbox start transactions still perform the decisive fence.
+
+For complete Root and lifetime-frame schema/reducer validation, use
+`validate_graph_replay` on that same claimed session. Its
+[application replay contract](scoped-graph-application-replay.md)
+([中文](scoped-graph-application-replay.zh-CN.md)) defines exact dependencies,
+transaction-free callbacks, bounded direct-edge reads, original-observation
+rechecks and operational failure for legacy Root dispositions without a durable
+proof. This experimental Store read grants no dispatch or nested Driver support.
 
 Before planning work, `load_pinned_graph` reloads the current checkpoint's exact
 tenant-scoped graph version, recompiles its canonical bytes, validates the graph
@@ -686,6 +694,64 @@ unchanged. Do not restart a v18 binary against a v19 database: older binaries
 cannot validate the new migration set or consume failed Model bindings. After
 such bindings are written, rollback requires a consistent pre-upgrade database
 restore; prefer a forward fix to preserve newly committed work.
+
+## Scoped checkpoint integrity
+
+Migration 27 replaces Run-wide superstep uniqueness with exact tenant/Run/
+namespace/local-position uniqueness. Scoped predecessor keys also bind frame
+identity; node attempts, results, invocations, consumption, child ownership and
+Join references bind their checkpoint namespace. Generated empty-namespace
+columns keep Run and Agent-admission pointers rooted. Root read/recovery queries
+explicitly filter that scope, and the decoder rejects frame columns on root
+records. Old canonical checkpoint bytes are preserved.
+
+The scope catalog checks exact installed definitions, generated/default column
+expressions and live indexes, including refusal of same-name weakened FKs or
+writable root scope columns. The source-schema 26→27 nonempty fixture and typed
+scoped-row FK tests run on PostgreSQL 16 and 17. Manual scoped fixture insertion
+does not establish entry/return authority, compound journal integrity, waiting
+frame recovery or historical-release compatibility. RFC-0022 remains Draft and
+no supported nested execution API is enabled by this migration.
+
+The original schema27 rollout stopped workers, retained a consistent pre-upgrade
+backup, migrated with the dedicated owner and applied/audited its matching role
+profile before starting the matching executable. An old schema-26 binary cannot
+validate migration 27. Current experimental binaries require the complete
+schema37 deployment sequence above, rather than the historical schema27 profile.
+ The test-only revert fixture is not a downgrade
+procedure; new scoped history requires a forward fix or a consistent restore.
+
+Schema 33 adds experimental whole-stack closure under Draft
+[RFC-0022](rfcs/0022-namespaced-graph-frames.md). Its original schema33 increment
+used a 52-table role profile; current experimental deployment requires all
+migrations through 37 and the matching 54-table profile before resuming workers.
+A trusted coordinator must supply complete priced DIRECT usage and authenticate
+actual cancellation/sealed failure and settled work; a structural recovery floor
+is insufficient. The transaction retains Root state and original caller fences
+in separate immutable closure facts. Ordinary completion FKs stay exact.
+`load_graph_frame_closure` and active recovery authenticate the whole original
+decision, including after terminal Root completion. The source reconstruction
+fixture verifies populated 32→33 migration, not historical binary compatibility.
+Once closure facts are retained, prefer a forward fix or a consistent pre-upgrade
+restore; the test-only revert fixture refuses to erase them. Actual nested
+Driver dispatch, complete fault qualification and production acceptance remain
+required.
+
+Schema37 adds a cancellation-only v2 closure proof for one unique latest
+current-leaf ordinary owner of an exact registered, unpublished Join, after the
+children in the complete Root-bound account are terminal and settled. It keeps the owner
+Executing and creates no ordinary result/completion or Join consumption. The
+original no-stop and sealed-failure paths retain v1 and their strict checks.
+Consumers obtain the new exact v2 event schema through
+`PostgresStore::graph_frame_join_stop_event_schema()`; the original
+`graph_frame_closure_event_schema()` continues to return v1. Register both when
+reading both histories. Migration37 replaces one complete guard without a
+backfill, new table or ACL expansion; the schema36 54-table inventory is unchanged.
+Use normal checksum-pinned SQLx migration and the exact catalog, never a raw
+function replacement or migration-ledger edit. The
+[selected Store record](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+distinguishes actual retained-v1 upgrade/cold reads from broader compatibility,
+Root ConfirmCancellation, scoped Driver, fault, CI and R1 gates that remain open.
 
 ## Not yet implemented
 

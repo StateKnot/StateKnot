@@ -1,0 +1,465 @@
+--- a/crates/stateknot-runtime/tests/postgres/commit_proxy.rs
++++ b/crates/stateknot-runtime/tests/postgres/commit_proxy.rs
+@@ -38,6 +38,7 @@
+     GraphNodeStart,
+     GraphFrameClosure,
+     GraphFrameReturn,
++    GraphFrameBarrier,
+     LeaseRenewal,
+     LeaseRelease,
+     RunQuarantine,
+@@ -60,6 +61,7 @@
+             Self::GraphNodeStart => b"\nINSERT INTO stateknot.node_attempts (",
+             Self::GraphFrameClosure => b"INSERT INTO stateknot.graph_frame_closures(",
+             Self::GraphFrameReturn => b"INSERT INTO stateknot.graph_frame_returns(",
++            Self::GraphFrameBarrier => b"INSERT INTO stateknot.graph_frame_barriers (",
+             Self::LeaseRenewal => b"\nUPDATE stateknot.runs\nSET lease_renewed_at = $5,",
+             Self::LeaseRelease => b"\nUPDATE stateknot.runs\nSET lease_attempt_id = NULL,",
+             Self::RunQuarantine => b"\nINSERT INTO stateknot.run_quarantines (",
+--- a/crates/stateknot-runtime/tests/postgres/nested_driver.rs
++++ b/crates/stateknot-runtime/tests/postgres/nested_driver.rs
+@@ -8,6 +8,9 @@
+ 
+ #[path = "frame_return_process_faults.rs"]
+ mod frame_return_process_faults;
++
++#[path = "frame_wait_process_faults.rs"]
++mod frame_wait_process_faults;
+ 
+ #[path = "elapsed_graph_waits.rs"]
+ mod elapsed_graph_waits;
+--- /dev/null
++++ b/crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs
+@@ -0,0 +1,432 @@
++// Copyright 2026 StateKnot contributors
++// SPDX-License-Identifier: Apache-2.0
++
++//! Whole scoped Waiting COMMIT cuts and authorized cold-process continuation.
++use super::*;
++use crate::{
++    commit_proxy::{CommitProxy, Cut, TransactionTarget, loopback_target},
++    process_harness::{INPUT_ENV, TestProcess, parent_control, publish_ready},
++};
++use sqlx_core::{connection::ConnectOptions, query_scalar::query_scalar};
++use sqlx_postgres::{PgConnectOptions, PgPool, PgPoolOptions};
++use stateknot_core::{
++    CheckpointHead, DurableWaitError, GraphFrameCheckpointHead, JournalHead, RunRevision, Scope,
++};
++use stateknot_store_postgres::{
++    GraphFrameBarrierCommitOutcome, GraphWaitEffect, StoredGraphFrameBarrier,
++};
++use std::collections::BTreeMap;
++
++const WORKER: &str = "nested_driver::frame_wait_process_faults::wait_commit_loss_worker";
++type Snapshot = BTreeMap<&'static str, Value>;
++
++#[derive(Clone, serde::Deserialize, serde::Serialize)]
++struct Scenario {
++    base: GraphFrameCheckpointHead,
++    root: CheckpointHead,
++    successor: CheckpointId,
++    event: EventId,
++    fence: RunFence,
++    observed: JournalHead,
++    direct: BudgetUsage,
++    revision: RunRevision,
++    interrupts: [InterruptId; 2],
++}
++
++fn principal(subject: &str) -> PrincipalIdentity {
++    PrincipalIdentity::new(
++        "https://issuer.example.com/nested-wait-process".parse().unwrap(),
++        subject.parse().unwrap(),
++    )
++}
++
++fn scopes() -> ScopeSet {
++    ScopeSet::try_new(["run.resolve".parse::<Scope>().unwrap()]).unwrap()
++}
++
++fn fixture(ids: [InterruptId; 2]) -> NestedFixture {
++    let waits = NodeWaits::try_new(ids.map(|id| {
++        NodeWait::interrupt(
++            id,
++            RunInterruptKind::Approval,
++            test_payload(),
++            Digest::sha256(b"actual scoped Wait process fault"),
++            Some(principal("resumer")),
++            scopes(),
++            None,
++        )
++    }))
++    .unwrap();
++    nested_fixture_with_behavior(1, &TestNodeBehavior::Wait(waits))
++}
++
++async fn worker_store(input: &Value) -> PostgresStore {
++    let mut connection: PgConnectOptions = std::env::var(DATABASE_URL_ENV).unwrap().parse().unwrap();
++    let cut = input["role"].as_str() == Some("cut");
++    if cut {
++        connection = connection.host("127.0.0.1")
++            .port(u16::try_from(input["proxy_port"].as_u64().unwrap()).unwrap());
++    }
++    PostgresStore::connect(
++        connection.to_url_lossy().as_str(),
++        PostgresStoreOptions::default()
++            .with_transport_security(PostgresTransportSecurity::Disabled)
++            .with_pool_size(1, if cut { 1 } else { 8 })
++            .with_acquire_timeout(Duration::from_secs(30))
++            .with_transaction_timeouts(Duration::from_secs(5), Duration::from_secs(20))
++            .with_lease_timing(Duration::from_secs(30), Duration::from_secs(5 * 60)),
++    )
++    .await.unwrap()
++}
++
++async fn attempt(
++    store: &PostgresStore,
++    fixture: &NestedFixture,
++    scenario: &Scenario,
++) -> Result<GraphFrameBarrierCommitOutcome, StoreError> {
++    let base = store.load_graph_frame_checkpoint(
++        scenario.fence.tenant_id(), scenario.fence.run_id(),
++        scenario.base.frame().namespace(), scenario.base.checkpoint().checkpoint_id(),
++    ).await?;
++    assert_eq!(base.head(), scenario.base);
++    let pending = store.load_pending_node_result(&base.activation("Step_A".parse().unwrap()).unwrap()).await?;
++    let executable = fixture.driver.registry.resolve(base.frame().target()).unwrap();
++    let plan = executable.graph().plan_frame_barrier(
++        &base, &[pending], scenario.successor, executable.schemas(), executable.reducer(),
++    ).unwrap();
++    Box::pin(store.commit_graph_frame_wait(
++        plan, scenario.event, scenario.fence.clone(), scenario.observed.clone(),
++        scenario.direct.clone(), scenario.revision, fixture.driver.registry.schemas(),
++        executable.reducer(),
++    )).await
++}
++
++fn driver(store: &PostgresStore, fixture: &NestedFixture) -> DurableGraphDriver {
++    DurableGraphDriver::new(
++        store.clone(), fixture.driver.registry.clone(), DurableGraphDriverOptions::default(),
++    ).unwrap().with_direct_usage_evidence(Arc::new(AdmissionDirectEvidence { store: store.clone() }))
++}
++
++#[tokio::test]
++async fn wait_commit_loss_worker() {
++    let Ok(input) = std::env::var(INPUT_ENV) else { return; };
++    let control = parent_control();
++    let input: Value = serde_json::from_str(&input).unwrap();
++    let scenario: Scenario = serde_json::from_value(input["scenario"].clone()).unwrap();
++    let store = worker_store(&input).await;
++    let fixture = fixture(scenario.interrupts);
++    if input["role"].as_str() == Some("cut") {
++        Box::pin(attempt(&store, &fixture, &scenario)).await.unwrap();
++        panic!("Wait transaction returned before required process termination");
++    }
++    assert_eq!(input["role"].as_str(), Some("resume"));
++    let committed = input["committed"].as_bool().unwrap();
++    if committed {
++        let GraphFrameBarrierCommitOutcome::Idempotent(record) =
++            Box::pin(attempt(&store, &fixture, &scenario)).await.unwrap()
++        else { panic!("old-fence committed Wait must recover exactly"); };
++        assert_eq!(record.event().source().worker_fence(), Some(&scenario.fence));
++    } else {
++        let fence: RunFence = serde_json::from_value(input["replacement"].clone()).unwrap();
++        assert!(fence.epoch() > scenario.fence.epoch());
++        let outcome = driver(&store, &fixture).drive(fence, CancellationSignal::never()).await.unwrap();
++        assert!(matches!(outcome.outcome(), GraphDriveOutcome::FrameWaiting(_)));
++        assert_eq!(outcome.report().frame_callers_rebound(), 1);
++        assert_eq!(outcome.report().frame_barriers_committed(), 1);
++        assert_eq!(outcome.report().node_attempts_started(), 0);
++    }
++    assert_eq!(fixture.leaf_calls.load(Ordering::SeqCst), 0);
++    assert_eq!(fixture.driver.second_calls.load(Ordering::SeqCst), 0);
++    assert_eq!(fixture.root_calls.load(Ordering::SeqCst), 0);
++    let record = owning_wait(&store, &scenario).await;
++    publish_ready(&json!({"phase":"waiting_before_authorized_resolution", "digest":record.digest(), "original_ack":committed}));
++    control.await.unwrap();
++    // A Waiting Run cannot be superseded. The parent has now authorized both
++    // resolutions, so a genuine new scheduler claim resumes the saved leaf.
++    let lease = store.claim_lease(
++        scenario.fence.tenant_id(), scenario.fence.run_id(), AttemptId::generate(),
++    ).await.unwrap();
++    assert!(lease.lease().fence().epoch() > scenario.fence.epoch());
++    let outcome = driver(&store, &fixture)
++        .drive(lease.lease().fence().clone(), CancellationSignal::never()).await.unwrap();
++    assert!(matches!(outcome.outcome(), GraphDriveOutcome::LifecycleBarrierReady(_)));
++    assert_eq!(outcome.report().whole_replay().waits_validated(), 1);
++    assert_eq!(outcome.report().frame_returns_committed(), 1);
++    assert_eq!(fixture.leaf_calls.load(Ordering::SeqCst), 0);
++    assert_eq!(fixture.driver.second_calls.load(Ordering::SeqCst), 1);
++    assert_eq!(fixture.root_calls.load(Ordering::SeqCst), 1);
++    assert!(store.load_active_graph_frame(scenario.fence.tenant_id(), scenario.fence.run_id()).await.unwrap().is_none());
++    assert!(!store.load_run(scenario.fence.tenant_id(), scenario.fence.run_id()).await.unwrap().is_quarantined());
++    store.close().await;
++}
++
++async fn prepare(store: &PostgresStore) -> Scenario {
++    let interrupts = [InterruptId::generate(), InterruptId::generate()];
++    let fixture = fixture(interrupts);
++    let ids = AgentRunIds::generate();
++    let tenant = tenant("scoped-wait-process-fault");
++    admit_nested_fixture(store, &fixture, &tenant, ids).await;
++    let evidence = Arc::new(AdmissionDirectEvidence { store: store.clone() });
++    let initial = DurableGraphDriver::new(store.clone(), fixture.driver.registry.clone(), nested_quantum(3))
++        .unwrap().with_direct_usage_evidence(evidence.clone());
++    let lease = store.claim_lease(&tenant, ids.run_id(), AttemptId::generate()).await.unwrap();
++    let outcome = initial.drive(lease.lease().fence().clone(), CancellationSignal::never()).await.unwrap();
++    assert!(matches!(outcome.outcome(), GraphDriveOutcome::Yielded { .. }));
++    assert_eq!(outcome.report().durable_events(), 3);
++    assert_eq!(outcome.report().frame_entries_committed(), 1);
++    assert_eq!(outcome.report().node_attempts_completed(), 1);
++    assert_eq!(outcome.report().frame_barriers_committed(), 0);
++    assert_eq!(fixture.leaf_calls.load(Ordering::SeqCst), 1);
++    assert_eq!(fixture.driver.second_calls.load(Ordering::SeqCst), 0);
++    assert_eq!(fixture.root_calls.load(Ordering::SeqCst), 0);
++    let active = store.load_active_graph_frame(&tenant, ids.run_id()).await.unwrap().unwrap();
++    let base = active.checkpoint().head();
++    let lease = store.claim_lease(&tenant, ids.run_id(), AttemptId::generate()).await.unwrap();
++    let fence = lease.lease().fence().clone();
++    let direct = evidence.usage_at(&tenant, ids.run_id(), active.run().journal_head().unwrap()).await.unwrap();
++    Box::pin(store.rebind_graph_frame_caller(
++        active.checkpoint().frame(), AttemptId::generate(), EventId::generate(), fence.clone(),
++        active.run().journal_head().unwrap().clone(), direct,
++    )).await.unwrap();
++    let current = store.load_run(&tenant, ids.run_id()).await.unwrap();
++    let observed = current.journal_head().unwrap().clone();
++    let direct = evidence.usage_at(&tenant, ids.run_id(), &observed).await.unwrap();
++    assert_ne!(direct, BudgetUsage::zero());
++    let root = store.load_current_checkpoint(&tenant, ids.run_id()).await.unwrap().unwrap().head();
++    Scenario { base, root, successor: CheckpointId::generate(), event: EventId::generate(), fence,
++        observed, direct, revision: current.lifecycle().revision(), interrupts }
++}
++
++async fn snapshot(db: &PgPool, scenario: &Scenario) -> Snapshot {
++    let mut rows = BTreeMap::new();
++    // Full row representations include the original condition inventory and
++    // negative terminal/closure facts, beyond Return's fourteen-table fixture.
++    for table in [
++        "runs", "run_events", "run_attempt_claims", "node_attempts", "node_attempt_completions",
++        "pending_node_results", "pending_node_result_consumptions", "run_checkpoints",
++        "graph_frame_entries", "graph_frame_caller_bindings", "graph_frame_returns",
++        "graph_frame_barriers", "graph_frame_heads", "graph_frame_stacks", "graph_wait_conditions",
++        "run_wait_registrations", "interrupt_resolutions", "timer_firings", "wait_abandonments",
++        "graph_frame_closures", "graph_frame_closed_callers", "run_quarantines",
++    ] {
++        let bytes: String = query_scalar(&format!(
++            "SELECT coalesce(jsonb_agg(to_jsonb(r) ORDER BY to_jsonb(r)::text),'[]'::jsonb)::text FROM stateknot.{table} r WHERE tenant_id=$1 AND run_id=$2"
++        )).bind(scenario.fence.tenant_id().as_str()).bind(*scenario.fence.run_id().as_uuid())
++            .fetch_one(db).await.unwrap();
++        rows.insert(table, serde_json::from_str(&bytes).unwrap());
++    }
++    rows
++}
++
++async fn owning_wait(store: &PostgresStore, scenario: &Scenario) -> StoredGraphFrameBarrier {
++    let record = store.load_graph_frame_barrier(
++        scenario.fence.tenant_id(), scenario.fence.run_id(), scenario.base.frame().namespace(),
++        scenario.base.checkpoint().checkpoint_id(),
++    ).await.unwrap().unwrap();
++    assert_eq!(record.wait_effect(), Some(GraphWaitEffect::Waiting));
++    assert_eq!(record.event().payload().schema().version(), Version::new(3, 0, 0));
++    assert_eq!(record.wait_revision(), Some(scenario.revision));
++    assert_eq!(record.waits().unwrap().unwrap().len(), 2);
++    let run = store.load_run(scenario.fence.tenant_id(), scenario.fence.run_id()).await.unwrap();
++    assert_eq!(run.lifecycle().status(), RunStatus::Waiting);
++    assert_eq!(run.unresolved_wait_count(), 2);
++    assert!(run.lease().is_none() && !run.is_quarantined());
++    assert!(run.scheduler_ready_at().is_none() && run.scheduler_not_before().is_none());
++    assert_eq!(run.journal_head(), Some(&record.event().head()));
++    let root = store.load_current_checkpoint(scenario.fence.tenant_id(), scenario.fence.run_id()).await.unwrap().unwrap();
++    assert_eq!(root.head(), scenario.root);
++    assert_eq!(run.checkpoint().unwrap().checkpoint_id(), scenario.root.checkpoint_id());
++    let active = store.load_active_graph_frame(scenario.fence.tenant_id(), scenario.fence.run_id()).await.unwrap().unwrap();
++    assert_eq!(active.checkpoint().head(), record.checkpoint().head());
++    assert_eq!(active.open_frames().len(), 1);
++    assert_eq!(active.checkpoint().frame(), scenario.base.frame());
++    for id in scenario.interrupts {
++        let request = store.load_interrupt_request(scenario.fence.tenant_id(), scenario.fence.run_id(), id).await.unwrap();
++        assert_eq!(request.journal(), &record.event().head());
++        assert_eq!(request.intent().required_principal(), Some(&principal("resumer")));
++        assert_eq!(request.intent().required_scopes(), &scopes());
++    }
++    record
++}
++
++fn assert_atomic_wait(before: &Snapshot, after: &Snapshot) {
++    for (table, increment) in [
++        ("run_events",1), ("run_checkpoints",1), ("pending_node_result_consumptions",1),
++        ("graph_frame_barriers",1), ("graph_wait_conditions",2), ("run_wait_registrations",2),
++    ] {
++        let original = before[table].as_array().unwrap();
++        let added = after[table].as_array().unwrap();
++        assert_eq!(added.len(), original.len()+increment, "{table}");
++        assert!(original.iter().all(|row| added.contains(row)), "{table} prior rows changed");
++    }
++    for (table, rows) in before {
++        if !["runs", "run_events", "run_checkpoints", "pending_node_result_consumptions",
++            "graph_frame_barriers", "graph_wait_conditions", "run_wait_registrations", "graph_frame_heads"].contains(table) {
++            assert_eq!(&after[table], rows, "{table}");
++        }
++    }
++    assert_eq!(before["graph_frame_heads"].as_array().unwrap().len(), 1);
++    assert_eq!(after["graph_frame_heads"].as_array().unwrap().len(), 1);
++    for column in ["checkpoint_id", "checkpoint_superstep", "checkpoint_digest"] {
++        assert_eq!(after["runs"][0][column], before["runs"][0][column]);
++    }
++}
++
++fn immutable_wait(rows: &Snapshot, record: &StoredGraphFrameBarrier) -> Snapshot {
++    let sequence = json!(record.event().sequence().get());
++    let mut bundle = BTreeMap::new();
++    for (table,column,count) in [
++        ("run_events","sequence",1), ("run_checkpoints","journal_sequence",1),
++        ("graph_frame_barriers","journal_sequence",1),
++        ("pending_node_result_consumptions","successor_journal_sequence",1),
++        ("graph_wait_conditions","journal_sequence",2),
++    ] {
++        let found: Vec<_> = rows[table].as_array().unwrap().iter().filter(|row| row[column]==sequence).cloned().collect();
++        assert_eq!(found.len(), count, "{table}");
++        bundle.insert(table,json!(found));
++    }
++    bundle
++}
++
++async fn backend_gone(db: &PgPool, pid: i32) {
++    tokio::time::timeout(Duration::from_secs(10), async {
++        loop {
++            let gone: bool = query_scalar("SELECT NOT EXISTS (SELECT 1 FROM pg_stat_activity WHERE pid=$1)")
++                .bind(pid).fetch_one(db).await.unwrap();
++            if gone { return; }
++            tokio::time::sleep(Duration::from_millis(25)).await;
++        }
++    }).await.expect("killed Wait writer backend did not disappear");
++}
++
++async fn resolve_all(store: &PostgresStore, db: &PgPool, scenario: &Scenario) {
++    let before = snapshot(db, scenario).await;
++    let request = store.load_interrupt_request(scenario.fence.tenant_id(), scenario.fence.run_id(), scenario.interrupts[0]).await.unwrap();
++    // The public constructor refuses unauthorized authority before a Store call;
++    // never fabricate an intent to pretend this is a database authorization cut.
++    assert!(matches!(InterruptResolutionIntent::new(
++        &request, EventId::generate(), test_payload(), InterruptResolver::new(principal("other"), scopes()),
++    ), Err(DurableWaitError::ResolverPrincipalMismatch)));
++    assert!(matches!(InterruptResolutionIntent::new(
++        &request, EventId::generate(), test_payload(), InterruptResolver::new(principal("resumer"), ScopeSet::default()),
++    ), Err(DurableWaitError::ResolverScopesInsufficient)));
++    assert_eq!(snapshot(db, scenario).await, before);
++    for (index,id) in scenario.interrupts.into_iter().enumerate() {
++        let run = store.load_run(scenario.fence.tenant_id(), scenario.fence.run_id()).await.unwrap();
++        let request = store.load_interrupt_request(scenario.fence.tenant_id(), scenario.fence.run_id(), id).await.unwrap();
++        let event = EventId::generate();
++        let intent = InterruptResolutionIntent::new(&request,event,test_payload(),InterruptResolver::new(principal("resumer"),scopes())).unwrap();
++        let payload = JournalPayload::new(test_payload().schema().clone(),
++            JournalEventKind::new("nested-wait-resolved").unwrap(),
++            BoundedJson::try_from_value(json!({"interrupt_id":id.to_string()})).unwrap()).unwrap();
++        let append = JournalAppend::new(JournalExpectation::exact(run.journal_head().unwrap().clone()),
++            JournalEventIntent::control_plane(scenario.fence.tenant_id().clone(),scenario.fence.run_id(),event,payload).unwrap()).unwrap();
++        let actual = store.resolve_interrupt(append.clone(),run.lifecycle().revision(),intent.clone()).await.unwrap();
++        let retry = store.resolve_interrupt(append,run.lifecycle().revision(),intent).await.unwrap();
++        assert_eq!(actual.record(),retry.record());
++        let next = store.load_run(scenario.fence.tenant_id(), scenario.fence.run_id()).await.unwrap();
++        assert_eq!(next.unresolved_wait_count(),1-u8::try_from(index).unwrap());
++        assert!(next.lease().is_none());
++        assert_eq!(next.lifecycle().status(),if index==0 { RunStatus::Waiting } else { RunStatus::Active });
++        if index==0 {
++            assert!(matches!(store.claim_lease(scenario.fence.tenant_id(),scenario.fence.run_id(),AttemptId::generate()).await,
++                Err(StoreError::RunNotRunnable)));
++        }
++    }
++}
++
++#[allow(clippy::too_many_lines)]
++async fn run_cut(store: &PostgresStore, db: &PgPool, connection: &PgConnectOptions, cut: Cut) {
++    let scenario = Box::pin(prepare(store)).await;
++    let before = snapshot(db,&scenario).await;
++    let mut proxy = CommitProxy::start(connection,cut,TransactionTarget::GraphFrameBarrier).await;
++    let mut interrupted = TestProcess::spawn(WORKER,&json!({"role":"cut","scenario":scenario,"proxy_port":proxy.port()}));
++    proxy.wait_cut(cut).await;
++    let backend = proxy.backend_pid();
++    let at_cut = snapshot(db,&scenario).await;
++    let committed = cut==Cut::CommitResponse;
++    let original = if committed {
++        assert_atomic_wait(&before,&at_cut);
++        let record = owning_wait(store,&scenario).await;
++        assert_eq!(record.event().event_id(),scenario.event);
++        assert_eq!(record.event().source().worker_fence(),Some(&scenario.fence));
++        Some((record.digest(),immutable_wait(&at_cut,&record)))
++    } else {
++        assert_eq!(at_cut,before,"unforwarded Wait COMMIT leaked facts");
++        None
++    };
++    interrupted.kill_and_reap().await;
++    proxy.stop().await;
++    backend_gone(db,backend).await;
++    assert_eq!(snapshot(db,&scenario).await,at_cut);
++    let replacement = if committed { None } else {
++        let lease = store.supersede_lease(scenario.fence.tenant_id(),scenario.fence.run_id(),AttemptId::generate()).await.unwrap();
++        assert!(lease.lease().fence().epoch()>scenario.fence.epoch());
++        let stable = snapshot(db,&scenario).await;
++        assert!(matches!(Box::pin(attempt(store,&fixture(scenario.interrupts),&scenario)).await,Err(StoreError::StaleFence)));
++        assert_eq!(snapshot(db,&scenario).await,stable,"fresh old-fence Wait wrote facts");
++        Some(lease.lease().fence().clone())
++    };
++    let before_recovery = snapshot(db,&scenario).await;
++    let mut recovery = TestProcess::spawn(WORKER,&json!({"role":"resume","scenario":scenario,"committed":committed,"replacement":replacement}));
++    let ready = recovery.ready().await.unwrap();
++    assert_eq!(ready["phase"],"waiting_before_authorized_resolution");
++    assert_eq!(ready["original_ack"],committed);
++    if let Some((digest,_)) = &original {
++        assert_eq!(ready["digest"],json!(digest));
++        assert_eq!(snapshot(db,&scenario).await,before_recovery,"old ACK created facts");
++    }
++    let record = owning_wait(store,&scenario).await;
++    assert_eq!(ready["digest"],json!(record.digest()));
++    let waiting_rows = snapshot(db,&scenario).await;
++    let bundle = immutable_wait(&waiting_rows,&record);
++    Box::pin(resolve_all(store,db,&scenario)).await;
++    recovery.resume();
++    recovery.wait_success().await;
++    let final_rows = snapshot(db,&scenario).await;
++    assert_eq!(immutable_wait(&final_rows,&record),bundle);
++    assert!(before["pending_node_results"].as_array().unwrap().iter().all(|row|final_rows["pending_node_results"].as_array().unwrap().contains(row)));
++    assert_eq!(final_rows["interrupt_resolutions"].as_array().unwrap().len(),2);
++    if let Some((digest,original)) = original {
++        assert_eq!(record.digest(),digest);
++        assert_eq!(bundle,original);
++    }
++    let final_record = store.load_graph_frame_barrier(
++        scenario.fence.tenant_id(), scenario.fence.run_id(), scenario.base.frame().namespace(),
++        scenario.base.checkpoint().checkpoint_id(),
++    ).await.unwrap().unwrap();
++    assert_eq!(final_record.digest(),record.digest());
++    if committed {
++        // Only this branch has a real committed request with every original
++        // parameter retained. The Before branch uses a genuine new Driver plan.
++        let GraphFrameBarrierCommitOutcome::Idempotent(replayed) =
++            Box::pin(attempt(store,&fixture(scenario.interrupts),&scenario)).await.unwrap()
++        else { panic!("original Wait ACK after Return must remain idempotent"); };
++        assert_eq!(replayed.digest(),record.digest());
++    }
++    assert_eq!(snapshot(db,&scenario).await,final_rows);
++    let version: String = query_scalar("SHOW server_version").fetch_one(db).await.unwrap();
++    println!("\nSTATEKNOT_SCOPED_WAIT_COMMIT_LOSS_EVIDENCE={}",json!({
++        "profile":"scoped-wait-commit-loss-v1","cut":if committed {"commit_response_withheld"} else {"commit_not_forwarded"},
++        "commit_forwarded":committed,"commit_response_forwarded":false,"writer_killed_and_reaped":true,
++        "cold_driver_after_authorized_resolution":true,"condition_count":2,"snapshot_tables":22,
++        "wait_application_redispatches":0,"scoped_successor_calls":1,"parent_application_calls":1,
++        "fresh_old_fence_wait_refused":if committed {None} else {Some(true)},
++        "original_wait_recovered":committed,"original_request_ack_after_return_verified":committed,"invariants":"passed","postgres":version,
++        "termination":if cfg!(unix) {"SIGKILL"} else {"Child::kill"},"os":std::env::consts::OS,"arch":std::env::consts::ARCH
++    }));
++}
++
++#[tokio::test]
++async fn scoped_wait_commit_loss_survives_real_kill_authorized_resolution_and_cold_driver() {
++    let _guard = DATABASE_TEST_MUTEX.lock().await;
++    let connection = std::env::var(DATABASE_URL_ENV).ok().map(|s|s.parse::<PgConnectOptions>().unwrap());
++    if let Some(connection)=&connection { let _=loopback_target(connection); }
++    let Some(store)=test_store().await else {return;};
++    let db=PgPoolOptions::new().max_connections(2).connect(&std::env::var(DATABASE_URL_ENV).unwrap()).await.unwrap();
++    for cut in [Cut::BeforeCommit,Cut::CommitResponse] {
++        Box::pin(run_cut(&store,&db,connection.as_ref().unwrap(),cut)).await;
++    }
++    db.close().await;
++    store.close().await;
++}

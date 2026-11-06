@@ -1,0 +1,479 @@
+{
+  "profile": "experimental-driver-acknowledged-release-v2",
+  "date": "2026-10-12",
+  "status": "component_qualified",
+  "release_qualified": false,
+  "r1_complete": false,
+  "rfc_0022_status": "Draft",
+  "source": {
+    "git_head": "ff081612853dcdb3094297542d3d0739e8383496",
+    "git_tree": "0ee75edc263b54ffd7793f44248aa3b2d8c15271",
+    "files": 896,
+    "sha256": "4fa93cf9c8d7d8e7c3c910f82fb9a1110bff5f55a9c94d15eb63311c7662a1bb",
+    "all_committed_blobs_match_actual_tested_source": true,
+    "edited_file_sha256": {
+      "crates/stateknot-runtime/src/driver/lease.rs": "aad1a2e7c28ea79413fff05bcd80a6d8237aabc3a4c5cb4ce07b17a3b417f983",
+      "crates/stateknot-runtime/tests/postgres/commit_proxy.rs": "c679ce5aa0aecb8d610da396954168e46a4648bece20ce986ed303d2ba68e0ed",
+      "crates/stateknot-runtime/tests/postgres/recovery_guardian.rs": "f4ce1eb14999e14c93b3146f8272c1d5c0f58553913a55795ae3b9795e4f02d2"
+    }
+  },
+  "checks": [
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "exit_code": 0,
+      "seconds": 3.8250277910000006,
+      "log": "/private/tmp/stateknot-driver-released-owning-green-fmt-v2.log",
+      "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "source_unchanged": true
+    },
+    {
+      "name": "strict-runtime",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "-p",
+        "stateknot-runtime",
+        "-p",
+        "stateknot-store-postgres",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 16.733943875,
+      "log": "/private/tmp/stateknot-driver-released-owning-green-strict-runtime-v2.log",
+      "log_sha256": "3298838a43ca36cccd794a14b90d2e55f129c5747cea6a6aaaf45c7354ec3c0b",
+      "source_unchanged": true
+    },
+    {
+      "name": "pg16-inner",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "-p",
+        "stateknot-runtime",
+        "--all-features",
+        "--locked",
+        "--test",
+        "postgres",
+        "nested_driver::recovery_guardian::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 179.93547025,
+      "log": "/private/tmp/stateknot-driver-released-owning-green-pg16-inner-v2.log",
+      "log_sha256": "a727c388115ebbcbefcf153d56c888cd4d5b789424e832875134f344c500e36a",
+      "source_unchanged": true,
+      "major": 16,
+      "database": "stateknot_released_owning_green_pg16_v2",
+      "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+      "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+      "started_at": "2026-10-12T07:18:26.01052068Z",
+      "binary": "/private/tmp/stateknot-root-corrupt-read-no-debug-target-v1/debug/deps/postgres-29a4376355896e12",
+      "binary_sha256": "eee7ffd586f7289f850e828f8f54151b0adbe98a2ab83a9f56438e9d5e583f1b"
+    },
+    {
+      "name": "pg17-inner",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "-p",
+        "stateknot-runtime",
+        "--all-features",
+        "--locked",
+        "--test",
+        "postgres",
+        "nested_driver::recovery_guardian::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 136.60447162500003,
+      "log": "/private/tmp/stateknot-driver-released-owning-green-pg17-inner-v2.log",
+      "log_sha256": "ccfb51eb0a5f1046c42b9cb70cf59b2d1234d844568881413e4cb44e0890d560",
+      "source_unchanged": true,
+      "major": 17,
+      "database": "stateknot_released_owning_green_pg17_v2",
+      "container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+      "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+      "started_at": "2026-10-12T07:18:26.332131597Z",
+      "binary": "/private/tmp/stateknot-root-corrupt-read-no-debug-target-v1/debug/deps/postgres-29a4376355896e12",
+      "binary_sha256": "eee7ffd586f7289f850e828f8f54151b0adbe98a2ab83a9f56438e9d5e583f1b"
+    },
+    {
+      "name": "nightly-runtime",
+      "command": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "-p",
+        "stateknot-runtime",
+        "-p",
+        "stateknot-store-postgres",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 46.900956791,
+      "log": "/private/tmp/stateknot-driver-released-owning-green-nightly-runtime-v2.log",
+      "log_sha256": "33a551c095db87a18c3336def31408ed8fb34368e7951730a0edc7bc12e52a62",
+      "source_unchanged": true
+    },
+    {
+      "name": "clippy",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit_code": 0,
+      "seconds": 113.59367708299999,
+      "source_unchanged": true,
+      "log": "/private/tmp/stateknot-driver-released-owning-workspace-clippy-v2.log",
+      "log_sha256": "7f1d69133fabcbeaa4d1795a7d1344d7b1b40f8b941ff667b3dda5d887722fdf"
+    },
+    {
+      "name": "workspace",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 474.18288150000006,
+      "source_unchanged": true,
+      "log": "/private/tmp/stateknot-driver-released-owning-workspace-workspace-v2.log",
+      "log_sha256": "7e47ee8ef5322e8a5c9718cfabf42e7475f237e2e6f1989bb6d6180514c64908",
+      "counts": {
+        "suites": 98,
+        "passed": 2047,
+        "failed": 0,
+        "ignored": 6
+      }
+    },
+    {
+      "name": "doctests",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 15.906641541999988,
+      "source_unchanged": true,
+      "log": "/private/tmp/stateknot-driver-released-owning-workspace-doctests-v2.log",
+      "log_sha256": "4239199acc4634c977a650220ad29521bdcdead92e9a68bc4289e5c6e5eedb93",
+      "counts": {
+        "suites": 10,
+        "passed": 45,
+        "failed": 0,
+        "ignored": 0
+      }
+    },
+    {
+      "name": "rustdoc",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 41.07065587499994,
+      "source_unchanged": true,
+      "log": "/private/tmp/stateknot-driver-released-owning-workspace-rustdoc-v2.log",
+      "log_sha256": "81fb7d3aabc484e81f0d41f21d2dc1f1b577a6375a186120561ba1cd17182d48"
+    },
+    {
+      "name": "nightly",
+      "command": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked"
+      ],
+      "exit_code": 0,
+      "seconds": 71.29025116699995,
+      "source_unchanged": true,
+      "log": "/private/tmp/stateknot-driver-released-owning-workspace-nightly-v2.log",
+      "log_sha256": "fbe01913703213b8e63ad419e836843b228be5964c74ac2e8e28ecc6710b7702"
+    }
+  ],
+  "native_scope": "Seven actual guardian regressions per PostgreSQL version, original default stack/2s execution/30s normal lease and pool timeout/31s ACK cuts. Full workspace database-unconfigured entries are not Native qualifications.",
+  "binary_sha256": "eee7ffd586f7289f850e828f8f54151b0adbe98a2ab83a9f56438e9d5e583f1b",
+  "reviews": [
+    {
+      "path": "/private/tmp/stateknot-driver-released-owning-standards-elapsed-v1.md",
+      "sha256": "6bf1b36081306d0cdedc4b1aac23db8e2a5c0df82b40cb5980c9c8488c04bf5e",
+      "actionable_findings": 0
+    },
+    {
+      "path": "/private/tmp/stateknot-driver-released-owning-spec-review-v1.md",
+      "sha256": "9c01e5facf01a0b537609a85b528f0e02220388cba8c4457c876ed1fe16ec1a5",
+      "actionable_findings": 0
+    },
+    {
+      "path": "/private/tmp/stateknot-driver-released-owning-fixture-v2-standards-elapsed.md",
+      "sha256": "86959ab2ffb117f8bb74e8c502382d87c5bbd0ed0902bcaeb4c1f49a032183c8",
+      "actionable_findings": 0
+    },
+    {
+      "path": "/private/tmp/stateknot-driver-released-owning-spec-review-v2-test-only.md",
+      "sha256": "902f45080f8d67bfab5fe9d2f6a95847e38da145754846d7cfa85c3150e4f26d",
+      "actionable_findings": 0
+    }
+  ],
+  "original_release_red": {
+    "name": "pg16-inner",
+    "command": [
+      "cargo",
+      "+1.88.0",
+      "test",
+      "-p",
+      "stateknot-runtime",
+      "--all-features",
+      "--locked",
+      "--test",
+      "postgres",
+      "nested_driver::recovery_guardian::recovery_released_ownership_ack_keeps_original_outcome_after_guardian_failure",
+      "--",
+      "--exact",
+      "--nocapture",
+      "--test-threads=1"
+    ],
+    "exit_code": 101,
+    "seconds": 241.073676416,
+    "log": "/private/tmp/stateknot-driver-released-owning-red-pg16-inner-v2.log",
+    "log_sha256": "16c801c64f06758fe23ad9a51d84ccf173ec0da62eef8d25c8dd4c8a2de4239f",
+    "source_unchanged": true,
+    "major": 16,
+    "database": "stateknot_released_owning_red_pg16_v2",
+    "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+    "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+    "started_at": "2026-10-12T07:18:26.01052068Z",
+    "binary": "/private/tmp/stateknot-root-corrupt-read-no-debug-target-v1/debug/deps/postgres-29a4376355896e12",
+    "binary_sha256": "f7ed84974176198b2316f91900ce8dd7877072816a0a6baece11c7bfebf9348a"
+  },
+  "preserved_pre_cut_failure": "/private/tmp/stateknot-driver-released-owning-quarantine-preparation-red-v1",
+  "archive": "/private/tmp/stateknot-driver-released-owning-qualification-v2",
+  "exact_source_archive_sha256": "ea936ecc93c8c762679585132ac905f97d17691832df768444b050ae60730278",
+  "ordinary_root_runtime_regressions": {
+    "source_sha256": "4fa93cf9c8d7d8e7c3c910f82fb9a1110bff5f55a9c94d15eb63311c7662a1bb",
+    "tests": [
+      "driver_advances_then_replays_a_noninitial_checkpoint_before_terminal_handoff",
+      "durable_agent_loop_drives_and_commits_one_claimed_run_to_success",
+      "durable_agent_loop_releases_lease_when_terminal_evidence_is_unavailable",
+      "graph_composition::bounded_composition_exhaustion_runs_the_explicit_failure_exit",
+      "graph_composition::composed_wait_returns_to_parent_only_after_durable_timer_resolution",
+      "graph_composition::pending_composed_nodes_survive_driver_recreation_and_exit_early",
+      "graph_composition::recovered_global_step_limit_blocks_dispatch_and_commits_replayable_failure",
+      "journal_isolated_siblings_overlap_but_commit_in_canonical_node_order",
+      "long_running_node_renews_its_lease_until_completion",
+      "successor_fence_restarts_an_orphaned_parallel_sibling_batch_once",
+      "tenant_scheduler_scans_claims_executes_and_then_observes_idle",
+      "terminal_handoff_lost_ack_retries_without_rereading_success_evidence",
+      "wait_handoff_replays_exactly_after_a_later_cancellation_advances_the_run"
+    ],
+    "checks": [
+      {
+        "major": 16,
+        "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+        "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+        "started_at": "2026-10-12T07:18:26.01052068Z",
+        "database": "stateknot_trusted_root_runtime_regressions_pg16_v2",
+        "command": [
+          "/private/tmp/stateknot-driver-released-owning-qualification-v2/runtime-postgres-native",
+          "driver_advances_then_replays_a_noninitial_checkpoint_before_terminal_handoff",
+          "durable_agent_loop_drives_and_commits_one_claimed_run_to_success",
+          "durable_agent_loop_releases_lease_when_terminal_evidence_is_unavailable",
+          "graph_composition::bounded_composition_exhaustion_runs_the_explicit_failure_exit",
+          "graph_composition::composed_wait_returns_to_parent_only_after_durable_timer_resolution",
+          "graph_composition::pending_composed_nodes_survive_driver_recreation_and_exit_early",
+          "graph_composition::recovered_global_step_limit_blocks_dispatch_and_commits_replayable_failure",
+          "journal_isolated_siblings_overlap_but_commit_in_canonical_node_order",
+          "long_running_node_renews_its_lease_until_completion",
+          "successor_fence_restarts_an_orphaned_parallel_sibling_batch_once",
+          "tenant_scheduler_scans_claims_executes_and_then_observes_idle",
+          "terminal_handoff_lost_ack_retries_without_rereading_success_evidence",
+          "wait_handoff_replays_exactly_after_a_later_cancellation_advances_the_run",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 101,
+        "seconds": 134.636430584,
+        "log": "/private/tmp/stateknot-trusted-root-runtime-regressions-pg16-v2.log",
+        "log_sha256": "7ad40625ed21fc1a289a80ab94a4a53ab6f6d0e2bb5afc1534ee0b9be43f3845",
+        "summaries": [
+          [
+            "11",
+            "2",
+            "0"
+          ]
+        ],
+        "source_unchanged": true
+      },
+      {
+        "major": 17,
+        "container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+        "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+        "started_at": "2026-10-12T07:18:26.332131597Z",
+        "database": "stateknot_trusted_root_runtime_regressions_pg17_v2",
+        "command": [
+          "/private/tmp/stateknot-driver-released-owning-qualification-v2/runtime-postgres-native",
+          "driver_advances_then_replays_a_noninitial_checkpoint_before_terminal_handoff",
+          "durable_agent_loop_drives_and_commits_one_claimed_run_to_success",
+          "durable_agent_loop_releases_lease_when_terminal_evidence_is_unavailable",
+          "graph_composition::bounded_composition_exhaustion_runs_the_explicit_failure_exit",
+          "graph_composition::composed_wait_returns_to_parent_only_after_durable_timer_resolution",
+          "graph_composition::pending_composed_nodes_survive_driver_recreation_and_exit_early",
+          "graph_composition::recovered_global_step_limit_blocks_dispatch_and_commits_replayable_failure",
+          "journal_isolated_siblings_overlap_but_commit_in_canonical_node_order",
+          "long_running_node_renews_its_lease_until_completion",
+          "successor_fence_restarts_an_orphaned_parallel_sibling_batch_once",
+          "tenant_scheduler_scans_claims_executes_and_then_observes_idle",
+          "terminal_handoff_lost_ack_retries_without_rereading_success_evidence",
+          "wait_handoff_replays_exactly_after_a_later_cancellation_advances_the_run",
+          "--exact",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 101,
+        "seconds": 206.35196454200002,
+        "log": "/private/tmp/stateknot-trusted-root-runtime-regressions-pg17-v2.log",
+        "log_sha256": "1d84d6445cf7da5042b92b7e7307375cfcf4d55697813e53d8e4b569c22c3818",
+        "summaries": [
+          [
+            "11",
+            "2",
+            "0"
+          ]
+        ],
+        "source_unchanged": true
+      }
+    ],
+    "qualified": false,
+    "both_versions": {
+      "passed": 11,
+      "failed": 2,
+      "ignored": 0
+    },
+    "unresolved": [
+      "journal_isolated_siblings_overlap_but_commit_in_canonical_node_order",
+      "successor_fence_restarts_an_orphaned_parallel_sibling_batch_once"
+    ]
+  },
+  "earlier_source_full_runtime_native": {
+    "source_sha256": "127373c9cb1838429d0fd9c4bb93710d0bfc669d87514e8adf283b3af16a744b",
+    "source_files": 884,
+    "checks": [
+      {
+        "name": "pg16",
+        "command": [
+          "/private/tmp/stateknot-driver-complete-ack-runtime-binary-v1",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": 101,
+        "seconds": 4400.315497500001,
+        "log": "/private/tmp/stateknot-driver-complete-ack-full-runtime-pg16-v1.log",
+        "log_sha256": "1ec4f6d65f8f9f0781e0c75975eeee7bc749910412fe66afb9bb665a7cf70096",
+        "source_unchanged": true,
+        "major": 16,
+        "database": "stateknot_driver_complete_ack_full_runtime_pg16_v1",
+        "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+        "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+        "started_at": "2026-10-12T07:18:26.01052068Z",
+        "binary": "/private/tmp/stateknot-driver-complete-ack-runtime-binary-v1",
+        "binary_sha256": "d30d260085638f67edf181fa53e1fd5d0fe9c8b531f8d5152cc9c2f0c73fa84f",
+        "actual_compile_log": "/private/tmp/stateknot-driver-complete-ack-pg16-inner-v1.log",
+        "actual_compile_log_sha256": "2d45f855328299d1669a31e4c5c4009cea31c1bbf65fa9e298cd46dbc4266a1f",
+        "expected_outer_test_count": 175
+      },
+      {
+        "name": "pg17",
+        "command": [
+          "/private/tmp/stateknot-driver-complete-ack-runtime-binary-v1",
+          "--nocapture",
+          "--test-threads=1"
+        ],
+        "exit_code": -6,
+        "seconds": 575.8233230830001,
+        "log": "/private/tmp/stateknot-driver-complete-ack-full-runtime-pg17-v1.log",
+        "log_sha256": "d5bba2404edfdeffe825b7d52c3eebe1184984a8f2176d10dbf8e6dd78536317",
+        "source_unchanged": true,
+        "major": 17,
+        "database": "stateknot_driver_complete_ack_full_runtime_pg17_v1",
+        "container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+        "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+        "started_at": "2026-10-12T07:18:26.332131597Z",
+        "binary": "/private/tmp/stateknot-driver-complete-ack-runtime-binary-v1",
+        "binary_sha256": "d30d260085638f67edf181fa53e1fd5d0fe9c8b531f8d5152cc9c2f0c73fa84f",
+        "actual_compile_log": "/private/tmp/stateknot-driver-complete-ack-pg16-inner-v1.log",
+        "actual_compile_log_sha256": "2d45f855328299d1669a31e4c5c4009cea31c1bbf65fa9e298cd46dbc4266a1f",
+        "expected_outer_test_count": 175
+      }
+    ],
+    "qualified": false,
+    "pg16": {
+      "passed": 152,
+      "failed": 23,
+      "ignored": 0,
+      "total": 175
+    },
+    "pg17": {
+      "exit_code": -6,
+      "complete_summary": null,
+      "failure_at": "nested_driver::higher_fence_rebinds_only_leaf_then_each_resumed_parent",
+      "reason": "default stack overflow"
+    },
+    "archive": "/private/tmp/stateknot-driver-complete-ack-full-runtime-preserved-v1"
+  },
+  "open_gates": [
+    "complete final four-suite Native composition",
+    "schema35/schema36/scoped Child Join final source",
+    "default-stack deep/serial/AgentLoop/higher-fence recovery",
+    "history cost and capacity",
+    "Linux and process/COMMIT fault matrix",
+    "released N-1/N-2 compatibility",
+    "R6/R7 production"
+  ]
+}

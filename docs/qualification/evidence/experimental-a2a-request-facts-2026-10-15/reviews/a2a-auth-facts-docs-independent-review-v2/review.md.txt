@@ -1,0 +1,38 @@
+# A2A request-facts adoption docs: fixed v2 incremental review
+
+Standards: **0 findings**. Spec: **0 findings**. The single v1 P2 finding is
+resolved; the original v1 finding, snapshots, diff, manifest and seal were
+reverified unchanged and remain in the sibling v1 evidence directory.
+
+## Standards
+
+Only the final acceptance sentence in RFC-0025 EN/CN changed. The other three
+files (CHANGELOG and both A2A client guides) retain their exact reviewed bytes.
+The [freeze](freeze.json) binds all five documents, production candidate
+`46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216`, and the
+[complete incremental patch](incremental.patch). Repository contribution/RFC
+rules and the mattpocock review/design principles remain satisfied within this
+experimental document scope. No implementation qualification is inferred.
+
+## Spec
+
+The EN/CN correction distinguishes three observable cases consistently:
+refusal causes no business send; duplicate recovery of the same committed
+durable Failed/Unknown attempt receipt creates neither another send nor a
+second policy evaluation; a fresh probe or attested MessageIdReplay is a new
+operation that must reapply current policy and may send under the original
+recovery contract. This resolves the broad v1 prohibition without changing
+request, effect or retry semantics.
+
+The unchanged reviewed text distinguishes HTTP+JSON and JSON-RPC bodies,
+new transport correlation from preserved business message identity, raw sensitive
+facts from actual policy, limited Debug redaction from existing identity fields,
+and shared Clone retention from the request lifetime. Static, legacy and
+Anonymous retain their existing behavior. The fixed RFC baseline is separate
+from this selected additive candidate; complete identity-policy acceptance
+remains Draft. All local file links resolve.
+
+This review made no source/main edit, compilation, Native test, staging or
+commit. It grants no CI, production policy, performance, R1 or platform-owner
+qualification. This is a document review of a still uncompiled independent
+source candidate; later implementation/test evidence remains separate.

@@ -1,0 +1,164 @@
+{
+  "schema": "stateknot-wait-process-fault-independent-static-review-v1",
+  "reviewer": "/root/ci_monitor_review_oct16b/linux_monitor_semantics",
+  "reviewed_at_utc": "2026-10-16T09:05:29.292240+00:00",
+  "subject": {
+    "version": 2,
+    "manifest": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-authoring-v2/manifest.json",
+      "bytes": 1942,
+      "sha256": "fced554cbb3b3566f571d4fb4679e77c2c114e06dbda8a093db11db1070349ba"
+    },
+    "authoring_receipt": {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-authoring-v2/authoring.receipt.json",
+      "bytes": 2011,
+      "sha256": "39b078c232a768f63ca62b2bae712725375552c5bad313a9c102e74125fd55ec"
+    },
+    "payloads": [
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-authoring-v2/candidate/crates/stateknot-runtime/tests/postgres/commit_proxy.rs",
+        "bytes": 14414,
+        "sha256": "eec8eb79475501045f1542e45cb80f9fe8fae8a592aa85f3cad17ee6859ad19e"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-authoring-v2/candidate/crates/stateknot-runtime/tests/postgres/nested_driver.rs",
+        "bytes": 137986,
+        "sha256": "f8b6f5f043beed350e63d9ad56e54a8f14a43e7bfad077e143f99736708eff87"
+      },
+      {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-authoring-v2/candidate/crates/stateknot-runtime/tests/postgres/frame_wait_process_faults.rs",
+        "bytes": 23822,
+        "sha256": "fdb57aa1ac77a55ebfa958edb78f6a3c4195a9903b18975f42a95e5b95ad2dd0"
+      }
+    ],
+    "raw_new_module_lines": 432,
+    "baseline_commit": "ff7fea7db88a611e2f0db29ceedf6b0b4b48f5fa",
+    "root_explicit_frozen_confirmation_via_parent": true,
+    "v1_not_reviewed_or_qualified": true
+  },
+  "result": {
+    "axes": [
+      "Spec",
+      "Standards"
+    ],
+    "independent_of_author": true,
+    "distinct_independent_reviewers": 1,
+    "actionable_findings": 0,
+    "blocking_findings": 0,
+    "remaining_findings": []
+  },
+  "checks": {
+    "manifest_all_3_payloads_full_bytes_and_SHA_exact": true,
+    "two_baselines_equal_Git_objects": true,
+    "patch_gzip_and_matrix_bindings_exact": true,
+    "mechanical_removal_restores_two_existing_files_exact": true,
+    "test_only_change_no_production_migration_dependency_or_existing_Return_edit": true,
+    "both_COMMIT_cuts_inherited_protocol_semantics_preserved": true,
+    "owned_SIGKILL_reap_and_exact_backend_disappearance_required": true,
+    "fresh_OS_worker_and_Store_for_resume": true,
+    "Before_original_22_table_snapshot_unchanged": true,
+    "Before_Active_supersede_higher_fence_then_fresh_old_fence_StaleFence_and_no_writes": true,
+    "Before_new_Driver_request_not_misrepresented_as_original_ACK": true,
+    "After_original_request_ACK_only_Idempotent_before_resume_and_after_Return": true,
+    "After_ACK_retains_original_plan_event_fence_observed_DIRECT_revision": true,
+    "After_ACK_no_new_facts_checked": true,
+    "Waiting_never_forced_supersede": true,
+    "full_original_Root_and_owning_authority_budget_paths_not_replaced": true,
+    "initial_quantum_3_and_default_Driver_options_preserved": true,
+    "original_lease_lock_statement_acquire_horizon_values_preserved": true,
+    "only_cut_proxy_pool1_cold_Driver_pool8": true,
+    "wrong_principal_scope_only_constructor_rejection_claim": true,
+    "two_authorized_resolutions_each_exact_retry_then_no_early_claim": true,
+    "same_Wait_application_zero_redispatch_successor_once_parent_once": true,
+    "original_physical_pending_and_immutable_Wait_bundle_retained": true,
+    "22_snapshot_tables_and_tenant_run_columns_verified_in_versioned_migrations": true,
+    "five_actual_sequence_columns_verified": true,
+    "real_proxy_INSERT_target_prefix_exact": true,
+    "Timer_elapsed_ReadyReleased_and_natural_expiry_not_substituted": true
+  },
+  "important_line_ranges": {
+    "new_module": "frame_wait_process_faults.rs:82-160,163-249,252-299,302-335,338-432",
+    "proxy": "commit_proxy.rs:27-67 plus inherited start_cut/wait_cut/backend_pid/stop",
+    "original_retry": "barriers.rs:1119-1130,1429-1444,1567-1600",
+    "original_supersede": "store.rs:6549-6677",
+    "inherited_owned_process": "process_harness.rs:31-97,100-125,127-155,175-195"
+  },
+  "context_bindings": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/docs/rfcs/0022-namespaced-graph-frames.md",
+      "bytes": 73713,
+      "sha256": "3aabb79d50d7e27af0426a15a6d3fbb93fe57c1a071d7059e6d611599a6e4a17"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/docs/production-milestones-2026-10-08.zh-CN.md",
+      "bytes": 53052,
+      "sha256": "40668c1c9740636ae831da183f246dcc367f844a2507bd62bf3564c09f494e12"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/crates/stateknot-store-postgres/src/graph_frames/barriers.rs",
+      "bytes": 83084,
+      "sha256": "f5a8bc46e5b2544c988cbd2e1db35804ef8c772cb010de525c8ebd9a809dedfd"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/crates/stateknot-store-postgres/src/store.rs",
+      "bytes": 818019,
+      "sha256": "78835132253e71ad070dfc26b86d6b2d57b819f7498006cf1dfa631530d21c80"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/crates/stateknot-store-postgres/src/graph_frames.rs",
+      "bytes": 64375,
+      "sha256": "16fe8662534fe2f6614be716bf4d69c9512db85e65fa6cd2f8f3a3312d798030"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/crates/stateknot-runtime/tests/postgres/process_harness.rs",
+      "bytes": 9203,
+      "sha256": "f65d30e965a9c7d39e16878016d0d7b51b980b8827d706b1ca59087b46252271"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/crates/stateknot-runtime/tests/postgres.rs",
+      "bytes": 250493,
+      "sha256": "f9b8108c4d0dd6002d0a52ae06eda48056fb521d7224a4ab155cfd0e046067de"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/Cargo.toml",
+      "bytes": 3624,
+      "sha256": "d73912078dd7ea3c34ff854cebc84088b6c1dade7a675ddfc6b3a23c3643a622"
+    }
+  ],
+  "additional_subject_documents": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-authoring-v2/MATRIX.zh-CN.md",
+      "bytes": 10600,
+      "sha256": "481ebaab277b3a21daaf911ba7626a31e358d37e7d46730e3793f353653fb0ff"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-wait-process-fault-authoring-v2/MATRIX-ERRATA.zh-CN.md",
+      "bytes": 357,
+      "sha256": "301355e6aba17762a9ba0707775d301a09035c9db753073e642c42674fc73495"
+    }
+  ],
+  "report": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/graph-frame-wait-process-fault-spec-review-v1/REVIEW.zh-CN.md",
+    "bytes": 2796,
+    "sha256": "f2c4904094e847b2af74f59c92bd08f31cb0def99b61e211f119965139df10eb"
+  },
+  "execution_scope": {
+    "read_only_local_text_hash_Git_migration_checks": true,
+    "only_write": "this new ignored review directory",
+    "candidate_main_tree_index_or_Git_mutation": false,
+    "Rust_fmt_Clippy_tests_DB_Docker_network_or_CI_executed": false
+  },
+  "pending_gates": [
+    "fmt on new frozen source copy",
+    "strict compile and Clippy",
+    "actual 193 inventory (+2 predicted only)",
+    "original six local qualification gates",
+    "PG16/17 default-feature original opt1/assertions/overflow/default-stack actual process profile",
+    "source/binary/profile/full stdout/stderr/actual exit/marker evidence"
+  ],
+  "qualification_limits": [
+    "Static review only; no compilation or execution claim.",
+    "Not Timer elapsed/ReadyReleased/natural-expiry/scoped Join/whole fault matrix.",
+    "No G4/R1/R2-R7/release/capacity completion claim."
+  ]
+}

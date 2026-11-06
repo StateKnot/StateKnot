@@ -1,0 +1,18 @@
+{
+  "reviewer": "root; original root testing executor; independent of diagnostic author",
+  "head_before": "0fbd0a780b41f2b999ec5a95e908d41d2a3f14d9",
+  "test_payload_sha256": "9f8a92fa3c0a8ac7d31c6946f9db7f251cf808fee1322599b33110c166046642",
+  "source933_tree_sha256": "577fa6e6dac49dad92d37eb0683bfaf43a673e86f99d3ad47111b51b26a9104a",
+  "canonical_supplied542_sha256": "d88e7d73b5b08eeda7bf8d98480be8ad2e68e3b9b4513a002b4742c820f02b16",
+  "actual_main_542_inputs_exact": true,
+  "only_one_new_test_path": true,
+  "production_Rust_SQL_API_or_business_budgets_changed": false,
+  "source_review_receipt_sha256": "3337f4f77fca400137eef6f8c02ab8d572eccb184f55c5d6e33f8bb9a40ceb44",
+  "read_source_review_and_actual_verifier_zero": true,
+  "six_actual_gates_zero": true,
+  "workspace_passed": 2124,
+  "workspace_existing_ignored": 6,
+  "doctests_passed": 48,
+  "dual_PG_scoped_Wait_actual_zero": true,
+  "full_Native_CI_or_original_Windows_cause_qualified": false
+}

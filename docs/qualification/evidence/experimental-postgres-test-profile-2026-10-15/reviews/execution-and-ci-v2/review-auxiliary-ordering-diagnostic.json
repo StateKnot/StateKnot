@@ -1,0 +1,11 @@
+{
+  "phase": "reviewer source-manifest read-only validation",
+  "first_tool_chunk": "894c5c",
+  "exit_code": 1,
+  "error": "AssertionError comparing Path-component-ordered rows to string-sorted expected list",
+  "corrected_to": "Full path->bytes/SHA map comparison, retaining original manifest list for canonical tree digest",
+  "source_maps_equal": true,
+  "file_count": 923,
+  "products_or_source_not_executed_or_changed": true,
+  "not_a_product_failure": true
+}

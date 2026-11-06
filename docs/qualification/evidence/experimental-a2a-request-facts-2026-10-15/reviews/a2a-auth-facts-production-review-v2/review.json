@@ -1,0 +1,91 @@
+{
+  "schema": "stateknot.independent-source-review.v1",
+  "date": "2026-10-15",
+  "status": "completed-static-review",
+  "reviewer": "/root/resume_elapsed_gates_oct15",
+  "baseline_source": "final schema36 candidate 922; production a2a_client.rs only",
+  "baseline_sha256": "b0397e995e9fea861a7a160344d2a9ead07605705752b6c9e1ff2fe9cd5120e4",
+  "candidate_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "patch_sha256": "326059c0a90c9a469fa98ac93d65876a51d813f87c47737322a9829356d4367e",
+  "review_head": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "previous_review_basis_sha256": "3537dece34a33f6bc4059257361f39cc75305da3633868426f4487da066d0767",
+  "previous_basis_preserved": true,
+  "rustdoc_only_delta": true,
+  "standards": {
+    "findings": [],
+    "count": 0,
+    "sources": [
+      "user-supplied production-grade and disk/cache instructions",
+      "CONTRIBUTING.md",
+      "docs/rfcs/README.md",
+      "Cargo.toml workspace MSRV and unsafe/lint policy",
+      "mattpocock-skills code-review smell baseline",
+      "mattpocock-skills codebase-design"
+    ],
+    "judgement": "existing authorization Seam, private immutable request snapshot, three getters; no new policy framework"
+  },
+  "spec": {
+    "findings": [],
+    "count": 0,
+    "source": "parent explicit request-facts patch scope; Draft RFC-0025 mapping is broader and remains unimplemented/unevaluated in part",
+    "judgement": "same prepared method, normalized URL/query and bounded serialized bytes provided to authenticated callback and consumed by HTTP builder; not policy enforcement"
+  },
+  "limits": [
+    "Anonymous does not invoke a token provider",
+    "StaticA2aBearerToken and existing providers can ignore new facts",
+    "HTTP method alone does not distinguish JSON-RPC reads from writes",
+    "No all-header, DNS, TLS peer or system-proxy attestation",
+    "Clone can retain immutable body and URL after call; not zeroizing or aggregate-memory bounded",
+    "existing byte limit is serialized body length after serialization; not peak allocation or Vec-capacity bound",
+    "manual Debug preserves prior tenant/task/scope/attempt fields while redacting added URL/body",
+    "provider synchronous work and independently spawned work are trusted-host responsibilities",
+    "mark_dispatched remains conservative possible-send evidence, not proof of remote receipt",
+    "MSRV source assessment only; no Rust 1.88 compilation in this review",
+    "public network tests are outside the frozen production-only review"
+  ],
+  "unchanged_input_count": 6,
+  "locked_primary_packages": [
+    {
+      "name": "bytes",
+      "version": "1.12.1",
+      "checksum": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+      "declared_msrv": "1.57"
+    },
+    {
+      "name": "reqwest",
+      "version": "0.12.28",
+      "checksum": "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147",
+      "declared_msrv": "1.64.0"
+    }
+  ],
+  "operations_performed": [
+    "read-only source review",
+    "locked local registry archive/member verification",
+    "write ignored independent review evidence",
+    "offline evidence verifier"
+  ],
+  "operations_not_performed": [
+    "Rust compile",
+    "Rust tests",
+    "DB operation",
+    "source modification",
+    "dependency modification",
+    "stage",
+    "commit",
+    "owner/namespace implementation"
+  ],
+  "qualification_granted": {
+    "Native": false,
+    "MSRV_build": false,
+    "performance": false,
+    "capacity": false,
+    "all_CI": false,
+    "identity_policy": false,
+    "RFC_accepted": false,
+    "R1_complete": false,
+    "platform_owner": false
+  },
+  "report": "review.md",
+  "verify": "python3 verify.py --workspace",
+  "recommended_next_slice": "one compiled host-owned provider example using exact destination/resource and bounded operation-specific body checks, PermissionDenied before business send, separate short-lived credential; no generic parser or new owner"
+}

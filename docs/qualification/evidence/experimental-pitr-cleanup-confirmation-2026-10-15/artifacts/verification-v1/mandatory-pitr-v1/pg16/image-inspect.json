@@ -1,0 +1,74 @@
+[
+    {
+        "Id": "sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54",
+        "RepoTags": [
+            "postgres@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54"
+        ],
+        "RepoDigests": [
+            "postgres@sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54"
+        ],
+        "Comment": "buildkit.dockerfile.v0",
+        "Created": "2026-06-24T01:36:31.752672519Z",
+        "Config": {
+            "ExposedPorts": {
+                "5432/tcp": {}
+            },
+            "Env": [
+                "PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/lib/postgresql/16/bin",
+                "GOSU_VERSION=1.19",
+                "LANG=en_US.utf8",
+                "PG_MAJOR=16",
+                "PG_VERSION=16.14-1.pgdg13+1",
+                "PGDATA=/var/lib/postgresql/data"
+            ],
+            "Entrypoint": [
+                "docker-entrypoint.sh"
+            ],
+            "Cmd": [
+                "postgres"
+            ],
+            "Volumes": {
+                "/var/lib/postgresql/data": {}
+            },
+            "StopSignal": "SIGINT"
+        },
+        "Architecture": "arm64",
+        "Variant": "v8",
+        "Os": "linux",
+        "Size": 158821363,
+        "RootFS": {
+            "Type": "layers",
+            "Layers": [
+                "sha256:221f7a7e2aa9a3dc4a14beca97f5dada40cf6915886474e7840e3b44c2b24f1a",
+                "sha256:517ca770e3a64affd7b1c1fa4df0653afffb6b5d25753e1f674fbf5ad0ecab2f",
+                "sha256:6eb242c7b7b01aec624cb5f738cf5553bc988516d6f816fa8da440e51d9f2d34",
+                "sha256:f381d8cef9507188d373bc649f0bd242e6d9d89a6487c9d72e379a12af4ad078",
+                "sha256:ae008f0e6e51329f7dd64cd3e987a164bc294e115b9ff3c20a1b47310826f39b",
+                "sha256:8de89b3e77cdb065297f17b27613f896951ca5e3be8a8f60175f745ce306844f",
+                "sha256:43d23b73b623ed02dfa6f1eb30ef753926905401de31b3e31c03cd4eb0c0f54c",
+                "sha256:2d1a6f8a8587f162d815f6d28d576e0f08c1dce63afc9f7bba19b519df90b0e9",
+                "sha256:a8fec655fb6fd817cb201354172ef4bac9436878ec4a01520f00201dd633fbb7",
+                "sha256:3b71aebead5209fbe8f261fbcff4c5c7d9204374edae4d969002d6de9880dad4",
+                "sha256:fc0663bdf488a4be8f9aa106cd1e0a4300ed94de2f95035152defc5e473e68a7",
+                "sha256:1824154e69af57ab666b7b433fa29c0c2da7c45e933c3b1977323afcbc1e6e95",
+                "sha256:f5b00b9ee262042f6ec6ab7b43f6e38064e055993c39a62026a9923a6227fc3c",
+                "sha256:98b8e81fecbe8c524854cddd1f42ba1e8671b19217578bf121c0ab8025a8aae0"
+            ]
+        },
+        "Metadata": {
+            "LastTagTime": "2026-10-01T00:57:42.167938715Z"
+        },
+        "Descriptor": {
+            "mediaType": "application/vnd.oci.image.index.v1+json",
+            "digest": "sha256:fe03a7605299a34ddf5e4f285dff78c3d7190a576b3c6b46f2fcff69f4bffd54",
+            "size": 10237
+        },
+        "Identity": {
+            "Pull": [
+                {
+                    "Repository": "docker.io/library/postgres"
+                }
+            ]
+        }
+    }
+]

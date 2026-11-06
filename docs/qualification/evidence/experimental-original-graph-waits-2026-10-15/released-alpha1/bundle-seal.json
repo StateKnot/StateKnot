@@ -1,0 +1,24 @@
+{
+  "bundle": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/released-alpha1-upgrade/released-alpha1-to-experimental-schema36-2026-10-15.tar.gz",
+  "bundle_bytes": 5317257,
+  "bundle_sha256": "349989354fbd0104263fdee4b4652c333bce2208dcea901f93bc8e0eba23b020",
+  "manifest_sha256": "4a5dee80f86f920fbcebc3422e574692647b5fc0a1528c42e6ab994907afba83",
+  "profile_sha256": "311a401816135bc626688e17afd08f6de9817f6fb94c01dd96f644759f14c04c",
+  "manifest_files": 652,
+  "original_artifacts": 643,
+  "offline_verify_exit": 0,
+  "local_inputs_verify_exit": 0,
+  "repeated_archive_bytes_identical": true,
+  "main_files_modified_by_task": false,
+  "staged_by_task": false,
+  "commit_or_push_by_task": false,
+  "retained_binaries_external_to_cache": {
+    "reader": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/released-alpha1-upgrade/reader-build-v2/postgres",
+    "released": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/released-alpha1-build-v2/postgres"
+  },
+  "task_target_removed": true,
+  "independently_unpacked_offline_verify_exit": 0,
+  "unpacked_verify_stdout_sha256": "c6f3ef256db9944fa854fb0c2269a0a3d89d6aa5cabb137e51ffa458fdb7686a",
+  "unpacked_verification_used_no_original_source_or_binary": true,
+  "temporary_unpacked_copy_cleaned": true
+}

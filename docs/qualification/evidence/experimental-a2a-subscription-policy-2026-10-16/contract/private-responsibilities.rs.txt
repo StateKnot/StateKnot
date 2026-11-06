@@ -1,0 +1,37 @@
+// RESPONSIBILITY DECLARATIONS ONLY, deliberately not buildable code.
+// Names below are private suggestions; public Interface is only the Options
+// enable method. Implementation must not copy this as an authenticated backend.
+
+struct SubscriptionAuthorization {
+    authorizer: Arc<dyn A2aServerAuthorizer>,
+    request: A2aServerAuthorizationRequest, // original principal/op/task/configNone
+}
+
+// Created only on enabled SubscribeToTask after original prepare succeeded.
+// Never reconstruct request from stream payload, route hints or another mapping.
+// SendStreamingMessage and default false retain the existing bounded_stream.
+
+struct SubscriptionStreamState {
+    stream: Option<A2aEventStream>,
+    permit: Option<OwnedSemaphorePermit>,
+    authorization: Option<SubscriptionAuthorization>,
+    shutdown: CancellationToken,
+    request_timeout: Duration, // existing, not a new setting
+    idle_timeout: Duration,    // existing, not extended/restarted between phases
+    remaining: u32,            // original maximum_stream_events
+    terminal: bool,
+}
+
+impl SubscriptionStreamState {
+    // Synchronously take/drop owned stream and permit, then mark terminal.
+    // Terminal error/last-event state must contain no live stream/permit.
+    fn retire(&mut self);
+
+    // At each polled next step:
+    // one idle_deadline = now + existing idle_timeout;
+    // pre-authorize(original facts) -> stream.next -> post-authorize(original facts).
+    // Auth-phase deadline=min(idle_deadline, phase_start+existing request_timeout).
+    // Every successful await additionally checks now<its deadline and !shutdown.
+    // No spawned timer/check task; dropping the step drops all owned futures.
+    // At terminal/Err/None retire before returning; terminal event needs postcheck.
+}

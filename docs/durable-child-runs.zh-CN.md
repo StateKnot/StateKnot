@@ -13,6 +13,60 @@ SPDX-License-Identifier: Apache-2.0
 [共享状态静态子图](graph-composition.zh-CN.md)。另见
 [英文说明](durable-child-runs.md)。
 
+## 实验性的帧内独立子 Run
+
+[RFC-0022](rfcs/0022-namespaced-graph-frames.md) 仍为 Draft。Core 使用完整恢复的
+`GraphFrameCheckpoint` 调用 `ChildRunAdmissionIntent::for_frame` 和
+`validate_for_frame`；Root 构造器及校验器继续拒绝 scoped 输入。准备结果不授予派发
+或实际准入权限。
+
+Store 的子准入和 Join 注册认证真实活动叶帧及其 ready 输入。Schema 预检查在同一个
+一致快照中恢复作用域，回调在写事务之外执行；写入在既有树协调锁和祖先锁下重复
+完整作用域、不可变父准入、声明目标、物理 Start、日志和有效 fence 校验。归属写入
+及读取将现有 `parent_graph_namespace` 列绑定到该确切作用域；旧 Root 记录保留空
+namespace 及原有规范编码。
+新准入在完整归属读取之后先执行延迟组件约束，再复核原有效 Worker、父/子
+截止时间和预留容量。约束校验期间租约或子级较窄的截止时间到期时，子 Run、归属、
+预算预留和父日志一起回滚；父租约仍有效也不能绕过子级截止时间。
+
+父 Run 的取消请求为精确的帧内子级 key 创建队列项。发现按租户隔离，投递保留
+原父级观察和不可变子级回执。子级实际进入 Cancelled 后，相同 key 的重复投递仍
+返回首次回执；旧子日志和新的候选事件/原因不会改写它，也不推进双方日志、帧、
+Root checkpoint 或共享预留。投递表示请求取消；真实清理、终态计费和一次结算
+仍由各自的步骤完成。
+
+已准入 Root 必须具有子拓扑策略，叶帧只能收窄其三个上限；后代准入还保留每条原始
+归属边的拓扑策略。各帧共享 Root 绑定的 `ChildRunBudgetAccount`，
+`reserve_for_frame` 不创建新账户或重置生命周期计数。完整 DIRECT 排除子树消耗，
+预留和结算只计费一次。历史归属在 Return 或关闭之后仍认证原始帧 lineage；丢失
+ACK 时，原提交恢复先于新叶帧、fence 和 deadline 检查。Return 后恢复原 spawn
+保留已结算账户和当前 Worker fence，不推进日志或重新预留。
+
+Scoped Join 封闭该 activation 的完整子集，并原子释放 Run 租约。完整注册读取及
+延迟约束之后，在同一个 Run 锁下再次核对原 epoch、原租约有效期和 Agent 截止时间；
+到期则注册、日志和租约释放一起回滚。排他检查只排除
+完整 stack 认证的挂起 framework caller，未完成的普通 sibling 仍会阻止注册。
+发布要求真实的子 Run 终态结算；新 fence 下的 scoped 物理尝试必须将该精确 Join
+绑定到不可变结果。发布和消费重试保留原身份，子树只结算一次；帧返回后仍能读取
+原子 Run 归属及 Join。已释放的原 fence 不授予执行权限。
+
+实验性 schema37 Store 可关闭这样一个已请求取消的帧栈：唯一最新的当前叶普通
+owner 精确对应已注册、未发布的 Join，且整个 Root 绑定子账户中的子级均已终态并结算。
+原物理尝试仍为 Executing，冻结完整已定价 DIRECT，并只累计一次已结算子树用量；
+不创建普通结果/完成或 Join 发布/消费。完整 owning reader 认证 v2 stop proof，
+并在 fresh 候选检查之前恢复原已提交决定。Fresh quarantine、未解决的 Tool/Model、
+未定价用量、未结算子级或第二个未完成普通 owner 仍拒绝关闭；失败关闭继续使用
+原有严格的未完成工作检查。
+
+消费两版关闭事件时，须将 `PostgresStore::graph_frame_join_stop_event_schema()` 返回的
+v2 reference/document 与原 `graph_frame_closure_event_schema()` 的 v1 文档一起注册到
+离线 schema registry。部署须完成迁移37并使用匹配的 schema37 reader/writer 与
+54表角色配置；既有 v1 字节和 digest domain 保留。
+[选中 Store 资格记录](qualification/experimental-scoped-join-owner-stop-2026-10-18.zh-CN.md)
+绑定实际源码、执行用例和剩余门禁。其他取消/失败分支、Root ConfirmCancellation、
+嵌套 Driver 集成及完整故障/兼容/CI 验收仍须分别完成后才可声明 Supported；
+在集成完成前 Driver 继续拒绝可达的 scoped 子 Run 声明。
+
 ## PostgreSQL 事务存储（迁移 20）
 
 这是可信存储层构件，不是自动子 Run 协调器。调用前必须完成调用方认证，以及

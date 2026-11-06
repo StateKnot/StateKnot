@@ -24,7 +24,7 @@ pub mod agent_worker;
 mod http_transport;
 /// Strongly typed in-process execution over the durable service and owned roles.
 pub mod in_process_agent;
-/// Independently owned deadline, child, Join and failure-close maintenance.
+/// Independently owned durable maintenance over the same store.
 pub use stateknot_runtime::agent_maintenance;
 mod mcp_compute;
 mod mcp_reconciliation;

@@ -1,0 +1,36 @@
+{
+  "documents": [
+    {
+      "path": "CHANGELOG.md",
+      "bytes": 79248,
+      "sha256": "839d0000157c06621f6bea62938d07415545c690600aa46009db6637540f0c9f"
+    },
+    {
+      "path": "docs/production-milestones-2026-10-08.zh-CN.md",
+      "bytes": 50745,
+      "sha256": "1e798bbaa842fa65e7b161a1fba8212389f7a30f2a94c948174832787db51fb6"
+    },
+    {
+      "path": "docs/r1-contract-gap-ledger.zh-CN.md",
+      "bytes": 26376,
+      "sha256": "c94696d1dc0b4d403b9a456545cb6ad84ee34580e1bb65392062b33c07d7e8db"
+    },
+    {
+      "path": "docs/qualification/experimental-postgres-test-profile-2026-10-15.md",
+      "bytes": 7334,
+      "sha256": "905a2bf4cf6318b8a62c5c873af9a41f2a207792bc4886f6a795a22393874442"
+    },
+    {
+      "path": "docs/qualification/experimental-postgres-test-profile-2026-10-15.zh-CN.md",
+      "bytes": 6371,
+      "sha256": "3fa4cecc55d0abf3aff19be70d364c766f3a525ef3e00c1243f90c1358073a5e"
+    },
+    {
+      "path": "docs/qualification/experimental-postgres-test-profile-2026-10-15.json",
+      "bytes": 12249,
+      "sha256": "35496ff2126fb903cc2eb816eb970a6ca43655f248f6e73327f6d5b3eadf8d4c"
+    }
+  ],
+  "workflow_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7",
+  "base_workflow_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004"
+}

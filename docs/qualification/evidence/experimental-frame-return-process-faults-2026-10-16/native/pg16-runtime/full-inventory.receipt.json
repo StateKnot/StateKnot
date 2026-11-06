@@ -1,0 +1,11 @@
+{
+  "argv": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/graph-frame-return-process-fault-native-v3/build-candidate-runtime/binaries/runtime-postgres",
+    "--list"
+  ],
+  "start_unix": 1792139019.43892,
+  "seconds": 0.018439054489135742,
+  "exit_code": 0,
+  "stdout_sha256": "c9e7842073f1cc6ff6ea6b9419fa0ddb8917e8e7688841e33008122047ae43a8",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

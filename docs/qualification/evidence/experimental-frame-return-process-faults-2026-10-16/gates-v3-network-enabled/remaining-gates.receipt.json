@@ -1,0 +1,25 @@
+{
+  "started_unix": 1792137982.1922119,
+  "seconds": 185.97193813323975,
+  "actual_results": [
+    {
+      "gate": "workspace",
+      "exit_code": 0
+    },
+    {
+      "gate": "doctests",
+      "exit_code": 0
+    },
+    {
+      "gate": "rustdoc",
+      "exit_code": 0
+    },
+    {
+      "gate": "nightly",
+      "exit_code": 0
+    }
+  ],
+  "four_remaining_gates_passed": true,
+  "same_v3_source_unchanged": true,
+  "original_fmt_Clippy_zero_and_sandbox_workspace_failure_preserved": true
+}

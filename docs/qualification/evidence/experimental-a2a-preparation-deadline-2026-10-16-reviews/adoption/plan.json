@@ -1,0 +1,74 @@
+{
+  "origin_head": "1638f5adb597f5cafdcb2923608ca63ed75eccfe",
+  "qualified_source_tree": "9a98cd929c10698f8cb866b99b3fd00a9b0f69dd840a68da1d01f5b30817f49d",
+  "compiled540": "c3c5ed5bb8f102d9b1b31bf1afbb21e75e1e05d4e2b37d523f4ba4ca2bc80edc",
+  "all_other536_supplied_inputs_exact_before": true,
+  "source_spec_final_seal_pending": true,
+  "publication_evidence_pending": true,
+  "mutated_or_staged": false,
+  "files": [
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server/preparation_tests.rs",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-source-v5/crates/stateknot-integrations/src/a2a_server/preparation_tests.rs",
+      "before_sha256": null,
+      "after_sha256": "8a92483e8999a0ae64228708846d4c9ece915dcdb292fc4ef64cdc1b34387a46",
+      "category": "qualified code"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server.rs",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-source-v5/crates/stateknot-integrations/src/a2a_server.rs",
+      "before_sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+      "after_sha256": "f24d78a4fe411782b97d7c1a62123012ba91edd0c44a14113c2c4fa031395a51",
+      "category": "qualified code"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-source-v5/crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs",
+      "before_sha256": null,
+      "after_sha256": "4df438c525fc87477d78af9f812409e6bfb0e92c306b598699dc6ec1e4d9398b",
+      "category": "qualified code"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-source-v5/crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+      "before_sha256": "ce8ca227d3c4e032dbf6c5d2ded45df7e560c13016c6c8e6ade4071431860458",
+      "after_sha256": "37b2015530cdf25600c365d566488b8aaa59792b225421ab639daced0a6bf5c3",
+      "category": "qualified code"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-adoption-docs-v3/candidate/CHANGELOG.md",
+      "before_sha256": "e11140fd7676878418da2001e8e04742410d879b33c5bad49074c0084f0b22c2",
+      "after_sha256": "748478c2af27bad74fb3f26cd168630e4d51c2ba1f651fef9f5ef547b9266eda",
+      "category": "reviewed contract docs, final bounded-report link addition"
+    },
+    {
+      "path": "docs/a2a-server.md",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-adoption-docs-v3/candidate/docs/a2a-server.md",
+      "before_sha256": "6c2741bd99ffcdc803e9ffd2df4507e94035883a32d44d9d1c54642204ed321b",
+      "after_sha256": "7f2e30b8c4f5e2a5b945241d765ee30ac2888516ac3385b40f95489958ff997a",
+      "category": "reviewed contract docs, final bounded-report link addition"
+    },
+    {
+      "path": "docs/a2a-server.zh-CN.md",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-adoption-docs-v3/candidate/docs/a2a-server.zh-CN.md",
+      "before_sha256": "04c931e245f903aba919413c4f7c6ef3941ca73d4592c3c7a1feaf7255dc377f",
+      "after_sha256": "1ebf026144c9d9b79a32a9edaac0dfc4c1b5fd7297abca14dbe0a545dc0df07a",
+      "category": "reviewed contract docs, final bounded-report link addition"
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-adoption-docs-v3/candidate/docs/rfcs/0025-protocol-identity-and-authority.md",
+      "before_sha256": "7d519a2896eabfa78e3219a7d1ea59c4ffd2564f96fceeb051f0ca60efb3596c",
+      "after_sha256": "73145dc15dda23b81f2463ed93eedd1fad4c6b850e60c5bcda8de2aff3a34739",
+      "category": "reviewed contract docs, final bounded-report link addition"
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-initial-authority-adoption-docs-v3/candidate/docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "before_sha256": "e499f47d74c4264cb35498a3bc553bcf824273274ea3627822a1a678883bdbb3",
+      "after_sha256": "6d8fc888dd9ef89a9df170d417ccfbb7940a53c321130b70112c58b21d318fa3",
+      "category": "reviewed contract docs, final bounded-report link addition"
+    }
+  ]
+}

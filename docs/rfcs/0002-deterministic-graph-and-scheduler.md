@@ -307,6 +307,9 @@ clock, worker identity, random source, or sibling completion order. The current
 constructor deliberately rejects nodes outside the ready set and does not
 invent nested-graph readiness; a future namespaced checkpoint contract must be
 accepted before nested activations use this path.
+[RFC-0022](0022-namespaced-graph-frames.md) is the current Draft for that
+frame/checkpoint/continuation contract; its private constructor prototype does
+not authorize non-root execution through the existing root APIs.
 
 `ReadyNodeRecoveryPlanner` incrementally retains at most one compact result head
 and the latest fully verified attempt per ready node. At one exact live fence,

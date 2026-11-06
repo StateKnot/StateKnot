@@ -1,0 +1,15 @@
+{
+  "step": "pg16-store",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/store",
+    "--nocapture",
+    "--test-threads=1"
+  ],
+  "runner_pid": 68288,
+  "pid": 91304,
+  "started_unix": 1792070388.166997,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 446.94485211372375,
+  "log_sha256": "f397c3688334f3b61960b32a5ca70dffe6e6b2a7febcd2d6170c9a93e749781c"
+}

@@ -5,8 +5,12 @@
 [简体中文](postgresql-roles.zh-CN.md)
 
 `trusted-server-roles-v1` is an executable least-privilege deployment profile for
-the **trusted server-side** PostgreSQL 16/17 provider at schema 26. It separates
+the **trusted server-side** PostgreSQL 16/17 provider at schema38. It separates
 migration, application runtime and fairness-reservation retention credentials.
+Migration38 extends the complete frame-closure guard with the separately versioned
+published, unconsumed Join stop proof. Schema37 and schema38 retain the same
+54-table inventory and exact ACL allowlist. The schema37 evidence below remains
+historical; current schema38 role and upgrade qualification must be run separately.
 For effect-free remote computation, the separate
 [MCP compute Worker profile](mcp-compute-worker.md) transmits no database
 credentials and retains the Driver in the trusted host.
@@ -22,7 +26,7 @@ remain release gates.
 | Principal | Allowed | Not allowed |
 |---|---|---|
 | Migration owner | Own the dedicated database, schema, tables and invoker functions; explicit migrations and transactional profile apply/audit | Superuser, role administration, replication or RLS bypass in this profile; credentials in the runtime process |
-| Runtime | CONNECT; schema USAGE; read migration metadata; SELECT/INSERT on the exact 41 framework tables; UPDATE only enumerated mutable projection columns; execute the UUID check function | DDL, temporary objects, DELETE/TRUNCATE, updating immutable evidence/identity columns, migration metadata writes, grant options, owner membership, disabling triggers |
+| Runtime | CONNECT; schema USAGE; read migration metadata; SELECT/INSERT on the exact 54 framework tables; UPDATE only enumerated mutable projection columns; execute the UUID check function | DDL, temporary objects, DELETE/TRUNCATE, updating immutable evidence/identity columns, migration metadata writes, grant options, owner membership, disabling triggers |
 | Retention | Read migration metadata; SELECT/DELETE on fairness reservations; UPDATE on that table's `reservation_id` only, required by PostgreSQL's row-lock permission check | Runtime writes, journal/checkpoint reads or mutation, shard-policy/cursor mutation, DDL or migration |
 
 The retention identity is a **trusted destructive-maintenance account**.
@@ -104,7 +108,7 @@ timeout: investigate contention and retry the whole deployment step if it fails.
   on existing tables inherit table-level SELECT/INSERT, but never UPDATE. New
   migrations require a reviewed version-specific allowlist, migration, apply,
   audit and functional smoke tests before the new application starts. Schema
-  24 is checked here; migration checksums are checked by the pinned provider.
+  38 is checked here; migration checksums are checked by the pinned provider.
 - Reapplication is idempotent and is tested against populated durable histories.
   A read-only audit detects drift without silently fixing it; apply is a
   deliberate administrative change. Unrelated schema privilege drift is rejected
@@ -120,16 +124,31 @@ timeout: investigate contention and retry the whole deployment step if it fails.
 
 ## Executable evidence and limits
 
-The mandatory PostgreSQL 16/17 CI creates a unique disposable database and three
-real LOGIN principals, migrates through the non-superuser owner and connects
-runtime/retention with their own credentials (current_user = session_user).
-It checks exact effective ACLs across all 40 tables and columns, SQLSTATE 42501
+The historical schema33 role qualification covered its 52-table profile; see the
+[original whole-frame record](qualification/experimental-whole-frames-2026-10-10.md).
+Those results do not qualify a later source or schema. The current mandatory
+PostgreSQL 16/17 test creates a unique disposable database and three real LOGIN
+principals, migrates through the non-superuser owner and connects runtime/retention
+with their own credentials (current_user = session_user). Its current definition
+checks exact effective ACLs across all 54 tables and columns, SQLSTATE 42501
 for forbidden operations, PUBLIC/column/grant-option/default drift, SET-only
 membership rejection, atomic apply rollback and denied access to future objects.
 It runs original-failure/child cancellation/settlement accounting, Join
 publication/consumption/noninitial checkpoint recovery, Agent Service submission,
 provider-native model/Tool ledger recovery and isolated bounded retention.
 Provider responses are deterministic test fixtures, not live-provider attestations.
+The [selected schema37 Store record](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+identifies its own executed source/cases and remaining gates. A successful Store
+owner-stop case or unchanged allowlist does not substitute for an actual current
+LOGIN/ACL run or confer complete role/fault/CI/R1 qualification.
+
+The schema38 test definition additionally creates an actual scoped Join owner and
+runs a provider-native child through its public AgentLoop using the standalone
+runtime LOGIN. It settles and publishes before requesting cancellation, then
+checks the v3 closure, original unconsumed publication/owner, complete once-only
+usage, terminal confirmation and a fresh owning read under the same credential.
+Its current-source role execution is required; the historical schema37 record
+does not qualify this new path.
 
 With an isolated loopback administrator URL in `STATEKNOT_TEST_DATABASE_URL`:
 

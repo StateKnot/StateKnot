@@ -1,0 +1,37 @@
+{
+  "unchanged_sections": [
+    {
+      "segment": "mcp_server",
+      "bytes": 4397,
+      "sha256": "8d75b93b376259b50a96628d1f2ef6d5a9b129bed0a6c47a818f9065806113f2",
+      "unchanged": true
+    },
+    {
+      "segment": "shared_read_clock_and_mcp_wrappers",
+      "bytes": 3569,
+      "sha256": "74dcb68961c8f7a4835ab7ae1b7468281d6ad545d41626ab60762877158336e7",
+      "unchanged": true
+    },
+    {
+      "segment": "original_schema_resource_and_start_helpers",
+      "bytes": 8948,
+      "sha256": "a870b4d1e82cd18ee926d3da438524f3750bd8bd956cb5f76c0d85ed851555e9",
+      "unchanged": true
+    },
+    {
+      "segment": "original_mcp_policy_and_qualification",
+      "bytes": 10102,
+      "sha256": "3d5184a9a592a2c2ba68a5f15db48476c482969ce273568f9a5e512fdd9d896f",
+      "unchanged": true
+    }
+  ],
+  "original_anonymous_test_name_preserved": true,
+  "original_anonymous_assertion_count": 6,
+  "original_assertions_preserved_exactly_after_whitespace_normalization": 5,
+  "one_equivalent_unknown_assertion": "The same complete load is assigned to unknown then asserted Unknown; it also supplies the head for new authenticated duplicate checks. No predicate removed.",
+  "original_mcp_marker_lines_exact": true,
+  "test_store_and_all_original_options_exact": true,
+  "new_durable_test_threads": 4,
+  "original_durable_test_threads": 4,
+  "execution_state": "NOT COMPILED / NOT RUN"
+}

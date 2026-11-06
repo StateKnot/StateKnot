@@ -14,7 +14,7 @@ cargo test -p stateknot-core --test fixture_catalog --locked
 cargo test -p stateknot-core --test public_type_inventory --locked
 cargo test -p stateknot-core --test canonical_execution_wires --locked
 cargo test -p stateknot-core --test canonical_time --locked
-PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --locked`;
+PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values --test value_properties --test nested_json_properties --test budget_composite_properties --test graph_state_properties --test graph_frame_contracts --test graph_frame_calls --test graph_frame_barriers --test graph_frame_entries --locked`;
 ---
 
 <DocsLayout
@@ -115,7 +115,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">封闭兼容性证据语料库</h2>
     <p>
-      版本化目录对当前提交的全部 44 份 Core Fixture 文档建立封闭清单。每个条目以
+      版本化目录对当前提交的全部 48 份 Core Fixture 文档建立封闭清单。每个条目以
       SHA-256 固定文件的精确字节，从而保留刻意非 Canonical 的非法输入反例；带
       Domain Separation 的 RFC 8785 根摘要绑定有序的路径、Schema 与 Digest
       元数据。
@@ -134,18 +134,54 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       项仍保持开放，继续完成剩余审查。
     </p>
     <p>
-      封闭审计现已分类全部 555 个公开根类型：307 个逐型 reader、两个仅输出
-      生产者及 246 个 Rust-only 代表实例，并分别固定 308 个输入/default 和 308
+      封闭审计现已分类全部 568 个公开根类型：313 个逐型 reader、两个仅输出
+      生产者及 253 个 Rust-only 代表实例，并分别固定 314 个输入/default 和 314
       个序列化 schema 摘要。 原有 38 个值类型和 67
       个执行类型的正向与负向证据继续保留。完整的
       Graph、Checkpoint、invocation、Outbox 和 wait wire 保留原有构造器摘要。
-      无字段的带标签变体拒绝额外字段和数组形式，有效 wire 字节及七个生成的
-      schema pin 保持一致。44 个有界属性模型也以固定 CI 种子运行。嵌套 JSON
-      具有六维独立资源与 UTF-16 规范树模型；Opaque/schema-bound
+      无字段的带标签变体拒绝额外字段和数组形式，原始采用保留有效 wire 及七个输入
+      pin；下述 RFC-0023 显式修正其中三个嵌套媒体输入 pin。44 个有界属性模型
+      也以固定 CI 种子运行。嵌套 JSON 具有六维独立资源与 UTF-16
+      规范树模型；Opaque/schema-bound
       扩展收紧限制时会重新验证原先较宽的值。七个复合预算模型使用独立宽整数会计，
       核对全部 20 个用量字段、部分限制与币种交集、direct + child
       预留和精确剩余容量。 逐字段溢出、deadline
       等值、未知费用及未列明的零费用币种均拒绝； 每个容量样例也执行成功路径。
+    </p>
+    <p>
+      RFC-0022 保持草案。六个实验性帧 reader 固定隔离 scope、调用声明、
+      checkpoint 与 barrier；另有三个各 256 样例的 scoped 摘要、父链和归并模型。
+      调用准备复制精确父状态快照，返回准备只接受对应的 terminal 子图 plan 与固定
+      route。仅 CompiledGraph、ChildRunAdmissionIntent 的两个 schema profile
+      显式变化，旧根 wire 与定义摘要保持一致。Schema 27 加入 scoped
+      外键和显式根查询。Rust-only 入栈复合 plan 以一个投影绑定完整事件、框架
+      start 和 scoped checkpoint，没有新增公开 reader 或改变原有类型 schema
+      pin。Schema 28 新增原子 Store 入栈与完整记录重试，沿用原 Run
+      准入、共享用量和祖先上限，并校验精确 SQL catalog 与全部组件。活动初始帧
+      已接通普通节点持久化启动、成功/失败原子记录与作用域重读；有界历史和延迟约束
+      执行后的最终租约检查共同保护启动权限，普通完成不能释放框架 caller。Schema
+      29 接通作用域内继续/终结屏障、完整结果消费与正向历史认证；后继调度与父帧
+      继续调用保留同一 Run 的用量下界，实际回调在事务锁外完成。精确 catalog 与
+      48 表角色配置保留完整事实守卫。返回/作用域等待、全帧关闭、实际 driver
+      及完整进程故障验收仍待完成；嵌套执行保持草案。 Schema 30
+      增加框架调用方的原子接管：记录新物理尝试与完整绑定， 保留原子帧、检查点和
+      Run 预算。普通完成 API 继续拒绝框架调用节点， Schema 31
+      新增专用完整返回事务：将已保存的 terminal 证明与当前 caller
+      完成、精确父结果、stack 弹出和 journal 事实原子结算。返回后仍保留共享 Run
+      用量；精简证明只在所属事务内复用。七层级联使用默认线程栈和真实续租。 精确
+      catalog 与 50 表运行时权限共同保护完整事务。Schema 32 新增完整活动叶悬停：
+      版本 2 屏障原子绑定原生命周期修订、全部审批/定时注册、Waiting
+      投影和租约释放。
+      恢复先认证完整审批、触发或放弃记录再继续作用域；悬停字节损坏仍可提交独立审计
+      并隔离运行。既有版本 1 记录、根 wire、Core pin 与 50 表权限保持精确。
+      最终源码资格验收、全帧关闭、实际嵌套 driver 和完整故障验收仍属于草案门禁。
+    </p>
+    <p>
+      RFC-0023 草案修正 MediaType 输入/default schema，使其接受 reader
+      已支持并规范化的大小写混合名称。保留的 CI 反例执行两个真实 schema oracle。
+      受影响的嵌套输入 pin 显式变化，全部输出 pin 与规范 wire 保持一致。
+      使用新的不可变输入 schema/Tool 版本，为已准入工作与回滚保留匹配的原
+      executable 和 registry。最终源码资格验收与草案接受仍待完成。
     </p>
     <p>
       两个 Graph 与 checkpoint 模型独立核对状态、route 并集、规范字节及三类摘要
@@ -159,11 +195,11 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       均先校验数字再执行十进制算术；有效时间戳字节、范围和 schema pin 保持一致。
     </p>
     <p>
-      全部 181 个封闭对象 reader 要求 map，包括 Tool、Agent、Journal、Checkpoint
+      全部 187 个封闭对象 reader 要求 map，包括 Tool、Agent、Journal、Checkpoint
       和子 Run 记录中的嵌套 schema reference。文本及 Value
       检查拒绝完整、空、截短和扩展的 positional 数组。调用方须使用固定 schema
-      的对象形状，不支持以 sequence 表示对象的二进制格式解码。有效 wire 字节、原
-      43 份 fixture 和两组各 308 个 pin 保持一致；实际 Tool
+      的对象形状，不支持以 sequence 表示对象的二进制格式解码。RFC-0021 原始
+      采用保留有效 wire 字节、原 43 份 fixture 和两组各 308 个 pin；实际 Tool
       注册表在应用派发前拒绝非法嵌套输入。 该修正仅在源码中采用，不改变已发布的
       alpha.1 包。
     </p>
@@ -179,7 +215,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
     <section aria-labelledby="core-contract-fuzz">
       <h2 id="core-contract-fuzz">运行有界 fuzz 门禁</h2>
       <p>
-        独立开发 workspace 对有界 JSON/JCS、全部 307 个 reader 和实际离线 schema
+        独立开发 workspace 对有界 JSON/JCS、全部 313 个 reader 和实际离线 schema
         注册表运行 ASan/libFuzzer。逐一重放固定语料后，每个目标最多执行 10,000
         次或 60 秒变异，输入上限 128 KiB、单输入 10 秒、RSS 2,048
         MiB；失败输入和覆盖语料随 CI 证据保留。最终不可变源码必须通过 Core
@@ -191,8 +227,8 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
         复现所需固定工具及完整步骤见<a
           href="https://github.com/StateKnot/StateKnot/blob/main/fuzz/README.md"
           >fuzz 指南</a
-        >。输出 schema 使用实际 serializer wire，原输入 pin 保持一致；旧输出 pin
-        在启动阶段拒绝且不调用应用。变更须采用新 schema/Tool
+        >。RFC-0020 的输出 schema 使用实际 serializer wire，原始采用保留输入
+        pin；旧 pin 在启动阶段拒绝且不调用应用。变更须采用新 schema/Tool
         版本并保留已准入工作的旧注册表。有限 fuzz
         不代表穷尽变体、历史迁移、生产容量或独立安全验收。
       </p>

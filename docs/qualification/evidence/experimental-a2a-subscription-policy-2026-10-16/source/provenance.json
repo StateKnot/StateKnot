@@ -1,0 +1,10 @@
+{
+  "production_equal_final_v5_and_original_v1": true,
+  "production_sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5",
+  "final_source_manifest": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "source_count": 930,
+  "compiled_input_count": 538,
+  "compiled_canonical_sha256": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "compiled_order": "relative path string sorted; full source retains original manifest row order",
+  "source_references_only_no_old_gates_inherited": true
+}

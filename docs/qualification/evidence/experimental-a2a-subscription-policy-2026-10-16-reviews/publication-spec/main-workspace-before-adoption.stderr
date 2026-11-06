@@ -1,0 +1,6 @@
+Traceback (most recent call last):
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/candidate/docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/verify.py", line 276, in <module>
+    main()
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-publication-preparation-v1/candidate/docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/verify.py", line 271, in main
+    assert (len(data), sha(data)) == (row["bytes"], row["sha256"]), "workspace compiled input mismatch: " + row["path"]
+AssertionError: workspace compiled input mismatch: crates/stateknot-integrations/src/a2a_server.rs

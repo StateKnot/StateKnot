@@ -1,0 +1,17 @@
+{
+  "exact_case_passed": true,
+  "source_and_binary_before_after_exact": true,
+  "container_and_durability_settings_unchanged": true,
+  "libtest_summary": [
+    [
+      1,
+      0,
+      0,
+      0,
+      263
+    ]
+  ],
+  "test_receipt_sha256": "88e97a98cbe843c03269970399914a5ebe53ad8b24da0b3c32a9fb6892b951c8",
+  "diagnostic_markers_required": false,
+  "whole_suite_Native_cold_CI_capacity_or_R1_qualification": false
+}

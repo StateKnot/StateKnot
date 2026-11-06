@@ -1,0 +1,25 @@
+{
+  "current_launcher_environment_presence": {
+    "STATEKNOT_REQUIRE_BACKUP_RESTORE_TESTS": false,
+    "STATEKNOT_REQUIRE_PITR_TESTS": false,
+    "STATEKNOT_PITR_POSTGRES_IMAGE": false,
+    "STATEKNOT_TEST_POSTGRES_CONTAINER": false
+  },
+  "conditional_cases": [
+    "child_admission::ownership::join::backup_restore::consumed_child_join_survives_isolated_backup_restore",
+    "child_admission::ownership::join::pitr::consumed_child_join_survives_named_point_in_time_recovery"
+  ],
+  "libtest_success_does_not_grant_backup_or_PITR_qualification": true,
+  "no_new_conditional_drill_enabled_by_runner": true,
+  "qualification_evidence_requires_explicit_marker_and_separate_receipt": true,
+  "source_files": [
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime/tests/postgres/child_join_backup_restore.rs",
+      "sha256": "4d8cf0fdecfc41ee137cb3a00e65a94251714d3cde9a1a2eb2c9a56b20abf7a5"
+    },
+    {
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+      "sha256": "8dcaa48e644869544723cce7fb7f1ffa54b71fcaa16b812da67bb201015707fa"
+    }
+  ]
+}

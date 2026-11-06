@@ -1,0 +1,374 @@
+<!--
+Copyright 2026 StateKnot contributors
+SPDX-License-Identifier: Apache-2.0
+-->
+
+# A2A 1.0 client and durable remote-agent profile
+
+> Status: implemented pre-alpha profile; the Rust API is not stable.<br>
+> Bindings: HTTP+JSON and JSON-RPC 2.0, including SSE.<br>
+> Explicit exclusions: gRPC, autonomous public-agent trust, automatic send
+> retries, recovery without an operator attestation, API-key/Basic/mTLS
+> security profiles, and an official client-conformance claim.
+
+This profile has two deliberately separate layers:
+
+- `A2aClient` is a strict, stateless implementation of all eleven A2A 1.0
+  client operations; and
+- `A2aRemoteAgent` freezes one discovered skill as a StateKnot `ErasedTool`, so
+  `DurableInvocationExecutor` and the PostgreSQL invocation ledger remain the
+  only dispatch and recovery authority.
+
+The separation matters. Read/list/stream administration can use the client
+directly, while a graph-side message submission must use the durable adapter.
+Calling `send_message` directly from recoverable graph code would bypass the
+durable-before-dispatch record and is not a supported production composition.
+
+## Implemented operation surface
+
+| Operation | HTTP+JSON route below the interface | JSON-RPC method | Result |
+| --- | --- | --- | --- |
+| Send message | `POST message:send` | `SendMessage` | task or message |
+| Stream message | `POST message:stream` | `SendStreamingMessage` | ordered SSE events |
+| Get task | `GET tasks/{id}` | `GetTask` | task |
+| List tasks | `GET tasks` | `ListTasks` | bounded task page |
+| Cancel task | `POST tasks/{id}:cancel` | `CancelTask` | task |
+| Subscribe to task | `POST tasks/{id}:subscribe` | `SubscribeToTask` | ordered SSE events |
+| Create push config | `POST tasks/{id}/pushNotificationConfigs` | `CreateTaskPushNotificationConfig` | push config |
+| Get push config | `GET tasks/{id}/pushNotificationConfigs/{config}` | `GetTaskPushNotificationConfig` | push config |
+| List push configs | `GET tasks/{id}/pushNotificationConfigs` | `ListTaskPushNotificationConfigs` | bounded page |
+| Delete push config | `DELETE tasks/{id}/pushNotificationConfigs/{config}` | `DeleteTaskPushNotificationConfig` | empty result |
+| Extended Agent Card | `GET extendedAgentCard` | `GetExtendedAgentCard` | Agent Card |
+
+Every request carries `A2A-Version: 1.0`. Negotiated extension URIs are carried
+in `A2A-Extensions` in their configured order. If the selected interface has a
+tenant, HTTP+JSON inserts it as the first path segment and uses the protocol
+tenant field where the request model defines one; JSON-RPC carries it in
+`params`.
+
+SSE accepts only standard message/error events. The first success event must be
+one Task, or the sole Message for a streaming send; only status and artifact
+updates may follow a Task. Every update must retain the exact task/context
+identity. Artifact appends require an already established, unsealed artifact
+ID, and no event may follow a terminal or interrupted state. JSON-RPC version,
+request ID, and the exclusive presence of `result` or `error` are checked for
+every unary response and stream event. A legitimate `result: null` remains
+distinct from a missing result. Duplicate JSON keys, invalid union wrappers,
+cross-resource responses, oversized data, and premature or idle streams fail
+closed.
+
+Unary sends also enforce execution mode: unless `returnImmediately` is true, a
+Task response must be terminal or interrupted. Task pages enforce the requested
+filters, the inclusive `statusTimestampAfter` boundary, unique task IDs,
+newest-status-first ordering, artifact projection rules, and response page
+size. Standard HTTP+JSON errors expose an authoritative A2A code only when the
+HTTP status, `google.rpc.Status`, and official `ErrorInfo` identity agree.
+
+## Freeze discovery before execution
+
+`A2aClient::discover` performs one bounded public Agent Card exchange and then
+freezes the result. It:
+
+1. permits HTTPS in production and literal loopback HTTP only through the
+   explicit test/sidecar constructor;
+2. rejects URL credentials, queries, fragments, redirects, and implicit
+   retries;
+3. validates the Agent Card with StateKnot-owned bounded contracts;
+4. selects the first supported A2A 1.0 HTTP interface in server preference
+   order;
+5. requires that exact binding and URL to appear in the local egress allowlist;
+6. checks every selected and required extension; and
+7. checks that the configured anonymous or complete, single-scheme
+   bearer-compatible security alternative satisfies the card.
+
+The implemented authenticated profile covers HTTP Bearer, OAuth 2.0, and
+OpenID Connect declarations carried as bearer tokens. Agent Cards requiring API
+keys, Basic authentication, mutual TLS, or an AND-group with multiple schemes
+are rejected rather than partially authenticated.
+
+Use normal TLS server-identity validation together with the exact interface pin
+when DNS and certificate operations are trusted. For a separately provisioned
+card, `CanonicalSha256` additionally requires the RFC 8785 canonical Agent Card
+digest. A card's embedded signature is parsed as data; it is not treated as a
+trust anchor without an application-owned signature policy.
+
+```rust,no_run
+use std::sync::Arc;
+use stateknot_integrations::{
+    A2aAgentCardEndpoint, A2aAgentCardTrust, A2aBinding, A2aClient,
+    A2aClientInterfacePin, A2aClientOptions, A2aClientSecurity,
+};
+
+let client = A2aClient::discover(
+    A2aAgentCardEndpoint::https(
+        "https://partner.example/.well-known/agent-card.json",
+    )?,
+    vec![A2aClientInterfacePin::https(
+        "https://partner.example/a2a",
+        A2aBinding::HttpJson,
+    )?],
+    A2aAgentCardTrust::TlsServerIdentity,
+    A2aClientSecurity::bearer("oidc", Arc::new(token_provider))?,
+    vec![],
+    A2aClientOptions::default(),
+).await?;
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+The token provider runs for every authenticated operation. Its request includes
+the card digest, binding, operation, remote routing tenant, target task ID,
+required card scopes, and—when called through `A2aRemoteAgent`—the local tenant,
+run, invocation, and physical attempt IDs. Production providers should mint or
+retrieve short-lived tokens for that exact tuple. Tokens, remote response text,
+and response bodies are not retained in public errors or `Debug` output.
+
+### Authorize the actual prepared request
+
+Authenticated operations also expose `request_method()`, `request_url()` and
+`request_body()` on `A2aClientAuthorizationRequest`. The URL includes the actual
+operation path and query. The optional body is the already-bounded serialized
+HTTP+JSON body or JSON-RPC envelope; HTTP GET/DELETE can have no body while their
+JSON-RPC equivalents carry an envelope. Evaluate the selected binding and exact
+operation when applying target, argument and data-release policy.
+
+The client prepares that request once, invokes the provider under the original
+absolute deadline and then sends the same immutable URL/body if work proceeds.
+The provider cannot rewrite them. Its returned token is added to the HTTP
+Authorization header afterward. Refusal or a dropped/timed-out pending provider
+Future does not dispatch the business request. Later dispatch uncertainty keeps
+the existing effect/recovery rules. Synchronous provider work must be bounded;
+an async deadline cannot preempt blocking policy code.
+
+Facts alone do not implement a policy. The host must resolve trusted Run
+principal/consent and authorize the actual destination and payload before
+returning a credential. Static or existing metadata-only providers keep their
+previous behavior, and Anonymous mode does not call a token provider. Client
+headers/extensions remain part of the frozen deployment configuration; these
+getters are not a new verifier or a universal HTTP-header authorization object.
+
+Debug omits the new request URL and body; existing tenant/task/attempt fields
+remain visible. Explicit accessors expose potentially sensitive application
+input. Cloning the context shares the immutable serialized body and can retain
+that input beyond the HTTP call; trusted host code owns that retention and must
+not log the payload or credentials. No extra full payload copy, schema fetch,
+new request limit or automatic policy/retry is introduced. The body ceiling
+describes accepted serialized length; this change adds no new peak-memory
+guarantee to the existing serializer.
+
+Recovery operations use current policy and their actual newly prepared request.
+Attested MessageIdReplay retains the original business message identity; a
+JSON-RPC transport request still receives its fresh correlation ID. Do not
+require identical transport-envelope bytes across distinct JSON-RPC rounds or
+mistake an authorized original send for authorization of a later replay.
+
+`GetExtendedAgentCard` is never dispatched by an anonymous client. Its result
+is bounded and revalidated, but it is returned as data: it does not mutate the
+immutable client, change egress/security pins, or silently rebind a Tool. To
+adopt an extended card, review it and construct a new pinned client/binding.
+
+## Bind a remote skill to durable execution
+
+Agent Cards advertise media, security, and descriptive skill metadata, but A2A
+1.0 has neither JSON Schema arguments for a skill nor a send-request field that
+routes a message to a skill. Therefore:
+
+- `skill_id` freezes discovery/security/media evidence only;
+- StateKnot sends the validated tool input as one `application/json` data part;
+- the receiving agent chooses behavior from the user message;
+- a trusted local `A2aSchemaRegistry` is authoritative for both input and
+  output; and
+- output is the standard one-key `{"message": ...}` or `{"task": ...}`
+  projection, validated against the pinned local output schema.
+
+```rust,no_run
+use std::sync::Arc;
+use stateknot_core::DurationMillis;
+use stateknot_integrations::{
+    A2aRemoteAgent, A2aRemoteAgentDelivery, A2aRemoteAgentRecovery,
+};
+use stateknot_runtime::ToolProviderRegistryBuilder;
+
+let recovery = A2aRemoteAgentRecovery::operator_attested_context_task_history(
+    4,
+    64,
+    DurationMillis::new(1_000)?,
+)?;
+let remote = A2aRemoteAgent::bind_with_recovery(
+    descriptor,
+    client,
+    "answer",
+    A2aRemoteAgentDelivery::AtMostOnce,
+    recovery,
+    schemas,
+)?;
+
+let mut tools = ToolProviderRegistryBuilder::new();
+tools.register(Arc::new(remote))?;
+let tools = tools.build();
+# Ok::<(), Box<dyn std::error::Error>>(())
+```
+
+Binding fails unless the descriptor exactly matches the executable behavior:
+read/write network access, no filesystem or dynamic code, cooperative
+cancellation, no progress events, matching credential requirement, matching
+status-query/recovery policy, no compensation claim, and both local schemas
+present. Use `A2aRemoteAgent::bind` for the fail-closed disabled recovery mode;
+that descriptor must not claim status-query support.
+
+## Delivery and recovery contract
+
+A2A 1.0 does not promise that a receiver deduplicates `messageId`. Choose one
+deployment truth and encode the same truth in the `ToolDescriptor`:
+
+| Delivery | Message ID | Required descriptor semantics | Recovery rule |
+| --- | --- | --- | --- |
+| `AtMostOnce` | `stateknot-attempt-{attempt_id}` | non-idempotent write + idempotency unsupported | never repeat an uncertain physical attempt |
+| `MessageIdDeduplicated` | `stateknot-invocation-{idempotency_key}` | idempotent write + required key | safe only with operator evidence for durable remote deduplication |
+
+`MessageIdDeduplicated` is an operator assertion, not an inference from the
+Agent Card. The remote system must durably retain and deduplicate that ID for at
+least the complete local invocation-ledger retention and disaster-recovery
+window. Document the remote key scope, conflict behavior, retention, replica
+consistency, backup behavior, and evidence test before enabling this mode.
+
+Automatic reconciliation is separately selected with
+`A2aRemoteAgentRecovery`:
+
+| Recovery mode | Required operator evidence | Provider action on `Unknown` |
+| --- | --- | --- |
+| `Disabled` | none | no provider I/O; leave the invocation for an authorized manual reconciler |
+| `ContextTaskHistory` | the peer preserves the supplied context ID, provides complete stable `ListTasks` pagination, and retains the original user `messageId` in task history for the complete recovery window | query at most 1–16 pages of at most 100 tasks, with a 1–256-message history suffix; never resend |
+| `MessageIdReplay` | the peer durably deduplicates the exact `messageId` across the complete recovery and retention window | replay the exact original request identity; accepted only with `MessageIdDeduplicated` delivery |
+
+Both enabled modes require descriptor status-query support and a positive
+1 ms–1 hour durable polling interval. `ContextTaskHistory` attaches an opaque,
+one-way context ID to the initial message. A probe accepts exactly one matching
+task history and requires that the matching role, context, and payload equal
+the original message (the server may only add that task's ID). No match returns
+`Pending`; repeated task IDs, multiple message matches, same-ID payload
+substitution, invalid pagination, or exhaustion of the configured scan bound
+fail closed. The context contains no raw tenant, run, thread, invocation, or
+attempt identifier.
+
+The durable execution sequence is:
+
+```text
+PostgreSQL prepared/executing revision
+  -> exact physical attempt and message ID
+  -> one A2A send, with no client retry
+  -> validate remote task/message and local output schema
+  -> PostgreSQL committed/failed/unknown terminal revision
+```
+
+Every adapter deliberately sets `returnImmediately: true`. The standard `bind`
+and `bind_with_recovery` paths therefore project a valid Task response without
+claiming that the remote task reached a terminal A2A state; application-owned,
+separately authorized `get_task` or `subscribe_to_task` remains responsible for
+waiting.
+
+`bind_with_durable_artifacts` is the explicit durable-completion profile. It
+requires a Task response. A nonterminal Task returns `Unknown` with a
+card/interface/endpoint-bound `protocol.a2a.task` recovery handle. The provider
+then issues only directly authorized `GetTask` requests for that exact Task;
+it never resends the original business message. `Completed` ingests every
+bounded terminal part through the configured artifact sink, while terminal
+failure, cancellation, rejection, and unknown remote states remain terminal
+errors. This profile also requires the exact origin event, enabled provider
+recovery, and positive Tool artifact capacity. Its Tool output is only the
+bounded `{kind, task_id, context_id, state, artifact_count}` projection; the
+materialized values live in `ToolArtifacts`. See the
+[durable artifact storage guide](artifact-storage.md) for PostgreSQL and object
+storage invariants.
+
+Cancellation or deadline before possible dispatch is `NotStarted`. After
+dispatch may have begun, a timeout, cancellation, lost connection, invalid
+response, HTTP ambiguity, or non-authoritative remote error becomes
+`Unknown + ReconcileFirst`; StateKnot does not send again. Only protocol errors
+that authoritatively reject the request before application—parse error,
+invalid request/params, method/operation/content/extension/version
+unsupported—become `NotApplied + Never`.
+
+On the provider-native Agent path, an enabled binding turns `Unknown` into one
+bounded reconciliation probe under the current fence and original physical
+attempt identity. Authoritative result/error evidence commits atomically to the
+existing invocation ledger. `Pending` mutates no invocation evidence and
+becomes a durable `SafeAfter` node retry. A later lease probes again; it never
+repeats the business send unless `MessageIdReplay` was explicitly attested.
+Bindings without an enabled provider remain on the manual fail-closed path.
+
+## Default resource policy
+
+| Limit | Default | Hard ceiling |
+| --- | ---: | ---: |
+| Connect timeout | 10 s | transport policy |
+| Discovery timeout | 15 s | 15 min |
+| Unary / stream-establishment deadline | 60 s | 15 min |
+| Stream idle timeout | 60 s | 15 min |
+| Request body | 16 MiB | 32 MiB |
+| Unary response body | 2 MiB | 2 MiB |
+| SSE line / event / total | 512 KiB / 2 MiB / 64 MiB | 2 MiB / 2 MiB / 72 MiB |
+| SSE events | 4,096 | 65,536 |
+| Task page | 50 default | 100 (A2A 1.0) |
+| Push-config page | 50 default | 256 (local ceiling) |
+
+StateKnot's protocol contracts add their own lower structural limits, including
+a 1 MiB Agent Card/data-part ceiling, 128 parts per message or artifact, 256
+messages of history, and 128 task artifacts. Configure lower limits for the
+actual use case; never increase them merely to accept an unbounded peer.
+
+## Production gate checklist
+
+- Maintain an exact destination/binding allowlist and restrict DNS, proxy, and
+  sidecar egress independently of application validation.
+- Terminate with verified TLS; do not use loopback HTTP across a host or trust
+  boundary.
+- Pin and review Agent Card changes, skill media, scopes, extensions, tenant,
+  and security alternatives before rollout.
+- Use an attempt-scoped secret manager or workload-identity token provider;
+  never place bearer tokens in config files, URLs, metadata, logs, or traces.
+- Register the adapter only through the durable invocation executor and keep
+  PostgreSQL retention longer than every remote deduplication/reconciliation
+  window.
+- Record the owner, review date, evidence artifact, exact peer deployment,
+  retention window, pagination consistency, and rollback procedure for every
+  recovery attestation; disable recovery when any claim drifts.
+- Alert on `Unknown`, reconciliation backlog, card-digest drift, invalid remote
+  contracts, authorization denial/unavailability, stream limits, and deadline
+  exhaustion without recording payloads or credentials.
+- Fault-test accepted-request/lost-response, cancellation races, malformed JSON
+  and SSE, stale cards, wrong interfaces, remote deduplication, PostgreSQL
+  failover, and restore before production traffic.
+
+## Executable evidence and claim boundary
+
+```console
+cargo test -p stateknot-integrations --test a2a_client_contract --locked
+
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+STATEKNOT_TEST_DATABASE_URL='postgres://...' \
+cargo test -p stateknot-integrations --test mcp_durable \
+  a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched \
+  --locked -- --test-threads=1
+
+STATEKNOT_REQUIRE_POSTGRES_TESTS=1 \
+STATEKNOT_TEST_DATABASE_URL='postgres://...' \
+cargo test -p stateknot-runtime --test postgres \
+  provider_native_graph_reconciles_unknown_tool_without_repeating_business_io \
+  --locked -- --test-threads=1
+```
+
+The loopback suite exercises all eleven operations over both HTTP+JSON and
+JSON-RPC, both SSE surfaces, tenant/header mapping, attempt-scoped
+authorization, card/interface drift, strict errors, stream bounds, lost
+responses, context/history recovery without resend, and attested exact-message
+replay. PostgreSQL evidence proves the executing revision exists before request
+dispatch, the lost response commits `Unknown`, and ordinary recovery does not
+send a second message. The provider-native test proves `Unknown -> Pending ->`
+durable delayed retry `-> Committed`, with one business call and two bounded
+probes.
+
+This is implementation evidence, not an official A2A client certification.
+The frozen official TCK evidence currently applies to the separate
+[A2A Server profile](a2a-server.md). Stable API review, live-partner
+qualification of both recovery attestations, gRPC, and production durable
+server-side task/push storage remain independent release gates.

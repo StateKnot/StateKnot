@@ -1,0 +1,83 @@
+{
+  "status": "passed",
+  "method": "Cargo.lock checksum equals original local registry archive SHA-256, each inspected extracted source equals exact archive member",
+  "files": [
+    {
+      "package": "bytes",
+      "version": "1.12.1",
+      "package_checksum": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+      "registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "archive_path": "locked-primary-source/bytes-1.12.1.crate",
+      "member": "bytes-1.12.1/src/bytes.rs",
+      "local_path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/src/bytes.rs",
+      "sha256": "eee15c02105022837d6ed01c6863fee58802ce7bd7c300e158521c9ae61257fc",
+      "local_equals_locked_archive_member": true
+    },
+    {
+      "package": "bytes",
+      "version": "1.12.1",
+      "package_checksum": "fc652a48c352aef3ea3aed32080501cf3ef6ed5da78602a020c991775b0aff04",
+      "registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "archive_path": "locked-primary-source/bytes-1.12.1.crate",
+      "member": "bytes-1.12.1/Cargo.toml",
+      "local_path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/bytes-1.12.1/Cargo.toml",
+      "sha256": "dc260d0d04b58aea819f8d6762c2feb51e66f8edd77e4e64cc1eac6f447a8143",
+      "local_equals_locked_archive_member": true
+    },
+    {
+      "package": "reqwest",
+      "version": "0.12.28",
+      "package_checksum": "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147",
+      "registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "archive_path": "locked-primary-source/reqwest-0.12.28.crate",
+      "member": "reqwest-0.12.28/src/async_impl/body.rs",
+      "local_path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.28/src/async_impl/body.rs",
+      "sha256": "60948ec5a44c995beb2dd22f6d4ca1f48a56cf01f8fc3174ed809a1e3dd9ce59",
+      "local_equals_locked_archive_member": true
+    },
+    {
+      "package": "reqwest",
+      "version": "0.12.28",
+      "package_checksum": "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147",
+      "registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "archive_path": "locked-primary-source/reqwest-0.12.28.crate",
+      "member": "reqwest-0.12.28/src/async_impl/request.rs",
+      "local_path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.28/src/async_impl/request.rs",
+      "sha256": "22bb3a3810cfe505a1eb34e4bf6f16db9f9dbcfb7ec79d1652996e72a6738fd3",
+      "local_equals_locked_archive_member": true
+    },
+    {
+      "package": "reqwest",
+      "version": "0.12.28",
+      "package_checksum": "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147",
+      "registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "archive_path": "locked-primary-source/reqwest-0.12.28.crate",
+      "member": "reqwest-0.12.28/src/async_impl/client.rs",
+      "local_path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.28/src/async_impl/client.rs",
+      "sha256": "8c30b009838be2126b90344ef97fb6141ac8bdf695f4e7bb00a3052a707d9b5c",
+      "local_equals_locked_archive_member": true
+    },
+    {
+      "package": "reqwest",
+      "version": "0.12.28",
+      "package_checksum": "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147",
+      "registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "archive_path": "locked-primary-source/reqwest-0.12.28.crate",
+      "member": "reqwest-0.12.28/src/into_url.rs",
+      "local_path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.28/src/into_url.rs",
+      "sha256": "761e9d0e04f652b201317d746cbe2a538de0604240914913fbe968114d88893d",
+      "local_equals_locked_archive_member": true
+    },
+    {
+      "package": "reqwest",
+      "version": "0.12.28",
+      "package_checksum": "eddd3ca559203180a307f12d114c268abf583f59b03cb906fd0b3ff8646c1147",
+      "registry_source": "registry+https://github.com/rust-lang/crates.io-index",
+      "archive_path": "locked-primary-source/reqwest-0.12.28.crate",
+      "member": "reqwest-0.12.28/Cargo.toml",
+      "local_path": "/Users/jiawy/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/reqwest-0.12.28/Cargo.toml",
+      "sha256": "23c8a0827aaac74059965a182c6873990e75aa550e8079d3b51bb95092871205",
+      "local_equals_locked_archive_member": true
+    }
+  ]
+}

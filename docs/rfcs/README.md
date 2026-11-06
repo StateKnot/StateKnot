@@ -33,6 +33,10 @@ security, or operational commitments.
 | [0019](0019-typed-tool-schema-directions.md) | Accepted | Directional typed Tool schema generation and output registration |
 | [0020](0020-core-optional-output-schemas.md) | Accepted | Core optional producer schema profiles |
 | [0021](0021-core-object-readers.md) | Accepted | Core object reader shapes |
+| [0022](0022-namespaced-graph-frames.md) | Draft | Namespaced same-Run graph frames and durable parent continuation |
+| [0023](0023-media-type-input-schema.md) | Draft | Case-insensitive media type input schemas |
+| [0024](0024-owned-bounded-mcp-stdio.md) / [中文](0024-owned-bounded-mcp-stdio.zh-CN.md) | Draft | Owned, bounded MCP stdio sessions and verified process-tree lifecycle |
+| [0025](0025-protocol-identity-and-authority.md) / [中文](0025-protocol-identity-and-authority.zh-CN.md) | Draft | MCP/A2A identity, local authority, data release and recovery mapping |
 
 ## When an RFC is required
 

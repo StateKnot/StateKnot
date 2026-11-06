@@ -459,6 +459,7 @@ impl<'de> Deserialize<'de> for JournalPayload {
         struct Wire {
             schema: SchemaReference,
             kind: JournalEventKind,
+            #[serde(deserialize_with = "crate::json::deserialize_maximum_json")]
             data: BoundedJson,
         }
 
@@ -1824,6 +1825,47 @@ mod tests {
         assert_eq!(first.canonical_json().unwrap().digest(), first.digest());
         let debug = format!("{:?}", payload(json!({"secret": "never-print-me"})));
         assert!(!debug.contains("never-print-me"));
+    }
+
+    #[test]
+    fn payload_round_trips_its_complete_maximum_envelope() {
+        let data = BoundedJson::try_from_value_with_limits(
+            json!({"a": "x".repeat(1024 * 1024 - 1), "b": "y".repeat(1024 * 1024 - 1024)}),
+            JsonLimits::MAXIMUM,
+        )
+        .unwrap();
+        let payload =
+            JournalPayload::new(schema(), "run-transition-applied".parse().unwrap(), data).unwrap();
+        let bytes = serde_json_canonicalizer::to_vec(&payload).unwrap();
+        assert!(bytes.len() > JsonLimits::DEFAULT.max_bytes());
+        assert_eq!(
+            serde_json::from_slice::<JournalPayload>(&bytes).unwrap(),
+            payload
+        );
+        let mut oversized = to_value(&payload).unwrap();
+        oversized["data"]["b"] = json!("y".repeat(1024 * 1024 - 20));
+        let data =
+            BoundedJson::try_from_value_with_limits(oversized["data"].clone(), JsonLimits::MAXIMUM)
+                .unwrap();
+        assert!(
+            JournalPayload::new(schema(), "run-transition-applied".parse().unwrap(), data).is_err()
+        );
+        assert!(
+            serde_json::from_slice::<JournalPayload>(&serde_json::to_vec(&oversized).unwrap())
+                .is_err()
+        );
+        let mut streamed = format!(
+            "{{\"schema\":{},\"kind\":\"run-transition-applied\",\"data\":{{\"a\":\"",
+            serde_json::to_string(&schema()).unwrap()
+        )
+        .into_bytes();
+        streamed.extend(std::iter::repeat_n(
+            b'x',
+            JsonLimits::MAXIMUM.max_string_bytes() + 1,
+        ));
+        streamed.extend_from_slice(b"\",\"unread\":invalid}}");
+        let error = serde_json::from_slice::<JournalPayload>(&streamed).unwrap_err();
+        assert!(error.to_string().contains("string"), "{error}");
     }
 
     #[test]

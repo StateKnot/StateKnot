@@ -1,0 +1,8 @@
+{
+  "command": [
+    "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py"
+  ],
+  "exit_code": 1,
+  "pure_offline": true
+}

@@ -1,0 +1,14 @@
+{
+  "parent_archive": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/source.tar.gz",
+  "parent_archive_bytes": 3451150,
+  "parent_archive_sha256": "5a882322c32b5ec165d1a37bf84f087f0c5afc8811b805c07cc4ac7a590e75e3",
+  "parent_tree_sha256": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "file": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+  "before_bytes": 13773,
+  "before_sha256": "8dcaa48e644869544723cce7fb7f1ffa54b71fcaa16b812da67bb201015707fa",
+  "after_bytes": 16060,
+  "after_sha256": "d6b0037366d7fb4adb38c21f0a4602de10c595c0ce625b65aa7fac114250387d",
+  "patch_raw_sha256": "0182c425552d8568bd3857e8d0a27c3f2eb015f47fe7230b4ffbdfa213ff0769",
+  "final_tree_sha256": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "no_new_full_source_archive": true
+}

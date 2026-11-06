@@ -1,0 +1,80 @@
+{
+  "runner_pid": 65314,
+  "pid": 65895,
+  "gate": "doctests",
+  "command": [
+    "cargo",
+    "test",
+    "--workspace",
+    "--doc",
+    "--all-features",
+    "--locked"
+  ],
+  "started_unix": 1792068840.105324,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base",
+  "exit_code": 0,
+  "seconds": 5.15559196472168,
+  "log_sha256": "26b1692dc54ec9273d85f1abcdab0698a730557bd17207e7d2b27953ab07cc12",
+  "summaries": [
+    [
+      "ok",
+      "9",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "2",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "4",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "7",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "5",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "11",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "7",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "0",
+      "0",
+      "0"
+    ],
+    [
+      "ok",
+      "0",
+      "0",
+      "0"
+    ]
+  ]
+}

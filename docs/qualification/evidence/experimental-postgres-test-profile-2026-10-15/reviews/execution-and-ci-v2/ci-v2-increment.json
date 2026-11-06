@@ -1,0 +1,22 @@
+{
+  "baseline_sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004",
+  "v1_sha256": "6bead2659391392d43076624c56473b5cfae366d63efc5d985559009ed76336a",
+  "v2_sha256": "f6a2e9b648b35bf25607555a22ae115fcfbb932f8d1ff427df620f1f5624b9d7",
+  "v2_patch_sha256": "a1f293f4b74753f33a05bae2183eb61cf44d1bfb896e763da7c693c3e010e49f",
+  "v2_receipt_sha256": "544f95113973b2a00a9d3d71563a4c29b4d9cef5d9813bd990e1065ed949f695",
+  "added_lines": 9,
+  "added_environment_variables": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+    "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true",
+    "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true"
+  },
+  "original_postgres_steps": 53,
+  "original_postgres_run_entries": 31,
+  "timeout_minutes": 30,
+  "commands_and_other_jobs_byte_equal_after_removing_block": true,
+  "v1_to_v2_only_second_comment": true,
+  "executed_as_full_CI": false
+}

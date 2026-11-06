@@ -1,0 +1,9 @@
+{
+  "parent": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source",
+  "parent_tree": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-wait-oracle-source",
+  "copied_files": 919,
+  "excluded_generated_directories": true,
+  "no_target_copied": true,
+  "original_test_body_byte_equal_main83559_and_previous_green_A35": true
+}

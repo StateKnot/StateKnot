@@ -1,0 +1,40 @@
+{
+  "schema": "mcp-lossless-publication-independent-fact-review/v2-final",
+  "reviewer": "/root/validate_cleanup_sql37/mcp_docs_standards",
+  "findings_count": 0,
+  "remaining_findings": [],
+  "resolved_findings": [
+    "F1"
+  ],
+  "original_pre_appendix_finding_and_receipt_preserved": true,
+  "pre_appendix_receipt_sha256": "97bfd60042e88db49df307d2aa24aebe1d37b9cfa135ea6795217100c1b6952d",
+  "pre_appendix_manifest_sha256": "9c9313971abb79494e533f49793dfdaf663bfada39644e19384a653c93b43a63",
+  "publication_manifest_sha256": "ae37d8dcb37e964a3a727c5e3ac10803867ccc2d18c76f87a181404873de9f7f",
+  "P2_evidence_manifest_sha256": "b026df3fcfbfcc90bd938b567dbc2de488cf41c202d8c0666a53fdf18148b171",
+  "P2_seal_sha256": "ffa8222a8f56aba03aa46f7234640c4a9371e4cad0ca40b2c2ab39dd03a18a9b",
+  "appendix_closure_sha256": "e10d91de30d00f31b6044873feeab1e652df3472200a96b7471c35d20ed498b1",
+  "appendix_review_receipt_sha256": "c783a858184672b7fa3b365bb98c6d9261a5d0f99fdf619f16e27ea49e564353",
+  "appendix_review_manifest_sha256": "b8d0323a0f10041c8c70a07de80541caddc10c312196690c3621e2aebef9ca7e",
+  "evidence_role": "Independent publication fact review by nonauthor/nonexecutor; prior Standards work disclosed; not new complete source/test Spec.",
+  "offline_exit": 0,
+  "workspace_after_root_copy_exit": 0,
+  "actual_main_six_gates_later_separate_appendix_verified": true,
+  "P2_completeness_not_retroactively_claimed": true,
+  "recovered_isolated_runner_only_current_retained_observation": true,
+  "actualmain_six_receipts_separately_bind_runnerSHA": true,
+  "raw_execution_new_product_network_DB_Docker_or_cache_operations_by_reviewer": false,
+  "artifacts": [
+    {
+      "path": "review.md",
+      "sha256": "f331bc16588a8fa9143de9db01f6d498400243279bc1d15c63032bb597ee1126"
+    },
+    {
+      "path": "independent-audit.json",
+      "sha256": "0075eb53b02a14160a8593889490bee3e9cc08f80ba8515f7a9e568a2121a385"
+    },
+    {
+      "path": "appendix-closure.json",
+      "sha256": "e10d91de30d00f31b6044873feeab1e652df3472200a96b7471c35d20ed498b1"
+    }
+  ]
+}

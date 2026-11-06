@@ -88,6 +88,7 @@ mod a2a_remote_agent;
 mod a2a_server;
 mod adapter;
 mod anthropic;
+mod atomic_counter;
 mod credential;
 mod http;
 mod mcp;
@@ -96,6 +97,7 @@ mod mcp_client;
 mod mcp_oauth;
 mod mcp_server;
 mod mcp_server_app;
+mod mcp_server_bound_state;
 mod mcp_server_prompt;
 mod mcp_server_resource;
 mod mcp_server_skill;
@@ -181,6 +183,10 @@ pub use mcp_server::{
 };
 pub use mcp_server_app::{
     McpServerApplication, McpServerApplicationBuildError, McpServerApplicationBuilder,
+};
+pub use mcp_server_bound_state::{
+    McpServerBoundStateProfile, McpServerBoundStateProfileError, McpServerHostBinding,
+    McpServerHostBindingError,
 };
 pub use mcp_server_prompt::{
     AllowMcpServerPromptAuthorization, McpServerCompletionError, McpServerCompletionProvider,

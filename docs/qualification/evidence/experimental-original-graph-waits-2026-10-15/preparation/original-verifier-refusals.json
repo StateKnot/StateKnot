@@ -1,0 +1,44 @@
+{
+  "status": "integrity-pass-with-explicit-pending-and-main-mismatch-refusals",
+  "qualified": false,
+  "checks": [
+    {
+      "check": "offline",
+      "command": [
+        "python3",
+        ".local-verification/2026-10-15/schema36-final-qualification-v1/docs/qualification/evidence/experimental-original-graph-waits-2026-10-15/verify.py"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "stdout": "{\n  \"evidence_integrity\": \"passed\",\n  \"qualification_status\": \"unsealed-preparation\",\n  \"artifact_count\": 592,\n  \"source_files\": 922,\n  \"compiled_input_files\": 530,\n  \"workspace_checked\": false,\n  \"mandatory_gate_counts\": {\n    \"passed\": 2,\n    \"pending\": 10\n  },\n  \"static_workspace_passed\": 2064,\n  \"static_original_ignored\": 6,\n  \"doctests_passed\": 45,\n  \"nested_alpha_bundle_offline_verifier_exit\": 0,\n  \"complete_qualification_claimed\": false\n}\n",
+      "stderr": "",
+      "manifest_sha256": "e52f6870547a5c67aefd2b6ef5db5d401ea1f90a3e6baccc668d1f9c59b33f28"
+    },
+    {
+      "check": "require-complete",
+      "command": [
+        "python3",
+        ".local-verification/2026-10-15/schema36-final-qualification-v1/docs/qualification/evidence/experimental-original-graph-waits-2026-10-15/verify.py",
+        "--require-complete"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/schema36-final-qualification-v1/docs/qualification/evidence/experimental-original-graph-waits-2026-10-15/verify.py\", line 277, in <module>\n    main()\n  File \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/schema36-final-qualification-v1/docs/qualification/evidence/experimental-original-graph-waits-2026-10-15/verify.py\", line 253, in main\n    assert complete, \"mandatory final Native/resource gates are pending or failed\"\nAssertionError: mandatory final Native/resource gates are pending or failed\n",
+      "manifest_sha256": "e52f6870547a5c67aefd2b6ef5db5d401ea1f90a3e6baccc668d1f9c59b33f28"
+    },
+    {
+      "check": "workspace",
+      "command": [
+        "python3",
+        ".local-verification/2026-10-15/schema36-final-qualification-v1/docs/qualification/evidence/experimental-original-graph-waits-2026-10-15/verify.py",
+        "--workspace"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "stdout": "",
+      "stderr": "Traceback (most recent call last):\n  File \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/schema36-final-qualification-v1/docs/qualification/evidence/experimental-original-graph-waits-2026-10-15/verify.py\", line 277, in <module>\n    main()\n  File \"/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/schema36-final-qualification-v1/docs/qualification/evidence/experimental-original-graph-waits-2026-10-15/verify.py\", line 262, in main\n    assert not mismatches, \"actual workspace compiled inputs differ: \" + \", \".join(mismatches)\nAssertionError: actual workspace compiled inputs differ: crates/stateknot-runtime/src/agent_loop.rs, crates/stateknot-runtime/src/driver/barrier.rs, crates/stateknot-runtime/src/lifecycle.rs, crates/stateknot-runtime/tests/postgres/agent_deadline_upgrade.rs, crates/stateknot-runtime/tests/postgres/child_cancellation_upgrade.rs, crates/stateknot-runtime/tests/postgres/child_join_qualification.rs, crates/stateknot-runtime/tests/postgres/elapsed_graph_wait_races.rs, crates/stateknot-runtime/tests/postgres/elapsed_graph_waits.rs, crates/stateknot-runtime/tests/postgres/failure_close_upgrade.rs, crates/stateknot-runtime/tests/postgres/nested_driver.rs, crates/stateknot-runtime/tests/postgres/role_profile.rs, crates/stateknot-store-postgres/migrations/0036_elapsed_graph_waits.sql, crates/stateknot-store-postgres/ops/trusted-role-profile.psql, crates/stateknot-store-postgres/ops/trusted-role-profile.sql, crates/stateknot-store-postgres/src/graph_frame_catalog.json, crates/stateknot-store-postgres/src/graph_frames/application_replay.rs, crates/stateknot-store-postgres/src/graph_frames/barriers/elapsed.rs, crates/stateknot-store-postgres/src/graph_frames/barriers.rs, crates/stateknot-store-postgres/src/graph_frames/returns.rs, crates/stateknot-store-postgres/src/graph_frames.rs, crates/stateknot-store-postgres/src/graph_wait_catalog.json, crates/stateknot-store-postgres/src/graph_wait_catalog.sql, crates/stateknot-store-postgres/src/graph_waits/database.rs, crates/stateknot-store-postgres/src/graph_waits.rs, crates/stateknot-store-postgres/src/lib.rs, crates/stateknot-store-postgres/src/root_graph_barrier_catalog.json, crates/stateknot-store-postgres/src/root_graph_barriers/elapsed.rs, crates/stateknot-store-postgres/src/root_graph_barriers.rs, crates/stateknot-store-postgres/src/store.rs, crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.README.md, crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.json, crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.sql, crates/stateknot-store-postgres/tests/fixtures/revert_elapsed_graph_waits.sql, crates/stateknot-store-postgres/tests/postgres/frame_application_replay.rs, crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs, crates/stateknot-store-postgres/tests/postgres/frame_callers.rs, crates/stateknot-store-postgres/tests/postgres/frame_closures.rs, crates/stateknot-store-postgres/tests/postgres/frame_elapsed_wait_faults.rs, crates/stateknot-store-postgres/tests/postgres/frame_elapsed_waits.rs, crates/stateknot-store-postgres/tests/postgres/frame_returns.rs, crates/stateknot-store-postgres/tests/postgres/frame_scope.rs, crates/stateknot-store-postgres/tests/postgres/frame_waits.rs, crates/stateknot-store-postgres/tests/postgres/root_barrier_upgrade.rs, crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/elapsed.rs, crates/stateknot-store-postgres/tests/postgres/root_graph_barriers/trusted_upgrade.rs, crates/stateknot-store-postgres/tests/postgres/root_graph_barriers.rs, crates/stateknot-store-postgres/tests/postgres.rs\n",
+      "manifest_sha256": "e52f6870547a5c67aefd2b6ef5db5d401ea1f90a3e6baccc668d1f9c59b33f28"
+    }
+  ]
+}

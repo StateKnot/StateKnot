@@ -1,0 +1,171 @@
+{
+  "bindings": [
+    {
+      "bytes": 168897,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-qualification-v3/frozen-source-manifest.json",
+      "sha256": "21739dd9400139ae922a60de00003625f3692c47e2ee883f9500bab58e65eb9c"
+    },
+    {
+      "bytes": 101435,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-qualification-v3/compiled-inputs.json",
+      "sha256": "ddb5b8f32a4071422d9c568576512093a77bde9b662eb1e912f55fc260e9d816"
+    },
+    {
+      "bytes": 3776,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-root-execution-v1/execution-config.json",
+      "sha256": "a29dae07f6475e79f33466e86e06a552c09e3c7a9a269ffc262d6cdd462ecc83"
+    },
+    {
+      "bytes": 44208,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/.github/workflows/ci.yml",
+      "sha256": "d9cf2c0776ecbb1076705e0383256f6be7bb427cb44b9ac7f79d05d047885004"
+    },
+    {
+      "bytes": 50068,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations/tests/mcp_durable.rs",
+      "sha256": "4a91d81b9443ee3ba8ef6d80cdc0132919c379d1cd88f24bb19878e579b9b3b9"
+    },
+    {
+      "bytes": 28963,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot/tests/mcp_reconciliation.rs",
+      "sha256": "6318ad8c5696a2461bba32eff147efaf37440b6153ab472034c9066f72c199ec"
+    },
+    {
+      "bytes": 23534,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot/tests/mcp_reconciliation/error.rs",
+      "sha256": "b72c7074770e19f6427b1b9bb187ab7bbe0366d5637c2cfbd1b4d26c33734f06"
+    },
+    {
+      "bytes": 4771,
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-qualification-v3/six-gates-summary.json",
+      "sha256": "3c46272da151c6cbc133f6618f4c84959c2fd1d05bf9f5c1caec431a21ca6f39"
+    }
+  ],
+  "ci_marker_counts": {
+    "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": 2,
+    "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": 1,
+    "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": 1,
+    "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": 1
+  },
+  "compiled_canonical_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "compiled_input_count": 536,
+  "compiled_manifest": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-qualification-v3/compiled-inputs.json",
+  "database": "stateknot_r1_mcp_debug_20261016v3",
+  "executed": false,
+  "expected_markers": {
+    "mcp_durable": {
+      "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+        {
+          "calls": 0,
+          "case": "denial",
+          "duplicate_ledger_unchanged": true,
+          "durable_start_verified": true,
+          "payload_from_full_input": true,
+          "policy_calls": 1
+        },
+        {
+          "calls": 1,
+          "case": "lost_response",
+          "duplicate_ledger_unchanged": true,
+          "durable_start_verified": true,
+          "payload_from_full_input": true,
+          "policy_calls": 1
+        }
+      ],
+      "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+        {
+          "calls": 0,
+          "case": "denial",
+          "duplicate_ledger_unchanged": true,
+          "durable_before_authorization": true,
+          "policy_calls": 1
+        },
+        {
+          "calls": 1,
+          "case": "lost_response",
+          "durable_before_authorization": true,
+          "policy_calls": 1,
+          "reconciliation_idempotent": true
+        }
+      ]
+    },
+    "mcp_reconciliation": {
+      "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": [
+        {
+          "atomic_audit": true,
+          "authorization_before_lookup": true,
+          "distinct_scopes": true,
+          "duplicate_receipts_per_effect": 24,
+          "effects": 2,
+          "fresh_service_recovery": true,
+          "invariants": "passed",
+          "lost_http_receipt": true,
+          "profile": "known-error-reconciliation-v1",
+          "retry_never": true,
+          "stale_fence_rejected": true
+        }
+      ],
+      "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": [
+        {
+          "error_first_submissions": 24,
+          "invariants": "passed",
+          "mixed_success_failure_submissions": 24,
+          "same_event_identity": true,
+          "single_revision": true,
+          "success_first_conflict": true
+        }
+      ],
+      "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": [
+        {
+          "atomic_audit": true,
+          "authenticated_http": true,
+          "authorization_before_lookup": true,
+          "concurrent_first_submissions": 24,
+          "duplicate_receipts": 24,
+          "fresh_service_recovery": true,
+          "invariants": "passed",
+          "lost_http_receipt": true,
+          "profile": "mcp-result-reconciliation-v1",
+          "schema": 24,
+          "stale_fence_rejected": true
+        }
+      ]
+    }
+  },
+  "marker_schema_24_is_legacy_profile_constant_not_current_database_schema": true,
+  "original_ci_commands": [
+    "cargo test -p stateknot-integrations --test mcp_durable --locked -- --nocapture --test-threads=1",
+    "cargo test -p stateknot --test mcp_reconciliation --locked -- --nocapture --test-threads=1"
+  ],
+  "packages": {
+    "mcp_durable": "stateknot-integrations",
+    "mcp_reconciliation": "stateknot"
+  },
+  "source_files": 928,
+  "source_manifest": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-qualification-v3/frozen-source-manifest.json",
+  "source_root": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3",
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "task_container_config": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-root-execution-v1/execution-config.json",
+  "tests": {
+    "mcp_durable": [
+      "a2a_authorized_denial_commits_once_without_business_send_or_policy_repeat",
+      "a2a_authorized_send_reads_the_durable_start_and_recovery_does_not_send_again",
+      "a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched",
+      "mcp_approved_denial_commits_without_remote_dispatch_or_repeat_authorization",
+      "mcp_approved_write_is_authorized_after_durable_start_and_reconciles_once",
+      "mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch"
+    ],
+    "mcp_reconciliation": [
+      "authenticated_reconciliation_is_atomic_fenced_and_recovers_a_lost_http_receipt",
+      "error::concurrent_success_and_failure_submissions_have_one_authoritative_winner",
+      "error::error_startup_rejects_missing_and_drifted_audit_schemas",
+      "error::known_error_definition_is_separate_closed_and_cannot_grant_retry",
+      "error::known_error_wire_rejects_foreign_authority_uncertainty_and_private_debug",
+      "error::known_errors_require_distinct_authority_and_recover_exact_lost_receipts",
+      "error::successful_v1_schemas_remain_byte_compatible",
+      "lost_receipt_gate_never_carries_release_into_another_request",
+      "reconciliation_definition_requires_explicit_scope_and_closed_shapes",
+      "wire_request_is_closed_and_debug_does_not_expose_output"
+    ]
+  }
+}

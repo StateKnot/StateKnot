@@ -168,7 +168,15 @@ impl AgentRequest {
         descriptor: &AgentDescriptor,
         budget: &ResolvedBudget,
     ) -> Result<(), AgentRequestValidationError> {
-        self.validate_schema_for(descriptor)?;
+        self.validate_with_schema_and_budget(descriptor.input_schema(), budget)
+    }
+
+    fn validate_with_schema_and_budget(
+        &self,
+        input_schema: &SchemaReference,
+        budget: &ResolvedBudget,
+    ) -> Result<(), AgentRequestValidationError> {
+        self.validate_schema_reference(input_schema)?;
         let actual = byte_count_from_usize(self.input.stats().compact_bytes());
         let maximum = budget.input_bytes();
         if actual > maximum {
@@ -181,9 +189,16 @@ impl AgentRequest {
         &self,
         descriptor: &AgentDescriptor,
     ) -> Result<(), AgentRequestValidationError> {
-        if &self.input_schema != descriptor.input_schema() {
+        self.validate_schema_reference(descriptor.input_schema())
+    }
+
+    fn validate_schema_reference(
+        &self,
+        input_schema: &SchemaReference,
+    ) -> Result<(), AgentRequestValidationError> {
+        if &self.input_schema != input_schema {
             return Err(AgentRequestValidationError::SchemaMismatch {
-                expected: Box::new(descriptor.input_schema().clone()),
+                expected: Box::new(input_schema.clone()),
                 actual: Box::new(self.input_schema.clone()),
             });
         }
@@ -374,7 +389,13 @@ impl AgentResultProvenance {
         &self,
         descriptor: &AgentDescriptor,
     ) -> Result<(), AgentResultProvenanceError> {
-        let expected = descriptor.metadata().identity();
+        self.validate_for_identity(descriptor.metadata().identity())
+    }
+
+    fn validate_for_identity(
+        &self,
+        expected: &CapabilityIdentity,
+    ) -> Result<(), AgentResultProvenanceError> {
         if &self.agent != expected {
             return Err(AgentResultProvenanceError::AgentIdentityMismatch {
                 expected: Box::new(expected.clone()),
@@ -383,6 +404,157 @@ impl AgentResultProvenance {
         }
         Ok(())
     }
+}
+
+/// Original trusted inputs required by successful-result validation.
+///
+/// This records the exact descriptor identity and schema bindings, complete
+/// request, and resolved budget used by [`AgentResult::validate_for`]. It does
+/// not represent Agent admission, executable definitions, or dispatch authority.
+/// A durable caller must authenticate this snapshot and its original Run.
+#[derive(Clone, Eq, JsonSchema, PartialEq, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct AgentTerminalValidationInputs {
+    descriptor_identity: CapabilityIdentity,
+    descriptor_input_schema: SchemaReference,
+    descriptor_output_schema: SchemaReference,
+    request: AgentRequest,
+    budget: ResolvedBudget,
+}
+
+impl AgentTerminalValidationInputs {
+    /// Complete canonical snapshot bound, including maximum request input.
+    ///
+    /// One identity, three schema references and two finite budget structures
+    /// (at most 16 currencies each) fit the 32 KiB allowance even with JSON
+    /// string escaping. This preserves every existing component's ceiling.
+    pub const MAX_SNAPSHOT_BYTES: usize = crate::JsonLimits::MAXIMUM.max_bytes() + 32 * 1024;
+
+    /// Captures validation inputs from the real trusted descriptor and snapshots.
+    ///
+    /// Construction grants no admission or execution authority. Validation must
+    /// still consume the independently authenticated expected Run provenance.
+    #[must_use]
+    pub fn for_descriptor(
+        descriptor: &AgentDescriptor,
+        request: AgentRequest,
+        budget: ResolvedBudget,
+    ) -> Self {
+        Self {
+            descriptor_identity: descriptor.metadata().identity().clone(),
+            descriptor_input_schema: descriptor.input_schema().clone(),
+            descriptor_output_schema: descriptor.output_schema().clone(),
+            request,
+            budget,
+        }
+    }
+
+    /// Returns the exact identity selected from the trusted descriptor.
+    #[must_use]
+    pub const fn descriptor_identity(&self) -> &CapabilityIdentity {
+        &self.descriptor_identity
+    }
+
+    /// Returns the original descriptor's input schema binding.
+    #[must_use]
+    pub const fn descriptor_input_schema(&self) -> &SchemaReference {
+        &self.descriptor_input_schema
+    }
+
+    /// Returns the original descriptor's output schema binding.
+    #[must_use]
+    pub const fn descriptor_output_schema(&self) -> &SchemaReference {
+        &self.descriptor_output_schema
+    }
+
+    /// Returns the complete original request, including its bounded input.
+    #[must_use]
+    pub const fn request(&self) -> &AgentRequest {
+        &self.request
+    }
+
+    /// Returns the complete original finite resolved budget.
+    #[must_use]
+    pub const fn budget(&self) -> &ResolvedBudget {
+        &self.budget
+    }
+
+    fn as_refs(&self) -> TerminalValidationRefs<'_> {
+        TerminalValidationRefs {
+            descriptor_identity: &self.descriptor_identity,
+            input_schema: &self.descriptor_input_schema,
+            output_schema: &self.descriptor_output_schema,
+            request: &self.request,
+            budget: &self.budget,
+        }
+    }
+}
+
+impl<'de> Deserialize<'de> for AgentTerminalValidationInputs {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(Deserialize)]
+        #[serde(deny_unknown_fields)]
+        struct Wire {
+            descriptor_identity: CapabilityIdentity,
+            descriptor_input_schema: SchemaReference,
+            descriptor_output_schema: SchemaReference,
+            #[serde(deserialize_with = "deserialize_terminal_request")]
+            request: AgentRequest,
+            budget: ResolvedBudget,
+        }
+        let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
+        Ok(Self {
+            descriptor_identity: wire.descriptor_identity,
+            descriptor_input_schema: wire.descriptor_input_schema,
+            descriptor_output_schema: wire.descriptor_output_schema,
+            request: wire.request,
+            budget: wire.budget,
+        })
+    }
+}
+
+fn deserialize_terminal_request<'de, D>(deserializer: D) -> Result<AgentRequest, D::Error>
+where
+    D: Deserializer<'de>,
+{
+    #[derive(Deserialize)]
+    #[serde(deny_unknown_fields)]
+    struct Wire {
+        input_schema: SchemaReference,
+        #[serde(deserialize_with = "crate::json::deserialize_maximum_json")]
+        input: BoundedJson,
+        budget_limits: BudgetLimits,
+    }
+    let wire = crate::json::deserialize_object::<Wire, _>(deserializer)?;
+    Ok(AgentRequest::new(
+        wire.input_schema,
+        wire.input,
+        wire.budget_limits,
+    ))
+}
+
+impl fmt::Debug for AgentTerminalValidationInputs {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("AgentTerminalValidationInputs")
+            .field("descriptor_identity", &self.descriptor_identity)
+            .field("input_schema", &self.descriptor_input_schema)
+            .field("output_schema", &self.descriptor_output_schema)
+            .field("input_stats", &self.request.input().stats())
+            .finish_non_exhaustive()
+    }
+}
+
+#[derive(Clone, Copy)]
+struct TerminalValidationRefs<'a> {
+    descriptor_identity: &'a CapabilityIdentity,
+    input_schema: &'a SchemaReference,
+    output_schema: &'a SchemaReference,
+    request: &'a AgentRequest,
+    budget: &'a ResolvedBudget,
 }
 
 impl fmt::Debug for AgentResultProvenance {
@@ -795,8 +967,43 @@ impl AgentResult {
         descriptor: &AgentDescriptor,
         budget: &ResolvedBudget,
     ) -> Result<(), AgentResultValidationError> {
+        self.validate_for_terminal_refs(
+            expected_provenance,
+            TerminalValidationRefs {
+                descriptor_identity: descriptor.metadata().identity(),
+                input_schema: descriptor.input_schema(),
+                output_schema: descriptor.output_schema(),
+                request,
+                budget,
+            },
+        )
+    }
+
+    /// Revalidates a result against authenticated original terminal inputs.
+    ///
+    /// Uses the same predicate and error order as [`Self::validate_for`]. Neither
+    /// the result nor these inputs supply authority for `expected_provenance`;
+    /// that value must come from the trusted original Run.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`AgentResultValidationError`] for substituted identities or
+    /// schemas, underreported input, an invalid request, or exhausted budget.
+    pub fn validate_for_terminal_inputs(
+        &self,
+        expected_provenance: &AgentResultProvenance,
+        inputs: &AgentTerminalValidationInputs,
+    ) -> Result<(), AgentResultValidationError> {
+        self.validate_for_terminal_refs(expected_provenance, inputs.as_refs())
+    }
+
+    fn validate_for_terminal_refs(
+        &self,
+        expected_provenance: &AgentResultProvenance,
+        inputs: TerminalValidationRefs<'_>,
+    ) -> Result<(), AgentResultValidationError> {
         expected_provenance
-            .validate_for(descriptor)
+            .validate_for_identity(inputs.descriptor_identity)
             .map_err(AgentResultValidationError::expected_provenance)?;
 
         if self.provenance.tenant_id != expected_provenance.tenant_id {
@@ -830,10 +1037,11 @@ impl AgentResult {
             });
         }
 
-        request
-            .validate_with_resolved_budget(descriptor, budget)
+        inputs
+            .request
+            .validate_with_schema_and_budget(inputs.input_schema, inputs.budget)
             .map_err(AgentResultValidationError::request)?;
-        let input_bytes = byte_count_from_usize(request.input.stats().compact_bytes());
+        let input_bytes = byte_count_from_usize(inputs.request.input.stats().compact_bytes());
         if input_bytes > self.usage.input_bytes() {
             return Err(AgentResultValidationError::InputBytesUnderreported {
                 minimum: input_bytes,
@@ -841,14 +1049,15 @@ impl AgentResult {
             });
         }
 
-        if &self.output_schema != descriptor.output_schema() {
+        if &self.output_schema != inputs.output_schema {
             return Err(AgentResultValidationError::OutputSchemaMismatch {
-                expected: Box::new(descriptor.output_schema().clone()),
+                expected: Box::new(inputs.output_schema.clone()),
                 actual: Box::new(self.output_schema.clone()),
             });
         }
 
-        budget
+        inputs
+            .budget
             .remaining(&self.usage, self.completed_at)
             .map_err(AgentResultValidationError::budget)?;
         Ok(())
@@ -880,6 +1089,7 @@ impl<'de> Deserialize<'de> for AgentResult {
             provenance: AgentResultProvenance,
             completed_at: Timestamp,
             output_schema: SchemaReference,
+            #[serde(deserialize_with = "crate::json::deserialize_maximum_json")]
             output: BoundedJson,
             artifacts: AgentArtifacts,
             usage: BudgetUsage,
@@ -1289,6 +1499,46 @@ mod tests {
     }
 
     #[test]
+    fn result_round_trips_constructor_accepted_large_output() {
+        let output = BoundedJson::try_from_value_with_limits(
+            json!({"summary": "x".repeat(1024 * 1024 - 1)}),
+            crate::JsonLimits::MAXIMUM,
+        )
+        .unwrap();
+        let artifacts = AgentArtifacts::empty();
+        let value = AgentResult::for_invocation(
+            provenance(),
+            COMPLETED_AT.parse().unwrap(),
+            &descriptor(),
+            output.clone(),
+            artifacts.clone(),
+            usage_for(&output, &artifacts),
+        )
+        .unwrap();
+        let bytes = serde_json_canonicalizer::to_vec(&value).unwrap();
+        assert!(bytes.len() > crate::JsonLimits::DEFAULT.max_bytes());
+        assert_eq!(
+            serde_json::from_slice::<AgentResult>(&bytes).unwrap(),
+            value
+        );
+        let mut oversized = to_value(&value).unwrap();
+        oversized["output"]["summary"] =
+            json!("x".repeat(crate::JsonLimits::MAXIMUM.max_string_bytes() + 1));
+        assert!(
+            serde_json::from_slice::<AgentResult>(&serde_json::to_vec(&oversized).unwrap())
+                .is_err()
+        );
+        let mut streamed = format!("{{\"provenance\":{},\"completed_at\":{},\"output_schema\":{},\"output\":{{\"summary\":\"", serde_json::to_string(value.provenance()).unwrap(), serde_json::to_string(&value.completed_at()).unwrap(), serde_json::to_string(value.output_schema()).unwrap()).into_bytes();
+        streamed.extend(std::iter::repeat_n(
+            b'x',
+            crate::JsonLimits::MAXIMUM.max_string_bytes() + 1,
+        ));
+        streamed.extend_from_slice(b"\",\"unread\":invalid}}");
+        let error = serde_json::from_slice::<AgentResult>(&streamed).unwrap_err();
+        assert!(error.to_string().contains("string"), "{error}");
+    }
+
+    #[test]
     fn result_requires_complete_accounting_and_exact_run_binding() {
         let descriptor = descriptor();
         let request = request();
@@ -1333,6 +1583,361 @@ mod tests {
             result.validate_for(&provenance(), &request, &descriptor, &budget),
             Err(AgentResultValidationError::InputBytesUnderreported { .. })
         ));
+    }
+
+    fn assert_terminal_input_equivalence(
+        result: &AgentResult,
+        expected: &AgentResultProvenance,
+        descriptor: &AgentDescriptor,
+        request: AgentRequest,
+        budget: ResolvedBudget,
+    ) -> Result<(), AgentResultValidationError> {
+        let original = result.validate_for(expected, &request, descriptor, &budget);
+        let inputs = AgentTerminalValidationInputs::for_descriptor(descriptor, request, budget);
+        let bytes = serde_json_canonicalizer::to_vec(&inputs).unwrap();
+        let restored = serde_json::from_slice::<AgentTerminalValidationInputs>(&bytes).unwrap();
+        assert_eq!(restored, inputs);
+        assert_eq!(
+            result.validate_for_terminal_inputs(expected, &restored),
+            original
+        );
+        original
+    }
+
+    #[test]
+    fn terminal_validation_inputs_preserve_identity_errors_and_order() {
+        let descriptor = descriptor();
+        let expected = provenance();
+        let value = result();
+        assert_terminal_input_equivalence(&value, &expected, &descriptor, request(), budget())
+            .unwrap();
+        let actual = to_value(&value).unwrap();
+        for (field, replacement) in [
+            ("tenant_id", Value::from("tenant-other")),
+            ("run_id", Value::from(OTHER_RUN_ID)),
+            ("thread_id", Value::from(OTHER_RUN_ID)),
+            ("invocation_id", Value::from(OTHER_RUN_ID)),
+            ("agent", {
+                let mut agent = to_value(expected.agent()).unwrap();
+                agent["capability"]["name"] = Value::from("agents.other");
+                agent
+            }),
+        ] {
+            let mut changed = actual.clone();
+            changed["provenance"][field] = replacement;
+            let result = from_value(changed).unwrap();
+            let error = assert_terminal_input_equivalence(
+                &result,
+                &expected,
+                &descriptor,
+                request(),
+                budget(),
+            )
+            .unwrap_err();
+            assert!(match field {
+                "tenant_id" => matches!(error, AgentResultValidationError::TenantMismatch { .. }),
+                "run_id" => matches!(error, AgentResultValidationError::RunMismatch { .. }),
+                "thread_id" => matches!(error, AgentResultValidationError::ThreadMismatch { .. }),
+                "invocation_id" =>
+                    matches!(error, AgentResultValidationError::InvocationMismatch { .. }),
+                "agent" => matches!(
+                    error,
+                    AgentResultValidationError::AgentIdentityMismatch { .. }
+                ),
+                _ => unreachable!(),
+            });
+        }
+        // An invalid expected descriptor binding remains the first failure even
+        // when the result's tenant, request schema and budget are also wrong.
+        let mut wrong_expected = to_value(expected).unwrap();
+        wrong_expected["agent"]["capability"]["name"] = Value::from("agents.other");
+        let mut wrong_result = actual;
+        wrong_result["provenance"]["tenant_id"] = Value::from("tenant-other");
+        let wrong_request = AgentRequest::new(
+            descriptor.output_schema().clone(),
+            request().input().clone(),
+            BudgetLimits::empty(),
+        );
+        let mut expired = to_value(budget()).unwrap();
+        expired["deadline"] = Value::from("2029-01-01T00:00:00.000000Z");
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &from_value(wrong_result).unwrap(),
+                &from_value(wrong_expected).unwrap(),
+                &descriptor,
+                wrong_request,
+                from_value(expired).unwrap(),
+            ),
+            Err(AgentResultValidationError::ExpectedProvenance { .. })
+        ));
+    }
+
+    #[test]
+    fn terminal_validation_inputs_preserve_request_accounting_and_budget_errors() {
+        let descriptor = descriptor();
+        let expected = provenance();
+        let value = result();
+        let mut bad_schema = to_value(request()).unwrap();
+        bad_schema["input_schema"] = to_value(descriptor.output_schema()).unwrap();
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &value,
+                &expected,
+                &descriptor,
+                from_value(bad_schema).unwrap(),
+                budget(),
+            ),
+            Err(AgentResultValidationError::Request {
+                source: AgentRequestValidationError::SchemaMismatch { .. }
+            })
+        ));
+        let mut insufficient = to_value(budget()).unwrap();
+        insufficient["input_bytes"] = Value::from("1");
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &value,
+                &expected,
+                &descriptor,
+                request(),
+                from_value(insufficient).unwrap(),
+            ),
+            Err(AgentResultValidationError::Request {
+                source: AgentRequestValidationError::InputLimitExceeded { .. }
+            })
+        ));
+        let mut underreported = to_value(&value).unwrap();
+        underreported["usage"]["input_bytes"] = Value::from("0");
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &from_value(underreported).unwrap(),
+                &expected,
+                &descriptor,
+                request(),
+                budget(),
+            ),
+            Err(AgentResultValidationError::InputBytesUnderreported { .. })
+        ));
+        let mut wrong_output = to_value(&value).unwrap();
+        wrong_output["output_schema"] = to_value(descriptor.input_schema()).unwrap();
+        let mut expired = to_value(budget()).unwrap();
+        expired["deadline"] = Value::from("2029-01-01T00:00:00.000000Z");
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &from_value(wrong_output).unwrap(),
+                &expected,
+                &descriptor,
+                request(),
+                from_value(expired.clone()).unwrap(),
+            ),
+            Err(AgentResultValidationError::OutputSchemaMismatch { .. })
+        ));
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &value,
+                &expected,
+                &descriptor,
+                request(),
+                from_value(expired).unwrap(),
+            ),
+            Err(AgentResultValidationError::Budget {
+                source: BudgetEvaluationError::DeadlineExceeded { .. }
+            })
+        ));
+        let mut attempts = to_value(budget()).unwrap();
+        attempts["model_attempts"] = Value::from("1");
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &value,
+                &expected,
+                &descriptor,
+                request(),
+                from_value(attempts).unwrap(),
+            ),
+            Err(AgentResultValidationError::Budget {
+                source: BudgetEvaluationError::ExecutionLimitExceeded { .. }
+            })
+        ));
+    }
+
+    #[test]
+    fn terminal_validation_inputs_preserve_complete_cost_errors_and_order() {
+        let descriptor = descriptor();
+        let expected = provenance();
+        let value = result();
+        let mut charged = to_value(&value).unwrap();
+        charged["usage"]["known_costs"] = json!([{"currency":"EUR","micro_units":"1"}]);
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &from_value(charged).unwrap(),
+                &expected,
+                &descriptor,
+                request(),
+                budget(),
+            ),
+            Err(AgentResultValidationError::Budget {
+                source: BudgetEvaluationError::UnbudgetedCurrency { .. }
+            })
+        ));
+        let mut unpriced = to_value(&value).unwrap();
+        unpriced["usage"]["unpriced_cost_events"] = Value::from("1");
+        let mut over_cost = unpriced.clone();
+        over_cost["usage"]["known_costs"] =
+            json!([{"currency":"USD","micro_units":"18446744073709551615"}]);
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &from_value(over_cost).unwrap(),
+                &expected,
+                &descriptor,
+                request(),
+                budget(),
+            ),
+            Err(AgentResultValidationError::Budget {
+                source: BudgetEvaluationError::CostLimitExceeded { .. }
+            })
+        ));
+        assert!(matches!(
+            assert_terminal_input_equivalence(
+                &from_value(unpriced).unwrap(),
+                &expected,
+                &descriptor,
+                request(),
+                budget(),
+            ),
+            Err(AgentResultValidationError::Budget {
+                source: BudgetEvaluationError::UnpricedCost { .. }
+            })
+        ));
+    }
+
+    #[test]
+    fn terminal_validation_inputs_round_trip_large_request_and_reject_oversize_early() {
+        let descriptor = descriptor();
+        let input = BoundedJson::try_from_value_with_limits(
+            json!({"secret": "x".repeat(1024 * 1024 - 1)}),
+            crate::JsonLimits::MAXIMUM,
+        )
+        .unwrap();
+        let request = AgentRequest::new(
+            descriptor.input_schema().clone(),
+            input,
+            BudgetLimits::empty(),
+        );
+        let inputs = AgentTerminalValidationInputs::for_descriptor(&descriptor, request, budget());
+        let bytes = serde_json_canonicalizer::to_vec(&inputs).unwrap();
+        assert!(bytes.len() > crate::JsonLimits::DEFAULT.max_bytes());
+        assert_eq!(
+            serde_json::from_slice::<AgentTerminalValidationInputs>(&bytes).unwrap(),
+            inputs
+        );
+        let mut stream = format!(
+            "{{\"request\":{{\"input_schema\":{},\"input\":{{\"secret\":\"",
+            serde_json::to_string(descriptor.input_schema()).unwrap()
+        )
+        .into_bytes();
+        stream.extend(std::iter::repeat_n(
+            b'x',
+            crate::JsonLimits::MAXIMUM.max_string_bytes() + 1,
+        ));
+        stream.extend_from_slice(b"\",\"unread\":invalid}}");
+        let error = serde_json::from_slice::<AgentTerminalValidationInputs>(&stream).unwrap_err();
+        assert!(error.to_string().contains("string"), "{error}");
+        assert!(!error.to_string().contains("expected value"), "{error}");
+    }
+
+    #[test]
+    fn terminal_validation_inputs_bound_complete_maximum_metadata_and_input() {
+        let inputs =
+            AgentTerminalValidationInputs::for_descriptor(&descriptor(), request(), budget());
+        let mut value = to_value(inputs).unwrap();
+        let version = "18446744073709551615.18446744073709551615.18446744073709551615";
+        assert_eq!(version.len(), crate::Version::MAX_LEN);
+        let prefix = "https://example.com/";
+        let uri = format!(
+            "{prefix}{}",
+            "a".repeat(crate::SchemaId::MAX_LEN - prefix.len())
+        );
+        value["descriptor_identity"]["owner"]["issuer"] = json!(format!(
+            "{prefix}{}",
+            "a".repeat(crate::IssuerId::MAX_LEN - prefix.len())
+        ));
+        value["descriptor_identity"]["owner"]["subject"] =
+            json!("\\".repeat(crate::SubjectId::MAX_LEN));
+        value["descriptor_identity"]["capability"]["name"] =
+            json!("a".repeat(crate::CapabilityName::MAX_LEN));
+        value["descriptor_identity"]["capability"]["version"] = json!(version);
+        for field in ["descriptor_input_schema", "descriptor_output_schema"] {
+            value[field]["id"] = json!(uri);
+            value[field]["version"] = json!(version);
+        }
+        value["request"]["input_schema"] = value["descriptor_input_schema"].clone();
+        let input = json!(["x".repeat(1024 * 1024 - 1), "y".repeat(1024 * 1024 - 7)]);
+        let input =
+            BoundedJson::try_from_value_with_limits(input, crate::JsonLimits::MAXIMUM).unwrap();
+        assert_eq!(
+            input.stats().compact_bytes(),
+            crate::JsonLimits::MAXIMUM.max_bytes() - 1
+        );
+        value["request"]["input"] = to_value(input).unwrap();
+        let maximum_costs = (0..crate::MAX_COST_CURRENCIES)
+            .map(|index| json!({"currency": format!("AA{}", char::from(b'A' + u8::try_from(index).unwrap())), "micro_units": u64::MAX.to_string()}))
+            .collect::<Vec<_>>();
+        let mut maximum_budget = value["budget"].clone();
+        for (key, ceiling) in maximum_budget.as_object_mut().unwrap() {
+            if key == "costs" {
+                *ceiling = json!(maximum_costs);
+            } else if key != "deadline" {
+                *ceiling = json!(u64::MAX.to_string());
+            }
+        }
+        value["budget"] = maximum_budget.clone();
+        value["request"]["budget_limits"] = maximum_budget;
+        let inputs = from_value::<AgentTerminalValidationInputs>(value.clone()).unwrap();
+        let bytes = serde_json_canonicalizer::to_vec(&inputs).unwrap();
+        assert!(bytes.len() < AgentTerminalValidationInputs::MAX_SNAPSHOT_BYTES);
+        assert_eq!(
+            serde_json::from_slice::<AgentTerminalValidationInputs>(&bytes).unwrap(),
+            inputs
+        );
+        value["request"]["input"][1] = json!("y".repeat(1024 * 1024 - 5));
+        assert!(from_value::<AgentTerminalValidationInputs>(value).is_err());
+    }
+
+    #[test]
+    fn terminal_validation_inputs_are_closed_const_readable_and_redacted() {
+        const fn const_request(inputs: &AgentTerminalValidationInputs) -> &AgentRequest {
+            inputs.request()
+        }
+        fn assert_send_sync<T: Send + Sync>() {}
+        assert_send_sync::<AgentTerminalValidationInputs>();
+        let inputs =
+            AgentTerminalValidationInputs::for_descriptor(&descriptor(), request(), budget());
+        assert_eq!(const_request(&inputs), &request());
+        let value = to_value(&inputs).unwrap();
+        let mut extra = value.clone();
+        extra["authority"] = Value::from(true);
+        assert!(from_value::<AgentTerminalValidationInputs>(extra).is_err());
+        for malformed in [Value::Null, json!([]), json!("inputs")] {
+            assert!(from_value::<AgentTerminalValidationInputs>(malformed).is_err());
+        }
+        let positional = json!([
+            value["descriptor_identity"],
+            value["descriptor_input_schema"],
+            value["descriptor_output_schema"],
+            value["request"],
+            value["budget"]
+        ]);
+        assert!(from_value::<AgentTerminalValidationInputs>(positional).is_err());
+        let mut positional_request = value.clone();
+        positional_request["request"] = json!([
+            value["request"]["input_schema"],
+            value["request"]["input"],
+            value["request"]["budget_limits"]
+        ]);
+        assert!(from_value::<AgentTerminalValidationInputs>(positional_request).is_err());
+        let debug = format!("{inputs:?}");
+        assert!(!debug.contains("INC-42"));
+        assert!(!debug.contains("Summarize the evidence"));
+        assert!(!debug.contains("2030-01-01"));
     }
 
     #[test]

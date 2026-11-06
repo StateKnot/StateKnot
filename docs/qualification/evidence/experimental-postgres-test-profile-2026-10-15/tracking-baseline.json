@@ -1,0 +1,29 @@
+{
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "base_commit": "686c42739e9f128db9d90fcb4e9d1aefd36942d8",
+      "before_bytes": 78635,
+      "before_sha256": "afad1c22a21a7f21eefc73b370525b60aa3e6e247319497dfdc5710712b33901",
+      "bytes": 79248,
+      "sha256": "839d0000157c06621f6bea62938d07415545c690600aa46009db6637540f0c9f"
+    },
+    {
+      "path": "docs/production-milestones-2026-10-08.zh-CN.md",
+      "base_commit": "686c42739e9f128db9d90fcb4e9d1aefd36942d8",
+      "before_bytes": 49984,
+      "before_sha256": "f3eea6c990c76aa366ffad8516bcd5f7bc438302e9158a8026bbb431c306bd05",
+      "bytes": 50745,
+      "sha256": "1e798bbaa842fa65e7b161a1fba8212389f7a30f2a94c948174832787db51fb6"
+    },
+    {
+      "path": "docs/r1-contract-gap-ledger.zh-CN.md",
+      "base_commit": "686c42739e9f128db9d90fcb4e9d1aefd36942d8",
+      "before_bytes": 25629,
+      "before_sha256": "9fe03e87bc98d0b35b957d9ce233bac478737111826dbfcc96244b530d62e613",
+      "bytes": 26376,
+      "sha256": "c94696d1dc0b4d403b9a456545cb6ad84ee34580e1bb65392062b33c07d7e8db"
+    }
+  ],
+  "future_MCP_docs_rebase_required": true
+}

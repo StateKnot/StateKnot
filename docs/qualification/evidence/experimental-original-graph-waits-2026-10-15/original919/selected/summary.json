@@ -1,0 +1,1242 @@
+{
+  "created_utc": "2026-10-15T09:45:31.166130+00:00",
+  "total": 30,
+  "passed": 30,
+  "failed": 0,
+  "ignored": 0,
+  "per_major": [
+    {
+      "postgres_major": "16",
+      "container_id": "cd3def02c3d0888a0d3cf2d73ab6400ce02e80c65d961f7a5186a2017b0fa7ea",
+      "server_version_num": 160015,
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "complete": true,
+      "count": 15,
+      "passed": 15,
+      "failed": 0,
+      "seconds": 111.0604977607727,
+      "source_files": 919,
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "source_unchanged": true,
+      "final_ledger_exact_1_to_36": true,
+      "final_business_table_count": 54,
+      "qualification": "Only these exact 15 existing selected Native cases. No full suite, no R1 qualification."
+    },
+    {
+      "postgres_major": "17",
+      "container_id": "700ced678f1efb67e230785eb4d42d77c0327e64d032f6fd12ed386e46f43127",
+      "server_version_num": 170011,
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "complete": true,
+      "count": 15,
+      "passed": 15,
+      "failed": 0,
+      "seconds": 114.0889310836792,
+      "source_files": 919,
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "source_unchanged": true,
+      "final_ledger_exact_1_to_36": true,
+      "final_business_table_count": 54,
+      "qualification": "Only these exact 15 existing selected Native cases. No full suite, no R1 qualification."
+    }
+  ],
+  "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "source_files": 919,
+  "artifacts": {
+    "stateknot-store-postgres": {
+      "package": "stateknot-store-postgres",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-store-postgres#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+      "sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "fresh": false
+    },
+    "stateknot-runtime": {
+      "package": "stateknot-runtime",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-source/crates/stateknot-runtime#0.1.0-alpha.1",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+      "sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "fresh": false
+    }
+  },
+  "rows": [
+    {
+      "case": 1,
+      "exact_test": "frame_waits::elapsed::expired_original_interrupt_blocks_elapsed_ready_without_any_partial_commit",
+      "origin_label": "elapsed36-ready-v2-extra-01-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed::expired_original_interrupt_blocks_elapsed_ready_without_any_partial_commit",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.4975740909576416,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 1.49s"
+      ],
+      "log_sha256": "fde69c77847b7bc62df8e4fa68e86e6cbbaa57519417ea374bdf18fd15a7c520",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-01/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-01/native.log"
+    },
+    {
+      "case": 2,
+      "exact_test": "frame_waits::elapsed::maximum_original_wait_inventory_retains_all_sixty_four_real_owners",
+      "origin_label": "elapsed36-ready-v2-extra-02-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed::maximum_original_wait_inventory_retains_all_sixty_four_real_owners",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 2.2289328575134277,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 2.22s"
+      ],
+      "log_sha256": "7e38ee5e34306e6f0456aa851ac9fd2a541f9f13917f7d95ccdd9b4183771a88",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-02/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-02/native.log"
+    },
+    {
+      "case": 3,
+      "exact_test": "frame_waits::elapsed::mixed_original_conditions_release_only_the_real_remaining_registrations",
+      "origin_label": "elapsed36-ready-v2-extra-03-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed::mixed_original_conditions_release_only_the_real_remaining_registrations",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 30.69656777381897,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 30.69s"
+      ],
+      "log_sha256": "87f0e715672b60dd343cd43261a099808c29e88a24820c4d7fde6a6173b5e78b",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-03/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-03/native.log"
+    },
+    {
+      "case": 4,
+      "exact_test": "frame_waits::elapsed::original_condition_corruption_blocks_complete_read_and_ack_without_writes",
+      "origin_label": "elapsed36-ready-v2-extra-04-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed::original_condition_corruption_blocks_complete_read_and_ack_without_writes",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.9313881397247314,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 1.93s"
+      ],
+      "log_sha256": "c716d727cd77bf2e1a4150f2db64d5d41938c5a9ab7c9258bc519f72a98d19a9",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-04/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-04/native.log"
+    },
+    {
+      "case": 5,
+      "exact_test": "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+      "origin_label": "elapsed36-ready-v2-extra-05-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5149402618408203,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.51s"
+      ],
+      "log_sha256": "040180d0ceba6f1245b55c282c6d53e403e6f4793a277c6e95f704f452a8f5ab",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-05/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-05/native.log"
+    },
+    {
+      "case": 6,
+      "exact_test": "root_graph_barriers::elapsed::expired_root_interrupt_cannot_turn_mixed_wait_into_ready_or_partially_commit",
+      "origin_label": "elapsed36-ready-v2-extra-06-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::expired_root_interrupt_cannot_turn_mixed_wait_into_ready_or_partially_commit",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.9863779544830322,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.98s"
+      ],
+      "log_sha256": "d51df0e724e115700dd70b92bb49224dd967a2ae832e864f5e318826fbd23602",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-06/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-06/native.log"
+    },
+    {
+      "case": 7,
+      "exact_test": "root_graph_barriers::elapsed::root_mixed_originals_register_only_remaining_conditions_and_keep_waiting_ack",
+      "origin_label": "elapsed36-ready-v2-extra-07-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::root_mixed_originals_register_only_remaining_conditions_and_keep_waiting_ack",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5908451080322266,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.58s"
+      ],
+      "log_sha256": "df4d686ddd45b18ad7be6dd224cd06d883e3981a9918a8bd47342a2ee9f2c28e",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-07/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-07/native.log"
+    },
+    {
+      "case": 8,
+      "exact_test": "root_graph_barriers::elapsed::root_ready_checks_original_expiry_after_the_actual_deferred_guard",
+      "origin_label": "elapsed36-ready-v2-extra-08-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::root_ready_checks_original_expiry_after_the_actual_deferred_guard",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 2.5614428520202637,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 2.56s"
+      ],
+      "log_sha256": "b15c9abe11dbf01ae01484d6411b6d34e8902d91062634f01973129b0eea227a",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-08/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-08/native.log"
+    },
+    {
+      "case": 9,
+      "exact_test": "root_graph_barriers::elapsed::root_ready_reloads_actual_successor_bytes_before_returning_the_receipt",
+      "origin_label": "elapsed36-ready-v2-extra-09-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::root_ready_reloads_actual_successor_bytes_before_returning_the_receipt",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.33814096450805664,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.33s"
+      ],
+      "log_sha256": "4b29d179004a8fadd825ea8510a369b691ba92366071906d904b18479a3d0ac6",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-09/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-09/native.log"
+    },
+    {
+      "case": 10,
+      "exact_test": "frame_waits::elapsed_faults::substituted_canonical_scoped_wait_wire_rolls_back_the_complete_commit",
+      "origin_label": "elapsed36-ready-v2-fault-canonical-wire-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed_faults::substituted_canonical_scoped_wait_wire_rolls_back_the_complete_commit",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.309278964996338,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 1.30s"
+      ],
+      "log_sha256": "e98a32cd5323863f56184bed61d89344ed182d5669052a98b9e1d43b79b5cbd8",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-10/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-10/native.log"
+    },
+    {
+      "case": 11,
+      "exact_test": "frame_waits::elapsed_faults::substituted_ready_lease_cannot_extend_the_original_commit_authority",
+      "origin_label": "elapsed36-ready-v2-fault-original-lease-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed_faults::substituted_ready_lease_cannot_extend_the_original_commit_authority",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 3.582381248474121,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 3.58s"
+      ],
+      "log_sha256": "15e2a485c17118b4918b2a0b876e9103e3684fd151f592d4f5320faf9d22f501",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-11/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-11/native.log"
+    },
+    {
+      "case": 12,
+      "exact_test": "nested_driver::elapsed_graph_waits::root_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+      "origin_label": "elapsed36-ready-v2-root-wait-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-runtime",
+      "binary_sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+        "nested_driver::elapsed_graph_waits::root_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 3.3108928203582764,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 3.30s"
+      ],
+      "log_sha256": "51de5c3c2c6c7077463ba89f922302dec47e10fb3ccd87fbc9152e988b2016af",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-12/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-12/native.log"
+    },
+    {
+      "case": 13,
+      "exact_test": "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+      "origin_label": "elapsed36-ready-v2-scoped-wait-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-runtime",
+      "binary_sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+        "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 21.53985095024109,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 21.53s"
+      ],
+      "log_sha256": "867e95c9ed404ae58553bc98aaab78e02240d2eb6d683777a07960d195f3cdb4",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 101,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-13/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-13/native.log"
+    },
+    {
+      "case": 14,
+      "exact_test": "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+      "origin_label": "elapsed36-ready-v2-sql-role-pg16",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-runtime",
+      "binary_sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+        "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 36.259008169174194,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 36.25s"
+      ],
+      "log_sha256": "7f8d6307dc91f4587a181e1cc1eff045b4254f07510225d3a10aa588f9d77c92",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 101,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-14/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-14/native.log"
+    },
+    {
+      "case": 15,
+      "exact_test": "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+      "origin_label": "new A selected regression",
+      "postgres_major": "16",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 2.8008599281311035,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 2.79s"
+      ],
+      "log_sha256": "e63b9701045913430848d25bb83b0be73cd511083bf6c9b5a11c3b38742e1160",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": false,
+      "prior_ready36_exit_code": null,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-15/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg16/case-15/native.log"
+    },
+    {
+      "case": 1,
+      "exact_test": "frame_waits::elapsed::expired_original_interrupt_blocks_elapsed_ready_without_any_partial_commit",
+      "origin_label": "elapsed36-ready-v2-extra-01-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed::expired_original_interrupt_blocks_elapsed_ready_without_any_partial_commit",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.3657121658325195,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 1.36s"
+      ],
+      "log_sha256": "3500badd55b55bedac9c2052f113db685e748a022be4213b02da37befa55ffa8",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-01/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-01/native.log"
+    },
+    {
+      "case": 2,
+      "exact_test": "frame_waits::elapsed::maximum_original_wait_inventory_retains_all_sixty_four_real_owners",
+      "origin_label": "elapsed36-ready-v2-extra-02-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed::maximum_original_wait_inventory_retains_all_sixty_four_real_owners",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.6252849102020264,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 1.62s"
+      ],
+      "log_sha256": "1a39f88ee75bddb6665270f1187e634f4e4db7cc15e49053a1852e0460f20914",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-02/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-02/native.log"
+    },
+    {
+      "case": 3,
+      "exact_test": "frame_waits::elapsed::mixed_original_conditions_release_only_the_real_remaining_registrations",
+      "origin_label": "elapsed36-ready-v2-extra-03-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed::mixed_original_conditions_release_only_the_real_remaining_registrations",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 30.52393388748169,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 30.52s"
+      ],
+      "log_sha256": "e815ff4892f3483c391584a0f5e1a77fe0399dcce996946bc1b0041754b49c53",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-03/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-03/native.log"
+    },
+    {
+      "case": 4,
+      "exact_test": "frame_waits::elapsed::original_condition_corruption_blocks_complete_read_and_ack_without_writes",
+      "origin_label": "elapsed36-ready-v2-extra-04-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed::original_condition_corruption_blocks_complete_read_and_ack_without_writes",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.9495270252227783,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 1.94s"
+      ],
+      "log_sha256": "9314b309ce265adc89d07d8be2066419622fc6954ece97d3dfbe665ac886118d",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-04/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-04/native.log"
+    },
+    {
+      "case": 5,
+      "exact_test": "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+      "origin_label": "elapsed36-ready-v2-extra-05-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::elapsed_root_missing_inventory_or_changed_positive_source_blocks_read_and_ack",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.5210480690002441,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.52s"
+      ],
+      "log_sha256": "c3f465143a6d9b345c92334d53fde8b8a249e3f37e737e6e58d5674e8f16cee7",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-05/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-05/native.log"
+    },
+    {
+      "case": 6,
+      "exact_test": "root_graph_barriers::elapsed::expired_root_interrupt_cannot_turn_mixed_wait_into_ready_or_partially_commit",
+      "origin_label": "elapsed36-ready-v2-extra-06-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::expired_root_interrupt_cannot_turn_mixed_wait_into_ready_or_partially_commit",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.9517810344696045,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.95s"
+      ],
+      "log_sha256": "510fadd1d4be7e23075e896712b38999328b7421f90c063cd9d3212014d3f4d1",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-06/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-06/native.log"
+    },
+    {
+      "case": 7,
+      "exact_test": "root_graph_barriers::elapsed::root_mixed_originals_register_only_remaining_conditions_and_keep_waiting_ack",
+      "origin_label": "elapsed36-ready-v2-extra-07-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::root_mixed_originals_register_only_remaining_conditions_and_keep_waiting_ack",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.586219072341919,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.58s"
+      ],
+      "log_sha256": "df4d686ddd45b18ad7be6dd224cd06d883e3981a9918a8bd47342a2ee9f2c28e",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-07/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-07/native.log"
+    },
+    {
+      "case": 8,
+      "exact_test": "root_graph_barriers::elapsed::root_ready_checks_original_expiry_after_the_actual_deferred_guard",
+      "origin_label": "elapsed36-ready-v2-extra-08-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::root_ready_checks_original_expiry_after_the_actual_deferred_guard",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 2.661374092102051,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 2.66s"
+      ],
+      "log_sha256": "071ae1a6070082c98447f68012bbdb037c128ea77bc20aa86e42e7af602c0fc2",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-08/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-08/native.log"
+    },
+    {
+      "case": 9,
+      "exact_test": "root_graph_barriers::elapsed::root_ready_reloads_actual_successor_bytes_before_returning_the_receipt",
+      "origin_label": "elapsed36-ready-v2-extra-09-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "root_graph_barriers::elapsed::root_ready_reloads_actual_successor_bytes_before_returning_the_receipt",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.4636669158935547,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 0.46s"
+      ],
+      "log_sha256": "5883380740be30146b64d8f311ef80a8588d52b9447a575ad50b3c02ffee509c",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-09/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-09/native.log"
+    },
+    {
+      "case": 10,
+      "exact_test": "frame_waits::elapsed_faults::substituted_canonical_scoped_wait_wire_rolls_back_the_complete_commit",
+      "origin_label": "elapsed36-ready-v2-fault-canonical-wire-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed_faults::substituted_canonical_scoped_wait_wire_rolls_back_the_complete_commit",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.7380328178405762,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 1.73s"
+      ],
+      "log_sha256": "18ee45e0de0eb29e831db15b9bd8c24fb7d3155c217c4617fa52576db0e32871",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-10/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-10/native.log"
+    },
+    {
+      "case": 11,
+      "exact_test": "frame_waits::elapsed_faults::substituted_ready_lease_cannot_extend_the_original_commit_authority",
+      "origin_label": "elapsed36-ready-v2-fault-original-lease-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "frame_waits::elapsed_faults::substituted_ready_lease_cannot_extend_the_original_commit_authority",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 3.766564130783081,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 3.76s"
+      ],
+      "log_sha256": "3703a073430f081219e3b6800c5c532bdf5189acd67caa8fb6640405f138c705",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-11/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-11/native.log"
+    },
+    {
+      "case": 12,
+      "exact_test": "nested_driver::elapsed_graph_waits::root_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+      "origin_label": "elapsed36-ready-v2-root-wait-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-runtime",
+      "binary_sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+        "nested_driver::elapsed_graph_waits::root_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 3.4104278087615967,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 3.40s"
+      ],
+      "log_sha256": "38f9fa5eb4486b1a787b0ab8ce94c60caf67bf23572e5475c3a144fcc525e692",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-12/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-12/native.log"
+    },
+    {
+      "case": 13,
+      "exact_test": "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+      "origin_label": "elapsed36-ready-v2-scoped-wait-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-runtime",
+      "binary_sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+        "nested_driver::elapsed_graph_waits::scoped_absolute_wait_survives_real_delay_and_higher_fence_without_reexecution",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 24.030795097351074,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 24.02s"
+      ],
+      "log_sha256": "50b48acd93e5579ffddb2faa0da15ee9da3b761ee2a4781b2b75e6367dbc61e1",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 0,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-13/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-13/native.log"
+    },
+    {
+      "case": 14,
+      "exact_test": "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+      "origin_label": "elapsed36-ready-v2-sql-role-pg17",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-runtime",
+      "binary_sha256": "1d50b80ec096bcd328fec101b5d2198d427e8e48ffea97c76ffb79d663b45c30",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-runtime-postgres",
+        "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 36.96768093109131,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 188 filtered out; finished in 36.96s"
+      ],
+      "log_sha256": "da786938dfe8b45dd00992a40be47018c58ea058c89183081ab7e5def318afa4",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": true,
+      "prior_ready36_exit_code": 101,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-14/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-14/native.log"
+    },
+    {
+      "case": 15,
+      "exact_test": "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+      "origin_label": "new A selected regression",
+      "postgres_major": "17",
+      "database": "stateknot_r1_a36_feedback_oct15v1",
+      "package": "stateknot-store-postgres",
+      "binary_sha256": "fc0f64ecc2dcd761d6ac0423e56ff88cce0147fb4c95e941a1adf7188e70dfc9",
+      "source_tree_sha256": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/strict-native-build-v1/stateknot-store-postgres-postgres",
+        "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 2.714890956878662,
+      "valid_exact_native_success": true,
+      "summaries": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0"
+        ]
+      ],
+      "result_lines": [
+        "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 263 filtered out; finished in 2.70s"
+      ],
+      "log_sha256": "3b69cf5e28278c5fc9d0b5a03944efd575d2d1acbfda494c353c5461c7059efe",
+      "default_stack": true,
+      "original_config_and_assertions": true,
+      "prior_ready36_case": false,
+      "prior_ready36_exit_code": null,
+      "prior_receipt_is_not_transferred": true,
+      "receipt_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-15/receipt.json",
+      "native_log_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/pg17/case-15/native.log"
+    }
+  ],
+  "all_original_28_tests_reexecuted": true,
+  "new_A_case_each_major": true,
+  "earlier_upgrade_cases_not_repeated": true,
+  "old25of28_status_preserved_in_prior_evidence": true,
+  "no_source_main_Git_B37_changes": true,
+  "no_build_cache_cleanup_or_compile": true,
+  "default_original_resources": true,
+  "full_suite_or_Default7_or_R1_qualification": false,
+  "resource_metadata_note": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/selected-native-feedback-v1/resource-proof-and-metadata-correction.json"
+}

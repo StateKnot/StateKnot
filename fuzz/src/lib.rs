@@ -331,6 +331,32 @@ mod tests {
     }
 
     #[test]
+    fn scoped_frame_substitution_and_journal_order_reproducers_are_rejected() {
+        for data in [
+            include_bytes!("../seeds/core_readers/GraphFrameIdentity-invalid-ancestor").as_slice(),
+            include_bytes!("../seeds/core_readers/GraphFrameCheckpointHead-before-origin")
+                .as_slice(),
+            include_bytes!("../seeds/core_readers/GraphFrameCheckpoint-sibling-digest").as_slice(),
+            include_bytes!("../seeds/core_readers/GraphFrameCheckpoint-duplicate-frame").as_slice(),
+        ] {
+            assert!(!core_readers(data));
+        }
+    }
+
+    #[test]
+    fn frame_barriers_reject_freshly_bound_input_and_scope_substitution() {
+        // Heads are produced by real result constructors. The outer barrier
+        // checksum is recomputed, so rejection must preserve activation scope
+        // rather than depend on a stale outer fingerprint.
+        for data in [
+            include_bytes!("../seeds/core_readers/GraphFrameBarrier-wrong-input").as_slice(),
+            include_bytes!("../seeds/core_readers/GraphFrameBarrier-crossed-frame").as_slice(),
+        ] {
+            assert!(!core_readers(data));
+        }
+    }
+
+    #[test]
     fn strict_json_and_numeric_normalization_controls() {
         for input in [
             b"null".as_slice(),
@@ -392,6 +418,24 @@ mod tests {
             }
         }
         assert_eq!(tested, 11);
+    }
+
+    #[test]
+    fn retained_case_insensitive_media_type_reaches_both_schema_oracles() {
+        assert!(core_readers(include_bytes!(
+            "../seeds/core_readers/MediaType-mixed-case"
+        )));
+        for input in [
+            "IMAGE/PNG",
+            "Application/Vnd.StateKnot+JSON",
+            "Text/Plain; Format=Flowed; Charset=UTF-8",
+            "Video/MP4; codecs=\"avc1.42E01E, mp4a.40.2\"",
+            &format!("{}/{}", "A".repeat(127), "B".repeat(127)),
+        ] {
+            let mut seed = b"MediaType\n".to_vec();
+            seed.extend(serde_json::to_vec(input).unwrap());
+            assert!(core_readers(&seed), "{input}");
+        }
     }
 
     #[test]

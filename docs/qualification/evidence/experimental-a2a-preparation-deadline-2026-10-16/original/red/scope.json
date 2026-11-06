@@ -1,0 +1,20 @@
+{
+  "source_directory": "a2a-initial-authority-red-source-v1",
+  "origin_commit": "1638f5adb597f5cafdcb2923608ca63ed75eccfe",
+  "fixed_product": false,
+  "same_three_test_files": [
+    "crates/stateknot-integrations/src/a2a_server/preparation_tests.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs"
+  ],
+  "changes": [
+    "crates/stateknot-integrations/src/a2a_server/preparation_tests.rs",
+    "crates/stateknot-integrations/src/a2a_server.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription/initial_authority.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs"
+  ],
+  "source_count": 931,
+  "compiled_count": 540,
+  "compiled_sha256": "43ac8bb066899b468776c7f33b7d1d5c5d513765896ce0d979e1dbefa86ca6cf",
+  "whole_Git_or_compiler_read_closure": false
+}

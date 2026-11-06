@@ -1,0 +1,13 @@
+{
+  "command": [
+    "/Library/Developer/CommandLineTools/usr/bin/python3",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-lossless-execution-appendix-v1/docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16-execution/verify.py",
+    "--workspace-root",
+    "/Users/jiawy/Documents/RustAgentFramework",
+    "--workspace"
+  ],
+  "exit_code": 0,
+  "stdout_sha256": "2de3a40cc7192c810aeb68bda25905e2eba8ad75c37a592f5d76d62502440a5f",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "product_build_network_DB_Docker_or_saved_runner_executed": false
+}

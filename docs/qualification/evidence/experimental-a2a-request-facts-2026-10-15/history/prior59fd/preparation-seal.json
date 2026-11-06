@@ -1,0 +1,56 @@
+{
+  "state": "frozen source and explicitly started qualification plan; execution results are separate receipts",
+  "source_tree_sha256": "59fd524f0e21460a9ffc8edf7de8cc6ad4d0f95d69384c6515200675364bbea6",
+  "files": [
+    {
+      "path": "EXECUTION-PLAN.zh-CN.md",
+      "bytes": 6797,
+      "sha256": "279d7921954ca70c43487a0b59697db08cd01a63448a0cf5c21f3cb3531b8bac"
+    },
+    {
+      "path": "cargo-input-manifest.json",
+      "bytes": 180586,
+      "sha256": "cd0d5804f1f3376d25c35b8cc4991943e3a53bfc5d1f94987054e43681f29ca6"
+    },
+    {
+      "path": "freeze.json",
+      "bytes": 676,
+      "sha256": "815ce96fbf81cd3aac39ebe8c708f7c42291217d189358c39f05eff872d93686"
+    },
+    {
+      "path": "import-only.patch",
+      "bytes": 696,
+      "sha256": "695cbb7d4d20a757b9f04bee10177b9e16bfbbf7a40bf4dbdda4b576969bb7ec"
+    },
+    {
+      "path": "root-start-authorization.json",
+      "bytes": 444,
+      "sha256": "45693b2c2af2503d648336351c6bd13244c808e49f6075e43202b2462bd923ce"
+    },
+    {
+      "path": "run-gates.py",
+      "bytes": 6045,
+      "sha256": "779426193b5721c4d43f5f432096f03ee5a0b01a46c7e221ba92a4d84e38bcd3"
+    },
+    {
+      "path": "run-qualification.py",
+      "bytes": 10751,
+      "sha256": "4ffdf324e58b04af169d365b2145ff037d62da13258aa5f71caf2fb65af5b500"
+    },
+    {
+      "path": "source-59fd524f0e21460a9ffc8edf7de8cc6ad4d0f95d69384c6515200675364bbea6.tar.gz",
+      "bytes": 3451134,
+      "sha256": "d9d888fb2160d5102550426e5c6b07d1f815d8c3798b158a9b50edcecaabd482"
+    },
+    {
+      "path": "source-manifest.json",
+      "bytes": 168215,
+      "sha256": "8ee4378f0a5c4a479e08fbb41b49a65d9349ba2c251632695facd280e3302516"
+    },
+    {
+      "path": "static-import-api-audit.json",
+      "bytes": 3410,
+      "sha256": "92bbeecc5248de0ef4eef8201e635e5f2feb05a682c9323d60983613f88f5641"
+    }
+  ]
+}

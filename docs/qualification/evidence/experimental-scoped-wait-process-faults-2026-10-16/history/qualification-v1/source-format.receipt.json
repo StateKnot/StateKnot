@@ -1,0 +1,15 @@
+{
+  "argv": [
+    "cargo",
+    "+1.88.0",
+    "fmt",
+    "--all"
+  ],
+  "exit_code": 0,
+  "started_unix": 1792141318.228056,
+  "seconds_including_source_copy": 1.5363202095031738,
+  "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "author_manifest_sha256": "fced554cbb3b3566f571d4fb4679e77c2c114e06dbda8a093db11db1070349ba",
+  "only_source_no_generated_directories_copied": true
+}

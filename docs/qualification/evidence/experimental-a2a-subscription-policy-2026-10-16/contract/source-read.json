@@ -1,0 +1,50 @@
+{
+  "observed_utc": "2026-10-16T03:34:21.618200+00:00",
+  "files": [
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server.rs",
+      "bytes": 91050,
+      "sha256": "ab57758507782b3102863316abaaf9847236e7e0c1a0f2c08eddf15120aeb48a"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_client.rs",
+      "bytes": 113100,
+      "sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216"
+    },
+    {
+      "path": "crates/stateknot-integrations/src/a2a_contract.rs",
+      "bytes": 128766,
+      "sha256": "2f04616d34f25069285d8fd514636a7d7712ca6fff13c2c347efd7130d7187ef"
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_client_contract.rs",
+      "bytes": 78286,
+      "sha256": "c5c95f30fa10ba64bbd4f49fe262465bdd0ade533ad82e9d0f159798e838b359"
+    },
+    {
+      "path": "docs/a2a-server.md",
+      "bytes": 7879,
+      "sha256": "f9ef29454a29e050fbc309d81f813bc8ebbb9b3b78eff180a56d55609b29a941"
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "bytes": 25475,
+      "sha256": "3c5e5f14c7d14ad12bef2628c6d726191b0f7a3cec2d5f3bf340cd33f49296e4"
+    },
+    {
+      "path": "crates/stateknot/src/agent_http/sse.rs",
+      "bytes": 11053,
+      "sha256": "033b992c2946e3c826f7a13ad644db62e58ec7b400fa21bfb1d112feb50e6e7b"
+    }
+  ],
+  "actual_source_map": {
+    "Options": "a2a_server.rs541-754",
+    "prepare": "a2a_server.rs1567-1635",
+    "stream_and_legacy_bounded_stream": "a2a_server.rs1652-1747",
+    "safe_authorization_error_mapping": "a2a_server.rs1824-1833",
+    "SubscribeToTask": "a2a_server.rs1970-1989",
+    "existing_server_tests": "a2a_server.rs2300+ router.call; not TCP",
+    "existing_client_TCP": "a2a_client_contract.rs TestA2aServer manually writes protocol wire"
+  },
+  "new_independent_external_research": false
+}

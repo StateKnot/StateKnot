@@ -1,0 +1,274 @@
+{
+  "artifacts": [
+    {
+      "path": "history/first-clippy/source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/after-format-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49254,
+      "stored_sha256": "03797dea3ae8553579f8b424c8679c3ea7a18ea5d82ee467557f065ab29c830c",
+      "raw_bytes": 168897,
+      "raw_sha256": "7a47abb9a27be177da3a513fcd89da38831500ff698268131f7e3a37f3ab9534"
+    },
+    {
+      "path": "history/second-clippy/source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-frozen-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49260,
+      "stored_sha256": "92b4f438b3c51e870a325c474a6d9fbc2884783b1c5d324597f5ea0ca42360ce",
+      "raw_bytes": 168897,
+      "raw_sha256": "9940403702c0fd98ca1a2f6d27d1cd4e7223ea391c03af83b1b21f151657202f"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/frozen-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49257,
+      "stored_sha256": "cc6e1eb8694981bbdb70b4c11ddc528ed7d4e3d38547d6601e9532f283530876",
+      "raw_bytes": 168897,
+      "raw_sha256": "7021ceb0a07462f2e7152c18d4f763c052aec152a7b28a4b3c7864f3a42f0e0b"
+    },
+    {
+      "path": "history/native-invalid-event-kind/source-manifest.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/frozen-source-manifest.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 49252,
+      "stored_sha256": "92bc0cf17a8e89d566deb29c38929241ae2fefa8fd3211fbc3d6fd7bfacb52e9",
+      "raw_bytes": 168897,
+      "raw_sha256": "4cf49bf59ba46a192d61c3d5d4901285b795e22311da3817d8005e0361370513"
+    },
+    {
+      "path": "history/first-clippy/first-clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/first-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 493,
+      "stored_sha256": "857e05901daa29797d8dff4be42aa62b35d400729b2c08d315e1f78ca36ab4e2",
+      "raw_bytes": 493,
+      "raw_sha256": "857e05901daa29797d8dff4be42aa62b35d400729b2c08d315e1f78ca36ab4e2"
+    },
+    {
+      "path": "history/first-clippy/first-clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/first-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1113,
+      "stored_sha256": "eff080647bd1878092cad36fb48160e09444c1d66ac68a6af100ef3a32dbea24",
+      "raw_bytes": 3426,
+      "raw_sha256": "200787b672ec0caff4d1b9358cadff125e3d98e174d030ef6c672484f58f1739"
+    },
+    {
+      "path": "history/first-clippy/first-clippy-preservation.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/first-clippy-preservation.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 330,
+      "stored_sha256": "010ea0f08e117ba7e87f6c97acf18f1ff62e483703a01e44d9bb9c6c7624feaa",
+      "raw_bytes": 330,
+      "raw_sha256": "010ea0f08e117ba7e87f6c97acf18f1ff62e483703a01e44d9bb9c6c7624feaa"
+    },
+    {
+      "path": "history/second-clippy/retry-clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 653,
+      "stored_sha256": "aa59ae1d0adaf6a80a91e224dc636c8e9f7b2e6cdde2781a5d077a8e214b5ecd",
+      "raw_bytes": 653,
+      "raw_sha256": "aa59ae1d0adaf6a80a91e224dc636c8e9f7b2e6cdde2781a5d077a8e214b5ecd"
+    },
+    {
+      "path": "history/second-clippy/retry-clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1392,
+      "stored_sha256": "fc00212e437ea121613810ea218642188f399a9bfe4c56ba0e708c0b2494fde3",
+      "raw_bytes": 7043,
+      "raw_sha256": "2f3496b8498300bc092a3ed057eec285b184aff44089c431bca190b9c0a7c5e5"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/retry-clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/retry-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 651,
+      "stored_sha256": "a494d515c91e83e7cad02f1f4da181f03fa7defbdcf151a6153d113d699cde6f",
+      "raw_bytes": 651,
+      "raw_sha256": "a494d515c91e83e7cad02f1f4da181f03fa7defbdcf151a6153d113d699cde6f"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/retry-clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/retry-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 226,
+      "stored_sha256": "e325734e21f209a475e0f2a470cc3565565f10cccf2baba1e4697c7f194eb6b3",
+      "raw_bytes": 584,
+      "raw_sha256": "18323f733e794127fa502d7b24dcc698f2d1637524bb6a48a80bb95edbabaeb3"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/retry-workspace.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/retry-workspace.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 617,
+      "stored_sha256": "b5e2db56bd142258be4330678fc736fdf52657ed6a97601771db034a571e086d",
+      "raw_bytes": 617,
+      "raw_sha256": "b5e2db56bd142258be4330678fc736fdf52657ed6a97601771db034a571e086d"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/retry-workspace.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/retry-workspace.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 3488,
+      "stored_sha256": "a2001f92a301844efa92f5f6c9bdb607b373c5054673a9c09a7122ff1a5e75fa",
+      "raw_bytes": 14436,
+      "raw_sha256": "ce1500d48ebef3629b7548b722c9de6e836d92260ff26bf0c498882e8171bf81"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/minimized-repro.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/minimized-repro.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 781,
+      "stored_sha256": "6688697fd1ad4be75d4c484331e584b8b21f446438d2a16c0b010d32478a5dad",
+      "raw_bytes": 781,
+      "raw_sha256": "6688697fd1ad4be75d4c484331e584b8b21f446438d2a16c0b010d32478a5dad"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/minimized-repro.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/minimized-repro.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 460,
+      "stored_sha256": "0cbed2f7ad44331c172df5b68489b0b1e3a452f1147e9c7af5fa73aa35e6a310",
+      "raw_bytes": 771,
+      "raw_sha256": "272869c97b547a40ee68e579e9d86c68084bfe77988b8720734ecfcd63733282"
+    },
+    {
+      "path": "history/workspace-HTTP-fixture/fix-receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v2/fix-receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 1821,
+      "stored_sha256": "527a154da5da440d6f27af3e59f4c3715f5d8c035845470c84cf2974e5aa206f",
+      "raw_bytes": 1821,
+      "raw_sha256": "527a154da5da440d6f27af3e59f4c3715f5d8c035845470c84cf2974e5aa206f"
+    },
+    {
+      "path": "history/native-invalid-event-kind/retry-clippy.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/retry-clippy.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 651,
+      "stored_sha256": "dbd5ca3614f26f7dcbf4975178f1917145aa18e20aa5866553ce1232829778fd",
+      "raw_bytes": 651,
+      "raw_sha256": "dbd5ca3614f26f7dcbf4975178f1917145aa18e20aa5866553ce1232829778fd"
+    },
+    {
+      "path": "history/native-invalid-event-kind/retry-clippy.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/retry-clippy.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 195,
+      "stored_sha256": "82bf0908075fb3b80815dc6106502aac7211c9df3ba7550aa268bbb6581814fb",
+      "raw_bytes": 216,
+      "raw_sha256": "1ce5f8f42c9d758d6f7141b89b8189c3a7d33268564f65b95d58e4247b1a4ca2"
+    },
+    {
+      "path": "history/native-invalid-event-kind/retry-workspace.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/retry-workspace.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 614,
+      "stored_sha256": "ef0c3b917e3551a46b7ee4e29795076afac9570fe2e28d01b46303c50fe35dcb",
+      "raw_bytes": 614,
+      "raw_sha256": "ef0c3b917e3551a46b7ee4e29795076afac9570fe2e28d01b46303c50fe35dcb"
+    },
+    {
+      "path": "history/native-invalid-event-kind/retry-workspace.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/retry-workspace.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 37981,
+      "stored_sha256": "311f30739605dbeb0d615898d94a5e8150c8e834c4322c0e17019f22c437ee64",
+      "raw_bytes": 184038,
+      "raw_sha256": "c5371d5390d765f858ca6e6ccf6f6558fea24ce39d1aa4432ac0d81db552ea8b"
+    },
+    {
+      "path": "history/native-invalid-event-kind/fix-receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/fix-receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 983,
+      "stored_sha256": "aa682d87627983266f9a0e51d67ee2fb1075c7081e4e412aa11f465c4b190017",
+      "raw_bytes": 983,
+      "raw_sha256": "aa682d87627983266f9a0e51d67ee2fb1075c7081e4e412aa11f465c4b190017"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/pg16.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/pg16.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 450,
+      "stored_sha256": "4a0d29d425f5ecc1e9752a37502eda65e280c0da8de37061b74bffec3e0f2b38",
+      "raw_bytes": 450,
+      "raw_sha256": "4a0d29d425f5ecc1e9752a37502eda65e280c0da8de37061b74bffec3e0f2b38"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/pg16.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/pg16.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 831,
+      "stored_sha256": "d94ee4a4f7f5911390b1047f0e303617dba3395dbe96977a1448d95be8b15e17",
+      "raw_bytes": 1932,
+      "raw_sha256": "ee8c97c08bcfe7f60cff22f114536c88d7dc6f7861756823e7118ec8cfae410c"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/binary.json.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/binary.json",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1159,
+      "stored_sha256": "3c192f0c768cb60b80fb4b779158b512182177ef2437aa28a8a0537e1b83285c",
+      "raw_bytes": 2866,
+      "raw_sha256": "3e66cb483862613d3dd1e14aeebf9d87fa8147796c3fa2746aa83b6dd75e8300"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/build.receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/build.receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 421,
+      "stored_sha256": "32e76e8708353c6f1fbc2a0518885c22bfe3ac350661b6df1a847df9cfb8d510",
+      "raw_bytes": 421,
+      "raw_sha256": "32e76e8708353c6f1fbc2a0518885c22bfe3ac350661b6df1a847df9cfb8d510"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/build.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/build.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 22037,
+      "stored_sha256": "7c65879ffff294863eec51791fa677b162eaaa3f5978aa44cb8e65623892a123",
+      "raw_bytes": 324834,
+      "raw_sha256": "ddbf5a817d0630327b52b7122492046a472ec16ddec571587cdebb294cf1c5bc"
+    },
+    {
+      "path": "history/native-invalid-event-kind/native/list.log.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/retry-v3/native-default-profile-v1/list.log",
+      "storage_encoding": "gzip",
+      "stored_bytes": 574,
+      "stored_sha256": "5e72addf199b2355954b91b07366e1a5ba336034445f0f5c2f17f5637c3370c5",
+      "raw_bytes": 1318,
+      "raw_sha256": "0a79e3c2010051a31e6993d829bc3648a068602a00747dc17b45fc92849087e6"
+    },
+    {
+      "path": "history/lint-phase-fix/receipt.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/clippy-fix-v1/receipt.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 1726,
+      "stored_sha256": "5303b4fbd88d6e9b414bf78a04343f3b584bf02b2c8a0b5cb0d3ba71ae557107",
+      "raw_bytes": 1726,
+      "raw_sha256": "5303b4fbd88d6e9b414bf78a04343f3b584bf02b2c8a0b5cb0d3ba71ae557107"
+    },
+    {
+      "path": "history/lint-phase-fix/phase-equivalence.json",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/clippy-fix-v1/phase-equivalence.json",
+      "storage_encoding": "identity",
+      "stored_bytes": 1077,
+      "stored_sha256": "29149ef67c44ea6fb19431e2f11b76c8b585b98d7306d6b38f14a9416830c7cd",
+      "raw_bytes": 1077,
+      "raw_sha256": "29149ef67c44ea6fb19431e2f11b76c8b585b98d7306d6b38f14a9416830c7cd"
+    },
+    {
+      "path": "history/lint-phase-fix/fix.patch.gz",
+      "origin": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/mcp-bound-state-integration-v1/clippy-fix-v1/fix.patch",
+      "storage_encoding": "gzip",
+      "stored_bytes": 1027,
+      "stored_sha256": "19dc522bef62c87424a09b59b06c72ed4c856520cf17f12b0ffcb8f5bac288cc",
+      "raw_bytes": 3519,
+      "raw_sha256": "c585ea9d95e150bbc80430aa411a77429ae5a6f4895d4b2001a3619d8501fef2"
+    }
+  ]
+}

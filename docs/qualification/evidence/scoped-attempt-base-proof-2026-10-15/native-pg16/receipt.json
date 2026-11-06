@@ -1,0 +1,94 @@
+{
+  "binary_sha256": "8abd33d1dbd7077608a7a3fd16cf77d4beb3b94ecc8bf7261c312e846b2883ad",
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/proof-base-erased-source",
+  "postgres_major": "16",
+  "database": "stateknot_r1_proof_base_20261015v1",
+  "default_stack": true,
+  "results": [
+    {
+      "name": "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased/fresh-store-build-v1/stateknot-store-postgres-postgres",
+        "proof_base_reuse::successful_scoped_attempt_read_keeps_complete_owning_proof",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 2.944110870361328,
+      "valid_one_test_success": true,
+      "log_sha256": "719832748c81422f351456d0d879823b4787203a577c44b1d7c89aa4b0337b56"
+    },
+    {
+      "name": "frame_dispatch::scoped_success_commits_exact_attempt_result_and_reloads_after_takeover",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased/fresh-store-build-v1/stateknot-store-postgres-postgres",
+        "frame_dispatch::scoped_success_commits_exact_attempt_result_and_reloads_after_takeover",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.0872199535369873,
+      "valid_one_test_success": true,
+      "log_sha256": "ec4db8ee64e2a30be8ff50f0db00bc693af9027440124788113296238b297829"
+    },
+    {
+      "name": "frame_dispatch::ordinary_node_completion_cannot_release_framework_owned_caller",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased/fresh-store-build-v1/stateknot-store-postgres-postgres",
+        "frame_dispatch::ordinary_node_completion_cannot_release_framework_owned_caller",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.7405941486358643,
+      "valid_one_test_success": true,
+      "log_sha256": "2bfab749133bbb64aea59b3c89f5d8cbdacfdec6e695622d04ba97c17aa2a3de"
+    },
+    {
+      "name": "frame_returns::checksum_valid_return_substitution_is_rejected_by_all_whole_readers",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased/fresh-store-build-v1/stateknot-store-postgres-postgres",
+        "frame_returns::checksum_valid_return_substitution_is_rejected_by_all_whole_readers",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 1.566361904144287,
+      "valid_one_test_success": true,
+      "log_sha256": "833dc8870b564cb92caf0aaf7e1573e5192216c3e0577bb2fa4c95b3d7253025"
+    },
+    {
+      "name": "node_attempt_reads_fail_closed_and_attempt_ids_are_run_wide",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased/fresh-store-build-v1/stateknot-store-postgres-postgres",
+        "node_attempt_reads_fail_closed_and_attempt_ids_are_run_wide",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.7792420387268066,
+      "valid_one_test_success": true,
+      "log_sha256": "8e8ad0f8dd100ab4791d1ce3a2794e9c0bea459f89d13ce57104caadf829728f"
+    },
+    {
+      "name": "pending_node_result_bindings_prove_exact_committed_tool_and_model_revisions",
+      "command": [
+        "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/proof-base-erased/fresh-store-build-v1/stateknot-store-postgres-postgres",
+        "pending_node_result_bindings_prove_exact_committed_tool_and_model_revisions",
+        "--exact",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "exit_code": 0,
+      "seconds": 0.901411771774292,
+      "valid_one_test_success": true,
+      "log_sha256": "1f21741ee7089979ce88b9fc5385c47e784d7d9d80618d7e7c66fa1f2b0c6fdd"
+    }
+  ],
+  "all_passed": true
+}

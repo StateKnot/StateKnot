@@ -421,8 +421,12 @@ impl A2aClientAttemptIdentity {
     }
 }
 
-/// Public-safe authorization context for one exact request.
-#[derive(Clone, Debug)]
+/// Authorization facts for one immutable, already-bounded HTTP request.
+///
+/// Destination and payload accessors expose data explicitly to trusted host
+/// policy; Debug omits them. Supplying facts does not implement that policy or
+/// turn successful credential resolution into proof of network dispatch.
+#[derive(Clone)]
 pub struct A2aClientAuthorizationRequest {
     operation: A2aClientOperation,
     card_digest: Digest,
@@ -431,6 +435,7 @@ pub struct A2aClientAuthorizationRequest {
     task_id: Option<Box<str>>,
     required_scopes: Arc<[Box<str>]>,
     attempt: Option<A2aClientAttemptIdentity>,
+    request: A2aHttpRequest,
 }
 
 impl A2aClientAuthorizationRequest {
@@ -474,6 +479,67 @@ impl A2aClientAuthorizationRequest {
     pub const fn attempt(&self) -> Option<&A2aClientAttemptIdentity> {
         self.attempt.as_ref()
     }
+
+    /// Returns the HTTP method of this prepared outbound request.
+    #[must_use]
+    pub fn request_method(&self) -> &str {
+        self.request.method.as_str()
+    }
+
+    /// Returns the exact outbound URL, including its operation path and query.
+    ///
+    /// This is explicit untrusted request data; do not log it. The client has
+    /// already checked its immutable interface and egress pin. A shared token
+    /// provider must still apply its own destination and resource policy.
+    #[must_use]
+    pub fn request_url(&self) -> &str {
+        self.request.url.as_str()
+    }
+
+    /// Returns the exact bounded serialized request body, if this operation has one.
+    ///
+    /// HTTP+JSON and JSON-RPC have different envelopes. Inspect the actual
+    /// binding and operation when applying argument/data-release policy. These
+    /// bytes contain no credential added by the client, but approved application
+    /// data can itself contain secrets. Do not log or automatically retain them.
+    /// The bytes and URL cannot be rewritten by the provider.
+    /// Cloning this context shares the immutable body; a trusted provider that
+    /// retains a clone also retains its payload beyond the HTTP call's lifetime.
+    #[must_use]
+    pub fn request_body(&self) -> Option<&[u8]> {
+        self.request.body.as_deref()
+    }
+}
+
+impl fmt::Debug for A2aClientAuthorizationRequest {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("A2aClientAuthorizationRequest")
+            .field("operation", &self.operation)
+            .field("card_digest", &self.card_digest)
+            .field("binding", &self.binding)
+            .field("remote_tenant", &self.remote_tenant)
+            .field("task_id", &self.task_id)
+            .field("required_scopes", &self.required_scopes)
+            .field("attempt", &self.attempt)
+            .field("request_method", &self.request.method)
+            .field("request_url", &"[REDACTED]")
+            .field(
+                "request_body",
+                &self.request.body.as_ref().map(|_| "[REDACTED]"),
+            )
+            .finish()
+    }
+}
+
+// One immutable request is authorized and then consumed by the HTTP builder.
+// Bytes shares the already-bounded serialization without copying the payload.
+#[derive(Clone)]
+struct A2aHttpRequest {
+    method: Method,
+    url: Url,
+    body: Option<Bytes>,
+    streaming: bool,
 }
 
 /// Public-safe failure from an out-of-band bearer-token source.
@@ -490,7 +556,12 @@ pub enum A2aClientAuthorizationError {
 
 /// Attempt-scoped bearer-token source. Token acquisition remains out of band.
 pub trait A2aBearerTokenProvider: Send + Sync + 'static {
-    /// Resolves a short-lived token for one exact request.
+    /// Authorizes the actual destination and data release and resolves a token.
+    ///
+    /// Apply current host policy to the immutable request facts. Existing
+    /// providers that ignore these facts do not acquire argument-aware policy.
+    /// Anonymous clients do not invoke a token provider. The original request
+    /// deadline bounds this Future; synchronous policy work must also be bounded.
     fn resolve(
         &self,
         request: &A2aClientAuthorizationRequest,
@@ -1565,11 +1636,16 @@ impl A2aClient {
                 )
             }
         };
-        let body = body.transpose()?;
+        let request = A2aHttpRequest {
+            method,
+            url,
+            body: body.transpose()?.map(Bytes::from),
+            streaming: false,
+        };
         let authorization = self
-            .resolve_authorization(deadline, operation, &scope)
+            .resolve_authorization(deadline, operation, &scope, &request)
             .await?;
-        let request = self.request_builder(method, url, false, body, authorization.as_ref())?;
+        let request = self.request_builder(request, authorization.as_ref())?;
         scope.mark_dispatched();
         let response = wait_until(deadline, request.send())
             .await
@@ -1613,11 +1689,16 @@ impl A2aClient {
                 )
             }
         };
-        let body = body.transpose()?;
+        let request = A2aHttpRequest {
+            method,
+            url,
+            body: body.transpose()?.map(Bytes::from),
+            streaming: true,
+        };
         let authorization = self
-            .resolve_authorization(deadline, operation, &scope)
+            .resolve_authorization(deadline, operation, &scope, &request)
             .await?;
-        let request = self.request_builder(method, url, true, body, authorization.as_ref())?;
+        let request = self.request_builder(request, authorization.as_ref())?;
         scope.mark_dispatched();
         let response = wait_until(deadline, request.send())
             .await
@@ -1676,6 +1757,7 @@ impl A2aClient {
         deadline: tokio::time::Instant,
         operation: A2aClientOperation,
         scope: &A2aCallScope,
+        http_request: &A2aHttpRequest,
     ) -> Result<Option<ApiKey>, A2aClientError> {
         let A2aClientSecurity::Bearer { provider, .. } = &self.security else {
             return Ok(None);
@@ -1691,6 +1773,7 @@ impl A2aClient {
                 .clone()
                 .unwrap_or_else(|| self.required_scopes.clone()),
             attempt: scope.attempt.clone(),
+            request: http_request.clone(),
         };
         wait_until(deadline, provider.resolve(&request))
             .await
@@ -1701,12 +1784,15 @@ impl A2aClient {
 
     fn request_builder(
         &self,
-        method: Method,
-        url: Url,
-        streaming: bool,
-        body: Option<Vec<u8>>,
+        request: A2aHttpRequest,
         authorization: Option<&ApiKey>,
     ) -> Result<reqwest::RequestBuilder, A2aClientError> {
+        let A2aHttpRequest {
+            method,
+            url,
+            body,
+            streaming,
+        } = request;
         let carries_json = body.is_some() || method == Method::POST;
         let mut request = self
             .http
@@ -2697,12 +2783,13 @@ fn strip_response_tenant(
 }
 
 fn allocate_request_id(counter: &AtomicU64) -> Option<i64> {
-    counter
-        .fetch_update(Ordering::Relaxed, Ordering::Relaxed, |value| {
-            (value < i64::MAX as u64).then_some(value + 1)
-        })
-        .ok()
-        .and_then(|value| i64::try_from(value).ok())
+    crate::atomic_counter::allocate(
+        counter,
+        i64::MAX as u64,
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+    )
+    .and_then(|value| i64::try_from(value).ok())
 }
 
 async fn wait_until<T, F>(deadline: tokio::time::Instant, future: F) -> Result<T, ()>
@@ -2769,6 +2856,19 @@ fn exactly_one_header(headers: &HeaderMap, name: header::HeaderName) -> Option<&
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn request_id_exhaustion_preserves_the_signed_wire_boundary() {
+        let ceiling = i64::MAX as u64;
+        let counter = AtomicU64::new(ceiling - 1);
+        assert_eq!(allocate_request_id(&counter), Some(i64::MAX - 1));
+        assert_eq!(allocate_request_id(&counter), None);
+        assert_eq!(counter.load(Ordering::Relaxed), ceiling);
+
+        let beyond_wire_range = AtomicU64::new(u64::MAX);
+        assert_eq!(allocate_request_id(&beyond_wire_range), None);
+        assert_eq!(beyond_wire_range.load(Ordering::Relaxed), u64::MAX);
+    }
 
     #[test]
     fn endpoints_fail_closed_outside_exact_https_or_literal_loopback_profiles() {

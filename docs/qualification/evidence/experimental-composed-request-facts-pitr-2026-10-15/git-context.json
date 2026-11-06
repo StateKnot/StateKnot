@@ -1,0 +1,7 @@
+{
+  "head": "04608c6b20a7c18d6b042eeccc83dd38d096b1d1",
+  "status": " M CHANGELOG.md\n M crates/stateknot-runtime/tests/postgres/child_join_pitr.rs\n M docs/production-milestones-2026-10-08.zh-CN.md\n M docs/r1-contract-gap-ledger.zh-CN.md\n?? docs/qualification/evidence/experimental-pitr-cleanup-confirmation-2026-10-15/\n?? docs/qualification/experimental-pitr-cleanup-confirmation-2026-10-15.json\n?? docs/qualification/experimental-pitr-cleanup-confirmation-2026-10-15.md\n?? docs/qualification/experimental-pitr-cleanup-confirmation-2026-10-15.zh-CN.md\n",
+  "original_opt_level": 0,
+  "whole_main_input_files": 2182,
+  "compiled_inputs": 531
+}

@@ -15,6 +15,9 @@ use std::sync::atomic::{AtomicUsize, Ordering};
 #[path = "child_run_budget_tests.rs"]
 mod budget_account;
 
+#[path = "child_run_frame_tests.rs"]
+mod frame_admission;
+
 struct Fixture {
     parent: AgentAdmission,
     checkpoint: Checkpoint,

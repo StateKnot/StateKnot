@@ -1,0 +1,16 @@
+{
+  "reviewer": "/root/resume_proof_base_oct15/ci686_publication_facts",
+  "producer": "/root downloaded raw and performed original Git binding; reviewer independently checked existing files and Git objects",
+  "review_type": "read-only independent fact review; no new execution/network/DB/build or source edits",
+  "findings": [],
+  "run": 38741332898,
+  "success": 11,
+  "cancelled": 2,
+  "both_original_30m_annotations": true,
+  "Store264_only_terminal_in_both_logs": true,
+  "Runtime189_entered_without_terminal_summary": true,
+  "actual_merge_b552_and_head686_complete_tree_equal_222152": true,
+  "two_PITR_zips_contents_and_hashes_checked": true,
+  "Linux_PITR_exact1_188filtered_only": true,
+  "full_CI_qualification": false
+}

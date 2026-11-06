@@ -1,0 +1,16 @@
+{
+  "parent_921_tree": "343eaa8ae7299a520fa2858fa2983025116b8b3ea55926c1ad8faef55df6508d",
+  "file_count": 922,
+  "source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "only_added": [
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.README.md"
+  ],
+  "all921_bytes_unchanged": true,
+  "production_unchanged": true,
+  "all_migrations1to36_unchanged": true,
+  "all_test_rust_unchanged_from_reviewed921": true,
+  "fixture_sql_json_unchanged": true,
+  "provenance_readme_sha256": "1055e9526769871d0ad7ac61115a7838811ef22fb62fbb8514d05ba7fcc38392",
+  "actual_old_production_commit": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+  "qualification": "New frozen source; prior Native/static receipts are not transferred. Strict build/static/full Store pending."
+}

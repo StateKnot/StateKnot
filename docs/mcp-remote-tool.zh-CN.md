@@ -25,7 +25,7 @@ SPDX-License-Identifier: Apache-2.0
 - Dispatch 前执行本地 Input Validation，响应后执行本地 Structured-output Validation；
 - 将读写不确定性映射到 StateKnot 的持久执行中的 Tool Failure Model。
 
-Adapter 使用精确锁定的官方 MCP Rust SDK `3.2.0`，因此 StateKnot MSRV 为 Rust `1.88.0`。
+Adapter 使用精确锁定的官方 MCP Rust SDK `3.5.0`，因此 StateKnot MSRV 为 Rust `1.88.0`。
 
 ## 冻结一个 Binding
 

@@ -17,6 +17,79 @@ enabled general child execution service. [RFC-0004](rfcs/0004-durable-child-runs
 the [Chinese edition](durable-child-runs.zh-CN.md) and the already implemented
 [static shared-state composition](graph-composition.md) for the distinction.
 
+## Experimental frame-owned isolated children
+
+[RFC-0022](rfcs/0022-namespaced-graph-frames.md) remains Draft. Core preparation
+uses `ChildRunAdmissionIntent::for_frame` and `validate_for_frame` with the full
+restored `GraphFrameCheckpoint`; the Root constructor and validator continue to
+reject scoped inputs. Preparation does not grant dispatch or admission authority.
+
+The Store child admission and Join registration boundaries authenticate the
+actual active leaf and its ready input. Schema preflight uses one consistent
+snapshot and runs callbacks outside the write transaction. Admission repeats
+the full scope, immutable parent admission, declared target, physical Start,
+journal and live fence under the tree/ancestor locks. Ownership writes and reads
+bind the existing `parent_graph_namespace` column to that exact scope; Root
+records retain the empty namespace and their original canonical encoding.
+Fresh admission flushes deferred component constraints and rechecks the original
+live worker, parent/child deadlines and reservation capacity after full ownership
+reads. A lease or the narrower child deadline expiring during those guards rolls
+back the child, ownership, budget reservation and parent journal together,
+including when the parent lease remains live.
+
+A parent Run cancellation queues the exact frame-owned child key. Discovery is
+tenant scoped, and delivery retains the original parent observation and immutable
+child receipt. An exact-key delivery retry after the child has actually reached
+Cancelled returns that first receipt, even with a stale child journal and new
+candidate event/reason; it leaves both journals, the frame, Root checkpoint and
+shared reservation unchanged. Delivery requests cancellation. The child's real
+cleanup, terminal accounting and once-only settlement remain separate steps.
+
+The admitted Root must have a child topology policy. A leaf can narrow its three
+caps, and descendant admission retains the policy of each original owning edge.
+Frames share the Root-bound `ChildRunBudgetAccount`: `reserve_for_frame` does
+not create another account or reset lifetime counts. Complete DIRECT usage
+excludes child subtrees, which reservation/settlement charge once. Historical
+ownership authenticates the original frame lineage after Return or closure;
+lost-ACK recovery precedes fresh leaf/fence/deadline checks. Recovering the
+original spawn after Return retains its settled account and current worker
+fence without advancing the journal or reserving again.
+
+Scoped Join seals that activation's complete child set and releases the Run
+lease atomically. After full registration reads and deferred guards, it checks
+the original epoch, original lease expiry and Agent deadline again under the
+same Run lock. Expiry rolls back the registration, journal and lease release.
+Only complete-stack authenticated suspended framework callers
+are excluded from its exclusivity check; unfinished ordinary siblings still
+block. Publication requires actual settled child terminals. A higher-fence scoped
+attempt consumes that exact published Join in its immutable result; publication
+and consumption retries retain the original identities and charge each child
+once. Historical child and Join reads remain valid after the frame returns.
+The released original fence grants no execution authority.
+
+The experimental schema-37 Store can close a cancelled frame stack when its
+sole latest current-leaf ordinary owner has an exact registered, unpublished
+Join and every child in the complete Root-bound account is terminal and settled. It
+preserves that physical attempt as Executing and freezes complete priced DIRECT
+plus settled delegated usage once. It creates no ordinary result/completion or
+Join publication/consumption. Complete owning reads authenticate the v2 stop
+proof; they recover an already committed decision before fresh candidate checks.
+Fresh quarantine, unresolved Tool/Model work, unpriced usage, unsettled children
+or another unfinished ordinary owner still reject closure. Failure-close keeps
+its original strict unfinished-work checks.
+
+Consumers of both closure event versions must register the v2 reference/document
+from `PostgresStore::graph_frame_join_stop_event_schema()` alongside the unchanged
+v1 `graph_frame_closure_event_schema()` document in the offline schema registry.
+Migration 37 and the matching schema-37 reader/writer and 54-table role profile
+are required; v1 bytes and digest domains are preserved. The
+[selected Store qualification record](qualification/experimental-scoped-join-owner-stop-2026-10-18.md)
+binds the actual source, executed cases and remaining gates. Broader cancellation
+and failure cases, Root ConfirmCancellation, nested Driver integration and full
+fault/compatibility/CI qualification remain separate requirements before this
+profile becomes Supported. The Driver continues to reject reachable scoped child
+declarations until that integration is complete.
+
 ## PostgreSQL transactional storage (migration 20)
 
 This is a trusted-store building block, not an automatic child coordinator.

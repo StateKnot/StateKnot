@@ -1,0 +1,17 @@
+{
+  "kind": "posthoc record of actual offline aggregate tool completion",
+  "command": [
+    "python3",
+    "-B",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/graph-frame-return-process-fault-v3-gate-aggregate-v1/aggregate.py"
+  ],
+  "cwd": "/Users/jiawy/Documents/RustAgentFramework",
+  "actual_tool_exit_code": 0,
+  "tool_output_chunk_id": "52b662",
+  "Rust_DB_CI_executed": false,
+  "actual_first_aggregate_execution_succeeded": true,
+  "failed_aggregate_attempts_or_corrected_versions_created": false,
+  "tool_sha256": "bdfce0a3e72e873986995eed233b0c5c31ac4bdbfc88067bddde5d833e029cb9",
+  "aggregate_receipt_sha256": "0d9de247e4b0297da4ca4cc5cd410ab6e2acdf8db2bb56dfce6aae05715842a2",
+  "report_sha256": "586926c042a35624c0b8a6e54d78aec6a387cb92ca8be21f77736529c815d424"
+}

@@ -1,0 +1,3 @@
+ M docs/qualification/experimental-scoped-attempt-base-proof-2026-10-15.json
+?? docs/qualification/evidence/scoped-attempt-base-proof-2026-10-15/full-native/
+?? docs/qualification/evidence/scoped-attempt-base-proof-2026-10-15/resources/

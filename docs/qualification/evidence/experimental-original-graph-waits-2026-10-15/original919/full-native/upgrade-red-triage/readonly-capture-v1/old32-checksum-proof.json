@@ -1,0 +1,6 @@
+{
+  "all_32_ledger_checksums_match_actual_old35_and_current36_migration_bytes": true,
+  "both_actual_fixtures_still_schema36_before_revert": true,
+  "first_reject_guard_TRUE_proven_by_actual_nonlegacy_and_V3": true,
+  "U1_supported_U2_U3_not_supported": true
+}

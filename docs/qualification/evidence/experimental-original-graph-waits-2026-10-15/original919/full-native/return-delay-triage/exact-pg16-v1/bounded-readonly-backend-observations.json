@@ -1,0 +1,217 @@
+[
+  {
+    "observed_unix": 1792059975.1074429,
+    "observer_seconds": 0.10558414459228516,
+    "backends": [
+      {
+        "pid": 14980,
+        "state": "idle",
+        "query": "SELECT current_setting('server_version_num')::integer",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:15.159491+00:00"
+      }
+    ]
+  },
+  {
+    "observed_unix": 1792059975.7132108,
+    "observer_seconds": 0.12312006950378418,
+    "backends": [
+      {
+        "pid": 14980,
+        "state": "idle",
+        "query": "SELECT current_setting('server_version_num')::integer",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:15.159491+00:00"
+      },
+      {
+        "pid": 14987,
+        "state": "active",
+        "query": "-- Copyright 2026 StateKnot contributors\n-- SPDX-License-Identifier: Apache-2.0\n\n-- Scope integrity for RFC-0022. Existing canonical checkpoint bytes remain\n-- unchanged; every existing row backfills root scope. These keys do not grant\n-- frame admission, dispatch, return or lifecycle authority.\nLOCK TABLE stateknot.run_checkpoints, stateknot.runs IN SHARE ROW EXCLUSIVE MODE;\nALTER TABLE stateknot.run_checkpoints\n ADD COLUMN graph_namespace text NOT NULL DEFAULT '',\n ADD COLUMN frame_identity_digest bytea,\n ADD COLUMN frame_checkpoint_digest bytea,\n ADD COLUMN frame_checkpoint_head_bytes bytea,\n ADD COLUMN frame_checkpoint_head_checksum bytea GENERATED ALWAYS AS (sha256(frame_checkpoint_head_bytes)) STORED,\n ADD CONSTRAINT run_checkpoints_frame_shape CHECK (\n  (graph_namespace = '' AND frame_identity_digest IS NULL AND frame_checkpoint_digest IS NULL AND frame_checkpoint_head_bytes IS NULL)\n  OR (graph_namespace ~ '^[0-9a-f]{64}(/[0-9a-f]{64}){0,6}$'\n   AND octet_length(graph_namespace) <= 454\n   AND frame_i",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_start": "2026-10-15T10:26:15.785734+00:00"
+      }
+    ]
+  },
+  {
+    "observed_unix": 1792059976.3380349,
+    "observer_seconds": 0.11745405197143555,
+    "backends": [
+      {
+        "pid": 14997,
+        "state": "active",
+        "query": "\nINSERT INTO stateknot.node_attempts (\n    tenant_id,\n    run_id,\n    base_checkpoint_id,\n    base_superstep,\n    base_checkpoint_digest,\n    base_journal_sequence,\n    base_journal_event_id,\n    base_journal_recorded_at,\n    base_journal_digest,\n    graph_namespace,\n    node_id,\n    activation_input_digest,\n    activation_digest,\n    attempt_id,\n    fence_attempt_id,\n    fence_epoch,\n    journal_sequence,\n    journal_event_id,\n    journal_recorded_at,\n    journal_digest,\n    start_digest,\n    start_bytes,\n    created_at\n)\nSELECT\n    $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,\n    $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23\nFROM stateknot.runs AS current_run\nWHERE current_run.tenant_id = $1\n  AND current_run.run_id = $2\n  AND (\n    ($10 = '' AND current_run.checkpoint_id = $3\n      AND current_run.checkpoint_superstep = $4 AND current_run.checkpoint_digest = $5)\n    OR ($10 <> '' AND EXISTS (\n      SELECT 1 FROM stateknot.graph_frame_heads h\n      JOIN stateknot.graph_frame_stacks s USING (t",
+        "wait_event_type": null,
+        "wait_event": null,
+        "query_start": "2026-10-15T10:26:16.440653+00:00"
+      },
+      {
+        "pid": 14998,
+        "state": "idle",
+        "query": "COMMIT",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:16.384732+00:00"
+      }
+    ]
+  },
+  {
+    "observed_unix": 1792059976.964641,
+    "observer_seconds": 0.11777091026306152,
+    "backends": [
+      {
+        "pid": 14997,
+        "state": "idle in transaction",
+        "query": "SELECT journal_sequence,compound_digest FROM stateknot.graph_frame_returns WHERE tenant_id=$1 AND run_id=$2 AND journal_sequence<=$3 ORDER BY journal_sequence DESC LIMIT 1",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.069963+00:00"
+      },
+      {
+        "pid": 14998,
+        "state": "idle",
+        "query": "COMMIT",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.033856+00:00"
+      },
+      {
+        "pid": 15006,
+        "state": "idle",
+        "query": "CREATE FUNCTION stateknot.test_frame_return_delay() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(2.1); RETURN NULL; END $$",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.025404+00:00"
+      },
+      {
+        "pid": 15007,
+        "state": "idle",
+        "query": "CREATE CONSTRAINT TRIGGER z_test_frame_return_delay AFTER INSERT ON stateknot.graph_frame_returns DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.test_frame_return_delay()",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.028435+00:00"
+      }
+    ]
+  },
+  {
+    "observed_unix": 1792059977.5840251,
+    "observer_seconds": 0.09852385520935059,
+    "backends": [
+      {
+        "pid": 14997,
+        "state": "idle",
+        "query": "COMMIT",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.091385+00:00"
+      },
+      {
+        "pid": 14998,
+        "state": "active",
+        "query": "SET CONSTRAINTS ALL IMMEDIATE",
+        "wait_event_type": "Timeout",
+        "wait_event": "PgSleep",
+        "query_start": "2026-10-15T10:26:17.227239+00:00"
+      },
+      {
+        "pid": 15006,
+        "state": "idle",
+        "query": "CREATE FUNCTION stateknot.test_frame_return_delay() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(2.1); RETURN NULL; END $$",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.025404+00:00"
+      },
+      {
+        "pid": 15007,
+        "state": "idle",
+        "query": "CREATE CONSTRAINT TRIGGER z_test_frame_return_delay AFTER INSERT ON stateknot.graph_frame_returns DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.test_frame_return_delay()",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.028435+00:00"
+      }
+    ]
+  },
+  {
+    "observed_unix": 1792059978.188226,
+    "observer_seconds": 0.09256720542907715,
+    "backends": [
+      {
+        "pid": 14997,
+        "state": "idle",
+        "query": "COMMIT",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.091385+00:00"
+      },
+      {
+        "pid": 14998,
+        "state": "active",
+        "query": "SET CONSTRAINTS ALL IMMEDIATE",
+        "wait_event_type": "Timeout",
+        "wait_event": "PgSleep",
+        "query_start": "2026-10-15T10:26:17.227239+00:00"
+      },
+      {
+        "pid": 15006,
+        "state": "idle",
+        "query": "CREATE FUNCTION stateknot.test_frame_return_delay() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(2.1); RETURN NULL; END $$",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.025404+00:00"
+      },
+      {
+        "pid": 15007,
+        "state": "idle",
+        "query": "CREATE CONSTRAINT TRIGGER z_test_frame_return_delay AFTER INSERT ON stateknot.graph_frame_returns DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.test_frame_return_delay()",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.028435+00:00"
+      }
+    ]
+  },
+  {
+    "observed_unix": 1792059978.7809222,
+    "observer_seconds": 0.09559774398803711,
+    "backends": [
+      {
+        "pid": 14997,
+        "state": "idle",
+        "query": "COMMIT",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.091385+00:00"
+      },
+      {
+        "pid": 14998,
+        "state": "active",
+        "query": "SET CONSTRAINTS ALL IMMEDIATE",
+        "wait_event_type": "Timeout",
+        "wait_event": "PgSleep",
+        "query_start": "2026-10-15T10:26:17.227239+00:00"
+      },
+      {
+        "pid": 15006,
+        "state": "idle",
+        "query": "CREATE FUNCTION stateknot.test_frame_return_delay() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN PERFORM pg_sleep(2.1); RETURN NULL; END $$",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.025404+00:00"
+      },
+      {
+        "pid": 15007,
+        "state": "idle",
+        "query": "CREATE CONSTRAINT TRIGGER z_test_frame_return_delay AFTER INSERT ON stateknot.graph_frame_returns DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION stateknot.test_frame_return_delay()",
+        "wait_event_type": "Client",
+        "wait_event": "ClientRead",
+        "query_start": "2026-10-15T10:26:17.028435+00:00"
+      }
+    ]
+  },
+  {
+    "observed_unix": 1792059979.382066,
+    "observer_seconds": 0.10659289360046387,
+    "backends": []
+  }
+]

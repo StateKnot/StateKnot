@@ -1,0 +1,14 @@
+{
+  "changed_files": [
+    "crates/stateknot-store-postgres/src/store.rs"
+  ],
+  "whole_private_body_token_count": 123,
+  "whole_private_body_tokens_equal": true,
+  "prefix_and_suffix_bytes_equal": true,
+  "transaction_borrow_lifetime": "'a",
+  "start_proof_borrow_lifetime": "'start: 'a",
+  "sql_error_owning_read_order_unchanged": true,
+  "source_manifest_sha256": "5cc4e2cd0ab5824b87510dfaea6e95c08e3f1cf0cd20f6e8ebcad0da0b103645",
+  "patch_sha256": "331cb10c0e41fddd31c2c1fae506aacfffafac5d126151c2d50f8e3998b4964c",
+  "no_recursion_limit_or_resource_changes": true
+}

@@ -1,0 +1,14 @@
+{
+  "base_source_tree": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+  "final_source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "production_file": "crates/stateknot-integrations/src/mcp_client.rs",
+  "before_sha256": "d65f932be5b6461e808c06758cf88a130f3a28641e361cd3b03c49846d14deab",
+  "after_sha256": "069d23e5b0917f67e2d8f1ca31908ddb8b441c3e3b7496a7f05da15acbde3472",
+  "only_four_manual_Debug_and_derive_Rustdoc_changes": true,
+  "restore_four_original_derive_Remove_four_new_Debug_impls_then_drop_doc_blank_lines_equals_base": true,
+  "entire_error_network_parser_original_unit_suffix_byte_equal": true,
+  "raw_getters_methods_non_Debug_production_code_unchanged": true,
+  "original357line_test_byte_prefix_preserved": true,
+  "main_full_tree_equals_frozen_source_claimed": false,
+  "behavior_is_not_proven_by_normalization_alone": true
+}

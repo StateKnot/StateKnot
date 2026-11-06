@@ -1,0 +1,14 @@
+{
+  "argv": [
+    "docker",
+    "inspect",
+    "--format",
+    "{\"id\":{{json .Id}},\"image\":{{json .Image}},\"labels\":{{json .Config.Labels}},\"ports\":{{json .NetworkSettings.Ports}},\"running\":{{json .State.Running}}}",
+    "stateknot-r1-oct15-pg16"
+  ],
+  "start_unix": 1792141928.473794,
+  "seconds": 0.014138936996459961,
+  "exit_code": 0,
+  "stdout_sha256": "1fb5404f880468ea00b47e7981897aa6e46075c4a533da5693c707f6c2cdb87d",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

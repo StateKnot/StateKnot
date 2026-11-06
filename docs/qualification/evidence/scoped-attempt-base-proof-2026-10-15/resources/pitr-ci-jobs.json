@@ -1,0 +1,2113 @@
+{
+  "total_count": 13,
+  "jobs": [
+    {
+      "id": 116338308602,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk21-g",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338308602",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338308602",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:13:58Z",
+      "name": "Quality",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:27Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:27Z",
+          "completed_at": "2026-10-15T09:01:29Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:29Z",
+          "completed_at": "2026-10-15T09:01:37Z"
+        },
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:37Z",
+          "completed_at": "2026-10-15T09:01:42Z"
+        },
+        {
+          "name": "Compile public core contract examples",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:01:42Z",
+          "completed_at": "2026-10-15T09:02:02Z"
+        },
+        {
+          "name": "Verify sealed Core compatibility fixture catalog",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-15T09:02:02Z",
+          "completed_at": "2026-10-15T09:02:25Z"
+        },
+        {
+          "name": "Verify closed Core public type and schema inventory",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-15T09:02:25Z",
+          "completed_at": "2026-10-15T09:02:37Z"
+        },
+        {
+          "name": "Verify every public Core enum wire alternative",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-15T09:02:37Z",
+          "completed_at": "2026-10-15T09:02:43Z"
+        },
+        {
+          "name": "Verify typed durable Core execution wires",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-15T09:02:43Z",
+          "completed_at": "2026-10-15T09:02:49Z"
+        },
+        {
+          "name": "Verify typed Core value fixtures and reproducible property models",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-15T09:02:49Z",
+          "completed_at": "2026-10-15T09:03:14Z"
+        },
+        {
+          "name": "Verify optimized timestamp rejection with overflow checks",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-15T09:03:14Z",
+          "completed_at": "2026-10-15T09:03:57Z"
+        },
+        {
+          "name": "Run Clippy",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-15T09:03:57Z",
+          "completed_at": "2026-10-15T09:07:02Z"
+        },
+        {
+          "name": "Run tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-15T09:07:02Z",
+          "completed_at": "2026-10-15T09:13:04Z"
+        },
+        {
+          "name": "Verify executable documentation and compile-fail privacy contracts",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 14,
+          "started_at": "2026-10-15T09:13:04Z",
+          "completed_at": "2026-10-15T09:13:22Z"
+        },
+        {
+          "name": "Build documentation",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-15T09:13:22Z",
+          "completed_at": "2026-10-15T09:13:53Z"
+        },
+        {
+          "name": "Validate workspace metadata",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-15T09:13:53Z",
+          "completed_at": "2026-10-15T09:13:54Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 32,
+          "started_at": "2026-10-15T09:13:54Z",
+          "completed_at": "2026-10-15T09:13:54Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 33,
+          "started_at": "2026-10-15T09:13:54Z",
+          "completed_at": "2026-10-15T09:13:54Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338308602",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005464,
+      "runner_name": "GitHub Actions 1000005464",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338308807,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk22xw",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338308807",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338308807",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:09:35Z",
+      "name": "Test (windows-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:26Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:32Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:32Z",
+          "completed_at": "2026-10-15T09:01:43Z"
+        },
+        {
+          "name": "Check and test workspace",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:43Z",
+          "completed_at": "2026-10-15T09:09:29Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-15T09:09:29Z",
+          "completed_at": "2026-10-15T09:09:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-15T09:09:32Z",
+          "completed_at": "2026-10-15T09:09:32Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338308807",
+      "labels": [
+        "windows-latest"
+      ],
+      "runner_id": 1000005476,
+      "runner_name": "GitHub Actions 1000005476",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338308850,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk228g",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338308850",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338308850",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:26Z",
+      "completed_at": "2026-10-15T09:05:02Z",
+      "name": "A2A 1.0 Conformance",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:27Z",
+          "completed_at": "2026-10-15T09:01:28Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:28Z",
+          "completed_at": "2026-10-15T09:01:30Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:30Z",
+          "completed_at": "2026-10-15T09:01:39Z"
+        },
+        {
+          "name": "Install pinned uv",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:39Z",
+          "completed_at": "2026-10-15T09:01:41Z"
+        },
+        {
+          "name": "Run frozen A2A 1.0 server profile",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:01:41Z",
+          "completed_at": "2026-10-15T09:04:58Z"
+        },
+        {
+          "name": "Upload A2A conformance evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-15T09:04:58Z",
+          "completed_at": "2026-10-15T09:04:59Z"
+        },
+        {
+          "name": "Post Install pinned uv",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-15T09:04:59Z",
+          "completed_at": "2026-10-15T09:04:59Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-15T09:04:59Z",
+          "completed_at": "2026-10-15T09:04:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-15T09:04:59Z",
+          "completed_at": "2026-10-15T09:04:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338308850",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005465,
+      "runner_name": "GitHub Actions 1000005465",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338308896,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk23IA",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338308896",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338308896",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:11:16Z",
+      "name": "Core bounded fuzz",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:26Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:28Z"
+        },
+        {
+          "name": "Install pinned fuzz toolchains and engine",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:28Z",
+          "completed_at": "2026-10-15T09:02:00Z"
+        },
+        {
+          "name": "Fetch frozen fuzz and product dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:02:00Z",
+          "completed_at": "2026-10-15T09:02:02Z"
+        },
+        {
+          "name": "Qualify all seeds and bounded ASan mutations",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:02:02Z",
+          "completed_at": "2026-10-15T09:11:13Z"
+        },
+        {
+          "name": "Retain qualification, coverage corpus and failure reproducers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-15T09:11:13Z",
+          "completed_at": "2026-10-15T09:11:15Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-15T09:11:15Z",
+          "completed_at": "2026-10-15T09:11:15Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-15T09:11:15Z",
+          "completed_at": "2026-10-15T09:11:15Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338308896",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005466,
+      "runner_name": "GitHub Actions 1000005466",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338308903,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk23Jw",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338308903",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338308903",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:03:34Z",
+      "name": "Release packages",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:26Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:28Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:28Z",
+          "completed_at": "2026-10-15T09:01:35Z"
+        },
+        {
+          "name": "Verify crates.io source lists and bootstrap archives",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:35Z",
+          "completed_at": "2026-10-15T09:03:32Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-15T09:03:32Z",
+          "completed_at": "2026-10-15T09:03:32Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-15T09:03:32Z",
+          "completed_at": "2026-10-15T09:03:32Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338308903",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005470,
+      "runner_name": "GitHub Actions 1000005470",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338308908,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk23LA",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338308908",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338308908",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:29Z",
+      "completed_at": "2026-10-15T09:07:10Z",
+      "name": "Test (macos-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:29Z",
+          "completed_at": "2026-10-15T09:01:30Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:30Z",
+          "completed_at": "2026-10-15T09:01:32Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:32Z",
+          "completed_at": "2026-10-15T09:01:39Z"
+        },
+        {
+          "name": "Check and test workspace",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:39Z",
+          "completed_at": "2026-10-15T09:07:06Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-15T09:07:06Z",
+          "completed_at": "2026-10-15T09:07:07Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-15T09:07:07Z",
+          "completed_at": "2026-10-15T09:07:09Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338308908",
+      "labels": [
+        "macos-latest"
+      ],
+      "runner_id": 1000005475,
+      "runner_name": "GitHub Actions 1000005475",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338308924,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk23PA",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338308924",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338308924",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:31:51Z",
+      "name": "PostgreSQL (16)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:27Z",
+          "completed_at": "2026-10-15T09:01:28Z"
+        },
+        {
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:28Z",
+          "completed_at": "2026-10-15T09:01:39Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:39Z",
+          "completed_at": "2026-10-15T09:01:40Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:40Z",
+          "completed_at": "2026-10-15T09:01:48Z"
+        },
+        {
+          "name": "Run mandatory PostgreSQL integration tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:01:48Z",
+          "completed_at": "2026-10-15T09:23:50Z"
+        },
+        {
+          "name": "Run durable Graph Driver integration tests",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "number": 6,
+          "started_at": "2026-10-15T09:23:50Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify real model adapter, pricing, and exact-key authorization",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Execute recoverable DeepSeek Agent example against PostgreSQL",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Record process-kill qualification environment",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify committed failure-close process-kill boundaries",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify commit loss and expired-fence takeover",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify Join and deadline COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify child-admission COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Upload child-admission COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 14,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify child-cancellation delivery COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Upload child-cancellation COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 16,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify child-settlement COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Upload child-settlement COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 18,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify parent-finalization COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 19,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Upload parent-finalization COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 20,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Qualify child-join consumption COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 21,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload child-join consumption COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 22,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Qualify isolated child-join logical backup restore",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 23,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload child-join logical restore evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 24,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload Join and deadline COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 25,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Qualify committed child-join process-loss boundaries",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 26,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Qualify deadline cancel-and-join process-loss boundaries",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 27,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload child-join process qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 28,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload deadline cancel-and-join qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 29,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload process-kill qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 30,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Run durable protocol integration tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 31,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload MCP call authorization evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 32,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Qualify authenticated MCP result and known-error reconciliation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 33,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload MCP outcome reconciliation evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 34,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Qualify trusted SQL role profile",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 35,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload trusted SQL role evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 36,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Qualify MCP compute Worker isolation and recovery",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 37,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload MCP compute Worker evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 38,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify Agent HTTP ingress and lost-response recovery",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 39,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload Agent HTTP evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 40,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify owned durable scheduling Worker",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 41,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify exact-key in-process Agent execution and recovery",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 42,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload owned Worker evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 43,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify co-located Agent host",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 44,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload co-located host evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 45,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify protected host operations",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 46,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload protected operations evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 47,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Record reduced host qualification metadata",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 48,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Run reduced host capacity and recovery qualification",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 49,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload reduced host qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 50,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Qualify owned Agent maintenance",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 51,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Upload owned maintenance evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 52,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Run durable artifact storage integration tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 53,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Qualify real TLS identity, rotation, revocation and ingress",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 54,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Upload real identity qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 55,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 109,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 110,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:44Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 111,
+          "started_at": "2026-10-15T09:31:44Z",
+          "completed_at": "2026-10-15T09:31:44Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338308924",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005467,
+      "runner_name": "GitHub Actions 1000005467",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338308952,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk23WA",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338308952",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338308952",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:03:44Z",
+      "name": "PostgreSQL PITR (16)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:26Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:28Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:28Z",
+          "completed_at": "2026-10-15T09:01:35Z"
+        },
+        {
+          "name": "Record PITR qualification environment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:35Z",
+          "completed_at": "2026-10-15T09:01:36Z"
+        },
+        {
+          "name": "Qualify physical base backup and named WAL recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:01:36Z",
+          "completed_at": "2026-10-15T09:03:42Z"
+        },
+        {
+          "name": "Upload physical PITR evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-15T09:03:42Z",
+          "completed_at": "2026-10-15T09:03:42Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-15T09:03:42Z",
+          "completed_at": "2026-10-15T09:03:43Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-15T09:03:43Z",
+          "completed_at": "2026-10-15T09:03:43Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338308952",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005468,
+      "runner_name": "GitHub Actions 1000005468",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338309032,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk23qA",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338309032",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338309032",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:08:05Z",
+      "name": "Test (ubuntu-latest)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:26Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:28Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:28Z",
+          "completed_at": "2026-10-15T09:01:36Z"
+        },
+        {
+          "name": "Check and test workspace",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:36Z",
+          "completed_at": "2026-10-15T09:08:03Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-15T09:08:03Z",
+          "completed_at": "2026-10-15T09:08:04Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-15T09:08:04Z",
+          "completed_at": "2026-10-15T09:08:04Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338309032",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005469,
+      "runner_name": "GitHub Actions 1000005469",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338309034,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk23qg",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338309034",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338309034",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:06:01Z",
+      "name": "Website",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:27Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:27Z",
+          "completed_at": "2026-10-15T09:01:29Z"
+        },
+        {
+          "name": "Install pinned Node.js toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:29Z",
+          "completed_at": "2026-10-15T09:01:36Z"
+        },
+        {
+          "name": "Install website dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:36Z",
+          "completed_at": "2026-10-15T09:01:41Z"
+        },
+        {
+          "name": "Install Chromium",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:01:41Z",
+          "completed_at": "2026-10-15T09:02:05Z"
+        },
+        {
+          "name": "Install Caddy configuration validator",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-15T09:02:05Z",
+          "completed_at": "2026-10-15T09:02:40Z"
+        },
+        {
+          "name": "Check formatting",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-15T09:02:40Z",
+          "completed_at": "2026-10-15T09:02:44Z"
+        },
+        {
+          "name": "Check deployment script syntax",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-15T09:02:44Z",
+          "completed_at": "2026-10-15T09:02:44Z"
+        },
+        {
+          "name": "Check Astro and TypeScript",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 9,
+          "started_at": "2026-10-15T09:02:44Z",
+          "completed_at": "2026-10-15T09:02:54Z"
+        },
+        {
+          "name": "Verify published runtime schemas",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 10,
+          "started_at": "2026-10-15T09:02:54Z",
+          "completed_at": "2026-10-15T09:02:54Z"
+        },
+        {
+          "name": "Audit dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 11,
+          "started_at": "2026-10-15T09:02:54Z",
+          "completed_at": "2026-10-15T09:02:55Z"
+        },
+        {
+          "name": "Build website",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-15T09:02:55Z",
+          "completed_at": "2026-10-15T09:02:57Z"
+        },
+        {
+          "name": "Run browser and accessibility tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-15T09:02:57Z",
+          "completed_at": "2026-10-15T09:05:58Z"
+        },
+        {
+          "name": "Post Install pinned Node.js toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 25,
+          "started_at": "2026-10-15T09:05:58Z",
+          "completed_at": "2026-10-15T09:05:58Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 26,
+          "started_at": "2026-10-15T09:05:58Z",
+          "completed_at": "2026-10-15T09:05:59Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 27,
+          "started_at": "2026-10-15T09:05:59Z",
+          "completed_at": "2026-10-15T09:05:59Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338309034",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005471,
+      "runner_name": "GitHub Actions 1000005471",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338309084,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk233A",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338309084",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338309084",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:03:13Z",
+      "name": "MCP Conformance",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:26Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:28Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:28Z",
+          "completed_at": "2026-10-15T09:01:34Z"
+        },
+        {
+          "name": "Install pinned Node.js toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:34Z",
+          "completed_at": "2026-10-15T09:01:39Z"
+        },
+        {
+          "name": "Install pinned official MCP runner",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:01:39Z",
+          "completed_at": "2026-10-15T09:01:40Z"
+        },
+        {
+          "name": "Audit MCP runner dependencies",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-15T09:01:40Z",
+          "completed_at": "2026-10-15T09:01:41Z"
+        },
+        {
+          "name": "Run frozen MCP client requirement set",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 7,
+          "started_at": "2026-10-15T09:01:41Z",
+          "completed_at": "2026-10-15T09:03:03Z"
+        },
+        {
+          "name": "Run frozen MCP server requirement set",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-10-15T09:03:03Z",
+          "completed_at": "2026-10-15T09:03:10Z"
+        },
+        {
+          "name": "Post Install pinned Node.js toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 15,
+          "started_at": "2026-10-15T09:03:10Z",
+          "completed_at": "2026-10-15T09:03:10Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-10-15T09:03:10Z",
+          "completed_at": "2026-10-15T09:03:10Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-10-15T09:03:10Z",
+          "completed_at": "2026-10-15T09:03:10Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338309084",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005473,
+      "runner_name": "GitHub Actions 1000005473",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338309128,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk24CA",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338309128",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338309128",
+      "status": "completed",
+      "conclusion": "cancelled",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:25Z",
+      "completed_at": "2026-10-15T09:31:51Z",
+      "name": "PostgreSQL (17)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:26Z",
+          "completed_at": "2026-10-15T09:01:27Z"
+        },
+        {
+          "name": "Initialize containers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:27Z",
+          "completed_at": "2026-10-15T09:01:39Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:39Z",
+          "completed_at": "2026-10-15T09:01:41Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:41Z",
+          "completed_at": "2026-10-15T09:01:48Z"
+        },
+        {
+          "name": "Run mandatory PostgreSQL integration tests",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:01:48Z",
+          "completed_at": "2026-10-15T09:23:58Z"
+        },
+        {
+          "name": "Run durable Graph Driver integration tests",
+          "status": "completed",
+          "conclusion": "cancelled",
+          "number": 6,
+          "started_at": "2026-10-15T09:23:58Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify real model adapter, pricing, and exact-key authorization",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Execute recoverable DeepSeek Agent example against PostgreSQL",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 8,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Record process-kill qualification environment",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 9,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify committed failure-close process-kill boundaries",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 10,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify commit loss and expired-fence takeover",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 11,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify Join and deadline COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 12,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify child-admission COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 13,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Upload child-admission COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 14,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify child-cancellation delivery COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Upload child-cancellation COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 16,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify child-settlement COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 17,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Upload child-settlement COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 18,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Qualify parent-finalization COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 19,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:39Z"
+        },
+        {
+          "name": "Upload parent-finalization COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 20,
+          "started_at": "2026-10-15T09:31:39Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Qualify child-join consumption COMMIT loss",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 21,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload child-join consumption COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 22,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Qualify isolated child-join logical backup restore",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 23,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload child-join logical restore evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 24,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload Join and deadline COMMIT-loss evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 25,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Qualify committed child-join process-loss boundaries",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 26,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Qualify deadline cancel-and-join process-loss boundaries",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 27,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:40Z"
+        },
+        {
+          "name": "Upload child-join process qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 28,
+          "started_at": "2026-10-15T09:31:40Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload deadline cancel-and-join qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 29,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload process-kill qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 30,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Run durable protocol integration tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 31,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload MCP call authorization evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 32,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Qualify authenticated MCP result and known-error reconciliation",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 33,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload MCP outcome reconciliation evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 34,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Qualify trusted SQL role profile",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 35,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:41Z"
+        },
+        {
+          "name": "Upload trusted SQL role evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 36,
+          "started_at": "2026-10-15T09:31:41Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify MCP compute Worker isolation and recovery",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 37,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload MCP compute Worker evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 38,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify Agent HTTP ingress and lost-response recovery",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 39,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload Agent HTTP evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 40,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify owned durable scheduling Worker",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 41,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify exact-key in-process Agent execution and recovery",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 42,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload owned Worker evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 43,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify co-located Agent host",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 44,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload co-located host evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 45,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Qualify protected host operations",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 46,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:42Z"
+        },
+        {
+          "name": "Upload protected operations evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 47,
+          "started_at": "2026-10-15T09:31:42Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Record reduced host qualification metadata",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 48,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Run reduced host capacity and recovery qualification",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 49,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Upload reduced host qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 50,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Qualify owned Agent maintenance",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 51,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Upload owned maintenance evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 52,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Run durable artifact storage integration tests",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 53,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Qualify real TLS identity, rotation, revocation and ingress",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 54,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Upload real identity qualification evidence",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 55,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:43Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 109,
+          "started_at": "2026-10-15T09:31:43Z",
+          "completed_at": "2026-10-15T09:31:44Z"
+        },
+        {
+          "name": "Stop containers",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 110,
+          "started_at": "2026-10-15T09:31:44Z",
+          "completed_at": "2026-10-15T09:31:44Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 111,
+          "started_at": "2026-10-15T09:31:44Z",
+          "completed_at": "2026-10-15T09:31:44Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338309128",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005472,
+      "runner_name": "GitHub Actions 1000005472",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 116338309437,
+      "run_id": 38709873198,
+      "workflow_name": "CI",
+      "head_branch": "codex/r1-nested-frame-contract",
+      "run_url": "https://api.github.com/repos/StateKnot/StateKnot/actions/runs/38709873198",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOUG3fJs8AAAAbFk25PQ",
+      "head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+      "url": "https://api.github.com/repos/StateKnot/StateKnot/actions/jobs/116338309437",
+      "html_url": "https://github.com/StateKnot/StateKnot/actions/runs/38709873198/job/116338309437",
+      "status": "completed",
+      "conclusion": "success",
+      "created_at": "2026-10-15T09:01:22Z",
+      "started_at": "2026-10-15T09:01:26Z",
+      "completed_at": "2026-10-15T09:03:48Z",
+      "name": "PostgreSQL PITR (17)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-10-15T09:01:27Z",
+          "completed_at": "2026-10-15T09:01:27Z"
+        },
+        {
+          "name": "Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-10-15T09:01:27Z",
+          "completed_at": "2026-10-15T09:01:29Z"
+        },
+        {
+          "name": "Install pinned Rust toolchain",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-10-15T09:01:29Z",
+          "completed_at": "2026-10-15T09:01:37Z"
+        },
+        {
+          "name": "Record PITR qualification environment",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-10-15T09:01:37Z",
+          "completed_at": "2026-10-15T09:01:40Z"
+        },
+        {
+          "name": "Qualify physical base backup and named WAL recovery",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-10-15T09:01:40Z",
+          "completed_at": "2026-10-15T09:03:44Z"
+        },
+        {
+          "name": "Upload physical PITR evidence",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 6,
+          "started_at": "2026-10-15T09:03:44Z",
+          "completed_at": "2026-10-15T09:03:45Z"
+        },
+        {
+          "name": "Post Check out repository",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 12,
+          "started_at": "2026-10-15T09:03:45Z",
+          "completed_at": "2026-10-15T09:03:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 13,
+          "started_at": "2026-10-15T09:03:45Z",
+          "completed_at": "2026-10-15T09:03:45Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/StateKnot/StateKnot/check-runs/116338309437",
+      "labels": [
+        "ubuntu-latest"
+      ],
+      "runner_id": 1000005474,
+      "runner_name": "GitHub Actions 1000005474",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    }
+  ]
+}

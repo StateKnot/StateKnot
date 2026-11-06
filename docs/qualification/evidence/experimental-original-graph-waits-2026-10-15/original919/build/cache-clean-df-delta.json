@@ -1,0 +1,7 @@
+{
+  "before_available_KiB": 329994340,
+  "after_clean_available_KiB": 331818328,
+  "actual_observed_available_delta_KiB": 1823988,
+  "actual_observed_available_delta_GiB": 1.7394905090332031,
+  "note": "Observed whole-filesystem df delta during workspace-only cache clean; concurrent host activity can affect this value. du/cargo removed-byte totals are not used as actual released space."
+}

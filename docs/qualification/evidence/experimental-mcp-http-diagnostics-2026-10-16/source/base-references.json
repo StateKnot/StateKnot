@@ -1,0 +1,97 @@
+{
+  "base_source_tree": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+  "reused_source_only_refs": [
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/source.tar.gz",
+      "bytes": 3451150,
+      "sha256": "5a882322c32b5ec165d1a37bf84f087f0c5afc8811b805c07cc4ac7a590e75e3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/source/manifest.json.gz",
+      "bytes": 49086,
+      "sha256": "c289109e2234c9a2b5462dacf1dcc91e84bdf460dbb0cc05684248caa2278a06"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-postgres-test-profile-2026-10-15/source/child_join_pitr.rs.gz",
+      "bytes": 4303,
+      "sha256": "49ed6fa9ddbca9d9530bee1a0c30cd6b4292d2f5de0a7b14aaefd8b24e0994b4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/base-references.json",
+      "bytes": 895,
+      "sha256": "a04d4425f30ae10ebebc448c4888d258b016e9512764e4364fd01c83c96060c4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/final-source-manifest.json.gz",
+      "bytes": 49260,
+      "sha256": "78a521fdda6ab0c54a723c8b189be0f0c08fe14c5332ade66c619d020e9a3607"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/final-reconstruction.json",
+      "bytes": 4691,
+      "sha256": "862024e0363d9e59410d80823b5f3ab5523c4c90a3e80e236f3464ac2cb5ba54"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/e420f926b1d61b4eb462c8844378b0690b0e2bf54a0b55e59b15f17e69058fe6.txt.gz",
+      "bytes": 3146,
+      "sha256": "d9e1c4258b2621e51e284b897ef794fe9396f16836b9cd25593d511ba697a6cd"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/13cd1ad067afe81df8e056ac8d59dffc5d3ad0ee80362505c41d7bade6511d87.txt.gz",
+      "bytes": 7578,
+      "sha256": "1ae7b54e4e3678c48e2943672f62ae652b76c40e58597822688073ea6710ae57"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/6d22e3b162187d446c4fa243cd6c5e58505d972a2065315c9f6a9b7bc2b5bdba.txt.gz",
+      "bytes": 5514,
+      "sha256": "3e22103d7a054f8a52f8c8488bdf4a7ea951f183f6746b37aab722c0620f10c2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/4a1563a770cf9cf8abc7a7e5177c678c45ce223ed5ff3c211228c8dc1c8952ca.txt.gz",
+      "bytes": 505,
+      "sha256": "1bd838aeb7b294f78fa4dd03202f09a62a8d403af2b1127d21ea1d59d555f59e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/d0995b11918fba7b8bcafef965eb9cec16e52f5cf840597f6acde9c940ac5335.txt.gz",
+      "bytes": 3227,
+      "sha256": "2c4179a959da58ba0f24bf5d08d453205be57268b6c4a1b5d48009c010639da7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/44928d92e03548104297e84054c062d818c2892a8a313f82e40a6d9f8698bfc8.txt.gz",
+      "bytes": 11112,
+      "sha256": "29d3d251fb36ca848eaa73413b387337d0d2abae17661bf0fae527f72446ecd8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/1aecf1db05bdb5536d8a58ee2d1420c4171353fcfe4a70ad520751b53b1a1560.txt.gz",
+      "bytes": 5561,
+      "sha256": "4865a696bc97dfb577991b3e0d7e522a05d184e4cbbe45fc6417847290695622"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/2fb8f8bc00298b2aeb8664c026cbfe5bc470a707f5317eccfc0dc173ac4d6b09.txt.gz",
+      "bytes": 7078,
+      "sha256": "95c376267f4c5f96607dcde39f75d4ef94c3f5e32f46a0fc09721a8f1248be2d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/ffb1832b31593d539fbc260906f8b7d38878fc0b04e12633b6e9f2edcc770131.txt.gz",
+      "bytes": 11867,
+      "sha256": "1dbbcf647369bff2c3d9ad69d8d0edb931979732d478998a3c140ffd5e2e12bd"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/ea5a18b242c88e7b5dca32899357a4f52feb5ba0ce0b0170295603502407b44d.txt.gz",
+      "bytes": 11351,
+      "sha256": "04c2a413792667371677c490406cf1933b1222a3d121556efb865422ea654c96"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/9d907b61725a0e0c254940249ab633ae74ccd9faa6b37f15785cb3f0b70f5ee3.txt.gz",
+      "bytes": 12949,
+      "sha256": "7afdc4db997c2f9edfe9610ff8c8e7f69a0190491039ecbfd9d677cb3baf93ab"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-mcp-lossless-bound-state-2026-10-16/source/payloads/a002c4e2d9a04bcc513f643fb2373200c42b252ee45c6b973ce6ab8f669587a0.txt.gz",
+      "bytes": 19636,
+      "sha256": "988dd9f6ada5976d1ed355c9f93933ab4ebc1814d75c497ab45192f120b64a4e"
+    }
+  ],
+  "prior_execution_or_Native_qualification_inherited": false,
+  "copy_old449_bundle_or_new_complete_archive": false
+}

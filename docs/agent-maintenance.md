@@ -5,7 +5,7 @@ SPDX-License-Identifier: Apache-2.0
 
 # Owned Agent maintenance
 
-The experimental `agent_maintenance` module owns four existing jobs separately
+The experimental `agent_maintenance` module owns five concrete jobs separately
 from HTTP ingress and the execution Worker. Both `stateknot` and
 `stateknot-runtime` export it. This is not a stable release or complete multi-role
 production qualification. See [RFC-0014](rfcs/0014-owned-agent-maintenance.md) and
@@ -20,7 +20,8 @@ use stateknot::{agent_maintenance::*, core::TenantId, postgres::PostgresStore,
         register_standard_agent_deadline_event_schema,
         register_standard_child_reconciliation_event_schema,
         register_standard_child_join_event_schema,
-        register_standard_run_failure_close_event_schema}};
+        register_standard_run_failure_close_event_schema,
+        register_standard_agent_cancellation_event_schema}};
 
 async fn start(store: PostgresStore, authorized_tenants: Vec<TenantId>,
     dependencies: Arc<dyn AgentMaintenanceReadiness>)
@@ -30,6 +31,7 @@ async fn start(store: PostgresStore, authorized_tenants: Vec<TenantId>,
     register_standard_child_reconciliation_event_schema(&mut schemas)?;
     register_standard_child_join_event_schema(&mut schemas)?;
     register_standard_run_failure_close_event_schema(&mut schemas)?;
+    register_standard_agent_cancellation_event_schema(&mut schemas)?;
     let binding = AgentMaintenanceBinding::new(store, schemas.build()?,
         authorized_tenants, AgentMaintenanceMutationOptions::default())?;
     Ok(AgentMaintenance::start(binding, dependencies,
@@ -38,7 +40,7 @@ async fn start(store: PostgresStore, authorized_tenants: Vec<TenantId>,
 ```
 
 Authorize 1–128 distinct tenants before binding. No wildcard discovery or implicit
-grants exist. Every binding owns all four concrete jobs, private service handles,
+grants exist. Every binding owns all five concrete jobs, private service handles,
 the same actual store and frozen exact schemas. Startup checks the actual store
 schema and mandatory host dependency check before spawning tasks or mutating work.
 Readiness callbacks must be read-only, asynchronous and cancellation-cooperative.
@@ -55,9 +57,10 @@ untrusted tenant-isolated Worker sandbox.
 | Child | `DurableChildReconciler` | 16 cancellation + 16 settlement candidates |
 | Join | `DurableChildJoinPublisher` | 16 eligible parents |
 | FailureClose | `DurableRunFailureCloser` | 16 close candidates |
+| FrameCancellation | `DurableFrameCancellationFinalizer` | 16 raw closure candidates plus one lookahead |
 
-One tick at a time rotates through sorted tenants and these four jobs. Each pair
-receives a turn within 4N admitted quanta absent shutdown/readiness loss. This is
+One tick at a time rotates through sorted tenants and these five jobs. Each pair
+receives a turn within 5N admitted quanta absent shutdown/readiness loss. This is
 local fairness, not global weighted reservations or a wall-clock SLA. Replicas
 rely on existing durable serialization and idempotency, not an in-memory queue.
 Existing independently configured mutation retries remain bounded.
@@ -69,6 +72,16 @@ durable state. There is no persisted high-water mark that skips earlier failures
 Deadline cancellation never invents cleanup evidence: execution Workers still
 finish the appropriate lifecycle.
 
+FrameCancellation uses only the allowlisted tenant and durable whole-frame closure
+facts. It authenticates the original owning proof before confirming cancellation
+or recovering the exact committed ACK; it grants no node execution or new lease.
+Its opaque cursor fixes the raw scan upper bound for one round. Terminal or
+inapplicable candidates still advance that raw position, item errors are counted,
+and exhaustion resets the cursor. Shutdown retains the last completed candidate;
+mutation/COMMIT handling stays owned until its finite result or forced joined drain.
+The 16+1 returned-row bound is not a physical-I/O, latency or capacity guarantee.
+Keep this continuation deployed whenever ordinary scheduling excludes closed frames.
+
 ## Timing, health and shutdown
 
 Defaults: 250 ms ordinary pacing, 1 s after item errors, 30 s absolute tick
@@ -78,7 +91,9 @@ check completes, with a 5 s whole-check deadline and 20 s freshness. Validated
 bounds. More tenants increase sweep lag; measure real workload capacity.
 
 `role.health()` caches Ready/Unavailable/Draining/Stopped, `active_ticks()` and
-sanitized `report()`. Ready means fresh dependencies, **not zero item failures**.
+sanitized `report()`. The protected host health view includes the fixed
+`frame_cancellation` job label alongside the original four. Ready means fresh
+dependencies, **not zero item failures**.
 `report.job(AgentMaintenanceJob::Deadline)` and the other jobs count completed
 ticks, candidate observations and failures; counters saturate, include repeated
 observations and reset on restart. They are not durable billing or usage.
@@ -116,8 +131,9 @@ Required PostgreSQL 16/17 tests exercise every job's durable effects, two replic
 excluded tenants, a complete failed page with reachable tail, restart revisits,
 real SIGKILL/fresh ownership, preserved cancellation/failure identity, readiness
 loss/recovery, panic/store fail-stop and a lock-blocked tick deadline. Unit tests
-cover forced abort/join and abort-before-first-poll. CI requires four nonempty
-evidence markers and archives logs with source tree, lockfile hash and pinned
+cover forced abort/join and abort-before-first-poll. The original maintenance suite
+retains four nonempty evidence markers; the fifth job also requires cold owning
+continuation and bounded raw-page coverage. CI archives logs with source tree, lockfile hash and pinned
 database image. Existing transaction/process/role suites remain required. These
 are correctness qualifications, not measured production throughput or RTO.
 The execution Worker suite also runs both owned roles against the same store,

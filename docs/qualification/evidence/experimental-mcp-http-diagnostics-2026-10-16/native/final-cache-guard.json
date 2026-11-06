@@ -1,0 +1,10 @@
+{
+  "git_untracked": true,
+  "locks_probeable": [
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/.cargo-lock"
+  ],
+  "lsof_empty": true,
+  "root_exclusive_window_still_required": true,
+  "tag_verified": true,
+  "target": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base"
+}

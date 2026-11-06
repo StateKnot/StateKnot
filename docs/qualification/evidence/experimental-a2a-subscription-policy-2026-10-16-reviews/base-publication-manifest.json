@@ -1,0 +1,897 @@
+{
+  "schema_version": 1,
+  "count": 178,
+  "total_stored_bytes": 1002668,
+  "files": [
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/README.md",
+      "bytes": 2694,
+      "sha256": "8d042bf8a3e6cf6d735c54ddcd9bc273e52ab294ace7c140bc3b241ff1da32da"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/artifact-index.json",
+      "bytes": 74914,
+      "sha256": "b57111539679fb3a793a9f41d7f18e7a87b4d21ab382aecca567bcb38f89a7b1"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/CONTRACT.zh-CN.md",
+      "bytes": 7237,
+      "sha256": "f9d0586224e24640e00fde5e9da1db892436607f752d1c5e50ad25021ebcff30"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/README.md",
+      "bytes": 368,
+      "sha256": "7aaeed7855bf0a1bdaaa13b636bbfa0c90274e2821baab692805b3ddbbaf767d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/acceptance-matrix.json",
+      "bytes": 9476,
+      "sha256": "67a8cbda8fc19fafcbef2d0a6cd3cc4a0bbb2d65a6730043c8f6335a28ba9b0a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/before-design-freeze.df",
+      "bytes": 190,
+      "sha256": "6be3ab275b09231f6139b7acc2ce41900459c29422036f9fc99e9801cafa5aff"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/freeze.json",
+      "bytes": 259,
+      "sha256": "c311cad859fd23a37b42156ee0868c174095eb6c06c7cb01b009d8b26fbc4225"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/manifest.json",
+      "bytes": 1250,
+      "sha256": "e6be1c2b445958d141f412b6e9e8582e46d8a517e15b034d2a4bdb73fdf48c48"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/private-responsibilities.rs.txt",
+      "bytes": 1784,
+      "sha256": "24c67111cb0957b605dd2200916a7cb46f0882cb7c5eac33131c87c8d275cd0d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/public-interface.rs.txt",
+      "bytes": 1113,
+      "sha256": "ef60a0600ebfc03b48fa7dcf5b4b14842adc7b96a18adbb7cef16f356c5e64a2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/receipt.json",
+      "bytes": 967,
+      "sha256": "7700b8725ba9608a451e8eea1694faa5fcd03ad468c748ce3157fd1f0c797748"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/contract/source-read.json",
+      "bytes": 1838,
+      "sha256": "1d4292e51da76a628c7a42b21861d5eca4a6d4cd2544dbb035fa9ffca95f2b01"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/execution-profile.json",
+      "bytes": 3893,
+      "sha256": "3e172fae4711a9fdaa9d601e9e9a2ab56151d7e958a0222a95a9071bca1c524f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/manifest.json",
+      "bytes": 29626,
+      "sha256": "af5c515f06572f89f930b03d00d88abc52c927d963f382bfb8a4cc0a6c7e7e17"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/compiled-inputs.json.gz",
+      "bytes": 28432,
+      "sha256": "5171795e2fa70f11baf6d62b62c6502e65b895934e55122b25b38e5e8ae01219"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/execute-targeted.py",
+      "bytes": 278,
+      "sha256": "f441cf4dfd79ffd3b1124ec7e79c48e596ff1883cf625e1dd74cb270f520c1c2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/fmt-after-caches.json",
+      "bytes": 1182,
+      "sha256": "7b13ebc2ca42e4caab911f27f90a0c8ef00fa01ec1e0d10ec05732b55f53b407"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/fmt-after.df",
+      "bytes": 190,
+      "sha256": "6cfae1851e1e7ea46a0c21d9455a57df0b9e3fa7147ebd7afe20472a15e7e368"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/fmt-before-caches.json",
+      "bytes": 1182,
+      "sha256": "7b13ebc2ca42e4caab911f27f90a0c8ef00fa01ec1e0d10ec05732b55f53b407"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/fmt-before.df",
+      "bytes": 190,
+      "sha256": "9f9949d81ff96f6649c50be132a627c74fdd9174d80d6b3cac9d616e56148961"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/fmt.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/fmt.receipt.json",
+      "bytes": 1462,
+      "sha256": "facf77602a6ac2151ad6318ad176672835af9800aac20fd28434c87721903d9e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/frozen-source-manifest.json.gz",
+      "bytes": 49366,
+      "sha256": "b889759f1d24100dba1c036a6637eb9cf2687f0b150cebf8f73d7fda76ec30a4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/run-gate.py",
+      "bytes": 5196,
+      "sha256": "a07db837ba73d6fd7d96b27cc6c1f4aa5212199efd87a871408df1f9a94f4690"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/running.json",
+      "bytes": 1402,
+      "sha256": "ee4a581fa629f6193b503c727264e26118e9b31f776021677487ec39adb6b340"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/unit-after-caches.json",
+      "bytes": 1182,
+      "sha256": "4525bcc3090a48a1dff659037efc1fbaea3f1ca995d125e74b9e481e41141909"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/unit-after.df",
+      "bytes": 190,
+      "sha256": "5febf346f963b562fb8ea0b111a19c90575221dbf1fdbf4b21615981060e7756"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/unit-before-caches.json",
+      "bytes": 1182,
+      "sha256": "7b13ebc2ca42e4caab911f27f90a0c8ef00fa01ec1e0d10ec05732b55f53b407"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/unit-before.df",
+      "bytes": 190,
+      "sha256": "3942894d9f78c24eb41d0984d795fbf511e6ea36b210f96c7e02680edc41fd4f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/unit.log.gz",
+      "bytes": 897,
+      "sha256": "e33488a3f72b82337df2662517190d016d398641cb2480736ec3aaa5e07bf665"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q1/unit.receipt.json",
+      "bytes": 1575,
+      "sha256": "16743810a897d25f99e080fc18a89b8fcdef2e8bad0e0bed38925b5c219dbe23"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/compiled-inputs.json.gz",
+      "bytes": 28428,
+      "sha256": "ca823250b01dd91d9d18e21b954b2572639e60078a592e33c0deb505c1f9ac26"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/execute-targeted.py",
+      "bytes": 278,
+      "sha256": "f441cf4dfd79ffd3b1124ec7e79c48e596ff1883cf625e1dd74cb270f520c1c2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/fixture-eof-repoll-fix.patch.gz",
+      "bytes": 238,
+      "sha256": "0d845fd9b7b8b1412005cb1683e35ecdb929a27dfef1cc7bdadf963a5d837bbb"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/fixture-fix.receipt.json",
+      "bytes": 612,
+      "sha256": "c6a5c72e77aff4778fadc8d166ba9cc5c3d5d980dd98dbe7d42d8d8bf080b143"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/fmt-after-caches.json",
+      "bytes": 1182,
+      "sha256": "ffab9aa83f265d4c4631d6e2b96144de8fe4739b8d5df757802728c1a5b1699a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/fmt-after.df",
+      "bytes": 190,
+      "sha256": "20ab16c52bab8b29607fa825be5541ce00669f068085aa7eceafa08f23915d60"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/fmt-before-caches.json",
+      "bytes": 1182,
+      "sha256": "ffab9aa83f265d4c4631d6e2b96144de8fe4739b8d5df757802728c1a5b1699a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/fmt-before.df",
+      "bytes": 190,
+      "sha256": "7dff562342030b12086955d84087b3f352ad3a54175885717b1356a533a99dcc"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/fmt.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/fmt.receipt.json",
+      "bytes": 1463,
+      "sha256": "570971dd4b176fa5d274fc23f60a857873aa6d5e3f9006cf37ecd194770552e8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/frozen-source-manifest.json.gz",
+      "bytes": 49362,
+      "sha256": "215a3ac3124beab1b769d7f151b226e361cf451d782035a1f5241a31d7b16b62"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/run-gate.py",
+      "bytes": 5196,
+      "sha256": "def4636e9c365c64ac862ee5a205932fc6a2048a404a289f495cfd73441e81b3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/running.json",
+      "bytes": 1394,
+      "sha256": "d37ee3b2b29103f4c7525a75abae57a100eade7cfd20257ffbfe2e2ab1f327b8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/tcp-after-caches.json",
+      "bytes": 1182,
+      "sha256": "1bc428911d4fe1a0ff655eede2a2923a3b573f68761606753cbc3b06fd01214c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/tcp-after.df",
+      "bytes": 190,
+      "sha256": "7975ae14cf7a0cb48720cbf0d708fc3542e460000bc66ef1c084c8a5b0ae1c37"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/tcp-before-caches.json",
+      "bytes": 1182,
+      "sha256": "ffab9aa83f265d4c4631d6e2b96144de8fe4739b8d5df757802728c1a5b1699a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/tcp-before.df",
+      "bytes": 190,
+      "sha256": "8270c409059db8d06d351d0317cc47d4d5b9c77afc3797a02e1d2bbee34d0585"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/tcp.log.gz",
+      "bytes": 743,
+      "sha256": "beced59beb5da27e6b0d3765eea490f78ec8f3188a8a651745ba7e84f6b930f4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/tcp.receipt.json",
+      "bytes": 1567,
+      "sha256": "c9f426054ef2a0f5af84675f9712f31427701564d52f136c8b7e9aeb8d6a41af"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/unit-after-caches.json",
+      "bytes": 1182,
+      "sha256": "ffab9aa83f265d4c4631d6e2b96144de8fe4739b8d5df757802728c1a5b1699a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/unit-after.df",
+      "bytes": 190,
+      "sha256": "3f390edc68f95a5d5f944d2815f885b10bbcd1dae251e1ce07ef9f1e696ad279"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/unit-before-caches.json",
+      "bytes": 1182,
+      "sha256": "ffab9aa83f265d4c4631d6e2b96144de8fe4739b8d5df757802728c1a5b1699a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/unit-before.df",
+      "bytes": 190,
+      "sha256": "ef1c61c252d2b06175e00d18b5d39839412d4c94bcc12981e33d6bfe7e3b7b91"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/unit.log.gz",
+      "bytes": 645,
+      "sha256": "bdd2895274b1dae6c1591a7e1d22f2d4d1caae4613c06838383e28b81f34814a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q2/unit.receipt.json",
+      "bytes": 1572,
+      "sha256": "decb52a5cb87c1195e2efebdacc743b3f46f87141b5a5d9a964cd23871199370"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/clippy-after-caches.json",
+      "bytes": 1182,
+      "sha256": "d3fb2c8e3d6ee0a998267654acdee65cc0c58f46c9708bfc2d3074db55fd9bed"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/clippy-after.df",
+      "bytes": 190,
+      "sha256": "17619500cf56b6c93dcc4da40c4f8f3e75d2efedab742dcfd013bff170dfacc7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/clippy-before-caches.json",
+      "bytes": 1182,
+      "sha256": "11c551d9226b3cfad3b1fdfda9a1bd601fe8e5ac33d31a6f9b23fcc4f5e1343a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/clippy-before.df",
+      "bytes": 190,
+      "sha256": "31c0b4bf150d00b9fa3025b2fbbbae2412d24767fc718514e67dd1680fe28790"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/clippy.log.gz",
+      "bytes": 1631,
+      "sha256": "73acacc8c1518559c1bead9d9c0f3460dc8d3394078b9bf38141e4b220e14997"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/clippy.receipt.json",
+      "bytes": 1557,
+      "sha256": "ba103fd9823c4a39dbbdc31163e9a0b8d9ac89164aa9d51a249aa43d96757b91"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/compiled-inputs.json.gz",
+      "bytes": 28432,
+      "sha256": "fdc7204650d3e86426bd311fe4c91f7773a28b92f9f48f265314584eec0aeef4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/dynamic-error-timestamp-oracle-fix.patch.gz",
+      "bytes": 1011,
+      "sha256": "d5766c798a9097a2e9cab3ea0f1d5376e7ec938ff8822e8967ac3c9fdef31750"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/execute-six.py",
+      "bytes": 851,
+      "sha256": "a187427f6c5427e9ce8d48666938091180f414ecddbd46599964bab2f2d18bf4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/execute-targeted.py",
+      "bytes": 270,
+      "sha256": "d9dee04198ae77b784a4b38aa3a6ef130a69647cd536d2f63c6be225aaa0e515"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/fixture-fix.receipt.json",
+      "bytes": 760,
+      "sha256": "caa582481aec64b8492680592d7d9e4079079070b170be2c0acd70d1acaab3e1"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/fmt-after-caches.json",
+      "bytes": 1182,
+      "sha256": "1bc428911d4fe1a0ff655eede2a2923a3b573f68761606753cbc3b06fd01214c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/fmt-after.df",
+      "bytes": 190,
+      "sha256": "4f381f92d497a1636e3ded8a95ccb9ea1c574ec83eb3668471ca54e77dac53cf"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/fmt-before-caches.json",
+      "bytes": 1182,
+      "sha256": "1bc428911d4fe1a0ff655eede2a2923a3b573f68761606753cbc3b06fd01214c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/fmt-before.df",
+      "bytes": 190,
+      "sha256": "dcf34cc2063027cd62b14225745c3dc329314b4fa60d6cdac2dc3b9bced2db61"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/fmt.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/fmt.receipt.json",
+      "bytes": 1463,
+      "sha256": "45a5ed6c455ac5667814c3f859069fb8b1dd38fdc600c599c995f07cc8c1698b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/frozen-source-manifest.json.gz",
+      "bytes": 49365,
+      "sha256": "fa3bd0e6e0a094de2e9ed532247f85fb9762368ac34160b2ebbe74b18ef9e7e8"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/run-gate.py",
+      "bytes": 5196,
+      "sha256": "82e3489b76b367bc5e0ee0aec9aaba7aaac6f139886306b0c4ecfb2a289788a4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/running.json",
+      "bytes": 1384,
+      "sha256": "a353e48bc36cf34a5b24546b5d56c100d3af03a891ed734b95bac898b45a3f03"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/tcp-after-caches.json",
+      "bytes": 1182,
+      "sha256": "11c551d9226b3cfad3b1fdfda9a1bd601fe8e5ac33d31a6f9b23fcc4f5e1343a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/tcp-after.df",
+      "bytes": 190,
+      "sha256": "f3e54ace06f14944a3f3bade37d267671faf6fd913e091a792459400d1808516"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/tcp-before-caches.json",
+      "bytes": 1182,
+      "sha256": "1bc428911d4fe1a0ff655eede2a2923a3b573f68761606753cbc3b06fd01214c"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/tcp-before.df",
+      "bytes": 190,
+      "sha256": "ea6c9371e3c18fde07d8e0b3f349dd3d9aec82b48bd2f9bca04eecef5adf1536"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/tcp.log.gz",
+      "bytes": 371,
+      "sha256": "d2a7891f4d61f7fe126491fe57889767990bee02162201405b2d1e12acd207e2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q3/tcp.receipt.json",
+      "bytes": 1566,
+      "sha256": "a7d76648e4aa6bc80ff5c87717fe71192d7cf2ddc0ed6747dc1635f120e3215b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/compiled-inputs.json.gz",
+      "bytes": 28431,
+      "sha256": "888570ba8961b26bed9380efdb659de24c5cf367670e3f48504a9e706882fff4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/execute-six.py",
+      "bytes": 784,
+      "sha256": "e8fa7b654590beed7071d879cc27cc76ade00ad0411b93cdd8b17ec3e1cd9877"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/fixture-clippy-fix.patch.gz",
+      "bytes": 3482,
+      "sha256": "0409a5ca6d8ace5be2406f6aa8dc95ba5bc06532447abcbe321980884c8ecac2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/fixture-fix.receipt.json",
+      "bytes": 875,
+      "sha256": "d8f8ccf46aee8c9cca04ccea77268b96d1e3a8934aea72682e406110bf2abb0a"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/fmt-after-caches.json",
+      "bytes": 1182,
+      "sha256": "d3fb2c8e3d6ee0a998267654acdee65cc0c58f46c9708bfc2d3074db55fd9bed"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/fmt-after.df",
+      "bytes": 190,
+      "sha256": "b501226cd56d30f430816b2e4139b0230a0a1a35006de54a1e1c6fa3cddcb5d5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/fmt-before-caches.json",
+      "bytes": 1182,
+      "sha256": "d3fb2c8e3d6ee0a998267654acdee65cc0c58f46c9708bfc2d3074db55fd9bed"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/fmt-before.df",
+      "bytes": 190,
+      "sha256": "717d0d8c898f9d057880d5674cf5d0614807fc5d647a38dc5c74e976af8a8685"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/fmt.log.gz",
+      "bytes": 1692,
+      "sha256": "6075d90879d0a75cd145bfb493c38749f7a3c424d8035ec019b0bd4e12a9c105"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/fmt.receipt.json",
+      "bytes": 1464,
+      "sha256": "0ba0c25972addbef19cb98d015538f63b5ac72525198e91c727281c7f4921fc4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/frozen-source-manifest.json.gz",
+      "bytes": 49365,
+      "sha256": "ec3066f5c64b3e429fc31ec9e196345f2d43aea6f7b19888c815780162242403"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/run-gate.py",
+      "bytes": 5196,
+      "sha256": "c3ac6bb6339dc3679c9d7cd3a86edf75c0a26c5e21b375f7688fdb9a415a17ba"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q4/running.json",
+      "bytes": 1292,
+      "sha256": "01341246e4fe1e0e1827b7493a9d2810641ee079f9cf6ac0db772fd93427f807"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/clippy-after-caches.json",
+      "bytes": 1182,
+      "sha256": "b954cacef7098c3d7ad13bf6de3930f7bce287457f58016c33a5b11c248d4af4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/clippy-after.df",
+      "bytes": 190,
+      "sha256": "3b74deeaef42d25a1b7fb308f1a941c29f5d1465b26e8a529ec9a960d2c5f2dd"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/clippy-before-caches.json",
+      "bytes": 1182,
+      "sha256": "d3fb2c8e3d6ee0a998267654acdee65cc0c58f46c9708bfc2d3074db55fd9bed"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/clippy-before.df",
+      "bytes": 190,
+      "sha256": "695af2bcdc76424e06220c3db36c85ce41466a6cf7d6da2401a261c17a911d78"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/clippy.log.gz",
+      "bytes": 228,
+      "sha256": "f2525e196b67814355046872f49b40b512ac88ed03f11d86c98a9bc0f24e685e"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/clippy.receipt.json",
+      "bytes": 1554,
+      "sha256": "5b0317e5818f29662ec828629a02eb95bb7ab8bc7c57846bf01a3fa5bb8b692d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/compiled-inputs.json.gz",
+      "bytes": 28434,
+      "sha256": "f481cce34bcb6dac584b4d6a8225f655ffd4f2684f4e8bef0811ccee419cfb48"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/execute-six.py",
+      "bytes": 784,
+      "sha256": "e8fa7b654590beed7071d879cc27cc76ade00ad0411b93cdd8b17ec3e1cd9877"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/fixture-clippy-fix.patch.gz",
+      "bytes": 2288,
+      "sha256": "df7d90050affdc892b96635afb8d52d7294c0593cfddcd23a3328b47decbd679"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/fixture-fix.receipt.json",
+      "bytes": 882,
+      "sha256": "a2debb01715950a311bebbc193202707cc5047d2ae8db0f6eea7f087d426ced3"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/fmt-after-caches.json",
+      "bytes": 1182,
+      "sha256": "d3fb2c8e3d6ee0a998267654acdee65cc0c58f46c9708bfc2d3074db55fd9bed"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/fmt-after.df",
+      "bytes": 190,
+      "sha256": "af50f7466f48bf7b3c0cc128b5a8d93cafba5758cb905fa8b97b5494b31926e9"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/fmt-before-caches.json",
+      "bytes": 1182,
+      "sha256": "d3fb2c8e3d6ee0a998267654acdee65cc0c58f46c9708bfc2d3074db55fd9bed"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/fmt-before.df",
+      "bytes": 190,
+      "sha256": "162b5442a8727860a7125016de81c06329ae83e072f2acfc55d8da3a40ad3620"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/fmt.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/fmt.receipt.json",
+      "bytes": 1463,
+      "sha256": "8798b3593398a1571dc60c3e33dcb119df9f4e8771b2bf144e3a449288de3989"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/frozen-source-manifest.json.gz",
+      "bytes": 49367,
+      "sha256": "90eeb6e2697ccc3d2b4990fd48b145afbf893549d693e777887c2113d7249e00"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/run-gate.py",
+      "bytes": 5196,
+      "sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/running.json",
+      "bytes": 1348,
+      "sha256": "6dad009a283645e5ec9be14db9596be02cae51b0b5126a57b4f10c44219cc7f4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/workspace-after-caches.json",
+      "bytes": 1182,
+      "sha256": "76d576caa7f6954b3ff18300c2d2377a6295b1727b0d16c934f0089be7f35347"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/workspace-after.df",
+      "bytes": 190,
+      "sha256": "3aa08289033fdd3a4f29f20bdbb20e09e15288e65984160f539df2c28a5c37e6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/workspace-before-caches.json",
+      "bytes": 1182,
+      "sha256": "b954cacef7098c3d7ad13bf6de3930f7bce287457f58016c33a5b11c248d4af4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/workspace-before.df",
+      "bytes": 190,
+      "sha256": "297d348bf10ce4bb5621a33498a73c1486d18bccd49d1011d6f3d435d31120b6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/workspace.log.gz",
+      "bytes": 1692,
+      "sha256": "09a80a05a528b7ca07add6af38e08b0979e362619470c6010d2a0f6296ffb657"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5/workspace.receipt.json",
+      "bytes": 1522,
+      "sha256": "b56df81dcfae90211f0469fd449822cf12440f5ed95243fab86d57fb4123ab5d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/compiled-inputs.json.gz",
+      "bytes": 28434,
+      "sha256": "f481cce34bcb6dac584b4d6a8225f655ffd4f2684f4e8bef0811ccee419cfb48"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/doctests-after-caches.json",
+      "bytes": 1182,
+      "sha256": "76d576caa7f6954b3ff18300c2d2377a6295b1727b0d16c934f0089be7f35347"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/doctests-after.df",
+      "bytes": 190,
+      "sha256": "497ba0cfe0b4d849f2158713f5102badbfc6910e47fc55d0ad9ff84c6d5eed7d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/doctests-before-caches.json",
+      "bytes": 1182,
+      "sha256": "76d576caa7f6954b3ff18300c2d2377a6295b1727b0d16c934f0089be7f35347"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/doctests-before.df",
+      "bytes": 190,
+      "sha256": "e209ae470690405abda2c7f22acb4570d0ca8f8fecbf01169191cca08c101d3f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/doctests.log.gz",
+      "bytes": 1026,
+      "sha256": "8269c0cfc76eeb4a98c8c017f9182a6a775a9b37397c44e6f2ea6ff3f29d18f6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/doctests.receipt.json",
+      "bytes": 1510,
+      "sha256": "75eb2b4b5653063762331e82955b02de668a5e165dcb0b069a3c8c9cda499ea4"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/execute-remaining.py",
+      "bytes": 1140,
+      "sha256": "4650fa3127024e558814cae2f521445de29a377020cf51fcc0b25903174e5f72"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/frozen-source-manifest.json.gz",
+      "bytes": 49367,
+      "sha256": "90eeb6e2697ccc3d2b4990fd48b145afbf893549d693e777887c2113d7249e00"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/nightly-after-caches.json",
+      "bytes": 1182,
+      "sha256": "dab366f5a5674ab5c22fe3ce1201240292b0a3eada6521bb4dde5e9af11bd70d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/nightly-after.df",
+      "bytes": 190,
+      "sha256": "e00052ad02883e184b8619c83c4dbc0808a5cd81aac8d926e531335458503c47"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/nightly-before-caches.json",
+      "bytes": 1182,
+      "sha256": "e2098428dbdd3157dfb9a0c99d492fb3b8adad75a776d235b5b03fa8f13aa557"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/nightly-before.df",
+      "bytes": 190,
+      "sha256": "2104a37dc2c472501f330047a00c173a1fc1cdb474da64231b6f520f34551bf2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/nightly.log.gz",
+      "bytes": 227,
+      "sha256": "4f18a41fd6e1b665a9a75f20a76b4c957d744f95078e3799f35afbcc9d1a5642"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/nightly.receipt.json",
+      "bytes": 1538,
+      "sha256": "c8d60208f624df5913b213c7aea47df544e79d30628263c4ceda64d95052a6f2"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/run-gate.py",
+      "bytes": 5196,
+      "sha256": "19f70e13be916748ecca9f519b82360a742a1e17fb652e47d134737c47459cf6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/running.json",
+      "bytes": 1368,
+      "sha256": "53d51a7c095f23112f86a486fc0f4a72371e99a6db451fcbe08825129bb2226b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/rustdoc-after-caches.json",
+      "bytes": 1182,
+      "sha256": "e2098428dbdd3157dfb9a0c99d492fb3b8adad75a776d235b5b03fa8f13aa557"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/rustdoc-after.df",
+      "bytes": 190,
+      "sha256": "9b79e70eff2e88171b0fec8159347b1155b3cfe991f2300da68bc4c5ad84a765"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/rustdoc-before-caches.json",
+      "bytes": 1182,
+      "sha256": "76d576caa7f6954b3ff18300c2d2377a6295b1727b0d16c934f0089be7f35347"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/rustdoc-before.df",
+      "bytes": 190,
+      "sha256": "5486e7341b29a20f31d8a05f7c4ae0b4c5b9c441e7fc94c9c58445a6727341a5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/rustdoc.log.gz",
+      "bytes": 288,
+      "sha256": "49af98cf5c168a1f194eeab1731be74e74b93be25cff825c5f0ad67b9a12cdd6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/rustdoc.receipt.json",
+      "bytes": 1513,
+      "sha256": "965f6d98e8d10c5f4f3fc3ab146ab3215d598ec571c20228a443badc354a0c16"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/six-gates-summary.json",
+      "bytes": 11321,
+      "sha256": "cc7606f390ddd767c4a24393410d337de13018398ce66c833bd758051a3904ca"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/workspace-after-caches.json",
+      "bytes": 1182,
+      "sha256": "76d576caa7f6954b3ff18300c2d2377a6295b1727b0d16c934f0089be7f35347"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/workspace-after.df",
+      "bytes": 190,
+      "sha256": "0386213671759997b0db7b0264a48d77357571696d5ff06674d3a24293e34ba5"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/workspace-before-caches.json",
+      "bytes": 1182,
+      "sha256": "76d576caa7f6954b3ff18300c2d2377a6295b1727b0d16c934f0089be7f35347"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/workspace-before.df",
+      "bytes": 190,
+      "sha256": "50c410940537348460b0ea49d924dfc89d9b8f4b9a26fe87999636bd7b1e0ece"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/workspace.log.gz",
+      "bytes": 38290,
+      "sha256": "4cefe838e2ab035cd740adceadefed10598cad80bee89cd8ab7bd88ba7f948f7"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/original/q5-network-enabled-retry-v1/workspace.receipt.json",
+      "bytes": 1519,
+      "sha256": "52f30d26517880719f277f13f10558121743234ebc03e8f7d814aa465c7a9336"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v1/artifact-manifest.json",
+      "bytes": 858,
+      "sha256": "562d435fe8ef40570650599998fca5b1ec83270d32555eb8ce6f76e28a966f89"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v1/receipt.json",
+      "bytes": 1086,
+      "sha256": "22666ccbe74ad97714897188a11e468edde0b7c060ec2a960038ebbf7ddd106f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v1/report.zh-CN.md",
+      "bytes": 2405,
+      "sha256": "fc41e8ec0f562008834a887e89bbab46ec29a19b07df5bdaff6c9225fefbdf3f"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v1/review-basis.json",
+      "bytes": 8814,
+      "sha256": "5ad477769d93f4b9864bcb3f44e2a20f214e3f8f70b5fa86ba9f25cc71a823bf"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v1/review.py",
+      "bytes": 6574,
+      "sha256": "d4cacfcd823469cf8a7e80585cc59510a71d045c5b9b0f9d9b75476634e1d8b9"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v1/reviewed-source.patch.gz",
+      "bytes": 13067,
+      "sha256": "7805b06d6d8b4f1d2c2ae838a4861b5c51f51c29f47b458d597f6604e5f6fede"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v1/verify.py",
+      "bytes": 1115,
+      "sha256": "a66675d23fe68158ac6ee3f29547fd1aee21aa9d1a2e17780d860c9713e595a9"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v2/artifact-manifest.json",
+      "bytes": 835,
+      "sha256": "dfcf78163a5f79aaa53974094268b65f9e8fc777370df596024ce43ae3425236"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v2/receipt.json",
+      "bytes": 1058,
+      "sha256": "4341a3c8d57218cd84e67c91973e9354f891ab5336d518567f7f21db6b3b5c6d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v2/report.zh-CN.md",
+      "bytes": 1874,
+      "sha256": "523bdded4d1cc9f9b60ea618b4e5895aa9c543eead90b03150463e280585632d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v2/review-basis.json",
+      "bytes": 6860,
+      "sha256": "3dc9af65e8fa91c864861122ff4b9afb10782a5e47537a9c1a56e3be97084728"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v2/review.py",
+      "bytes": 4980,
+      "sha256": "35bad50b6c1087779231e708e96a295ea93b3d8cd64fb910ccb424fa7e1039ae"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v2/v3-to-v5-fixture-only.patch.gz",
+      "bytes": 2290,
+      "sha256": "b05cbfe1a9e0f48e64a9a0a635f75fcdf376e93148b818be82842fc7444ea607"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/reviews/source-standards-v2/verify.py",
+      "bytes": 925,
+      "sha256": "4f40931a2a8b987c5daa936e73ee460cf437d3868b25a9dace7bf94f09b59193"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/seal.json",
+      "bytes": 495,
+      "sha256": "0f5a3d13d5554dedd178ca7c8e7f3ce4712bf7406bfe320e58302fd5b118c37d"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/base-references.json",
+      "bytes": 6508,
+      "sha256": "077bb660257d3b2f65ca42be3ddb65cf7967b5edb181ecba497cb61fa3aa9d9b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/candidate.patch.gz",
+      "bytes": 13163,
+      "sha256": "b38e10e81a682c30473990b6b8e1fd6e351e22590c538267590d5798fac30f13"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/compiled-inputs.json.gz",
+      "bytes": 28434,
+      "sha256": "f481cce34bcb6dac584b4d6a8225f655ffd4f2684f4e8bef0811ccee419cfb48"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/final-source-manifest.json.gz",
+      "bytes": 49367,
+      "sha256": "90eeb6e2697ccc3d2b4990fd48b145afbf893549d693e777887c2113d7249e00"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/payloads/a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5.rs.gz",
+      "bytes": 19761,
+      "sha256": "88ffbc290067d1103de2f3388e6bcf77dfec7ef375f12439841ea55ca486e353"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/payloads/b498c091c580665e0f4d584ca8b36ca39723f7753b8c3831cb85afa07877e042.rs.gz",
+      "bytes": 3404,
+      "sha256": "7f83880e3d9d7dbdec2101f30096be66dd52e9f84b5aafdebd3c80f49f838768"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/payloads/ce8ca227d3c4e032dbf6c5d2ded45df7e560c13016c6c8e6ade4071431860458.rs.gz",
+      "bytes": 8710,
+      "sha256": "67e4a10cfa0bc6808351387f97696862c48ee256769c9c25ff1e7c55f54cc574"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/provenance.json",
+      "bytes": 552,
+      "sha256": "097cdd1b2d03373a76fc9bca6120cd6b7e4f818e06cf87960caf546d7124b57b"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/source/reconstruction.json",
+      "bytes": 1443,
+      "sha256": "962d9722c453bc0e8f7126ebf60f78ea17ab1760d4a87e4923925a07cedc62f6"
+    },
+    {
+      "path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/verify.py",
+      "bytes": 17670,
+      "sha256": "2372b4eea29dedc278e864750eb77e7386f6cbaf2a3484d74153e118d477cbc8"
+    },
+    {
+      "path": "docs/qualification/experimental-a2a-subscription-policy-2026-10-16.json",
+      "bytes": 4938,
+      "sha256": "267186048a212d8c7383504e3d3c0051b4331fc27b24c620de144965036cf40f"
+    },
+    {
+      "path": "docs/qualification/experimental-a2a-subscription-policy-2026-10-16.md",
+      "bytes": 6233,
+      "sha256": "425082f9f59e091fab550de1c5d43c0d37444b99154dbb4729fcd7dd61dfe6d7"
+    },
+    {
+      "path": "docs/qualification/experimental-a2a-subscription-policy-2026-10-16.zh-CN.md",
+      "bytes": 5617,
+      "sha256": "bdb3f85250edda877d5d8fac7b56ccba1be35e26df07138379a624f2e4586d8c"
+    }
+  ]
+}

@@ -1,0 +1,38 @@
+{
+  "status": "frozen component publication candidate; independent final publication review pending",
+  "base_main_commit": "85f3fd556ff7623ef148da7e335b67e08dd022ad",
+  "source_tree_sha256": "eeddc9f7e9c92023a0b0c1f9a7220cccc1b4c5d846ae4281d4a4aeff9b0f30f4",
+  "source_files": 928,
+  "conservative_supplied_inputs": 536,
+  "canonical_supplied_input_sha256": "31b3be83c5a1d38e8204d6d2fd9caf7989206b93d401aeac4045149e7f298807",
+  "evidence_manifest_sha256": "6921ba2f1355afda2934b365801d4acdae7360b1b30e6f6838457e78a950a883",
+  "evidence_files_excluding_manifest_and_seal": 219,
+  "reports": [
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.md",
+      "bytes": 9357,
+      "sha256": "2fddb7908c7438136aa707f2d9f64bd3e866b5702199d9a184c3ad0bfcb07440"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.zh-CN.md",
+      "bytes": 7806,
+      "sha256": "b131040f1c1062530ad36b530dc67fa9c6edcddf7b266483b6c7d4d15bcdcb77"
+    },
+    {
+      "path": "docs/qualification/experimental-mcp-bound-state-2026-10-15.json",
+      "bytes": 8629,
+      "sha256": "b70f22cff9a10c9dc64958fd57b0ad140c78d91c8f4cb686786239681a94c1db"
+    }
+  ],
+  "component_six_strict_and_dual_serial_14_passed": true,
+  "actual_CI_opt1_Ubuntu_full_job_qualified": false,
+  "main_modified_by_collector": false,
+  "source_adoption_only_twelve_MCP_files": true,
+  "seven_adoption_documents_external_separate_candidate": true,
+  "CI_candidate_sha256": "6568a90f4de078ef9f4bc7469e7891b72af7b00619301ee645dced64fea14fd9",
+  "offline_verifier_exit_code": 0,
+  "actual_workspace_pre_adoption_expected_rejection": true,
+  "no_new_build_DB_or_network_by_collector": true,
+  "no_binary_cache_or_new_complete_source_archive": true,
+  "review_role_limits": "Execution-fact reviewer authored original tests; not counted as independent source/test Standards or Spec. Seven-document independent Standards/Spec review is documentation scope only."
+}

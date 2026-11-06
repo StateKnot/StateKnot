@@ -1,0 +1,28 @@
+{
+  "classification": "independent three-document Standards review, final immutable docs-v3 with preserved v1 finding",
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "conservative_inputs": 536,
+  "compiled_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "reviewer_authored_docs": false,
+  "reviewer_authored_this_Debug_code_or_TCP_test_family": false,
+  "v1_original_wording_findings": 1,
+  "v1_findings_preserved": true,
+  "v3_closed_wording_findings": 1,
+  "remaining_documented_standard_findings": 0,
+  "remaining_heuristic_smell_findings": 0,
+  "fixed_doc_manifest_sha256": "aef6ecd8f947bf410d4e97f721ea3d0fb7c01a1a5b23dce1bf4d2d07b54a1044",
+  "fixed_doc_receipt_sha256": "add2713ee28d08b2942e4b4ad5e2fed4b5cd7c76e6c6e06d3d12448688137932",
+  "checks": [
+    "actual diff against fixed Git8016",
+    "insertions only; all original code fences and paragraphs retained",
+    "exact four Debug types, fixed fields and bare InputRequired exclusions",
+    "2099/6ignored48doc independently recounted in v1 audit",
+    "four new targeted Native raw logs/receipts and fresh default Cargo artifacts independently read",
+    "per-major seven complete JSON marker equality",
+    "v2/v3 docs bytes identical, metadata targeted-vs-full clarified",
+    "no older Native/fullCI/stdio/R1 transfer",
+    "three reserved report targets require final collector publication"
+  ],
+  "qualification": "document Standards only; no independent source Spec or new execution gate grant",
+  "no_Cargo_network_DB_Docker_cache_main_or_candidate_edits": true
+}

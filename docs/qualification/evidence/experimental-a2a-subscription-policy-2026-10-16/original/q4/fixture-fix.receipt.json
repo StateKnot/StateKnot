@@ -1,0 +1,14 @@
+{
+  "previous_source": "d994771b87e580ef6b15e28dc101e35e52c2a97f9b9984ded83c060bc7968b56",
+  "source_tree": "bb156a58ea6d3e8e03579dc56f7d6f0c6805ea537ef6ccfe15937ff5674c4e94",
+  "compiled_relative_path_string_sorted_sha256": "a6772f17cc0bc417c550c0d1f98e841b25f2af6e27ff6d4e5d26feec2b232abe",
+  "changed_paths": [
+    "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs"
+  ],
+  "production_and_other_928_files_unchanged": true,
+  "v3_Clippy_101_seven_fixture_diagnostics_retained": true,
+  "changes": "type alias; docs wording; reuse existing capability value instead of fourth bool; borrow-only helper arguments; if-let; semicolon",
+  "no_lint_allow_no_assertion_timeout_or_matrix_removal": true,
+  "patch_raw_sha256": "3444f5c4ac0d60b03531bf5c559ee2367b3742395754cb69b47f3a1a0b6476ce"
+}

@@ -1,0 +1,125 @@
+{
+  "R1_closed": false,
+  "actual_green_v2": {
+    "tcp_failed": 0,
+    "tcp_filtered": 0,
+    "tcp_ignored": 0,
+    "tcp_passed": 10,
+    "zero_delay_exit_code": 0
+  },
+  "actual_red_v2": {
+    "exit_code": 101,
+    "healthy_first_poll": "Pending",
+    "task_first_poll": "Pending"
+  },
+  "bindings_preserved": [
+    "HTTP+JSON",
+    "JSON-RPC"
+  ],
+  "changed_compiled_path": "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+  "compile_failure_v1": {
+    "behavioral_red": false,
+    "exit_code": 101,
+    "reason": "unused Future import under -D warnings"
+  },
+  "compiled_input_count": 542,
+  "compiled_inputs_ordered_sha256": "550a257ada181f8686648fb4fb4fbbac324250208d22841d14220eb54abda956",
+  "cross_platform_ci_qualified": false,
+  "doctests": {
+    "failed": 0,
+    "filtered": 0,
+    "groups": 10,
+    "ignored": 0,
+    "passed": 48
+  },
+  "independent_review_receipt_sha256": "3337f4f77fca400137eef6f8c02ab8d572eccb184f55c5d6e33f8bb9a40ceb44",
+  "matrix_ids_preserved": 17,
+  "native_append": {
+    "binary_payload_included": false,
+    "binary_sha256": "8b24dc6926fecc84b9d92acdc85c5c2ff106d33486ea66872ef11b9c27fa5f22",
+    "build_preflight_v1_exit_code": 1,
+    "build_preflight_v1_started_cargo": false,
+    "build_v2_exit_code": 0,
+    "database_majors": [
+      16,
+      17
+    ],
+    "filtered_per_major": 192,
+    "full_Native_qualified": false,
+    "host_arch": "aarch64",
+    "host_os": "macos",
+    "inventory_entries": 193,
+    "marker_fields": 19,
+    "markers_per_major": 2,
+    "passed_per_major": 1,
+    "runtime_host_linux_qualified": false,
+    "scope": "independently rebuilt final-combination PG16/17 Runtime Wait exact only",
+    "seconds_by_major": {
+      "16": 16.282186031341553,
+      "17": 17.462939023971558
+    },
+    "selected_fresh_false_artifacts": 4
+  },
+  "native_execution_included": true,
+  "native_input_set_equals_original": true,
+  "native_inputs_ordered_sha256": "d88e7d73b5b08eeda7bf8d98480be8ad2e68e3b9b4513a002b4742c820f02b16",
+  "new_control_assertions": 1,
+  "not_qualified": [
+    "full Native",
+    "cross-platform CI",
+    "original CI failure cause or remediation",
+    "Linux Runtime profile",
+    "capacity",
+    "real IdP or persistent A2A backend",
+    "deployment",
+    "R1 closure"
+  ],
+  "original_CI_failures": [
+    {
+      "host": "macos",
+      "job": 116890696746,
+      "run": 38875878233,
+      "symptom": "ready_race HTTP500 vs 200"
+    },
+    {
+      "host": "windows",
+      "job": 116890696979,
+      "run": 38875878233,
+      "symptom": "healthy HTTP500 vs 200"
+    },
+    {
+      "host": "windows",
+      "job": 116896024832,
+      "run": 38877511506,
+      "symptom": "healthy HTTP200 first SSE task.id Null vs task-b"
+    }
+  ],
+  "original_assertions_preserved": 81,
+  "original_ci_root_cause_proved": false,
+  "original_timeouts_preserved": true,
+  "parent_wait_source_tree_sha256": "b286803afacf84278ffa579e8f898610e9474378bd982897e90f1c3c0f0c718c",
+  "production_code_changed": false,
+  "schema_version": 1,
+  "six_strict_local_gates": {
+    "all_actual_exit_codes": 0,
+    "names": [
+      "fmt",
+      "clippy",
+      "workspace",
+      "doctests",
+      "rustdoc",
+      "nightly"
+    ],
+    "seconds": 329.6834900379181
+  },
+  "source_file_count": 933,
+  "source_tree_sha256": "577fa6e6dac49dad92d37eb0683bfaf43a673e86f99d3ad47111b51b26a9104a",
+  "status": "qualified_local_fixture_and_combined_wait_exact",
+  "workspace": {
+    "failed": 0,
+    "filtered": 0,
+    "groups": 100,
+    "ignored": 6,
+    "passed": 2124
+  }
+}

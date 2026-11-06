@@ -36,7 +36,7 @@ responses.
   after response;
 - read/write ambiguity mapped into StateKnot's durable Tool failure model.
 
-The adapter uses the official MCP Rust SDK `3.2.0`, pinned exactly in the
+The adapter uses the official MCP Rust SDK `3.5.0`, pinned exactly in the
 workspace. StateKnot's MSRV is therefore Rust `1.88.0`.
 
 ## Freeze one binding

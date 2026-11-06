@@ -1,0 +1,815 @@
+{
+  "report_date": "2026-10-12",
+  "status": "experimental; complete native qualification remains open",
+  "milestone_r1_closed": false,
+  "rfc_0022_status": "Draft",
+  "code_head": "630e4c68fbe167234c9957aa5580ca230e510e09",
+  "code_tree": "dac011e6dec01984b68db5a083d10456cc1397ec",
+  "production_commits": [
+    "3c15c595f2395e48e21c943d08784cfdfb11a7ec",
+    "630e4c68fbe167234c9957aa5580ca230e510e09"
+  ],
+  "source_manifest": {
+    "path": "/private/tmp/stateknot-ordinary35-private-future-inputs-v7.json",
+    "receipt_sha256": "65274014e47249c4ea05ac9fcc09a30632445ac14474c4d54af781985320533a",
+    "manifest_sha256": "6f7dfde47feeb762a0b2dc8c18e6e749eb4eaedd70b66734e34c46c77bae733b",
+    "files": 875,
+    "exact_tracked_source_matches_dco": true,
+    "frozen_source": "/private/tmp/stateknot-ordinary35-private-future-source-v7"
+  },
+  "static": [
+    {
+      "name": "nightly",
+      "command": [
+        "cargo",
+        "+nightly-2026-10-07",
+        "check",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--offline"
+      ],
+      "exit": 0,
+      "passed": true,
+      "source_equal": true,
+      "compiler": "rustc 1.101.0-nightly (8d1a76430 2026-10-06)\nbinary: rustc\ncommit-hash: 8d1a76430406c877b35d0b627e7f796dcf0dfeca\ncommit-date: 2026-10-06\nhost: aarch64-apple-darwin\nrelease: 1.101.0-nightly\nLLVM version: 23.1.3\n",
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-nightly-v7.log",
+        "sha256": "7987f3acc42c48160a5d52f92942e84b4f4f94882cac58bb2f541b32e09d0faf"
+      }
+    },
+    {
+      "name": "fmt",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "fmt",
+        "--all",
+        "--check"
+      ],
+      "exit": 0,
+      "passed": true,
+      "source_equal": true,
+      "compiler": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-apple-darwin\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-fmt-v7.log",
+        "sha256": "471e644b83f905e0386ded360090b6abc0dea655241f4dc20a1a32daffc99d35"
+      }
+    },
+    {
+      "name": "strict-clippy",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "clippy",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--offline",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "passed": true,
+      "source_equal": true,
+      "compiler": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-apple-darwin\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-strict-clippy-v7.log",
+        "sha256": "960858d211ed0fc61601ec378a1ecf75fb59c4c6d1988d6665e58fee3bfe4c84"
+      }
+    },
+    {
+      "name": "workspace-loopback",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--all-targets",
+        "--all-features",
+        "--locked",
+        "--offline"
+      ],
+      "exit": 0,
+      "passed": true,
+      "source_equal": true,
+      "actual_passed": 2014,
+      "ignored": 6,
+      "seconds": 101.52981972694397,
+      "compiler": "rustc 1.88.0 (6b00bc388 2025-06-23)\nbinary: rustc\ncommit-hash: 6b00bc3880198600130e1cf62b8f8a93494488cc\ncommit-date: 2025-06-23\nhost: aarch64-apple-darwin\nrelease: 1.88.0\nLLVM version: 20.1.5\n",
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-workspace-loopback-v7.log",
+        "sha256": "34978c03a3c321cc833a9308d4e104c3d9cc5257d3b9c20c9581e3b95f364ab6"
+      }
+    },
+    {
+      "name": "doctest",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "--workspace",
+        "--doc",
+        "--all-features",
+        "--locked",
+        "--offline"
+      ],
+      "exit": 0,
+      "passed": true,
+      "source_equal": true,
+      "actual_passed": 45,
+      "seconds": 10.017432928085327,
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-doctest-v7.log",
+        "sha256": "51233a9a31f9cb3eb95f15a2c6bce411266b71102090049bf7911a4ba123c13e"
+      }
+    },
+    {
+      "name": "strict-rustdoc",
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "doc",
+        "--workspace",
+        "--all-features",
+        "--no-deps",
+        "--locked",
+        "--offline"
+      ],
+      "exit": 0,
+      "passed": true,
+      "source_equal": true,
+      "seconds": 30.561680793762207,
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-strict-rustdoc-v7.log",
+        "sha256": "9d079c9f8ba892b88933e90da36e407ba1be97a182ceb0bdd0358d39a77bd3f2"
+      }
+    }
+  ],
+  "focused_native": [
+    {
+      "receipt": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-ordinary16-v7.json",
+        "sha256": "3adfc809e24a2e7ebcec7b4306861ad2e1fcc110b089e3f5a52fa1d2ff6a8b9d"
+      },
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "-p",
+        "stateknot-runtime",
+        "--all-features",
+        "--test",
+        "postgres",
+        "--locked",
+        "--offline",
+        "ordinary_root::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "mode": "ordinary",
+      "major": 16,
+      "passed": true,
+      "exit": 0,
+      "summary": [
+        [
+          "ok",
+          "9",
+          "0",
+          "0",
+          "0",
+          "143"
+        ]
+      ],
+      "actual_expected_test_count": 9,
+      "source_equal": true,
+      "source": "/private/tmp/stateknot-ordinary35-private-future-source-v7",
+      "default_stack": true,
+      "original_leases": true,
+      "database": "stateknot_ordinary35_future_ordinary16_v7",
+      "database_before": {
+        "database": "stateknot_ordinary35_future_ordinary16_v7",
+        "migration_metadata": false,
+        "server_version_num": "160015",
+        "stateknot_tables": 0,
+        "user_tables": 0
+      },
+      "database_after": {
+        "database": "stateknot_ordinary35_future_ordinary16_v7",
+        "migration_metadata": true,
+        "server_version_num": "160015",
+        "stateknot_tables": 53,
+        "user_tables": 54
+      },
+      "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+      "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+      "owned_label": "nested-frames-20261009",
+      "flags": {
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "binary_sha256": {
+        "/private/tmp/stateknot-ordinary35-private-future-stable-target-v7/debug/deps/postgres-a91523361d8b2f7a": "83499cae7beeed61c9ee657acbad5a0ab001a79e165fc4d3d7d0e3ac2a5b6f30"
+      },
+      "started_at": 1791672712.890025,
+      "finished_at": 1791672914.417755,
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-ordinary16-v7.log",
+        "sha256": "fc48cd2d46bb3cc5649622155ad2b37cc69dd342e25243e9181215853bccd1ed"
+      }
+    },
+    {
+      "receipt": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-role16-retry2-v7.json",
+        "sha256": "a2072f88457b9802a0a9b3940c848f52c0a11ea6e431f14f59b70c32584b3a4f"
+      },
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "-p",
+        "stateknot-runtime",
+        "--all-features",
+        "--test",
+        "postgres",
+        "--locked",
+        "--offline",
+        "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ],
+      "mode": "role",
+      "major": 16,
+      "passed": true,
+      "exit": 0,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "151"
+        ]
+      ],
+      "actual_expected_test_count": 1,
+      "source_equal": true,
+      "source": "/private/tmp/stateknot-ordinary35-private-future-source-v7",
+      "default_stack": true,
+      "original_leases": true,
+      "database": "stateknot_ordinary35_future_role16_v7r2",
+      "database_before": {
+        "database": "stateknot_ordinary35_future_role16_v7r2",
+        "migration_metadata": false,
+        "server_version_num": "160015",
+        "stateknot_tables": 0,
+        "user_tables": 0
+      },
+      "database_after": {
+        "database": "stateknot_ordinary35_future_role16_v7r2",
+        "migration_metadata": false,
+        "server_version_num": "160015",
+        "stateknot_tables": 0,
+        "user_tables": 0
+      },
+      "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+      "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+      "owned_label": "nested-frames-20261009",
+      "flags": {
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "binary_sha256": {
+        "/private/tmp/stateknot-ordinary35-private-future-stable-target-v7/debug/deps/postgres-a91523361d8b2f7a": "83499cae7beeed61c9ee657acbad5a0ab001a79e165fc4d3d7d0e3ac2a5b6f30"
+      },
+      "started_at": 1791673053.579697,
+      "finished_at": 1791673132.540216,
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-role16-retry2-v7.log",
+        "sha256": "d949cab53d83e99995cfbd9ddc344d1fc938b224bd0a6525c2b87859465dd0ff"
+      }
+    },
+    {
+      "receipt": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-deadlines16-qualified-v7.json",
+        "sha256": "2a9b12a56939afdbfe61b86b4449fb2538e675d1bc1753a5343cb7b9a9669d9e"
+      },
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "-p",
+        "stateknot-runtime",
+        "--all-features",
+        "--test",
+        "postgres",
+        "--locked",
+        "--offline",
+        "child_admission::ownership::deadlines::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "mode": "deadlines",
+      "major": 16,
+      "passed": true,
+      "exit": 0,
+      "summary": [
+        [
+          "ok",
+          "11",
+          "0",
+          "0",
+          "0",
+          "141"
+        ]
+      ],
+      "actual_expected_test_count": 11,
+      "source_equal": true,
+      "source": "/private/tmp/stateknot-ordinary35-private-future-source-v7",
+      "default_stack": true,
+      "original_leases": true,
+      "database": "stateknot_ordinary35_future_deadlines16_v7r2",
+      "database_before": {
+        "database": "stateknot_ordinary35_future_deadlines16_v7r2",
+        "migration_metadata": false,
+        "server_version_num": "160015",
+        "stateknot_tables": 0,
+        "user_tables": 0
+      },
+      "database_after": {
+        "database": "stateknot_ordinary35_future_deadlines16_v7r2",
+        "migration_metadata": true,
+        "server_version_num": "160015",
+        "stateknot_tables": 53,
+        "user_tables": 54
+      },
+      "container_id": "6cec07e0be4f83c621bea02a84b117a6c0d9fc90733501ad3f1bd01c2f9e6808",
+      "image": "sha256:a3b7f434b2dc57ce85a67e171163eb8ab1a1ebcb39d27484661f26b1dfbe30d6",
+      "owned_label": "nested-frames-20261009",
+      "flags": {
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "binary_sha256": {
+        "/private/tmp/stateknot-ordinary35-private-future-stable-target-v7/debug/deps/postgres-a91523361d8b2f7a": "83499cae7beeed61c9ee657acbad5a0ab001a79e165fc4d3d7d0e3ac2a5b6f30"
+      },
+      "started_at": 1791673133.829749,
+      "finished_at": 1791673205.693459,
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-deadlines16-retry2-v7.log",
+        "sha256": "3dea15f279d62a31f61b5c414e7a6b29e5a3f7d767fc3beeb363dd5b14acb7b4"
+      }
+    },
+    {
+      "receipt": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-ordinary17-retry3-v7.json",
+        "sha256": "970190538f6b709c9ee017f614242815e6597a303d69b02cf98d1b1998e08731"
+      },
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "-p",
+        "stateknot-runtime",
+        "--all-features",
+        "--test",
+        "postgres",
+        "--locked",
+        "--offline",
+        "ordinary_root::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "mode": "ordinary",
+      "major": 17,
+      "passed": true,
+      "exit": 0,
+      "summary": [
+        [
+          "ok",
+          "9",
+          "0",
+          "0",
+          "0",
+          "143"
+        ]
+      ],
+      "actual_expected_test_count": 9,
+      "source_equal": true,
+      "source": "/private/tmp/stateknot-ordinary35-private-future-source-v7",
+      "default_stack": true,
+      "original_leases": true,
+      "database": "stateknot_ordinary35_future_ordinary17_v7r3",
+      "database_before": {
+        "database": "stateknot_ordinary35_future_ordinary17_v7r3",
+        "migration_metadata": false,
+        "server_version_num": "170011",
+        "stateknot_tables": 0,
+        "user_tables": 0
+      },
+      "database_after": {
+        "database": "stateknot_ordinary35_future_ordinary17_v7r3",
+        "migration_metadata": true,
+        "server_version_num": "170011",
+        "stateknot_tables": 53,
+        "user_tables": 54
+      },
+      "container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+      "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+      "owned_label": "nested-frames-20261009",
+      "flags": {
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "binary_sha256": {
+        "/private/tmp/stateknot-ordinary35-private-future-stable-target-v7/debug/deps/postgres-a91523361d8b2f7a": "83499cae7beeed61c9ee657acbad5a0ab001a79e165fc4d3d7d0e3ac2a5b6f30"
+      },
+      "started_at": 1791673409.0227141,
+      "finished_at": 1791673509.0484312,
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-ordinary17-retry3-v7.log",
+        "sha256": "f1959e73fde039dde0b4f858dc11913dcfec3d6a0e7abd856626d0168fdc2125"
+      }
+    },
+    {
+      "receipt": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-role17-retry3-v7.json",
+        "sha256": "1c0be188ea30bbed412e3bb30be684e20a8e1d89863ddc2696a26608e7a96d73"
+      },
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "-p",
+        "stateknot-runtime",
+        "--all-features",
+        "--test",
+        "postgres",
+        "--locked",
+        "--offline",
+        "child_admission::ownership::failure_close::role_profile::trusted_sql_role_profile_enforces_privileges_and_runs_durable_work",
+        "--",
+        "--nocapture",
+        "--test-threads=1",
+        "--exact"
+      ],
+      "mode": "role",
+      "major": 17,
+      "passed": true,
+      "exit": 0,
+      "summary": [
+        [
+          "ok",
+          "1",
+          "0",
+          "0",
+          "0",
+          "151"
+        ]
+      ],
+      "actual_expected_test_count": 1,
+      "source_equal": true,
+      "source": "/private/tmp/stateknot-ordinary35-private-future-source-v7",
+      "default_stack": true,
+      "original_leases": true,
+      "database": "stateknot_ordinary35_future_role17_v7r3",
+      "database_before": {
+        "database": "stateknot_ordinary35_future_role17_v7r3",
+        "migration_metadata": false,
+        "server_version_num": "170011",
+        "stateknot_tables": 0,
+        "user_tables": 0
+      },
+      "database_after": {
+        "database": "stateknot_ordinary35_future_role17_v7r3",
+        "migration_metadata": false,
+        "server_version_num": "170011",
+        "stateknot_tables": 0,
+        "user_tables": 0
+      },
+      "container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+      "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+      "owned_label": "nested-frames-20261009",
+      "flags": {
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "binary_sha256": {
+        "/private/tmp/stateknot-ordinary35-private-future-stable-target-v7/debug/deps/postgres-a91523361d8b2f7a": "83499cae7beeed61c9ee657acbad5a0ab001a79e165fc4d3d7d0e3ac2a5b6f30"
+      },
+      "started_at": 1791673509.843502,
+      "finished_at": 1791673570.740494,
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-role17-retry3-v7.log",
+        "sha256": "9d05f4db0c142f70d3a157c3eba8939342a739fff5f7b1f3dcd8cb7472d8157f"
+      }
+    },
+    {
+      "receipt": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-deadlines17-retry3-v7.json",
+        "sha256": "3e3440bf0cbff347b7e0268ec9691f254e16220d8c078d8f3eec076897c86955"
+      },
+      "command": [
+        "cargo",
+        "+1.88.0",
+        "test",
+        "-p",
+        "stateknot-runtime",
+        "--all-features",
+        "--test",
+        "postgres",
+        "--locked",
+        "--offline",
+        "child_admission::ownership::deadlines::",
+        "--",
+        "--nocapture",
+        "--test-threads=1"
+      ],
+      "mode": "deadlines",
+      "major": 17,
+      "passed": false,
+      "exit": 101,
+      "summary": [
+        [
+          "FAILED",
+          "10",
+          "1",
+          "0",
+          "0",
+          "141"
+        ]
+      ],
+      "actual_expected_test_count": 11,
+      "source_equal": true,
+      "source": "/private/tmp/stateknot-ordinary35-private-future-source-v7",
+      "default_stack": true,
+      "original_leases": true,
+      "database": "stateknot_ordinary35_future_deadlines17_v7r3",
+      "database_before": {
+        "database": "stateknot_ordinary35_future_deadlines17_v7r3",
+        "migration_metadata": false,
+        "server_version_num": "170011",
+        "stateknot_tables": 0,
+        "user_tables": 0
+      },
+      "database_after": {
+        "database": "stateknot_ordinary35_future_deadlines17_v7r3",
+        "migration_metadata": true,
+        "server_version_num": "170011",
+        "stateknot_tables": 53,
+        "user_tables": 54
+      },
+      "container_id": "8923061ca4e07940bfe76db5e534a4d34aceeb0abad03214fa1cb962e822b9e6",
+      "image": "sha256:f4c66b820c6f974249089d3d16d86a3698eae11e8746eb6644b2271031e91232",
+      "owned_label": "nested-frames-20261009",
+      "flags": {
+        "CARGO_BUILD_JOBS": "2",
+        "CARGO_INCREMENTAL": "0",
+        "CARGO_PROFILE_DEV_DEBUG": "0",
+        "CARGO_PROFILE_TEST_DEBUG": "0"
+      },
+      "binary_sha256": {
+        "/private/tmp/stateknot-ordinary35-private-future-stable-target-v7/debug/deps/postgres-a91523361d8b2f7a": "83499cae7beeed61c9ee657acbad5a0ab001a79e165fc4d3d7d0e3ac2a5b6f30"
+      },
+      "started_at": 1791673572.140049,
+      "finished_at": 1791673648.172349,
+      "log": {
+        "path": "/private/tmp/stateknot-ordinary35-private-future-deadlines17-retry3-v7.log",
+        "sha256": "4392fdacac97673823f8e470df212cb524053eaa19a0769643951655fda6ed58"
+      }
+    }
+  ],
+  "focused_native_summary": {
+    "selected_passed": 41,
+    "selected_failed": 1,
+    "input_gated_process_helpers_in_selected_count": 4,
+    "ordinary_root_each_postgres": 9,
+    "complete_role35_each_postgres": 1,
+    "native_full_suite_claimed": false
+  },
+  "previous_full_native": {
+    "code_head": "3c15c595f2395e48e21c943d08784cfdfb11a7ec",
+    "all_passed": false,
+    "passed": 803,
+    "failed": 3,
+    "actual_total": 806,
+    "reports": [
+      {
+        "receipt": {
+          "path": "/private/tmp/stateknot-ordinary35-frozen-store16-full-v1.json",
+          "sha256": "099064f7d9bf5bbfc90b9222bdc3fecd09f991fd26187bbaf82e2815c641f1d0"
+        },
+        "log": {
+          "path": "/private/tmp/stateknot-ordinary35-frozen-store16-full-v1.log",
+          "sha256": "47a1b5d9959380a2127e7b88fc4026b8ba411a2a4f5427764a00938c69094535"
+        },
+        "summary": [
+          [
+            "ok",
+            "251",
+            "0",
+            "0",
+            "0",
+            "0"
+          ]
+        ],
+        "passed": true
+      },
+      {
+        "receipt": {
+          "path": "/private/tmp/stateknot-ordinary35-frozen-store17-full-v1.json",
+          "sha256": "d0cf05e301bd3442c651da5246c48b99e1dc6e5d73dddbc222fc88fec45d7a7e"
+        },
+        "log": {
+          "path": "/private/tmp/stateknot-ordinary35-frozen-store17-full-v1.log",
+          "sha256": "d79e87ba00989e8175046ee0029ca29fa55b4f0bc804c3259cb852055b04d22a"
+        },
+        "summary": [
+          [
+            "FAILED",
+            "249",
+            "2",
+            "0",
+            "0",
+            "0"
+          ]
+        ],
+        "passed": false
+      },
+      {
+        "receipt": {
+          "path": "/private/tmp/stateknot-ordinary35-frozen-runtime16-full-v1.json",
+          "sha256": "fc643cf9264b69a945ee7c0f62aea2d1c2c59ca4781ed420c7914f21f43a7745"
+        },
+        "log": {
+          "path": "/private/tmp/stateknot-ordinary35-frozen-runtime16-full-v1.log",
+          "sha256": "6a528611bf5ae96331ce3f37c74c262e73232a0bf9a9f3809ba3036969c19462"
+        },
+        "summary": [
+          [
+            "FAILED",
+            "151",
+            "1",
+            "0",
+            "0",
+            "0"
+          ]
+        ],
+        "passed": false
+      },
+      {
+        "receipt": {
+          "path": "/private/tmp/stateknot-ordinary35-frozen-runtime17-full-v1.json",
+          "sha256": "7501fa805efc931b804b7d69017972ffd558885ad7aa56c5efe7096bd52737fb"
+        },
+        "log": {
+          "path": "/private/tmp/stateknot-ordinary35-frozen-runtime17-full-v1.log",
+          "sha256": "9d325d54b91e98f8f3c68172cc45a9d01f1003b85b456163c67ac6f3c627e2e2"
+        },
+        "summary": [
+          [
+            "ok",
+            "152",
+            "0",
+            "0",
+            "0",
+            "0"
+          ]
+        ],
+        "passed": true
+      }
+    ],
+    "analysis": {
+      "path": "/private/tmp/stateknot-ordinary35-full-native-open-failures-v1.md",
+      "sha256": "4e0b2c4b197b53dd42736d5a89e9e52f1d6425fbdf4e1213aa20804e30c79d65"
+    }
+  },
+  "retained_failing_scopes": [
+    "PG17 full Store: generic Root 8/16/32 edge fixture exceeded its original live lease before application replay qualification.",
+    "PG17 full Store: lawful absolute scoped Wait elapsed before registration; the separate Elapsed36 increment is not qualified by this source.",
+    "PG16 full Runtime: orphan parallel sibling completion exceeded the original five-second Driver timeout.",
+    "PG17 final-source focused deadline: NodeSuccess persisted 22.706ms before the original two-second Agent deadline; Waiting had not committed when Driver returned LeaseExpired."
+  ],
+  "deadline_failed_database_phase": {
+    "path": "/private/tmp/stateknot-ordinary35-deadline17-phase-v1.json",
+    "sha256": "6343bb89556b4013ea0943c2c4ced812e3f7703c77eb32d147be3565b9969633"
+  },
+  "same_binary_deadline_diagnostic": {
+    "receipt": {
+      "path": "/private/tmp/stateknot-ordinary35-deadline17-diagnostic-v1.json",
+      "sha256": "24700f95c685b48fe78139ff92b9395a5c2d92d3436dcdc7c47e581e8ed9253a"
+    },
+    "log": {
+      "path": "/private/tmp/stateknot-ordinary35-deadline17-diagnostic-v1.log",
+      "sha256": "da9499949bb6275395bd4c94c1650eeba25fa014207278e12f932bf0129983b1"
+    },
+    "summary": [
+      [
+        "ok",
+        "1",
+        "0",
+        "0",
+        "0",
+        "151"
+      ]
+    ],
+    "exit": 0,
+    "diagnostic_only": true,
+    "container_started_at": "2026-10-12T07:18:26.332131597Z",
+    "source_equal": true,
+    "binary_equal": true,
+    "default_stack": true,
+    "original_deadline_and_lease": true,
+    "phase": {
+      "events": [
+        {
+          "event_kind": "agent-admitted",
+          "previous_interval": null,
+          "recorded_at": "2026-10-12T07:23:13.999275+00:00",
+          "run_id": "01a12efe-829c-708f-a11c-38c044ff396f",
+          "sequence": 1,
+          "tenant_id": "deadline-wait-01a12efe-829a-7444-8cd1-7bfb7a3f1e85"
+        },
+        {
+          "event_kind": "graph-node-attempt-started",
+          "previous_interval": "00:00:00.243568",
+          "recorded_at": "2026-10-12T07:23:14.242843+00:00",
+          "run_id": "01a12efe-829c-708f-a11c-38c044ff396f",
+          "sequence": 2,
+          "tenant_id": "deadline-wait-01a12efe-829a-7444-8cd1-7bfb7a3f1e85"
+        },
+        {
+          "event_kind": "graph-node-attempt-succeeded",
+          "previous_interval": "00:00:00.130497",
+          "recorded_at": "2026-10-12T07:23:14.37334+00:00",
+          "run_id": "01a12efe-829c-708f-a11c-38c044ff396f",
+          "sequence": 3,
+          "tenant_id": "deadline-wait-01a12efe-829a-7444-8cd1-7bfb7a3f1e85"
+        },
+        {
+          "event_kind": "root-graph-barrier-committed",
+          "previous_interval": "00:00:00.215859",
+          "recorded_at": "2026-10-12T07:23:14.589199+00:00",
+          "run_id": "01a12efe-829c-708f-a11c-38c044ff396f",
+          "sequence": 4,
+          "tenant_id": "deadline-wait-01a12efe-829a-7444-8cd1-7bfb7a3f1e85"
+        },
+        {
+          "event_kind": "agent-deadline-cancellation-requested",
+          "previous_interval": "00:00:01.412694",
+          "recorded_at": "2026-10-12T07:23:16.001893+00:00",
+          "run_id": "01a12efe-829c-708f-a11c-38c044ff396f",
+          "sequence": 5,
+          "tenant_id": "deadline-wait-01a12efe-829a-7444-8cd1-7bfb7a3f1e85"
+        },
+        {
+          "event_kind": "agent-cancellation-confirmed",
+          "previous_interval": "00:00:01.045278",
+          "recorded_at": "2026-10-12T07:23:17.047171+00:00",
+          "run_id": "01a12efe-829c-708f-a11c-38c044ff396f",
+          "sequence": 6,
+          "tenant_id": "deadline-wait-01a12efe-829a-7444-8cd1-7bfb7a3f1e85"
+        }
+      ],
+      "runs": [
+        {
+          "admitted_at": "2026-10-12T07:23:13.999275+00:00",
+          "agent_deadline_at": "2026-10-12T07:23:15.947336+00:00",
+          "journal_recorded_at": "2026-10-12T07:23:17.047171+00:00",
+          "journal_sequence": 6,
+          "lease_expires_at": null,
+          "lifecycle_status": "cancelled",
+          "quarantined_at": null,
+          "run_id": "01a12efe-829c-708f-a11c-38c044ff396f",
+          "tenant_id": "deadline-wait-01a12efe-829a-7444-8cd1-7bfb7a3f1e85"
+        }
+      ]
+    }
+  },
+  "not_qualified": [
+    "complete final composed native gates",
+    "scoped ChildJoin or Elapsed36 combination",
+    "real N-1/N-2 published artifact upgrades",
+    "original owning-history production stage-cost/capacity targets",
+    "R1 Supported or milestone closure"
+  ],
+  "source_changes_after_qualification": "This report and adoption documents are a separate documentation commit; code qualification remains bound to the declared 875-file source. No qualification is inherited by a later combined tree."
+}

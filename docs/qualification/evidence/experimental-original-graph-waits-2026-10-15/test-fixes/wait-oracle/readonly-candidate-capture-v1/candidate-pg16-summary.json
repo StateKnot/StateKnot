@@ -1,0 +1,120 @@
+{
+  "label": "candidate-pg16",
+  "database": "stateknot_r1_a36_wait_oracle_oct15v1",
+  "major": "16",
+  "run": {
+    "tenant_id": "application-replay-wait-01a13f12-feff-705a-8ba1-e06dbd1db541",
+    "run_id": "01a13f12-feff-705a-8ba1-e06ebdec644a",
+    "lifecycle_status": "active",
+    "unresolved_wait_count": 0,
+    "journal_sequence": 10,
+    "next_timer_due_at": null
+  },
+  "conditions": [
+    {
+      "wait_id": "01a13f12-fef8-700a-a630-739269291b5f",
+      "profile": "graph_registered",
+      "wait_kind": "interrupt",
+      "due_at": null,
+      "journal_sequence": 5,
+      "journal_recorded_at": "2026-10-15T10:19:32.4195+00:00",
+      "source_sequence": 4,
+      "source_recorded_at": "2026-10-15T10:19:32.285624+00:00"
+    },
+    {
+      "wait_id": "01a13f12-fef8-700a-a630-7393f3d4e6bb",
+      "profile": "graph_registered",
+      "wait_kind": "timer",
+      "due_at": "2026-10-15T10:19:32.459405+00:00",
+      "journal_sequence": 5,
+      "journal_recorded_at": "2026-10-15T10:19:32.4195+00:00",
+      "source_sequence": 4,
+      "source_recorded_at": "2026-10-15T10:19:32.285624+00:00"
+    }
+  ],
+  "registration": [
+    {
+      "wait_id": "01a13f12-fef8-700a-a630-739269291b5f",
+      "wait_kind": "interrupt",
+      "due_at": null,
+      "registered_at": "2026-10-15T10:19:32.4195+00:00",
+      "status": "resolved",
+      "registration_sequence": 5,
+      "terminal_sequence": 6,
+      "terminal_recorded_at": "2026-10-15T10:19:33.290735+00:00"
+    },
+    {
+      "wait_id": "01a13f12-fef8-700a-a630-7393f3d4e6bb",
+      "wait_kind": "timer",
+      "due_at": "2026-10-15T10:19:32.459405+00:00",
+      "registered_at": "2026-10-15T10:19:32.4195+00:00",
+      "status": "fired",
+      "registration_sequence": 5,
+      "terminal_sequence": 7,
+      "terminal_recorded_at": "2026-10-15T10:19:33.807077+00:00"
+    }
+  ],
+  "events": [
+    {
+      "sequence": 1,
+      "event_kind": "agent-admitted",
+      "recorded_at": "2026-10-15T10:19:32.01107+00:00",
+      "event_id": "01a13f12-ff1e-768b-b1f6-43002b8127f9"
+    },
+    {
+      "sequence": 2,
+      "event_kind": "graph-frame-entered",
+      "recorded_at": "2026-10-15T10:19:32.098657+00:00",
+      "event_id": "01a13f12-ff5c-73a3-9784-f83a31cfa2c3"
+    },
+    {
+      "sequence": 3,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T10:19:32.203945+00:00",
+      "event_id": "01a13f12-ffbf-7720-95b4-0bf153488573"
+    },
+    {
+      "sequence": 4,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T10:19:32.285624+00:00",
+      "event_id": "01a13f12-fff7-7067-8704-4281c011b0bb"
+    },
+    {
+      "sequence": 5,
+      "event_kind": "graph-frame-barrier-committed",
+      "recorded_at": "2026-10-15T10:19:32.4195+00:00",
+      "event_id": "01a13f13-0083-7562-a3cc-aabc92083da1"
+    },
+    {
+      "sequence": 6,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T10:19:33.290735+00:00",
+      "event_id": "01a13f13-03c4-7188-83a9-6107fd82f3c2"
+    },
+    {
+      "sequence": 7,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T10:19:33.807077+00:00",
+      "event_id": "01a13f13-05b6-73ce-bfa9-8d51135cb921"
+    },
+    {
+      "sequence": 8,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T10:19:34.611027+00:00",
+      "event_id": "01a13f13-08f1-763e-ad7d-231ab69063ae"
+    },
+    {
+      "sequence": 9,
+      "event_kind": "integration-event",
+      "recorded_at": "2026-10-15T10:19:34.875297+00:00",
+      "event_id": "01a13f13-0971-7235-812e-1dc3088506dc"
+    },
+    {
+      "sequence": 10,
+      "event_kind": "graph-frame-barrier-committed",
+      "recorded_at": "2026-10-15T10:19:35.186575+00:00",
+      "event_id": "01a13f13-0b08-7460-b513-420020a47195"
+    }
+  ],
+  "full_fixture_sha256": "7af17c606a76600ed807401f8f804761a62ebe8c037843318b36fa73a63d1324"
+}

@@ -1,0 +1,147 @@
+{
+  "local_file_links": 35,
+  "all_exist": true,
+  "resolution": "repository paths; candidate-only additions do not create links to new files",
+  "links": [
+    {
+      "file": "CHANGELOG.md",
+      "target": "docs/versioning-and-releases.md"
+    },
+    {
+      "file": "docs/a2a-client.md",
+      "target": "artifact-storage.md"
+    },
+    {
+      "file": "docs/a2a-client.md",
+      "target": "a2a-server.md"
+    },
+    {
+      "file": "docs/a2a-client.zh-CN.md",
+      "target": "artifact-storage.zh-CN.md"
+    },
+    {
+      "file": "docs/a2a-client.zh-CN.md",
+      "target": "a2a-server.zh-CN.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../r1-contract-gap-ledger.zh-CN.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "0025-protocol-identity-and-authority.zh-CN.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../../crates/stateknot-integrations/src/mcp_server.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../../crates/stateknot-integrations/src/mcp_server_app.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../../crates/stateknot-integrations/src/mcp_authorization.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../../crates/stateknot-integrations/src/mcp.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../../crates/stateknot-integrations/src/a2a_server.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../../crates/stateknot-integrations/src/a2a_client.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../../crates/stateknot-integrations/src/a2a_remote_agent.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../../crates/stateknot-core/src/identity.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../mcp-call-authorization.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../a2a-client.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "../a2a-server.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "0024-owned-bounded-mcp-stdio.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "target": "README.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../r1-contract-gap-ledger.zh-CN.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "0025-protocol-identity-and-authority.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../../crates/stateknot-integrations/src/mcp_server.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../../crates/stateknot-integrations/src/mcp_server_app.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../../crates/stateknot-integrations/src/mcp_authorization.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../../crates/stateknot-integrations/src/mcp.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../../crates/stateknot-integrations/src/a2a_server.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../../crates/stateknot-integrations/src/a2a_client.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../../crates/stateknot-integrations/src/a2a_remote_agent.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../../crates/stateknot-core/src/identity.rs"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../mcp-call-authorization.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../a2a-client.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "../a2a-server.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "0024-owned-bounded-mcp-stdio.zh-CN.md"
+    },
+    {
+      "file": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "target": "README.md"
+    }
+  ]
+}

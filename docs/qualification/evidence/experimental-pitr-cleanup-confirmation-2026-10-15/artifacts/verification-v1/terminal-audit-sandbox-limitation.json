@@ -1,0 +1,12 @@
+{
+  "phase": "post-execution read-only process audit",
+  "operation": "ps -p recorded task PIDs -o pid=,stat=,comm=",
+  "observed_error": "PermissionError: [Errno 1] Operation not permitted: ps",
+  "Native_or_build_reexecuted": false,
+  "Native_or_build_failure": false,
+  "all_requested_execution_sessions_already_waited_exit_zero": [
+    16807,
+    10019
+  ],
+  "next_action": "Scoped read-only escalated audit of task PIDs, cache, source and saved binary only"
+}

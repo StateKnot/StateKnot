@@ -1,0 +1,28 @@
+{
+  "schema": "stateknot.independent-doc-review.v1",
+  "status": "completed-0-findings",
+  "source_baseline": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "candidate_five_docs_tree_sha256": "22ff4125d7db754d83ef1c3486ae2749d37f4495891a7594d41ab11dc9b8acc1",
+  "candidate_manifest_sha256": "0bf93239c0aac54bed268e45a6decdac0d26db3e87f82a9a1226a51028fe3be3",
+  "incremental_patch_sha256": "bf30fc11fdcdf42affb1468dd2cd1c86807d2225fa3b190c7a647b0f749c35b4",
+  "production_candidate_sha256": "46022f375430c2387bb73e7914229a55de62144067417053327e0c06e3397216",
+  "standards": {
+    "count": 0,
+    "findings": []
+  },
+  "spec": {
+    "count": 0,
+    "findings": []
+  },
+  "resolved_parent_findings": [
+    {
+      "priority": "P2",
+      "title": "Scope duplicate no-policy promise to reuse of the same committed attempt receipt",
+      "resolution": "EN/CN now separately define refusal, same committed Failed/Unknown attempt receipt reuse, and fresh reauthorized recovery probes/attested MessageIdReplay",
+      "root_v1_evidence_preserved": true
+    }
+  ],
+  "local_file_links_verified": 35,
+  "main_or_candidate_modified_by_review": false,
+  "compiled_or_native_qualification_granted": false
+}

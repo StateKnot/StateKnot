@@ -1,0 +1,8 @@
+{
+  "source": "eeddc9f7e9c92023a0b0c1f9a7220cccc1b4c5d846ae4281d4a4aeff9b0f30f4",
+  "historical_only": true,
+  "adoptable": false,
+  "old14_greens_are_not_numeric_binding_qualification": true,
+  "invalidated_by_actual_numeric_counterexample": true,
+  "preserved_old_report_or_review_zeroes_do_not_override_new_red": true
+}

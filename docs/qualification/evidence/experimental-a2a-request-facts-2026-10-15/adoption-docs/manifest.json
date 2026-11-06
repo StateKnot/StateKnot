@@ -1,0 +1,35 @@
+{
+  "source_baseline": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "after_schema36_adoption_docs": "schema36-adoption-docs-v2",
+  "implementation_status": "Independent source candidate; no compile/Native execution yet",
+  "applied": false,
+  "files": [
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "4c12588491d577ba89a8bb531a438bd23cb27316b9a96f13131483447196fd32",
+      "bytes": 78331
+    },
+    {
+      "path": "docs/a2a-client.md",
+      "sha256": "de095c052caeb0019da8ca4e7b95f73e2ce39bfbb1551e2185b76ef3f1d750c6",
+      "bytes": 19651
+    },
+    {
+      "path": "docs/a2a-client.zh-CN.md",
+      "sha256": "d59809752cd474ecde2d5c473b4b6c1c8f1020fd26f48047e950b00af2c4b938",
+      "bytes": 18623
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.md",
+      "sha256": "345d422fb869f347e8fef51689fcb712fbb17c030d60268f62315a0242a2784e",
+      "bytes": 21266
+    },
+    {
+      "path": "docs/rfcs/0025-protocol-identity-and-authority.zh-CN.md",
+      "sha256": "d27169716d14f446e36fac5873a36044a2fdc3a29c173420ea2c69627e554d6b",
+      "bytes": 17634
+    }
+  ],
+  "parent_reviewed_docs": "a2a-auth-facts-adoption-docs-v1",
+  "only_delta": "RFC25 EN/CN narrow no-send/no-second-policy recovery assertion to duplicate recovery of the same committed durable Failed/Unknown attempt receipt; distinguish fresh probe/attested replay"
+}

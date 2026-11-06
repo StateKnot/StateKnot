@@ -1,0 +1,71 @@
+{
+  "source": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source",
+  "source_files": 922,
+  "source_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "source_unchanged": true,
+  "package": "stateknot-integrations",
+  "command": [
+    "cargo",
+    "test",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/Cargo.toml",
+    "-p",
+    "stateknot-integrations",
+    "--test",
+    "provider_native_postgres",
+    "--all-features",
+    "--locked",
+    "--no-run",
+    "--message-format=json"
+  ],
+  "workspace_only_clean": [
+    "cargo",
+    "clean",
+    "--manifest-path",
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/Cargo.toml",
+    "--target-dir",
+    "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-elapsed36-lint",
+    "-p",
+    "stateknot-integrations"
+  ],
+  "exit_code": 0,
+  "seconds": 45.052388191223145,
+  "artifacts": [
+    {
+      "package": "stateknot-integrations",
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot-integrations#0.1.0-alpha.1",
+      "name": "provider_native_postgres",
+      "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-integration/final-test-fixes-v1/strict-remaining-build-v1/stateknot-integrations",
+      "sha256": "be6d184250810c68cc7afe78fe3ccb6420c8f0d575f332267ec210e979729ecd",
+      "fresh": false
+    }
+  ],
+  "requested_library_compile_events": [
+    {
+      "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot-integrations#0.1.0-alpha.1",
+      "target": {
+        "kind": [
+          "lib"
+        ],
+        "crate_types": [
+          "lib"
+        ],
+        "name": "stateknot_integrations",
+        "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/elapsed36-attempt-proof-final-test-source/crates/stateknot-integrations/src/lib.rs",
+        "edition": "2024",
+        "doc": true,
+        "doctest": true,
+        "test": true
+      },
+      "fresh": false
+    }
+  ],
+  "strict_environment": {
+    "CARGO_INCREMENTAL": "0",
+    "CARGO_PROFILE_DEV_DEBUG": "0",
+    "CARGO_PROFILE_TEST_DEBUG": "0",
+    "RUSTFLAGS": "-D warnings",
+    "RUSTDOCFLAGS": "-D warnings"
+  },
+  "database_tests_executed": false
+}

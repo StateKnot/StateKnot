@@ -1,0 +1,23 @@
+{
+  "review": "test-author read-only v2-to-v3 increment; not independent Spec or execution qualification",
+  "static_remaining_findings": 0,
+  "source_tree": "560a04129499fa5fb7a435e556a1ce3f19f2e95a75064af412338a000196e95a",
+  "compiled_inputs_sha256": "4a59f6fbb2d89ae8a71a13e8806b819974ec985c07346c4e7cbe59ec1fd5821e",
+  "full_frozen_932_actual_map_checked": true,
+  "v2_to_v3_changed_paths": [
+    "crates/stateknot-runtime/tests/postgres/frame_return_process_faults.rs",
+    "crates/stateknot-store-postgres/tests/postgres/frame_barriers.rs"
+  ],
+  "runtime_delta": "only Box::pin(interrupt_return(...)).await and Box::pin(run_cut(...)).await; arguments, await position, both cuts and all oracles unchanged",
+  "middle_fixture": "byte-identical to frozen graph-frame-single-walk-baseline-source-v1 test file; no singlewalk production copied",
+  "middle_file_sha256": "ad11c5ae9ddb37adebe87f0d7f8620606b6f22832ebfddbae15369636732450d",
+  "middle_parent_manifest_sha256": "6c17515d8f8c64fd10d75c94587604d35d692386a43d203572e451f524057df5",
+  "supplied541_against_current_main_differences_only_four_test_paths": true,
+  "production_API_Root_auth_SQL_migrations_or_resources_changed": false,
+  "v1_v2_source_logs_and_helpers_unchanged": true,
+  "Rust_DB_Docker_Cargo_or_native_executed_by_reviewer": false,
+  "Native_inventory_guard_not_observed": {
+    "Store": 264,
+    "Runtime": 191
+  }
+}

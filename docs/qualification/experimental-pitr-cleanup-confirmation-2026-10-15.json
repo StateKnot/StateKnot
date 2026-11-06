@@ -1,0 +1,61 @@
+{
+  "status": "exact_922_candidate_success_path_cleanup_verified_composed_531_gates_pending",
+  "date": "2026-10-15",
+  "tested_candidate": {
+    "files": 922,
+    "tree_sha256": "82fc93f1e66fd13703bd9ae8bff268460829324cebe19ee94eaca497d87aed7d",
+    "parent_tree_sha256": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+    "only_changed_file": "crates/stateknot-runtime/tests/postgres/child_join_pitr.rs",
+    "production_Runtime_Core_Store_SQL_changed": false,
+    "saved_Runtime_binary_sha256": "994be9d00fe567660a847627c82b96a5e51c45e9ded56b0ba54e6760b75f0a32"
+  },
+  "checks": {
+    "targeted_Runtime_strict_Clippy": true,
+    "fresh_Runtime_build": true,
+    "Runtime_test_inventory": 189,
+    "Runtime189_suite_executed": false,
+    "PG16_14_exact_passed": 1,
+    "PG17_11_exact_passed": 1,
+    "unique_complete_marker_each": 1,
+    "resource_cleanup_verified_each": true,
+    "new_UUID_owned_named_resources_absent_each": {
+      "containers": 2,
+      "volumes": 3
+    }
+  },
+  "preserved_limits": {
+    "original_30s_10s_budgets_and_business_assertions": true,
+    "default_stack_and_resource_profiles_unchanged": true,
+    "failure_Drop_is_best_effort": true,
+    "all_failure_path_cleanup_qualified": false,
+    "old_PG16_WAL_volume_removed": false,
+    "old_PG16_WAL_volume": "stateknot-pitr-wal-01a13f6d5ad477909c16dcdd725a26b1",
+    "old922_cleanup_open_record_rewritten": false,
+    "Linux_host_qualified": false,
+    "host": "macos/aarch64",
+    "server_containers": "linux/arm64"
+  },
+  "composition": {
+    "contains_independent_A2A_531_source": false,
+    "composed_main_expected_compiled_inputs": 531,
+    "composed_original_opt0_six_gates": "pending; no result recorded here",
+    "new_full_four_Native_or_Runtime189_qualification": false,
+    "full_CI_qualified": false,
+    "R1_closed": false,
+    "RFC22": "Draft"
+  },
+  "original_evidence": {
+    "path": "evidence/experimental-pitr-cleanup-confirmation-2026-10-15",
+    "file_count": 121,
+    "indexed_artifacts": 119,
+    "all_121_original_bytes_unchanged": true,
+    "artifact_manifest_sha256": "0fea589c3fa9d716086c9cfff72592d8a25d31211466d6bb03a97952eb55f077",
+    "seal_sha256": "95196c31a3b6f56eb0984512c18a4e1c3003c90545b0b546e45c1bc7b2487720",
+    "profile_sha256": "3f719acfaee769ff502d7b18834e60af9449407b3936325747b63d921a00f7f9"
+  },
+  "links": {
+    "schema36": "experimental-original-graph-waits-2026-10-15.md",
+    "A2A": "experimental-a2a-request-facts-2026-10-15.md"
+  },
+  "verifier": "python3 docs/qualification/evidence/experimental-pitr-cleanup-confirmation-2026-10-15/verify.py"
+}

@@ -1,0 +1,648 @@
+{
+  "record_version": 1,
+  "record_kind": "bounded MCP HTTP response diagnostics verification",
+  "recorded_utc": "2026-10-16T03:43:33.021789+00:00",
+  "source": {
+    "base_tree_sha256": "69af3a0f28d333f4e67d2b2cfcc2afc071938a6ce398527cc098d31ee8db60d8",
+    "frozen_tree_sha256": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+    "frozen_source_files": 928,
+    "compiled_canonical_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+    "compiled_inputs": 536,
+    "compiled_list_order": "relative path strings sorted; canonical JSON of path/bytes/sha256 records",
+    "compiler_read_closure_claimed": false,
+    "whole_current_main_equals_frozen_928_claimed": false,
+    "final_payloads": 2,
+    "source_only_external_refs": 18,
+    "changed_files": [
+      "crates/stateknot-integrations/src/mcp_client.rs",
+      "crates/stateknot-integrations/tests/mcp_client_contract.rs"
+    ],
+    "non_Debug_non_Rustdoc_production_normalized_equal_base": true,
+    "error_network_parser_original_unit_suffix_byte_equal_base": true,
+    "original_contract_test357_line_byte_prefix_preserved": true
+  },
+  "diagnostics_contract": {
+    "ordinary_and_pretty_Debug": true,
+    "four_types": {
+      "McpNotification": [
+        "fixed type",
+        "has_params",
+        "non-exhaustive marker"
+      ],
+      "McpCompleteToolResult": [
+        "fixed type",
+        "content_count",
+        "has_structured_content",
+        "is_error",
+        "non-exhaustive marker"
+      ],
+      "McpRemoteError": [
+        "fixed type",
+        "original i32 code",
+        "has_data",
+        "non-exhaustive marker"
+      ],
+      "McpToolCallResponse": [
+        "fixed type",
+        "fixed outcome complete/input_required",
+        "notification_count",
+        "non-exhaustive marker"
+      ]
+    },
+    "outer_response_recurses_into_outcome_or_notifications": false,
+    "bare_McpInputRequired_and_McpToolCall_InputRequired_excluded": true,
+    "raw_getters_return_untrusted_data": true,
+    "Clone_PartialEq_getters_resume_wire_effect_retry_unchanged": true,
+    "HTTP_malformed_complete_write_effect_retry": [
+      "Applied",
+      "Never"
+    ],
+    "stdio_Unknown_mapping_adopted": false,
+    "new_API_dependencies_authentication_budgets": false
+  },
+  "six_local_gates": {
+    "state": "passed",
+    "toolchain": "1.88.0",
+    "nightly": "nightly-2026-10-07",
+    "gates": [
+      {
+        "gate": "fmt",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "fmt",
+          "--all",
+          "--check"
+        ],
+        "runner_pid": 55745,
+        "pid": 55755,
+        "start_unix": 1792119987.5449548,
+        "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+        "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+        "exit_code": 0,
+        "seconds": 2.7810401916503906,
+        "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "source_before_after_exact": true,
+        "native_database_execution": false
+      },
+      {
+        "gate": "clippy",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "clippy",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked",
+          "--",
+          "-D",
+          "warnings"
+        ],
+        "runner_pid": 55802,
+        "pid": 55812,
+        "start_unix": 1792119991.41268,
+        "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+        "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+        "exit_code": 0,
+        "seconds": 6.380017280578613,
+        "log_sha256": "14c5d1b425cbe5c4d530bb9daeff9bdf19b71d341c49356eef64e4e8a0b1e512",
+        "source_before_after_exact": true,
+        "native_database_execution": false
+      },
+      {
+        "gate": "workspace",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "test",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "runner_pid": 55875,
+        "pid": 55886,
+        "start_unix": 1792119998.869941,
+        "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+        "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+        "exit_code": 0,
+        "seconds": 326.44601917266846,
+        "log_sha256": "6619ef63088b3e0b3ed841fee47abcf91a85eb6877cdbe5b3a5ba3d10307fa20",
+        "source_before_after_exact": true,
+        "native_database_execution": false
+      },
+      {
+        "gate": "doctests",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "test",
+          "--workspace",
+          "--doc",
+          "--all-features",
+          "--locked"
+        ],
+        "runner_pid": 58429,
+        "pid": 58441,
+        "start_unix": 1792120326.891179,
+        "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+        "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+        "exit_code": 0,
+        "seconds": 13.012295961380005,
+        "log_sha256": "43418d1c39e7dedd61b1c9748213b99c8c7cb51f4236a2753915aed7d1022fb2",
+        "source_before_after_exact": true,
+        "native_database_execution": false
+      },
+      {
+        "gate": "rustdoc",
+        "command": [
+          "cargo",
+          "+1.88.0",
+          "doc",
+          "--workspace",
+          "--all-features",
+          "--no-deps",
+          "--locked"
+        ],
+        "runner_pid": 58581,
+        "pid": 58594,
+        "start_unix": 1792120341.342738,
+        "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+        "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+        "exit_code": 0,
+        "seconds": 40.97745203971863,
+        "log_sha256": "c5f85b0762b69c898b6c955380c03711f60256bc5292db8ca5e3a505e0c7f2d5",
+        "source_before_after_exact": true,
+        "native_database_execution": false
+      },
+      {
+        "gate": "nightly",
+        "command": [
+          "cargo",
+          "+nightly-2026-10-07",
+          "check",
+          "--workspace",
+          "--all-targets",
+          "--all-features",
+          "--locked"
+        ],
+        "runner_pid": 58806,
+        "pid": 58819,
+        "start_unix": 1792120383.908489,
+        "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+        "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+        "exit_code": 0,
+        "seconds": 50.256274938583374,
+        "log_sha256": "c803efea0b36f996f5747469167afdbd7d3223b99790439859a18024bf03ccd3",
+        "source_before_after_exact": true,
+        "native_database_execution": false
+      }
+    ],
+    "workspace": {
+      "suites": 99,
+      "passed": 2099,
+      "failed": 0,
+      "ignored": 6,
+      "filtered": 0
+    },
+    "doctests": {
+      "suites": 10,
+      "passed": 48,
+      "failed": 0,
+      "ignored": 0,
+      "filtered": 0
+    },
+    "original_opt0_default_stack": true,
+    "debug_assertions_and_overflow_checks_preserved": true,
+    "conditional_DB_workspace_entries_are_Native_evidence": false,
+    "original_receipt_attestation_limit": "Original six receipts contain PID/start/command/profile/log hash/source comparison; no contemporaneous runner hash or process environment allowlist. Full runner source is bound by this publication now, not retroactive runtime attestation."
+  },
+  "real_TCP_regression": {
+    "family": "http_response_debug_hides_payloads_without_changing_raw_values_or_resume",
+    "family_actual_passed": true,
+    "family_count": 1,
+    "branches": 8,
+    "branches_are_not_separate_harness_tests": true,
+    "transports": [
+      "JSON",
+      "fragmented SSE"
+    ],
+    "each_transport_outcomes": [
+      "Complete isError=false",
+      "Complete isError=true",
+      "InputRequired with notifications and explicit resume",
+      "JSON-RPC Remote error"
+    ],
+    "nested_canaries_ordinary_and_pretty_hidden": true,
+    "positive_controls": [
+      "parsed raw Values and their serialized bytes",
+      "Clone/PartialEq where existing",
+      "notification params presence/absence",
+      "structured content/isError/data presence",
+      "exact explicit resume state/arguments/response keys",
+      "fresh response IDs and exact call counts"
+    ],
+    "safe_nested_wrappers": [
+      "StatelessMcpClientError::Remote",
+      "McpToolCall::Complete",
+      "outer McpToolCallResponse including InputRequired outcome"
+    ]
+  },
+  "history": {
+    "original_Debug_canary": {
+      "exit_code": 101,
+      "passed": 0,
+      "failed": 1,
+      "filtered": 2,
+      "first_failure": "first JSON Complete nested canary",
+      "source_tree_sha256": "262754645fd0265a31fd1da53dd3150079b1a2bf31f6fd27768cda574e263300",
+      "raw_sha256": "fde49495aaf4bd84acc7f673816dbf90250c2b4a5a2a7368f7b0308205902858"
+    },
+    "first_fixed_candidate_Clippy": {
+      "exit_code": 101,
+      "cause": "test fixture JSON ID passed by Value",
+      "source_tree_sha256": "99861ea4d92e931a28608411f3611144d468c0c3d514ec880589a4e0752c8774",
+      "raw_sha256": "96e4fed554374155e12a7496a90e635dd30e05b1bf56a29d3fd593cae26dabc0",
+      "final_repair": "borrow the JSON ID; no production delta or new lint allowance"
+    }
+  },
+  "targeted_Native": {
+    "state": "passed",
+    "fresh_binary_count": 2,
+    "binary_payloads_in_publication": false,
+    "binaries": {
+      "mcp_durable": {
+        "sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+        "bytes": 63478624,
+        "cargo_artifact": {
+          "executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_durable-9299de57a29eb9cb",
+          "features": [],
+          "filenames": [
+            "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_durable-9299de57a29eb9cb"
+          ],
+          "fresh": false,
+          "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations/Cargo.toml",
+          "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations#0.1.0-alpha.1",
+          "profile": {
+            "debug_assertions": true,
+            "debuginfo": 0,
+            "opt_level": "0",
+            "overflow_checks": true,
+            "test": true
+          },
+          "reason": "compiler-artifact",
+          "target": {
+            "crate_types": [
+              "bin"
+            ],
+            "doc": false,
+            "doctest": false,
+            "edition": "2024",
+            "kind": [
+              "test"
+            ],
+            "name": "mcp_durable",
+            "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations/tests/mcp_durable.rs",
+            "test": true
+          }
+        },
+        "suite_names": [
+          "a2a_authorized_denial_commits_once_without_business_send_or_policy_repeat",
+          "a2a_authorized_send_reads_the_durable_start_and_recovery_does_not_send_again",
+          "a2a_send_is_durable_before_dispatch_and_unknown_is_not_redispatched",
+          "mcp_approved_denial_commits_without_remote_dispatch_or_repeat_authorization",
+          "mcp_approved_write_is_authorized_after_durable_start_and_reconciles_once",
+          "mcp_write_is_durable_before_dispatch_and_reconciles_without_redispatch"
+        ]
+      },
+      "mcp_reconciliation": {
+        "sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+        "bytes": 65610192,
+        "cargo_artifact": {
+          "executable": "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_reconciliation-f9bad79af7f236c0",
+          "features": [],
+          "filenames": [
+            "/Users/jiawy/Documents/RustAgentFramework/target/r1-oct15-proof-base/debug/deps/mcp_reconciliation-f9bad79af7f236c0"
+          ],
+          "fresh": false,
+          "manifest_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot/Cargo.toml",
+          "package_id": "path+file:///Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot#0.1.0-alpha.1",
+          "profile": {
+            "debug_assertions": true,
+            "debuginfo": 0,
+            "opt_level": "0",
+            "overflow_checks": true,
+            "test": true
+          },
+          "reason": "compiler-artifact",
+          "target": {
+            "crate_types": [
+              "bin"
+            ],
+            "doc": false,
+            "doctest": false,
+            "edition": "2024",
+            "kind": [
+              "test"
+            ],
+            "name": "mcp_reconciliation",
+            "src_path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot/tests/mcp_reconciliation.rs",
+            "test": true
+          }
+        },
+        "suite_names": [
+          "authenticated_reconciliation_is_atomic_fenced_and_recovers_a_lost_http_receipt",
+          "error::concurrent_success_and_failure_submissions_have_one_authoritative_winner",
+          "error::error_startup_rejects_missing_and_drifted_audit_schemas",
+          "error::known_error_definition_is_separate_closed_and_cannot_grant_retry",
+          "error::known_error_wire_rejects_foreign_authority_uncertainty_and_private_debug",
+          "error::known_errors_require_distinct_authority_and_recover_exact_lost_receipts",
+          "error::successful_v1_schemas_remain_byte_compatible",
+          "lost_receipt_gate_never_carries_release_into_another_request",
+          "reconciliation_definition_requires_explicit_scope_and_closed_shapes",
+          "wire_request_is_closed_and_debug_does_not_expose_output"
+        ]
+      }
+    },
+    "profile": "per-package default features[], opt0/debug0, assertions/overflow true, serial and default stack",
+    "records": [
+      {
+        "binary_sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "major": 16,
+        "markers": {
+          "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+            {
+              "calls": 0,
+              "case": "denial",
+              "duplicate_ledger_unchanged": true,
+              "durable_start_verified": true,
+              "payload_from_full_input": true,
+              "policy_calls": 1
+            },
+            {
+              "calls": 1,
+              "case": "lost_response",
+              "duplicate_ledger_unchanged": true,
+              "durable_start_verified": true,
+              "payload_from_full_input": true,
+              "policy_calls": 1
+            }
+          ],
+          "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+            {
+              "calls": 0,
+              "case": "denial",
+              "duplicate_ledger_unchanged": true,
+              "durable_before_authorization": true,
+              "policy_calls": 1
+            },
+            {
+              "calls": 1,
+              "case": "lost_response",
+              "durable_before_authorization": true,
+              "policy_calls": 1,
+              "reconciliation_idempotent": true
+            }
+          ]
+        },
+        "measured": 0,
+        "passed": 6,
+        "raw_sha256": "3e7770753082453e964cbbdf4504b5fa6c05b9da36f4fd10a4b30a32f1a5f272",
+        "seconds": 3.7735180854797363,
+        "suite": "mcp_durable"
+      },
+      {
+        "binary_sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "major": 16,
+        "markers": {
+          "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": [
+            {
+              "atomic_audit": true,
+              "authorization_before_lookup": true,
+              "distinct_scopes": true,
+              "duplicate_receipts_per_effect": 24,
+              "effects": 2,
+              "fresh_service_recovery": true,
+              "invariants": "passed",
+              "lost_http_receipt": true,
+              "profile": "known-error-reconciliation-v1",
+              "retry_never": true,
+              "stale_fence_rejected": true
+            }
+          ],
+          "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": [
+            {
+              "error_first_submissions": 24,
+              "invariants": "passed",
+              "mixed_success_failure_submissions": 24,
+              "same_event_identity": true,
+              "single_revision": true,
+              "success_first_conflict": true
+            }
+          ],
+          "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": [
+            {
+              "atomic_audit": true,
+              "authenticated_http": true,
+              "authorization_before_lookup": true,
+              "concurrent_first_submissions": 24,
+              "duplicate_receipts": 24,
+              "fresh_service_recovery": true,
+              "invariants": "passed",
+              "lost_http_receipt": true,
+              "profile": "mcp-result-reconciliation-v1",
+              "schema": 24,
+              "stale_fence_rejected": true
+            }
+          ]
+        },
+        "measured": 0,
+        "passed": 10,
+        "raw_sha256": "888752d869345d5d412fe38c34a20d560d843cce2a3ecb0a870f25cf2758bea1",
+        "seconds": 27.161367177963257,
+        "suite": "mcp_reconciliation"
+      },
+      {
+        "binary_sha256": "2717d6db539ad1604ba541d7f2f2d397c758a0f99deaf148cc7fd2627c9048ff",
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "major": 17,
+        "markers": {
+          "STATEKNOT_A2A_AUTHORIZATION_EVIDENCE": [
+            {
+              "calls": 0,
+              "case": "denial",
+              "duplicate_ledger_unchanged": true,
+              "durable_start_verified": true,
+              "payload_from_full_input": true,
+              "policy_calls": 1
+            },
+            {
+              "calls": 1,
+              "case": "lost_response",
+              "duplicate_ledger_unchanged": true,
+              "durable_start_verified": true,
+              "payload_from_full_input": true,
+              "policy_calls": 1
+            }
+          ],
+          "STATEKNOT_MCP_AUTHORIZATION_EVIDENCE": [
+            {
+              "calls": 0,
+              "case": "denial",
+              "duplicate_ledger_unchanged": true,
+              "durable_before_authorization": true,
+              "policy_calls": 1
+            },
+            {
+              "calls": 1,
+              "case": "lost_response",
+              "durable_before_authorization": true,
+              "policy_calls": 1,
+              "reconciliation_idempotent": true
+            }
+          ]
+        },
+        "measured": 0,
+        "passed": 6,
+        "raw_sha256": "b219d2f5080f71a80bc9252cd2a1c80b8e55a610957fb203e1e2b8d14f75c006",
+        "seconds": 3.782681941986084,
+        "suite": "mcp_durable"
+      },
+      {
+        "binary_sha256": "bc4f33032c7b0b207e1e5eac62e741e9445e52970981fb8cb818ca5a56f1c3c3",
+        "failed": 0,
+        "filtered": 0,
+        "ignored": 0,
+        "major": 17,
+        "markers": {
+          "STATEKNOT_MCP_ERROR_RECONCILIATION_EVIDENCE": [
+            {
+              "atomic_audit": true,
+              "authorization_before_lookup": true,
+              "distinct_scopes": true,
+              "duplicate_receipts_per_effect": 24,
+              "effects": 2,
+              "fresh_service_recovery": true,
+              "invariants": "passed",
+              "lost_http_receipt": true,
+              "profile": "known-error-reconciliation-v1",
+              "retry_never": true,
+              "stale_fence_rejected": true
+            }
+          ],
+          "STATEKNOT_MCP_ERROR_RECONCILIATION_RACE_EVIDENCE": [
+            {
+              "error_first_submissions": 24,
+              "invariants": "passed",
+              "mixed_success_failure_submissions": 24,
+              "same_event_identity": true,
+              "single_revision": true,
+              "success_first_conflict": true
+            }
+          ],
+          "STATEKNOT_MCP_RECONCILIATION_EVIDENCE": [
+            {
+              "atomic_audit": true,
+              "authenticated_http": true,
+              "authorization_before_lookup": true,
+              "concurrent_first_submissions": 24,
+              "duplicate_receipts": 24,
+              "fresh_service_recovery": true,
+              "invariants": "passed",
+              "lost_http_receipt": true,
+              "profile": "mcp-result-reconciliation-v1",
+              "schema": 24,
+              "stale_fence_rejected": true
+            }
+          ]
+        },
+        "measured": 0,
+        "passed": 10,
+        "raw_sha256": "013adc2ad5786ff232bb06425352d0423a65d476f28e61155762402877fa2d0d",
+        "seconds": 26.969093799591064,
+        "suite": "mcp_reconciliation"
+      }
+    ],
+    "markers_each_major": 7,
+    "postgres_versions": [
+      "16.15",
+      "17.11"
+    ],
+    "suite_scope": "two complete targeted suites per major: mcp_durable6 including A2A/MCP and mcp_reconciliation10 including definition/wire cases",
+    "32_harness_executions_are_32_database_only_cases": false,
+    "source_928_before_after_exact": true,
+    "summary_sha256": "d09277466fedc0fe80a2b6f42d801481d00831694118858eba18c11868b7eb05",
+    "runner_sha256": "234a01c80b914084d707e37b52ae04e7e58601ee264cae45f075fff0108813a9",
+    "inventory_sha256": "6a67f0c836784651d1b4207ffa2b18666720f86803ed44d67dd738f910cf809b",
+    "database_retained_each_major": "stateknot_r1_mcp_debug_20261016v3",
+    "schema_marker24_note": "legacy profile constant; not current database schema version36",
+    "prior_bound_state15_test_results_inherited": false,
+    "full_Store_Runtime_Native_qualified": false,
+    "runner_hash_and_actual_environment_allowlist_present_in_original_receipts": true
+  },
+  "resources": {
+    "native_final_available_kib": 315708296,
+    "native_final_task_cache_logical_kib": 10554584,
+    "task_caches": 8,
+    "cache_probe": "proof-base TAG verified, Git untracked, lsof empty and Cargo locks probeable at final observation",
+    "logical_sizes_are_not_APFS_reclaimable_space": true,
+    "space_released_claimed": false,
+    "publication_contains_binaries_caches_credential_URLs": false,
+    "collector_build_test_network_DB_execution": false
+  },
+  "adoption_documents": {
+    "candidate": "mcp-http-debug-adoption-docs-v3",
+    "manifest_sha256": "aef6ecd8f947bf410d4e97f721ea3d0fb7c01a1a5b23dce1bf4d2d07b54a1044",
+    "freeze_sha256": "b78c134739263f99a62ef8c7e65e95dd8ab916b75c6031d89d42383354cff281",
+    "three_document_bytes_equal_v2": true,
+    "v1_v2_retained_immutable": true,
+    "v2_to_v3_change": "receipt scope field renamed only; metadata correction, not a product regression",
+    "original_bound_state_Added_opt1_tracking_and_existing_guide_examples_preserved": true,
+    "independent_review_conclusion_supplied_by_author": false
+  },
+  "evidence": {
+    "directory": "evidence/experimental-mcp-http-diagnostics-2026-10-16",
+    "manifest_sha256": "863eb341211e7d864b8b579e8c66bdc1ffdb42b7195830b3b27e273a9deb2e90",
+    "seal_sha256": "6d5421ee5af0015fefe3f547af6f32da06ca5389f5eda25715ec81cfde7b384f",
+    "verify": "evidence/experimental-mcp-http-diagnostics-2026-10-16/verify.py",
+    "all_six_raw_logs_and_complete_runners_preserved": true,
+    "original_red_and_fixture_lint_preserved": true,
+    "minimal_source_payloads_no_old449_package_or_full_archive_copy": true,
+    "publication_packaging": {
+      "version": 2,
+      "reason": "Two exact original unified patch artifacts contain required blank-context spaces; lossless gzip avoids treating them as source trailing whitespace. Original decoded bytes and all product/execution facts are unchanged.",
+      "raw_patch_bytes_retained_by_gzip_mtime0": true,
+      "old_v1_seals_immutable": true
+    }
+  },
+  "scope": {
+    "targeted_component_gates_qualified": true,
+    "two_targeted_Native_suites_per_major_qualified": true,
+    "full_Store_Runtime_Native_qualified": false,
+    "full_CI_qualified": false,
+    "base_CI_snapshot": {
+      "commit": "8016b74e8047fda51f60c735d477d735a897cb2f",
+      "status": "Windows checkout job failed exit128 with Filename too long before Rust; no final overall CI result asserted",
+      "transferred_to_Debug_tree": false,
+      "provenance": "parent observed actual remote job; separate Windows correction/review not part of this Debug source"
+    },
+    "fresh_official_MCP_conformance_qualified": false,
+    "deployment_capacity_qualified": false,
+    "stdio_owner_qualified": false,
+    "durable_A2A_backend_qualified": false,
+    "credential_authentication_or_long_stream_revocation_added": false,
+    "RFC24_RFC25_accepted": false,
+    "R1_complete": false,
+    "Supported_claimed": false,
+    "independent_review_pending": true
+  }
+}

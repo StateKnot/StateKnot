@@ -1,0 +1,28 @@
+{
+  "added": [
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.README.md",
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.json",
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.sql"
+  ],
+  "all_921_file_bytes_retained": true,
+  "all_changes_outside_160_production_inputs": true,
+  "changed_existing": [
+    {
+      "after_sha256": "6d0ded8b450265b85b2d4372375944a2c27625250d46feb258abee9ebe6adb61",
+      "before_sha256": "37ae13ca8f26aeaf108f414500b64bb4c4a8ce857534ec849d7740727fd486c0",
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_application_replay.rs"
+    },
+    {
+      "after_sha256": "d35e7f6d61200c8aaf16c357ece0fc5cb0eecbb455ac940c524e91d16179db39",
+      "before_sha256": "1146bf99a43e0526c6e7445fbc61902346dfd1a4e1f006bb2848772079cf23f6",
+      "path": "crates/stateknot-store-postgres/tests/postgres/frame_closures.rs"
+    }
+  ],
+  "final922_tree": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "only922_addition": [
+    "crates/stateknot-store-postgres/tests/fixtures/actual_schema35_writer_source32.README.md"
+  ],
+  "parent919_tree": "bca1889badb0d3318fcca66490d153a2fec08ab28ab205a474db44f9b6510d45",
+  "previous921_tree": "343eaa8ae7299a520fa2858fa2983025116b8b3ea55926c1ad8faef55df6508d",
+  "removed": []
+}

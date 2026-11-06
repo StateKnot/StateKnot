@@ -30,6 +30,7 @@ Host/Origin/Body 检查
   -> 解码 Method 与 Resource Lookup
   -> Scope 与 Operation Authorization
   -> Schema/Argument Validation
+  -> 显式配置时的绑定状态开封
   -> Application Handler
   -> 有界且通过 Schema 校验的 Result
 ```
@@ -54,7 +55,7 @@ Request 完成解码与校验前，它们只是 Hint。只要配置中包含非�
 ## Application Surface
 
 `McpServerApplicationBuilder` 只组合实际配置的 Surface，并且只声明对应 Capability。
-调用缺失 Surface 会返回 Method-not-found；StateKnot 不会用空实现伪造 Capability。
+适用的 admission/profile 检查后，调用缺失 Surface 返回 Method-not-found；StateKnot 不会用空实现伪造 Capability。
 
 ### Tools
 
@@ -101,6 +102,8 @@ Completion Authorization 由 Provider 负责。
 
 ## Scope-aware Discovery 与 Cache
 
+下文描述现有未配置状态 profile 的行为；绑定状态实验候选在后文单列。
+
 Tool、Resource、Resource Template 与 Prompt Discovery 会按 Principal 的精确 Scope
 过滤。Private Cursor 绑定 Catalog Digest、Principal Subject、Canonical Scope Set、
 Surface 与 Offset；不能跨身份或跨 Catalog Revision 重放。只要 Catalog 中存在
@@ -122,6 +125,141 @@ Invalid、Expired、Tampered 或 Cross-operation State 会收敛到同一个 Pub
 
 不要在 Request State 中保存 Secret。Sealing 提供 Integrity 与 Binding；Payload 仍需
 遵守 Application 自身的 Retention 与 Privacy Policy。
+
+## 实验性宿主绑定状态候选
+
+数值修复后的未发布候选绑定928文件
+源码 `69af3a0f…`、536编译输入 `ded1a866…`。Rust1.88、原opt0和默认栈的六门禁已通过；
+新双版PostgreSQL的限定执行记录见下文。[新限定记录](qualification/experimental-mcp-lossless-bound-state-2026-10-16.zh-CN.md)
+和[机器回执](qualification/experimental-mcp-lossless-bound-state-2026-10-16.json)绑定精确源码、二进制和限定执行。[RFC-0025](rfcs/0025-protocol-identity-and-authority.zh-CN.md)仍为 Draft；
+完整CI、可信mapping/verifier部署、stdio、A2A持久server与R1继续开放。
+这些类型不在已发布alpha.1包中。
+
+`McpServerHostBinding` 保存稳定部署 namespace、已验证外部 `PrincipalIdentity`、本地
+`TenantId`、effective `PrincipalIdentity` 与 `NonZeroU64` mapping generation。
+`McpServerPrincipal::from_host_binding` 导出不透明 `hb1:` subject 并规范化 scopes，
+`host_binding()` 保留完整 tuple。语法校验不验证凭据；现有 authenticator 必须提供当前可信映射。
+宿主不得复用或回绕 generation，包括 A→B→A 改绑及撤销后重新激活；代次耗尽须拒绝新的
+映射权限。接收同一状态的副本应有意共享 namespace 与当前映射。
+
+通过 consuming `with_bound_state(profile)` 在 `McpServerApplicationBuilder` 或直接
+Tool/Resource/Prompt/Skill service 显式安装 `McpServerBoundStateProfile`。Builder 在最终
+build 时统一安装同一 profile，不受配置顺序影响；配置后的 Clone 与后续 Completion 配置
+保留它，配置前的旧 Clone 仍属 legacy。重复配置报错；Public catalog options 在构造时拒绝，
+不静默降级。Private 只覆盖 catalog metadata 与 continuation 身份；应用显式 Public 的
+`McpServerResourceResult` 内容保留独立缓存契约，不获得新的内容保密资格。仅有 host-bound
+principal 不会自动启用 profile。
+
+候选在 composite 与四种直接 service 均检查十个 owned handler 入口：`discover`、
+`list_tools`、`call_tool`、`on_custom_request`、`list_resources`、`list_resource_templates`、
+`read_resource`、`list_prompts`、`get_prompt`、`complete`；包括空 Skill templates、未知 custom
+方法及未挂载操作。直接 service 未挂载入口在检查后仍取锁定 SDK 原响应；Skill 内部实际
+custom/read 调度也检查绑定；Skill 文件读取仍拒绝 MRTR requestState/inputResponses。同步 `get_info`/`get_tool` 只是静态 metadata，不是已认证租户
+权限。initialize/ping、tasks、notifications、subscriptions 等 SDK 控制或扩展不因此新增身份
+或业务支持。Profile 不替代 HTTP 认证，也不交付 identity provider、A2A 持久 backend 或 stdio。
+
+全部强配置private cursor保持 `v2`，使用完整绑定/canonical scopes同一fingerprint与原
+catalog/surface/offset核对；三种Tool/Resource/Prompt操作AD全部改用 `v3`，内部envelope
+仍为整数version `1`。同key的合法旧v2操作state也拒绝，无fallback；旧v1 cursor/未封装
+state亦拒绝。tenant、effective principal、外部身份、namespace、generation或scope变化
+使关联旧状态在业务前失效。迁移后列表从首页重取并协调continuation drain；不能据拒绝
+自动重启业务或推导安全重试。未配置服务保留legacy v1 cursor、AD/JCS及应用opaque state。
+
+Tool/Prompt参数采用 **sorted serde_json value encoding**：clone实际有界已解析Map为
+Value::Object，递归排序对象键，再serde_json::to_vec。保持宽u64/i64、整数/浮点与正负零
+表示、数组及嵌套值；只规范对象键序。它不是JCS，也不保留原始JSON数字拼写。Resource
+没有参数字段。已复现数值别名限定实际公开Tool消费；Prompt仍在AD前只接受声明的有界
+字符串，内部Prompt helper数值单测不代表公开数值可达，也不扩大schema。
+
+Tool/Resource/Prompt 的解码 authorizer 看到有界、未可信的 **wire** envelope；原 policy 和
+argument/schema 检查后，框架按当前 fingerprint 与实际解码 operation/arguments 或 URI 开封，
+业务函数收到另一个不可变请求，其中只有 state 恢复为原 **inner** application state，responses
+与操作数据不变。每个出站 `input_required` 都封装 state，即使应用没有 inner state。私有
+version-1 envelope 必须精确包含 `version` 与 `applicationState` 两字段；显式 null 恢复 None，
+缺字段无效。任何 decoded Some(inputResponses)，包括 `{}`，均要求有效绑定状态；wire null
+仍按原 SDK Option 解码。坏入站 state 不进入业务函数；出站封装失败发生在函数调用之后，
+不能证明零 effect 或授予新的重试权限。
+
+完整 JSON envelope 含字段名、version 与转义后字节，合计不超过 64 KiB；保留原 128 KiB
+wire-state 与正 TTL 最长 24 小时。没有截断或提高上限，一些原可接受的大 opaque string 将
+无法装入新 envelope。Codec 提供认证，不加密，也不保证单次兑换。新 binding/profile 与
+principal 无 Serialize/Deserialize/JsonSchema；其 Debug 省略身份、原 scopes、key、state 与
+fingerprint。Raw getter/Clone 仍可保留可信身份或 payload；其他 request/result/context 的
+Debug 不因此全部脱敏，state 不应保存秘密。
+
+当前授权仍由宿主承担。现有解码业务策略（及 Skill/Completion provider）在排队后、返回
+permit 前核对完整当前 tuple/generation；没有 decoded policy 的 catalog 路径，要求现有
+admission 在自身排队后复核。该成功检查是相应授权线性化点，state guard 不增加 lookup
+backend，也不跨应用 I/O 持锁。该点之前的映射变化安全拒绝；已授权或在途数据及长流没有
+零时隙即时撤销承诺。Allow policy 自身不能证明这一部署条件。
+
+下面函数使用已在本机编译的真实公开 Interface；本 Markdown 轮廓自身不是单独编译的
+外部消费者或完整认证部署。第一函数接收宿主已验证事实，第二函数接收已配置的 codec/
+builder，不提供 fixture key、万能 verifier 或虚构 backend。
+```rust,ignore
+use std::{num::NonZeroU64, time::Duration};
+use stateknot_core::{PrincipalIdentity, TenantId};
+use stateknot_integrations::{
+    McpServerApplicationBuilder, McpServerBoundStateProfile, McpServerHostBinding,
+    McpServerPrincipal, McpServerRequestStateCodec,
+};
+
+// Call from the authenticator with already verified, current host mapping facts.
+// Typed inputs alone do not verify credentials, consent, or mapping provenance.
+pub fn mapped_principal(
+    authenticated_identity: PrincipalIdentity,
+    tenant: TenantId,
+    effective_principal: PrincipalIdentity,
+    generation: NonZeroU64,
+    scopes: Vec<String>,
+) -> Result<McpServerPrincipal, Box<dyn std::error::Error>> {
+    let binding = McpServerHostBinding::new(
+        "inventory-mcp-v1", authenticated_identity, tenant,
+        effective_principal, generation,
+    )?;
+    Ok(McpServerPrincipal::from_host_binding(binding, scopes)?)
+}
+
+// Call once at startup with Private catalog options and the host's keyring.
+pub fn enable_bound_state(
+    builder: McpServerApplicationBuilder,
+    codec: McpServerRequestStateCodec,
+) -> Result<McpServerApplicationBuilder, Box<dyn std::error::Error>> {
+    let profile = McpServerBoundStateProfile::new(codec, Duration::from_secs(300))?;
+    Ok(builder.with_bound_state(profile)?)
+}
+```
+
+### 本机限定验收
+
+固定源码最终六门禁通过：Rust1.88 formatting、全workspace/all-target/all-feature严格
+Clippy、99个suite合计2098 passed/0 failed/6个原ignored、48个独立文档测试、严格
+Rustdoc与固定nightly-2026-10-07 check。原opt0、调试断言/溢出检查及默认栈保持；
+workspace条件数据库入口不授Native资格。
+
+另一个fresh **default-feature** opt0 binary `0751e63128bf…` 在实际PostgreSQL16.15/
+17.11各以 `--nocapture --test-threads=1` 执行完整15项，均15 passed/0 failed/0 ignored/
+0 filtered，唯一完整marker各一次。库存是13个真实TCP、1个constructor和1个真实PG用例；
+DB项仍核三个消费者、六次fixture commit、十二次拒绝改绑及两个完整fixture Run/Journal账本，
+不是全部业务表或通用持久server backend。
+
+新增TCP family核对八对数字/嵌套Tool参数的业务实际decoded字节。同值及变值的fresh
+请求正常续传；原token改值必须HTTP400，business facts/count/completions不变。嵌套对象
+键重排有正控。Prompt字符串正常续传、数字仍按原schema拒绝。两个新私有单测覆盖共享
+编码及三种域同key合法旧v2拒绝，不宣称另跑三组HTTP旧域场景。
+
+旧 `eeddc9f7…` 的六门禁/2095项/48doc和双版各完整串行14项成功保留；随后真实TCP
+反例却使 `9007199254740992` 与 `9007199254740993` 复用token并新增业务调用。旧候选
+不能以exact decoded-argument binding采用，历史绿灯不跨授新源码。早前门禁/夹具/串行
+marker失败、新修复原Clippy E0597和最初sandbox socket拒绝均保留，不回写；旧916次
+Native执行也不转授。
+
+前置main head `85f3fd5` 的 [CI38752172054](https://github.com/StateKnot/StateKnot/actions/runs/38752172054)
+终态11项成功、两个普通PG job原30分钟耗尽取消；两版Store264和Runtime189均有真实
+成功摘要，但后续完整链未完成。该tree尚无新MCP候选，其未完成CI不认证本组合。
+Ubuntu/test-opt1新增mandatory MCP步骤与完整GitHub CI仍未执行；本机loopback组件不授
+Linux部署、容量、发布、Supported或R1资格。
+
 
 ## 构建轮廓
 

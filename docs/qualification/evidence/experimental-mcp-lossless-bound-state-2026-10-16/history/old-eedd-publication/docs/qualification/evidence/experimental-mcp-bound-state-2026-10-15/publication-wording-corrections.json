@@ -1,0 +1,18 @@
+{
+  "state": "pre-seal wording corrections; no product/source/threshold change",
+  "reviewer": "root independent publication draft read",
+  "closed": [
+    {
+      "issue": "Anonymous/legacy constructor wording could imply a nonexistent public Server Anonymous constructor",
+      "correction": "name McpServerPrincipal::new(subject, scopes) explicitly in EN/CN/JSON"
+    },
+    {
+      "issue": "network module name overstated TCP case count",
+      "correction": "13 nonDB cases =12TCP+1construction/config; one separate durable case"
+    },
+    {
+      "issue": "cursor wording could imply codec-sealed cursors",
+      "correction": "private cursor unified fingerprint; only MRTR strict envelope+operationAD"
+    }
+  ]
+}

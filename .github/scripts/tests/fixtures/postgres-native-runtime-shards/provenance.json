@@ -1,0 +1,27 @@
+{
+  "schema": "stateknot.native-runtime-shards-fixture-provenance.v1",
+  "purpose": "Portable codec/unit inputs only; not a new Native execution or qualification.",
+  "repository": "StateKnot/StateKnot",
+  "head": "c9c3398015ea3183f915c7ec1dd4d7aa81d497ac",
+  "run_id": 39548415549,
+  "run_attempt": 1,
+  "major": 17,
+  "origin": "Root extracted original producer --list streams from the digest-verified actual PG17 parallel artifact.",
+  "source_directory": "r1-d4-c9c339-native17-streams-v1/import/producer",
+  "roles": {
+    "store": {
+      "file": "c9-store-inventory.stdout",
+      "inventory": 276,
+      "bytes": 24307,
+      "sha256": "8102425660ba2c4b09eb5eee122091cef019bf61487377dfa32c656b4d201fa3"
+    },
+    "runtime": {
+      "file": "c9-runtime-inventory.stdout",
+      "inventory": 229,
+      "bytes": 24121,
+      "sha256": "4a7f9c04d93bcdb80c1f76877bc5be90ca530a92e9b3999ce6a7b02166a65d95"
+    }
+  },
+  "qualification_awarded": false,
+  "verification": "The author copied bytes using Node built-in file APIs and checked the supplied SHA-256 and byte lengths. This author did not execute tests or native binaries."
+}

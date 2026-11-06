@@ -1,0 +1,12 @@
+Traceback (most recent call last):
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py", line 155, in <module>
+    if __name__=='__main__':main()
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py", line 68, in main
+    parent=obj('source/delta-from922.json');assert len(parent['changes'])==4
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py", line 57, in obj
+    def obj(n):return json.loads(asset(n))
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py", line 56, in asset
+    def asset(n):return raw(n if n in by else n+'.gz')
+  File "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/a2a-auth-facts-final-qualification-v1/docs/qualification/evidence/experimental-a2a-request-facts-2026-10-15/verify.py", line 52, in raw
+    x=by[n];b=(HERE/n).read_bytes();assert len(b)==x['stored_bytes']and sha(b)==x['stored_sha256']
+KeyError: 'source/delta-from922.json.gz'

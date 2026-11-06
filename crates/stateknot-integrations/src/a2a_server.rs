@@ -21,8 +21,8 @@ use a2a_server::{RequestHandler, ServiceParams};
 use async_trait::async_trait;
 use axum::{
     Json, Router,
-    body::Body,
-    extract::{DefaultBodyLimit, Request, State},
+    body::{Body, Bytes},
+    extract::{DefaultBodyLimit, FromRequest, Request, State, rejection::JsonRejection},
     http::{
         HeaderMap, HeaderValue, Method, Response, StatusCode,
         header::{
@@ -62,6 +62,7 @@ const MAX_NEGOTIATED_EXTENSIONS: usize = 64;
 
 tokio::task_local! {
     static A2A_REQUEST_PRINCIPAL: A2aServerPrincipal;
+    static A2A_PREPARATION_DEADLINE: tokio::time::Instant;
 }
 
 /// An A2A protocol operation after transport decoding.
@@ -550,6 +551,7 @@ pub struct A2aServerHttpOptions {
     request_timeout: Duration,
     stream_idle_timeout: Duration,
     maximum_stream_events: u32,
+    subscription_authorization_rechecks: bool,
     card_max_age: Duration,
     bearer_challenge: Option<Box<str>>,
 }
@@ -571,6 +573,7 @@ impl A2aServerHttpOptions {
             request_timeout: Duration::from_secs(30),
             stream_idle_timeout: Duration::from_secs(60),
             maximum_stream_events: 16_384,
+            subscription_authorization_rechecks: false,
             card_max_age: Duration::from_secs(300),
             bearer_challenge: None,
         }
@@ -689,7 +692,10 @@ impl A2aServerHttpOptions {
         Ok(self)
     }
 
-    /// Sets unary/authentication and stream-idle deadlines.
+    /// Sets authentication, request preparation, backend and stream-idle deadlines.
+    /// Body collection/decoding and initial authorization/admission share one
+    /// post-authentication preparation deadline. Authentication and backend
+    /// operations retain their independent request-timeout budgets.
     pub fn with_timeouts(
         mut self,
         request_timeout: Duration,
@@ -717,6 +723,20 @@ impl A2aServerHttpOptions {
         }
         self.maximum_stream_events = value;
         Ok(self)
+    }
+
+    /// Enables current-policy rechecks before polling and delivering each
+    /// `SubscribeToTask` event, within the existing idle and request deadlines.
+    ///
+    /// The existing authorizer receives the original principal and task ID and
+    /// must consult current host policy. This does not reauthenticate the bearer
+    /// credential or retract events already handed to the HTTP transport.
+    /// Streaming capability, other operations and all configured limits remain
+    /// unchanged. Repeated enable is idempotent; the default is disabled.
+    #[must_use]
+    pub fn with_subscription_authorization_rechecks(mut self) -> Self {
+        self.subscription_authorization_rechecks = true;
+        self
     }
 
     /// Sets public Agent Card cache duration.
@@ -871,11 +891,13 @@ impl A2aServer {
             request_timeout: options.request_timeout,
             stream_idle_timeout: options.stream_idle_timeout,
             maximum_stream_events: options.maximum_stream_events,
+            subscription_authorization_rechecks: options.subscription_authorization_rechecks,
             shutdown: shutdown.clone(),
         });
 
         let rest = a2a_server::rest::rest_router(Arc::clone(&task_handler));
         let jsonrpc = a2a_server::jsonrpc::jsonrpc_router(task_handler);
+        let maximum_body_bytes = options.maximum_body_bytes;
         let router = Router::new()
             .route(A2A_AGENT_CARD_PATH, get(serve_agent_card))
             .with_state(card_state)
@@ -885,7 +907,6 @@ impl A2aServer {
             // the slash when resolving `/`, and a direct route avoids replay
             // and transient proxy failures for authenticated POST requests.
             .nest_service(options.jsonrpc_path.as_ref(), jsonrpc)
-            .layer(DefaultBodyLimit::max(options.maximum_body_bytes))
             .layer(middleware::from_fn_with_state(
                 Arc::new(A2aBoundaryState {
                     authenticator: Arc::new(authenticator),
@@ -894,7 +915,10 @@ impl A2aServer {
                     shutdown: shutdown.clone(),
                 }),
                 enforce_boundary,
-            ));
+            ))
+            // The boundary's push-body extractor and the SDK must observe the
+            // same configured limit, including values above Axum's default.
+            .layer(DefaultBodyLimit::max(maximum_body_bytes));
 
         Ok(Self { router, shutdown })
     }
@@ -1093,19 +1117,19 @@ async fn enforce_boundary(
         .uri()
         .path()
         .starts_with(state.options.rest_prefix.as_ref());
-    let request = match canonicalize_request_payload(
-        request,
-        state.options.rest_prefix.as_ref(),
-        state.options.jsonrpc_path.as_ref(),
-        state.options.maximum_body_bytes,
-    )
-    .await
+    let rest_push = request.method() == Method::POST
+        && rest_push_create_path(request.uri().path(), state.options.rest_prefix.as_ref());
+    let deadline = tokio::time::Instant::now() + state.options.request_timeout;
+    let request = match prepare_payload(request, &state, deadline, rest_push, origin.as_ref()).await
     {
         Ok(request) => request,
         Err(response) => return response,
     };
     let mut response = A2A_REQUEST_PRINCIPAL
-        .scope(principal, next.run(request))
+        .scope(
+            principal,
+            A2A_PREPARATION_DEADLINE.scope(deadline, next.run(request)),
+        )
         .await;
     drop(permit);
     response =
@@ -1113,6 +1137,54 @@ async fn enforce_boundary(
             .await;
     apply_origin_header(&mut response, origin);
     response
+}
+
+async fn prepare_payload(
+    request: Request,
+    state: &A2aBoundaryState,
+    deadline: tokio::time::Instant,
+    rest_push: bool,
+    origin: Option<&HeaderValue>,
+) -> Result<Request, Response<Body>> {
+    let collected = tokio::select! {
+        biased;
+        () = state.shutdown.cancelled() => {
+            return Err(plain_response(StatusCode::SERVICE_UNAVAILABLE, "service unavailable"));
+        }
+        result = tokio::time::timeout_at(
+            deadline,
+            canonicalize_request_payload(
+                request,
+                state.options.rest_prefix.as_ref(),
+                state.options.jsonrpc_path.as_ref(),
+                state.options.maximum_body_bytes,
+            ),
+        ) => result,
+    };
+    if state.shutdown.is_cancelled() {
+        return Err(plain_response(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "service unavailable",
+        ));
+    }
+    // Ready synchronous normalization can finish after the timer became due.
+    if tokio::time::Instant::now() >= deadline {
+        return Err(plain_response(
+            StatusCode::REQUEST_TIMEOUT,
+            "request timed out",
+        ));
+    }
+    match collected.map_err(|_| plain_response(StatusCode::REQUEST_TIMEOUT, "request timed out"))? {
+        Ok(request) => Ok(request),
+        Err(mut response) => {
+            // These rejections previously came from the SDK after its body
+            // extractor, where the normal Origin response headers applied.
+            if rest_push {
+                apply_origin_header(&mut response, origin.cloned());
+            }
+            Err(response)
+        }
+    }
 }
 
 async fn canonicalize_request_payload(
@@ -1123,6 +1195,16 @@ async fn canonicalize_request_payload(
 ) -> Result<Request, Response<Body>> {
     if request.method() != Method::POST {
         return Ok(request);
+    }
+    if rest_push_create_path(request.uri().path(), rest_prefix) {
+        // Use the same extractor/rejection as the pinned SDK's Json<Value>.
+        // Preserve the exact push bytes and all original request parts rather
+        // than normalizing this separate ProtoJSON endpoint.
+        let (parts, body) = request.into_parts();
+        let bytes = Bytes::from_request(Request::from_parts(parts.clone(), body), &())
+            .await
+            .map_err(|error| JsonRejection::BytesRejection(error).into_response())?;
+        return Ok(Request::from_parts(parts, Body::from(bytes)));
     }
     let path = request.uri().path();
     let rest_send = matches!(
@@ -1166,6 +1248,13 @@ async fn canonicalize_request_payload(
     };
     parts.headers.remove(axum::http::header::CONTENT_LENGTH);
     Ok(Request::from_parts(parts, Body::from(normalized)))
+}
+
+fn rest_push_create_path(path: &str, rest_prefix: &str) -> bool {
+    path.strip_prefix(rest_prefix)
+        .and_then(|suffix| suffix.strip_prefix("/tasks/"))
+        .and_then(|suffix| suffix.strip_suffix("/pushNotificationConfigs"))
+        .is_some_and(valid_path_segment)
 }
 
 #[derive(Clone, Copy)]
@@ -1560,10 +1649,139 @@ struct A2aSdkRequestHandler {
     request_timeout: Duration,
     stream_idle_timeout: Duration,
     maximum_stream_events: u32,
+    subscription_authorization_rechecks: bool,
     shutdown: CancellationToken,
 }
 
+// A strict subscription owns its backend stream and admission permit together.
+// An unfold state of None releases both before yielding a final event or error.
+struct AuthorizedSubscriptionStream {
+    stream: A2aEventStream,
+    _permit: OwnedSemaphorePermit,
+    authorizer: Arc<dyn A2aServerAuthorizer>,
+    authorization: A2aServerAuthorizationRequest,
+    shutdown: CancellationToken,
+    request_timeout: Duration,
+    idle_timeout: Duration,
+    remaining: u32,
+}
+
+impl AuthorizedSubscriptionStream {
+    fn ensure_active(&self, idle_deadline: tokio::time::Instant) -> Result<(), wire::A2AError> {
+        if self.shutdown.is_cancelled() {
+            return Err(wire::A2AError::internal("A2A service is shutting down"));
+        }
+        if tokio::time::Instant::now() >= idle_deadline {
+            return Err(wire::A2AError::internal("A2A stream idle timeout"));
+        }
+        Ok(())
+    }
+
+    async fn authorize(
+        &mut self,
+        idle_deadline: tokio::time::Instant,
+    ) -> Result<(), wire::A2AError> {
+        self.ensure_active(idle_deadline)?;
+        let deadline = idle_deadline.min(tokio::time::Instant::now() + self.request_timeout);
+        let result = tokio::select! {
+            biased;
+            () = self.shutdown.cancelled() => {
+                return Err(wire::A2AError::internal("A2A service is shutting down"));
+            }
+            result = tokio::time::timeout_at(
+                deadline,
+                self.authorizer.authorize(self.authorization.clone()),
+            ) => result,
+        };
+        // A ready callback can win a timeout race, including one that blocked
+        // synchronously. Recheck the actual clock before accepting its result.
+        self.ensure_active(idle_deadline)?;
+        if tokio::time::Instant::now() >= deadline {
+            return Err(map_authorization_error(
+                A2aServerAuthorizationError::Unavailable,
+            ));
+        }
+        result
+            .map_err(|_| map_authorization_error(A2aServerAuthorizationError::Unavailable))?
+            .map_err(map_authorization_error)
+    }
+
+    async fn next_event(&mut self) -> Result<Option<A2aStreamEvent>, wire::A2AError> {
+        // One deadline covers both policy checks and backend waiting. Consumer
+        // backpressure does not start a detached timer or policy task.
+        let idle_deadline = tokio::time::Instant::now() + self.idle_timeout;
+        self.authorize(idle_deadline).await?;
+        let next = tokio::select! {
+            biased;
+            () = self.shutdown.cancelled() => {
+                return Err(wire::A2AError::internal("A2A service is shutting down"));
+            }
+            next = tokio::time::timeout_at(idle_deadline, self.stream.next()) => next,
+        };
+        self.ensure_active(idle_deadline)?;
+        let event = next
+            .map_err(|_| wire::A2AError::internal("A2A stream idle timeout"))?
+            .transpose()
+            .map_err(map_service_error)?;
+        if event.is_some() {
+            self.authorize(idle_deadline).await?;
+            self.ensure_active(idle_deadline)?;
+        }
+        Ok(event)
+    }
+
+    fn into_stream(
+        self,
+    ) -> futures_util::stream::BoxStream<'static, Result<wire::StreamResponse, wire::A2AError>>
+    {
+        Box::pin(futures_util::stream::unfold(
+            Some(self),
+            |state| async move {
+                let mut state = state?;
+                if state.remaining == 0 {
+                    drop(state);
+                    return Some((
+                        Err(wire::A2AError::internal("A2A stream event limit reached")),
+                        None,
+                    ));
+                }
+                match state.next_event().await {
+                    Err(error) => {
+                        drop(state);
+                        Some((Err(error), None))
+                    }
+                    Ok(None) => None,
+                    Ok(Some(event)) => {
+                        state.remaining -= 1;
+                        let terminal = event.is_terminal();
+                        let event = event.into_wire();
+                        if terminal {
+                            drop(state);
+                            Some((Ok(event), None))
+                        } else {
+                            Some((Ok(event), Some(state)))
+                        }
+                    }
+                }
+            },
+        ))
+    }
+}
+
 impl A2aSdkRequestHandler {
+    fn ensure_preparation_active(
+        &self,
+        deadline: tokio::time::Instant,
+    ) -> Result<(), wire::A2AError> {
+        if self.shutdown.is_cancelled() {
+            return Err(wire::A2AError::internal("A2A service is shutting down"));
+        }
+        if tokio::time::Instant::now() >= deadline {
+            return Err(wire::A2AError::internal("A2A operation timed out"));
+        }
+        Ok(())
+    }
+
     async fn prepare(
         &self,
         params: &ServiceParams,
@@ -1574,6 +1792,10 @@ impl A2aSdkRequestHandler {
         let principal = A2A_REQUEST_PRINCIPAL
             .try_with(Clone::clone)
             .map_err(|_| wire::A2AError::internal("request authentication context is absent"))?;
+        let deadline = A2A_PREPARATION_DEADLINE
+            .try_with(|deadline| *deadline)
+            .map_err(|_| wire::A2AError::internal("request preparation context is absent"))?;
+        self.ensure_preparation_active(deadline)?;
         let extensions = negotiate_extensions(params, &self.card)?;
         let capabilities = self.card.capabilities();
         match operation {
@@ -1601,25 +1823,42 @@ impl A2aSdkRequestHandler {
             }
             _ => {}
         }
-        self.authorizer
+        let authorization = tokio::select! {
+            biased;
+            () = self.shutdown.cancelled() => {
+                return Err(wire::A2AError::internal("A2A service is shutting down"));
+            }
+            result = tokio::time::timeout_at(deadline, self.authorizer
             .authorize(A2aServerAuthorizationRequest {
                 principal: principal.clone(),
                 operation,
                 task_id: task_id.map(Into::into),
                 config_id: config_id.map(Into::into),
-            })
-            .await
+            })) => result,
+        };
+        self.ensure_preparation_active(deadline)?;
+        authorization
+            .map_err(|_| wire::A2AError::internal("A2A operation timed out"))?
             .map_err(map_authorization_error)?;
-        self.admission
+        let admission = tokio::select! {
+            biased;
+            () = self.shutdown.cancelled() => {
+                return Err(wire::A2AError::internal("A2A service is shutting down"));
+            }
+            result = tokio::time::timeout_at(deadline, self.admission
             .admit(A2aServerAdmissionRequest {
                 principal: principal.clone(),
                 operation,
-            })
-            .await
+            })) => result,
+        };
+        self.ensure_preparation_active(deadline)?;
+        admission
+            .map_err(|_| wire::A2AError::internal("A2A operation timed out"))?
             .map_err(map_admission_error)?;
         let permit = Arc::clone(&self.operation_slots)
             .try_acquire_owned()
             .map_err(|_| wire::A2AError::internal("A2A service is overloaded"))?;
+        self.ensure_preparation_active(deadline)?;
         Ok((
             A2aRequestContext {
                 principal,
@@ -1672,6 +1911,51 @@ impl A2aSdkRequestHandler {
         // for the complete stream lifetime. This prevents a release/reacquire
         // race from orphaning a durable subscription after it was created.
         Ok(self.bounded_stream(stream, permit))
+    }
+
+    async fn authorized_subscription(
+        &self,
+        future: impl std::future::Future<Output = Result<A2aEventStream, A2aTaskServiceError>>,
+        permit: OwnedSemaphorePermit,
+        authorization: A2aServerAuthorizationRequest,
+    ) -> Result<
+        futures_util::stream::BoxStream<'static, Result<wire::StreamResponse, wire::A2AError>>,
+        wire::A2AError,
+    > {
+        // Preserve the original subscription-creation boundary. Rechecks begin
+        // only after this backend stream exists, with its permit still owned.
+        let stream = tokio::select! {
+            () = self.shutdown.cancelled() => {
+                return Err(wire::A2AError::internal("A2A service is shutting down"));
+            }
+            result = tokio::time::timeout(self.request_timeout, future) => {
+                match result {
+                    Ok(result) => result.map_err(map_service_error)?,
+                    Err(_) => return Err(wire::A2AError::internal("A2A operation timed out")),
+                }
+            }
+        };
+        Ok(self.bounded_authorized_subscription(stream, permit, authorization))
+    }
+
+    fn bounded_authorized_subscription(
+        &self,
+        stream: A2aEventStream,
+        permit: OwnedSemaphorePermit,
+        authorization: A2aServerAuthorizationRequest,
+    ) -> futures_util::stream::BoxStream<'static, Result<wire::StreamResponse, wire::A2AError>>
+    {
+        let state = AuthorizedSubscriptionStream {
+            stream,
+            _permit: permit,
+            authorizer: Arc::clone(&self.authorizer),
+            authorization,
+            shutdown: self.shutdown.clone(),
+            request_timeout: self.request_timeout,
+            idle_timeout: self.stream_idle_timeout,
+            remaining: self.maximum_stream_events,
+        };
+        state.into_stream()
     }
 
     fn bounded_stream(
@@ -1985,8 +2269,23 @@ impl RequestHandler for A2aSdkRequestHandler {
                 None,
             )
             .await?;
-        self.stream(self.service.subscribe_to_task(context, request), permit)
+        if self.subscription_authorization_rechecks {
+            let authorization = A2aServerAuthorizationRequest {
+                principal: context.principal.clone(),
+                operation: A2aServerOperation::SubscribeToTask,
+                task_id: Some(task_id.into()),
+                config_id: None,
+            };
+            self.authorized_subscription(
+                self.service.subscribe_to_task(context, request),
+                permit,
+                authorization,
+            )
             .await
+        } else {
+            self.stream(self.service.subscribe_to_task(context, request), permit)
+                .await
+        }
     }
 
     async fn create_push_config(
@@ -2100,6 +2399,14 @@ impl RequestHandler for A2aSdkRequestHandler {
         Ok(card.into_wire())
     }
 }
+
+#[cfg(test)]
+#[path = "a2a_server/preparation_tests.rs"]
+mod preparation_tests;
+
+#[cfg(test)]
+#[path = "a2a_server/subscription_tests.rs"]
+mod subscription_tests;
 
 #[cfg(test)]
 mod tests {

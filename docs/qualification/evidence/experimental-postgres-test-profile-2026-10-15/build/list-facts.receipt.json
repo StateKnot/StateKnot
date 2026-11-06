@@ -1,0 +1,14 @@
+{
+  "step": "list-facts",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/native-opt1-draft-v1/runs/opt1-v1/artifacts/facts",
+    "--list"
+  ],
+  "runner_pid": 68288,
+  "pid": 76351,
+  "started_unix": 1792070233.531672,
+  "source_tree": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "exit_code": 0,
+  "seconds": 0.5432698726654053,
+  "log_sha256": "04037d748b7db742bd0a10ff97bacfbdc1fe86ccd58ac33acf2722d758a4e512"
+}

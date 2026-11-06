@@ -1,0 +1,12 @@
+{
+  "published_reader_path": "docs/qualification/evidence/experimental-a2a-subscription-policy-2026-10-16/verify.py",
+  "published_reader_sha256": "2372b4eea29dedc278e864750eb77e7386f6cbaf2a3484d74153e118d477cbc8",
+  "functions": [
+    "safe_path",
+    "apply_patch",
+    "check_rows",
+    "reconstruct_base"
+  ],
+  "extracted_reader_sha256": "7d5e5703a8ed84b6afd3cad8eb1b01c5aaf582c22d6192bb424deaa93f51f417",
+  "executes_preserved_runners": false
+}

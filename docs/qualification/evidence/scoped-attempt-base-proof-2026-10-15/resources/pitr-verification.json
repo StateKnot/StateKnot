@@ -1,0 +1,56 @@
+[
+  {
+    "artifact": "child-join-pitr-postgres-16-38709873198",
+    "log_sha256": "ec245420d2ac7c4606cff46a3c1f8b58f74916f17ee9b82ee8b4f90b4e77a01f",
+    "environment_sha256": "d703d1f940828c7a6fd719109e663b977e06ef30e00f32392beb41298fe24ed4",
+    "exact_one_native_pass": true,
+    "marker_count": 1,
+    "marker": {
+      "arch": "x86_64",
+      "base_backup_verified": true,
+      "cross_tenant_refusal_verified": true,
+      "exact_durable_snapshot_verified": true,
+      "invariants": "passed",
+      "manifest_sha256": "366a07dbd511c3e7f88db7206cca2cfe956ab6dc82ba7e404c442b6bcfc9e3c9",
+      "named_restore_point": "stateknot_child_join_before_late_write",
+      "noninitial_replay_verified": true,
+      "os": "linux",
+      "post_target_write_excluded": true,
+      "postgres": "16.14 (Debian 16.14-1.pgdg13+1)",
+      "profile": "child-join-named-pitr-v1",
+      "wal_segment_archived": "000000010000000000000004"
+    },
+    "workflow_head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+    "actual_checkout_commit": "4c873c3a8615cae8372daff23f36c5976d5e5883",
+    "actual_checkout_tree": "781d3d550c5b45554dada9723707508d93dc8703",
+    "actual_checkout_tree_equals_head_tree": true,
+    "cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+  },
+  {
+    "artifact": "child-join-pitr-postgres-17-38709873198",
+    "log_sha256": "96c697f2dfbca6e7c72e92b78afeef23a7aa01f1d5c9aa79781e2fc09494fbae",
+    "environment_sha256": "f32327d0f3665a500aab3705ffa69b4179e133a8274ef627afe94131344fc58c",
+    "exact_one_native_pass": true,
+    "marker_count": 1,
+    "marker": {
+      "arch": "x86_64",
+      "base_backup_verified": true,
+      "cross_tenant_refusal_verified": true,
+      "exact_durable_snapshot_verified": true,
+      "invariants": "passed",
+      "manifest_sha256": "3d97fccc959a93d5ef23711fd977486ceb03685c1d15b0be328f340672986eb7",
+      "named_restore_point": "stateknot_child_join_before_late_write",
+      "noninitial_replay_verified": true,
+      "os": "linux",
+      "post_target_write_excluded": true,
+      "postgres": "17.11 (Debian 17.11-1.pgdg13+2)",
+      "profile": "child-join-named-pitr-v1",
+      "wal_segment_archived": "000000010000000000000004"
+    },
+    "workflow_head_sha": "83559f7651f48d65755c1fc5fd8a9ba82e721193",
+    "actual_checkout_commit": "4c873c3a8615cae8372daff23f36c5976d5e5883",
+    "actual_checkout_tree": "781d3d550c5b45554dada9723707508d93dc8703",
+    "actual_checkout_tree_equals_head_tree": true,
+    "cargo_lock_sha256": "fc36c3966dc2abf990fae6a01b633459d95fedae0fd7f77c429b5f04447b2e94"
+  }
+]

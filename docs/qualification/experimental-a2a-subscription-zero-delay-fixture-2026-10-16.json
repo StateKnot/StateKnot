@@ -1,0 +1,17 @@
+{
+  "artifact_index_sha256": "6267fe98ad0df5317bd3f688639f7a37912dbbb1449600452c580d3745ba5e2e",
+  "bundle_relative_path": "evidence/experimental-a2a-subscription-zero-delay-fixture-2026-10-16",
+  "compiled_inputs_ordered_sha256": "550a257ada181f8686648fb4fb4fbbac324250208d22841d14220eb54abda956",
+  "cross_platform_ci_qualified": false,
+  "documents": {
+    "en": "3001e4603e96d1ad4edb1ddbdaf60769713b6f145e98fd724903182d1a05bbc7",
+    "zh-CN": "c78735f6cddf3524e33d202027383462189fbcc0c7ff0829daf313b4c1deb087"
+  },
+  "full_Native_qualified": false,
+  "native_inputs_ordered_sha256": "d88e7d73b5b08eeda7bf8d98480be8ad2e68e3b9b4513a002b4742c820f02b16",
+  "original_ci_root_cause_proved": false,
+  "schema_version": 1,
+  "scope_sha256": "79f5cb5445c8e614dbed437468d7942818c38716a3245e79ba46be8a713ebecf",
+  "source_tree_sha256": "577fa6e6dac49dad92d37eb0683bfaf43a673e86f99d3ad47111b51b26a9104a",
+  "status": "qualified_local_fixture_and_combined_wait_exact"
+}

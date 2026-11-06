@@ -1,0 +1,11 @@
+{
+  "authorized": true,
+  "runner_sha256": "a0a60f8f3086e0315addfa3a6d6be21055635b9aab7e853b4213fa8e0b919c45",
+  "source_tree_sha256": "3a84c68eb9dd9df1804a7e24801516e11c9ee01ca0c6f243a4fdfaf76cbe124c",
+  "main_head": "686c42739e9f128db9d90fcb4e9d1aefd36942d8",
+  "scope": "command-local test opt1 experiment, original assertions/overflow/default stack/business resources/strict six gates; workspace feature union Native scope; no main/config/CI mutation or original-DB deletion",
+  "main_compiled_inputs_frozen": 531,
+  "time_unix": 1792069932.358756,
+  "root_environment_override_inventory_empty": true,
+  "complete_CI_job_qualified": false
+}

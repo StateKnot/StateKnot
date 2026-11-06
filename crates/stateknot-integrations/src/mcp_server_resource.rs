@@ -21,6 +21,11 @@ use stateknot_core::{BoxFuture, Digest};
 use thiserror::Error;
 use tokio_util::sync::CancellationToken;
 
+use crate::McpServerBoundStateProfile;
+use crate::mcp_server_bound_state::{
+    BoundOperation, check_context, operation_binding, require_bound_principal, validate_wire_state,
+};
+
 use crate::{
     McpServerApplicationOptions, McpServerCacheScope, McpServerInputRequired, McpServerPrincipal,
     mcp_server_principal,
@@ -830,6 +835,11 @@ impl McpServerResourceRead {
     }
 
     /// Returns untrusted echoed request state.
+    ///
+    /// With an explicit bound-state profile, decoded authorization sees the
+    /// untrusted wire envelope; the business callback sees restored inner
+    /// application state only after the framework verifies the outer binding.
+    /// Without that profile the original opaque-state behavior is unchanged.
     #[must_use]
     pub fn request_state(&self) -> Option<&str> {
         self.request_state.as_deref()
@@ -859,6 +869,10 @@ impl McpServerResourceContext {
     }
 
     /// Returns principal/operation/URI-bound request-state associated data.
+    ///
+    /// An explicitly configured bound-state profile supplies its full host and
+    /// scope-bound v3 associated data. Unconfigured services retain legacy AD;
+    /// the presence of a host-bound principal alone does not enable enforcement.
     #[must_use]
     pub fn request_state_binding(&self) -> &[u8] {
         &self.request_state_binding
@@ -974,6 +988,7 @@ pub struct McpServerResourceService {
     options: McpServerApplicationOptions,
     reader: Arc<dyn McpServerResourceReader>,
     authorization: Arc<dyn McpServerResourceAuthorization>,
+    bound_state: Option<McpServerBoundStateProfile>,
 }
 
 impl McpServerResourceService {
@@ -1008,28 +1023,63 @@ impl McpServerResourceService {
             options,
             reader,
             authorization,
+            bound_state: None,
         })
+    }
+
+    /// Enforces host-bound private cursors and MRTR state on this service.
+    ///
+    /// The existing host policy still checks current mapping/generation after
+    /// queueing. Private applies to catalog metadata and continuation identity;
+    /// independently selected Public Resource contents are not made private.
+    /// Clones and later Completion configuration retain this immutable profile.
+    pub fn with_bound_state(
+        mut self,
+        profile: McpServerBoundStateProfile,
+    ) -> Result<Self, McpServerResourceServiceBuildError> {
+        if self.bound_state.is_some() {
+            return Err(McpServerResourceServiceBuildError::BoundStateAlreadyConfigured);
+        }
+        if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
+            return Err(McpServerResourceServiceBuildError::PublicCacheWithBoundState);
+        }
+        self.bound_state = Some(profile);
+        Ok(self)
     }
 
     pub(crate) fn contains_resource(&self, uri: &str) -> bool {
         self.catalog.get(uri).is_some()
     }
 
-    fn scope_tag(&self, principal: &McpServerPrincipal) -> String {
+    fn cursor_version(&self) -> &'static str {
+        if self.bound_state.is_some() {
+            "v2"
+        } else {
+            "v1"
+        }
+    }
+
+    fn scope_tag(&self, principal: &McpServerPrincipal) -> Result<String, ErrorData> {
+        if self.bound_state.is_some() {
+            return Ok(require_bound_principal(principal)?.hex());
+        }
         if matches!(self.options.cache_scope, McpServerCacheScope::Public) {
-            return "public".to_owned();
+            return Ok("public".to_owned());
         }
         let mut material = principal.subject().as_bytes().to_vec();
         for scope in principal.scopes() {
             append_digest_part(&mut material, scope.as_bytes());
         }
-        digest_hex(material)
+        Ok(digest_hex(material))
     }
 
     fn page_cursor(&self, kind: &str, scope: &str, offset: usize) -> String {
         format!(
-            "v1.{kind}.{}.{}.{}",
-            self.catalog.inner.digest, scope, offset
+            "{}.{kind}.{}.{}.{}",
+            self.cursor_version(),
+            self.catalog.inner.digest,
+            scope,
+            offset
         )
     }
 
@@ -1038,7 +1088,7 @@ impl McpServerResourceService {
             return Err(invalid_cursor());
         }
         let mut parts = cursor.split('.');
-        let valid = parts.next() == Some("v1")
+        let valid = parts.next() == Some(self.cursor_version())
             && parts.next() == Some(kind)
             && parts.next() == Some(self.catalog.inner.digest.as_ref())
             && parts.next() == Some(scope);
@@ -1054,7 +1104,7 @@ impl McpServerResourceService {
         principal: &McpServerPrincipal,
         cursor: Option<&str>,
     ) -> Result<(Vec<Resource>, Option<String>), ErrorData> {
-        let scope = self.scope_tag(principal);
+        let scope = self.scope_tag(principal)?;
         let visible = self
             .catalog
             .inner
@@ -1086,7 +1136,7 @@ impl McpServerResourceService {
         principal: &McpServerPrincipal,
         cursor: Option<&str>,
     ) -> Result<(Vec<ResourceTemplate>, Option<String>), ErrorData> {
-        let scope = self.scope_tag(principal);
+        let scope = self.scope_tag(principal)?;
         let visible = self
             .catalog
             .inner
@@ -1118,6 +1168,7 @@ impl McpServerResourceService {
         request: ReadResourceRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         validate_uri(&request.uri).map_err(|_| resource_not_found())?;
         let principal = mcp_server_principal(&context)
             .cloned()
@@ -1130,8 +1181,14 @@ impl McpServerResourceService {
         }) {
             return Err(resource_not_found());
         }
+        let input_responses_was_present = request.input_responses.is_some();
         let input_responses = request.input_responses.unwrap_or_default();
-        validate_inbound_mrtr(&input_responses, request.request_state.as_deref())?;
+        if self.bound_state.is_some() {
+            validate_wire_state(request.request_state.as_deref())?;
+            validate_inbound_mrtr(&input_responses, None)?;
+        } else {
+            validate_inbound_mrtr(&input_responses, request.request_state.as_deref())?;
+        }
         let read = McpServerResourceRead {
             uri: Arc::from(request.uri),
             input_responses: Arc::new(input_responses),
@@ -1154,10 +1211,28 @@ impl McpServerResourceService {
                 ));
             }
         }
-        let execution_context = resource_context(&context, principal, read.uri())?;
+        let execution_context =
+            resource_context(&context, principal, read.uri(), self.bound_state.as_ref())?;
+        let state_binding = execution_context.request_state_binding.clone();
+        let read = if let Some(profile) = &self.bound_state {
+            McpServerResourceRead {
+                request_state: profile.open_inbound(
+                    read.request_state(),
+                    input_responses_was_present,
+                    &state_binding,
+                )?,
+                ..read
+            }
+        } else {
+            read
+        };
         match self.reader.read(read, execution_context).await {
             Ok(McpServerResourceOutcome::Complete(result)) => Ok(result.into_protocol().into()),
             Ok(McpServerResourceOutcome::InputRequired(result)) => {
+                let result = match &self.bound_state {
+                    Some(profile) => result.bind_for_profile(profile, &state_binding)?,
+                    None => result,
+                };
                 Ok(result.into_protocol().into())
             }
             Err(McpServerResourceReaderError::NotFound) => Err(resource_not_found()),
@@ -1208,8 +1283,9 @@ impl ServerHandler for McpServerResourceService {
 
     async fn discover(
         &self,
-        _context: RequestContext<RoleServer>,
+        context: RequestContext<RoleServer>,
     ) -> Result<DiscoverResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         Ok(
             DiscoverResult::from_server_info(vec![ProtocolVersion::V_2026_07_28], self.get_info())
                 .with_ttl_ms(self.options.cache_ttl_ms)
@@ -1222,6 +1298,7 @@ impl ServerHandler for McpServerResourceService {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourcesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let principal = mcp_server_principal(&context)
             .ok_or_else(|| ErrorData::internal_error("MCP server boundary is missing", None))?;
         let (resources, next_cursor) = self.resources_page(
@@ -1240,6 +1317,7 @@ impl ServerHandler for McpServerResourceService {
         request: Option<PaginatedRequestParams>,
         context: RequestContext<RoleServer>,
     ) -> Result<ListResourceTemplatesResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         let principal = mcp_server_principal(&context)
             .ok_or_else(|| ErrorData::internal_error("MCP server boundary is missing", None))?;
         let (templates, next_cursor) = self.templates_page(
@@ -1258,7 +1336,91 @@ impl ServerHandler for McpServerResourceService {
         request: ReadResourceRequestParams,
         context: RequestContext<RoleServer>,
     ) -> Result<ReadResourceResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
         self.dispatch(request, context).await
+    }
+    async fn complete(
+        &self,
+        request: rmcp::model::CompleteRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CompleteResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::complete(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn get_prompt(
+        &self,
+        request: rmcp::model::GetPromptRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::GetPromptResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::get_prompt(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_prompts(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListPromptsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_prompts(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn call_tool(
+        &self,
+        request: rmcp::model::CallToolRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CallToolResponse, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::call_tool(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn list_tools(
+        &self,
+        request: Option<rmcp::model::PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::ListToolsResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::list_tools(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
+    }
+
+    async fn on_custom_request(
+        &self,
+        request: rmcp::model::CustomRequest,
+        context: RequestContext<RoleServer>,
+    ) -> Result<rmcp::model::CustomResult, ErrorData> {
+        check_context(self.bound_state.as_ref(), &context)?;
+        ServerHandler::on_custom_request(
+            &crate::mcp_server_bound_state::UnmountedMcpSurface,
+            request,
+            context,
+        )
+        .await
     }
 }
 
@@ -1266,6 +1428,12 @@ impl ServerHandler for McpServerResourceService {
 #[derive(Clone, Copy, Debug, Eq, Error, PartialEq)]
 #[non_exhaustive]
 pub enum McpServerResourceServiceBuildError {
+    /// Bound state was configured more than once.
+    #[error("MCP bound state is already configured")]
+    BoundStateAlreadyConfigured,
+    /// An explicit strong profile requires Private catalog caching.
+    #[error("MCP bound state requires a private catalog cache")]
+    PublicCacheWithBoundState,
     /// Scope-filtered entries require principal-private caching.
     #[error("scope-restricted MCP resources require a private catalog cache")]
     PublicCacheWithScopedEntries,
@@ -1275,17 +1443,27 @@ fn resource_context(
     context: &RequestContext<RoleServer>,
     principal: McpServerPrincipal,
     uri: &str,
+    profile: Option<&McpServerBoundStateProfile>,
 ) -> Result<McpServerResourceContext, ErrorData> {
     let capabilities = serde_json::to_value(context.client_capabilities().unwrap_or_default())
         .map_err(|_| ErrorData::internal_error("Failed to retain client capabilities", None))?;
-    let mut binding = b"stateknot/mcp-server/request-state/resource/v1".to_vec();
-    append_digest_part(&mut binding, principal.subject().as_bytes());
-    append_digest_part(&mut binding, uri.as_bytes());
+    let binding = if profile.is_some() {
+        operation_binding(
+            &require_bound_principal(&principal)?,
+            BoundOperation::Resource { uri },
+        )?
+        .to_vec()
+    } else {
+        let mut binding = b"stateknot/mcp-server/request-state/resource/v1".to_vec();
+        append_digest_part(&mut binding, principal.subject().as_bytes());
+        append_digest_part(&mut binding, uri.as_bytes());
+        Digest::sha256(binding).as_bytes().to_vec()
+    };
     Ok(McpServerResourceContext {
         principal,
         client_capabilities: Arc::new(capabilities),
         cancellation: context.ct.clone(),
-        request_state_binding: Digest::sha256(binding).as_bytes().to_vec().into(),
+        request_state_binding: binding.into(),
     })
 }
 

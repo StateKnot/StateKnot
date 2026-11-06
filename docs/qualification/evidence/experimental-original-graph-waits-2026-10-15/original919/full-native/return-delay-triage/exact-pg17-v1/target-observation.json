@@ -1,0 +1,7 @@
+{
+  "pg_sleep_observed": true,
+  "original_lease_seconds": 2,
+  "original_deferred_trigger_sleep_seconds": 2.1,
+  "no_source_or_test_changes": true,
+  "active_host_full_native_chains": true
+}

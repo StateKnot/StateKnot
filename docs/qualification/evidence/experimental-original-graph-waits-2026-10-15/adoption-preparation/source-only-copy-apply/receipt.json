@@ -1,0 +1,14 @@
+{
+  "base_commit": "a9b265d5b3a96e0e5bbed604b7558f4ae9edc136",
+  "patch_sha256": "d5804dcbb9154d019a30840e45402532c1438f4f5be880591b9f44942e0dcb90",
+  "source_only_copy": "/private/tmp/stateknot-r1-oct15-schema36-main-adoption-copy-v1",
+  "copied_current_main_compiled_inputs": 514,
+  "after_patch_compiled_inputs_exact": 530,
+  "after_patch_source_tree_origin": "88dd9d363194af6c52809fabcd82b9c7e6cba2ee136c95ae161e40a67aebb0eb",
+  "compiled_input_superset_exact": true,
+  "whole_Git_tree_equality_claimed": false,
+  "main_mutated": false,
+  "compile_or_tests_executed": false,
+  "copy_excluded_generated_dirs": true,
+  "native_or_CI_qualification_granted": false
+}

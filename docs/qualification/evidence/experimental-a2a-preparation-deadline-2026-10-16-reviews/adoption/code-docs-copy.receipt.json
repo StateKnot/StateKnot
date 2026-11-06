@@ -1,0 +1,11 @@
+{
+  "actual_copy_unix": 1792129871.621309,
+  "plan_sha256": "bc311dfe54b8bdc8107bf22f9a904ef48a6268a616eb50fe20ba266229ba3c2f",
+  "source_spec_receipt_sha256": "b543d5ea2bc3beba24d75f39e88785dfd35dd43c9aeaa699327124863b1e5e2b",
+  "paths_copied": 9,
+  "main_compiled540_exact": true,
+  "all_other536_supplied_inputs_unchanged": true,
+  "publication_not_yet_adopted": true,
+  "Git_staging_or_commit_performed": false,
+  "new_Rust_execution_performed": false
+}

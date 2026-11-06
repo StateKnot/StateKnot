@@ -1,0 +1,234 @@
+{
+  "schema": "stateknot.qualification.published-join-public-loop-commit-loss.v1",
+  "record_date": "2026-10-21",
+  "status": "local-directed-evidence-only-for-new-minimal-source",
+  "published_baseline": {
+    "head": "53b0d83e226954c67004de5ff28dccd6208101e4",
+    "tree": "8d8793dee9cea47daf12cf875cab6f51d1c6074c",
+    "parent": "c7dc7eef69af88e060de0a9a0ac0c835e3de05a3",
+    "source_count": 969,
+    "source_tree_sha256": "fbc2dc9ca5812a15b2de4b9c5097aa59ff0348d83dfbca266e6082dc09e37af8",
+    "compiled_count": 563,
+    "compiled_inputs_sha256": "3c6dd428b383968d0ce0ccb211077e529cc95a47af6513793b0a055ee885ef20",
+    "CI": {
+      "url": "https://github.com/StateKnot/StateKnot/actions/runs/39444455774",
+      "run_id": 39444455774,
+      "run_attempt": 1,
+      "actual_checkout_sha": "312e54f136b0ec625f25ede1eb4672c435a59546",
+      "full_CI_success_verified": true,
+      "successful_jobs": 22,
+      "checkout_logs": 20,
+      "artifacts": 56,
+      "required_step_states": 120,
+      "strict_components": 15,
+      "offline_negative_controls": 111,
+      "Native_inventory_per_major": {
+        "store": 275,
+        "runtime": 227
+      },
+      "total_Native_passed": 1004,
+      "scope": "Only published baseline fbc2/3c6d; does not include or qualify the new public Loop test."
+    },
+    "root_acceptance": {
+      "file": "published-join-v3-ci-final-acceptance-root-v1.json",
+      "sha256": "daf9fe7990a9632970eee8f604604ca47be502584569b7f1a18f1b1ae739dd73"
+    }
+  },
+  "local_candidate": {
+    "source_directory": "published-join-v3-public-loop-minimal-source-v2",
+    "source_count": 969,
+    "source_tree_sha256": "1424fc42fd41f3bdb9242b6b057572e4d1de9600904119b6a2c091c89cd8f41f",
+    "compiled_count": 563,
+    "compiled_inputs_sha256": "54c23f837b63b150aae70fa306cd1c2d6860b4c05ebc9e96b55af7d7eb0276d5",
+    "changed_paths_from_published_baseline": [
+      "crates/stateknot-runtime/tests/postgres/scoped_child_join_fresh_red.rs",
+      "crates/stateknot-runtime/tests/postgres/scoped_child_join_parent_terminal.rs"
+    ],
+    "production_runtime_and_public_API_unchanged": true,
+    "preparation": {
+      "directory": "published-join-v3-public-loop-minimal-preparation-v2",
+      "manifest_sha256": "6e5346a9f7db2755fe933d35914a779c3565a2757ee7801cfebfb899b09de66c"
+    },
+    "build": {
+      "manifest_sha256": "57b5a024bb67bd7119d0912e611c592f8699c37fd97e7bf0f1f31b3154844765",
+      "exit_code": 0,
+      "cold_build_observed": false,
+      "cache_reused": true,
+      "actual_fresh_values": [
+        true,
+        true,
+        true,
+        true,
+        false
+      ],
+      "inventory": {
+        "store": 275,
+        "runtime": 228
+      },
+      "runtime_binary_sha256": "ff3dfd02637d3b74a1c8e939f0f738b9451ba949d9721634cca1ad1aa1f3f4ac",
+      "Store_suite_executed_here": false
+    },
+    "execution": {
+      "host": {
+        "os": "macos",
+        "arch": "aarch64"
+      },
+      "postgres_versions": [
+        "16.15",
+        "17.11"
+      ],
+      "profile": {
+        "default_features": true,
+        "opt_level": "1",
+        "debug_info": 0,
+        "debug_assertions": true,
+        "overflow_checks": true,
+        "default_thread_stack": true
+      },
+      "original_limits": {
+        "lease_seconds": 30,
+        "process_ready_seconds": 90,
+        "full_suite_seconds": 1800,
+        "CI_Native_job_minutes": 30
+      },
+      "exact_case": "scoped_join_close_process_faults::fresh_join::parent_terminal::published_stop_faults::published_scoped_join_public_loop_close_commit_loss_survives_real_kill_and_id_only_cold_recovery",
+      "per_major_test_result": {
+        "passed": 1,
+        "failed": 0,
+        "ignored": 0,
+        "filtered_out": 227
+      },
+      "actual_cut_count": 4,
+      "marker_prefix": "STATEKNOT_PUBLISHED_JOIN_V3_PUBLIC_LOOP_COMMIT_LOSS_EVIDENCE=",
+      "captures": [
+        {
+          "major": 16,
+          "directory": "published-join-v3-public-loop-exact-pg16-v2",
+          "manifest_sha256": "917b4f4170699f1dd45e9d3a37e10f74407fe53eaf34e2d31a29f691a016544b",
+          "indexed_files": 95,
+          "test_receipt_sha256": "3c913b226f58d5c473909184f9754d1abcede9e30376d499b171b2bf8b6fb585",
+          "raw_stdout_sha256": "a2f35b16c6aa700ea0a50f1c0e32ccaf983e9e9d2eb4008b3f433f32fd6063b2",
+          "seconds": 82.83230996131897,
+          "cuts": [
+            {
+              "cut": "commit_not_forwarded",
+              "writer_pid": 7860,
+              "cold_pid": 7877,
+              "recovery": "public_loop_new_fence",
+              "snapshot": "sha256:858b9d2875e09e119152c12c7ed774918abfa7601a3c02c7b44d28a4c2e4d024",
+              "closure_digest": "sha256:bcaf4a9a127b6a2342f61f510d61245b432829180144527da95aa6d5ded24002",
+              "terminal_digest": "sha256:98f847d2c10b0d561055751ca4cfad9430c387d4f3842f26136b38b5b39629c9"
+            },
+            {
+              "cut": "commit_response_withheld",
+              "writer_pid": 7965,
+              "cold_pid": 7997,
+              "recovery": "original_closure_ack",
+              "snapshot": "sha256:e79095f1250be6cbc120b16aca89965f24498560cd10d20eeb4d5da137d0dad4",
+              "closure_digest": "sha256:1fef0fd3621aecd519469e2fa5bbcbb14dbf40a669dd4756823ab0b854e5ac06",
+              "terminal_digest": "sha256:119746c1bf42d2bf7bd0822464f482e227bcaa64b40cb72ce0c4881a854850e9"
+            }
+          ],
+          "postgres_version": "16.15 (Debian 16.15-1.pgdg13+2)",
+          "exit_code": 0,
+          "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 227 filtered out; finished in 82.79s"
+        },
+        {
+          "major": 17,
+          "directory": "published-join-v3-public-loop-exact-pg17-v2",
+          "manifest_sha256": "01a022a5d1336b60d89dc19f31f8b9a6c2e3d50ebae93d51320bdf7251dd6297",
+          "indexed_files": 95,
+          "test_receipt_sha256": "cf5bc4ab7d47f88acc9c2022d42be6422276a964d3b7b2e358defbeb6cac528d",
+          "raw_stdout_sha256": "2fe24703be026509ca78b0590a28b3ec0fec077b0e3f526738e40b926b1ea8a8",
+          "seconds": 82.47886419296265,
+          "cuts": [
+            {
+              "cut": "commit_not_forwarded",
+              "writer_pid": 7861,
+              "cold_pid": 7878,
+              "recovery": "public_loop_new_fence",
+              "snapshot": "sha256:071ec3a3f7261d5204fbde36412218daacfb43217e1c0737f95338998bc55dad",
+              "closure_digest": "sha256:0024858a946e027869b3beccaec33a18133c4a9c6de2d5834cdede25bab6f116",
+              "terminal_digest": "sha256:7a33726cb9b85715b22f5d0ff60c20f995504a02edfcdd41444dea4e1b408e39"
+            },
+            {
+              "cut": "commit_response_withheld",
+              "writer_pid": 7966,
+              "cold_pid": 7998,
+              "recovery": "original_closure_ack",
+              "snapshot": "sha256:ecfa86cbe9b35ae54de105ad2eee27a2f812a8160c6ed426bb40edf0cf58508c",
+              "closure_digest": "sha256:60d7c649f88d8d13aab609a981eacfd96293043f4eb56c586280c7c51940847c",
+              "terminal_digest": "sha256:b239a05f4071e57d3ddea752b51ba303868f521e9b6c8f659f6da031fb40516b"
+            }
+          ],
+          "postgres_version": "17.11 (Debian 17.11-1.pgdg13+2)",
+          "exit_code": 0,
+          "summary": "test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 227 filtered out; finished in 82.44s"
+        }
+      ],
+      "source_build_and_raw_streams_unchanged_verified_by_Root": true,
+      "raw_redactions": 0,
+      "descendant_or_process_group_empty_proven": false
+    },
+    "root_directed_acceptance": {
+      "file": "published-join-v3-public-loop-directed-acceptance-root-v2.json",
+      "sha256": "5f9a16b827482dc8c7ea9c81278b3e66f9adb32369e8a62c9992d204c6d4d006"
+    },
+    "qualified_scope": {
+      "writer_entrypoint": "DurableAgentLoop::run",
+      "public_loop_lifecycle_mutation_interrupted": true,
+      "public_driver_handoff_observed": true,
+      "standalone_driver_mutation_interrupted": false,
+      "before_commit": "Whole tenant baseline after actual same-fence guardian renewal; real writer SIGKILL/reap/backend retirement; no closure; ID-only finalizer NotApplicable; cold registry and complete DIRECT reconstructed from persisted original identities/graph pins, natural DB-clock lease expiry, then F3 public Loop.",
+      "commit_response_withheld": "Original complete v3 closure is durable before kill; cold ID-only finalizer precedes ExecutableGraphRegistry/application provider construction, preserves original ACK and byte-identical idempotent terminal event.",
+      "retained": "Original Executing ordinary owner, full request/registration/binding/publication, no Join consumption/result/resume; complete priced DIRECT plus actual settled child once.",
+      "settled_child_cumulative_usage": {
+        "model_turns": "2",
+        "tool_calls": "1",
+        "unpriced_cost_events": "0"
+      },
+      "new_executable_application_counters": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "registry_or_provider_marker_scope": "The existing registry_or_provider_constructed=false marker means ExecutableGraphRegistry and application provider. The cold finalizer still constructs JsonSchemaRegistry through cancellation_schemas()."
+    },
+    "clippy_preflight": {
+      "exit_code": 0,
+      "profile": "opt0, workspace/all-targets/all-features, -D warnings",
+      "receipt_file": "published-join-v3-public-loop-minimal-clippy-preflight-v2/clippy.receipt.json",
+      "receipt_sha256": "ae0c85ec109b70dbebdd371bdd43c8d0cce29f738a98f9806a1bd6527f000c98",
+      "combined_full_gates_qualified": false
+    }
+  },
+  "history": [
+    {
+      "directory": "published-join-v3-public-loop-minimal-native-build-v1",
+      "manifest_sha256": "5517182a695292576b8fd67364f32b7206adf7c972e91d9c2c533bc623b1b74e",
+      "exit_code": 101,
+      "stage": "compile",
+      "functional_RED": false,
+      "reason": "Two json!([0; 6]) expressions are invalid JSON macro syntax. A separate authoring-v2 uses explicit six-zero arrays; original source/build evidence remains immutable."
+    }
+  ],
+  "pending": {
+    "new_candidate_full_gates": null,
+    "new_candidate_full_Native": null,
+    "new_candidate_full_CI": null,
+    "combined_documented_source_identity": null,
+    "publication_head_or_run_for_new_candidate": null
+  },
+  "qualification_limits": {
+    "published_CI_transfers_to_new_candidate": false,
+    "standalone_Driver_mutation_qualified": false,
+    "R1_closed": false,
+    "RFC0022_accepted": false,
+    "stdio_supported": false,
+    "Supported_or_release_qualified": false,
+    "macOS_harness_with_PostgreSQL_containers_is_not_Linux_host_qualification": true
+  }
+}

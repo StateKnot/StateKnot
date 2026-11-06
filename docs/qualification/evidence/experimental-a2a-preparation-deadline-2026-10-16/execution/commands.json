@@ -1,0 +1,120 @@
+{
+  "red-policy": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "-p",
+    "stateknot-integrations",
+    "--test",
+    "a2a_server_subscription",
+    "initial_authority::initial_policy_deadline_shutdown_and_capacity_are_owned",
+    "--locked",
+    "--",
+    "--exact",
+    "--nocapture"
+  ],
+  "initial-unit": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "-p",
+    "stateknot-integrations",
+    "--lib",
+    "a2a_server::preparation_tests",
+    "--locked",
+    "--",
+    "--nocapture"
+  ],
+  "initial-tcp": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "-p",
+    "stateknot-integrations",
+    "--test",
+    "a2a_server_subscription",
+    "initial_authority::",
+    "--locked",
+    "--",
+    "--nocapture"
+  ],
+  "fmt": [
+    "cargo",
+    "+1.88.0",
+    "fmt",
+    "--all",
+    "--check"
+  ],
+  "unit": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "-p",
+    "stateknot-integrations",
+    "--lib",
+    "a2a_server::subscription_tests",
+    "--locked",
+    "--",
+    "--nocapture"
+  ],
+  "tcp": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "-p",
+    "stateknot-integrations",
+    "--test",
+    "a2a_server_subscription",
+    "--locked",
+    "--",
+    "--nocapture"
+  ],
+  "clippy": [
+    "cargo",
+    "+1.88.0",
+    "clippy",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked",
+    "--",
+    "-D",
+    "warnings"
+  ],
+  "workspace": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ],
+  "doctests": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "--workspace",
+    "--doc",
+    "--all-features",
+    "--locked"
+  ],
+  "rustdoc": [
+    "cargo",
+    "+1.88.0",
+    "doc",
+    "--workspace",
+    "--all-features",
+    "--no-deps",
+    "--locked"
+  ],
+  "nightly": [
+    "cargo",
+    "+nightly-2026-10-07",
+    "check",
+    "--workspace",
+    "--all-targets",
+    "--all-features",
+    "--locked"
+  ]
+}

@@ -1,0 +1,156 @@
+{
+  "classification": "frozen future acceptance contract, no runtime result",
+  "cases": [
+    {
+      "id": "P01",
+      "scope": "all11operations x REST/RPC",
+      "required_oracle": "pending initial authz -> generic operation timeout; no admission/backend; exact immutable principal/op/task/config; strict pre-header full REST/RPC errors",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "P02",
+      "scope": "all11operations x REST/RPC",
+      "required_oracle": "pending admission -> same timeout and same D; exactly successful authz before admission; no backend; strict pre-header error",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "P03",
+      "scope": "all11operations x REST/RPC",
+      "required_oracle": "normal valid input reaches original method; timely Forbidden/Unavailable and Rejected/Unavailable preserve old maps, capability/extension rejection remains before policy",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "P04",
+      "scope": "two policy stages",
+      "required_oracle": "each stage individually shorter than request_timeout but total longer: second stage rejected at original D, not a new budget",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "P05",
+      "scope": "authn/backend separation",
+      "required_oracle": "slow successful authn does not consume new D; valid near-D initial stages still grant original independent backend timeout; old backend/stream idle outcomes unchanged",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "B01",
+      "scope": "REST send/stream, REST push, RPC",
+      "required_oracle": "headers and partial JSON arrive then body stays pending; D returns 408 fixed plain request timed out with zero decoded policy/backend; drop body future/request permit",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "B02",
+      "scope": "three JSON classes",
+      "required_oracle": "body consumes most of D then initial policy awaits; total request fails at same D; no resetting D at prepare",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "B03",
+      "scope": "three JSON classes",
+      "required_oracle": "shutdown during pending body -> 503 fixed plain service unavailable, body future Drop, no policy/backend",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "P06",
+      "scope": "initial authz and admission",
+      "required_oracle": "shutdown while callback pending or just becoming ready -> generic shutting-down wire error; actual future Drop; no later stage/backend",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "R01",
+      "scope": "body/canonicalization/policy ready races",
+      "required_oracle": "precheck and actual-clock postcheck reject now>=D regardless of select readiness order or callback Ok/Err; shutdown observed wins; no permit/backend handoff",
+      "future_execution_kind": "private deterministic controls using actual monotonic clock; real TCP cumulative cases remain mandatory",
+      "executed": false
+    },
+    {
+      "id": "O01",
+      "scope": "requestcap1",
+      "required_oracle": "after timeout and shutdown failure where server remains available as applicable, request future/permit is released before client drops first completed error Response; next healthy request is accepted",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "O02",
+      "scope": "requestcap>=2 operationcap1",
+      "required_oracle": "while A policy is demonstrably still pending, healthy B reaches backend; actual barrier/time shows A has not yet timed out; no operation permit acquired early",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "O03",
+      "scope": "owned futures",
+      "required_oracle": "direct request owner Drop releases pending body/policy future with no detached task; actual server-observed Drop is the oracle, not client close timestamp",
+      "future_execution_kind": "private ownership plus TCP cancellation observation where actual Drop is visible",
+      "executed": false
+    },
+    {
+      "id": "C01",
+      "scope": "REST push configured maximum >2097152",
+      "required_oracle": "valid JSON plus large legal whitespace exceeds Axum default2MiB but stays below configured max and reaches normal original business outcome, including Content-Length known/streamed forms",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "C02",
+      "scope": "REST push size ceiling",
+      "required_oracle": "exact configured boundary accepted, +1 byte rejected via original plain413 full text and content-type; allowed Origin ACAO/Vary preserved; no policy/backend for overlimit",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "C03",
+      "scope": "REST push original SDK parsing",
+      "required_oracle": "finite malformed syntax retains exact SDK plain400 JsonSyntaxError; finite valid Value but invalid Push ProtoJSON retains original AIP400; no invented push422; original typed Json data422 where reachable remains unchanged",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "C04",
+      "scope": "REST push handoff",
+      "required_oracle": "original method/URI/version/extensions/request headers including Content-Length and payload whitespace/ordering/bytes unchanged at SDK handoff; no serde reserialization",
+      "future_execution_kind": "small private compatibility control paired with C01 actual TCP",
+      "executed": false
+    },
+    {
+      "id": "C05",
+      "scope": "body I/O failure and HTTP framing",
+      "required_oracle": "controlled body error preserves original Bytes->Json rejection400 full source text; real TCP truncated/body error compared where complete response exists; malformed transport may close before application, no fabricated response guarantee",
+      "future_execution_kind": "controlled Body error plus real TCP where observable",
+      "executed": false
+    },
+    {
+      "id": "C06",
+      "scope": "RESTsend/RPC and Content-Type",
+      "required_oracle": "existing Limited/canonicalization/error JSON/plain bytes/header removal unchanged; original content-type gate happens before body read; no new header-only Content-Length policy",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "C07",
+      "scope": "ignored bodies/discovery",
+      "required_oracle": "REST cancel/subscribe POST with deliberately pending unused body still reaches prepare; GET/DELETE/unsupported route/method and discovery retain original body-ignore/no-policy behavior",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    },
+    {
+      "id": "G01",
+      "scope": "existing regression set",
+      "required_oracle": "retain original8private+1TCPfamily17IDsx2 and all original six gates; no weakening existing feature/defaultstack/profile/limits or replacing native resource claims",
+      "future_execution_kind": "real TCP plus appropriate private observation",
+      "executed": false
+    }
+  ],
+  "case_count": 21,
+  "actual_product_red_or_green": false,
+  "baseline_error_comparison_must_preserve_dynamic_timestamp_only_normalization": true,
+  "strict_future_result_reporting": "count actual Rust test families separately from subcase matrices; no invented Linux/Native/fullCI/R1 qualification"
+}

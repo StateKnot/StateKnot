@@ -5,10 +5,10 @@ SPDX-License-Identifier: Apache-2.0
 
 # Durable Graph runtime
 
-Status: implementation-backed public-preview contract. The APIs are available
-in the exact `0.1.0-alpha.1` release and may still change. This document
-describes the boundary that is implemented and qualified today; it is not a
-production-release claim.
+Status: the baseline runtime is a public-preview contract in the exact
+`0.1.0-alpha.1` release and may still change. The experimental sections describe
+unreleased source increments with separate qualification boundaries. Production
+qualification remains open.
 
 [简体中文](durable-graph-runtime.zh-CN.md)
 
@@ -50,6 +50,98 @@ An idempotently observed start is never execution authority. It may be a lost
 acknowledgement or another executor's committed start, so the Driver classifies
 it as in flight. If that executor dies, lease expiry or explicit supersession
 allows a higher fence to recover the unfinished attempt once.
+
+## Experimental trusted Root dispositions
+
+The unreleased schema-35 path preserves Agent V1 and authenticates ordinary
+trusted Root creation through its original Start and INITIAL checkpoint. Static
+shared-state composition uses this same Root source. Before fresh Root work,
+the Driver validates the original recovery observation after cancellation
+handoff; active frames retain their separate complete admission/entry proof.
+Continue, future Wait and Terminal bind their original whole plans, and Terminal
+retains complete original validation inputs. Adoption, drain/migration steps
+and exact evidence boundaries are in [Trusted Root dispositions](trusted-root-dispositions.md).
+The final nested/schema-35/schema-36 composition still requires its own native
+qualification under Draft RFC-0022.
+
+## Experimental namespaced frames
+
+The current unreleased source adds the nested Driver described by
+[Draft RFC-0022](rfcs/0022-namespaced-graph-frames.md). These APIs are absent from
+`0.1.0-alpha.1`; full combined recovery, compatibility and production
+qualification remain open. Registry construction requires the exact complete
+target graph, reducer and schema pins. A framework caller has no application
+executor; conflicting bindings are rejected.
+
+Before dispatch, the Driver authenticates and replays Root and all lifetime
+frames with the deployed schemas and reducers. It commits Entry, higher-fence
+Rebind, scoped Continue/Wait and Return as complete compound transactions.
+Each durable framework event consumes the same drive quantum as ordinary work;
+Return resumes the original parent without executing its caller as a node.
+
+Frame actions require `GraphLifecycleEvidenceProvider::direct_usage_evidence`.
+A standalone Driver installs the provider with `with_direct_usage_evidence`;
+`DurableAgentLoop` shares its existing lifecycle provider with the Driver. The
+method's default returns `Unavailable`, so existing providers must implement it
+before using frames. Recover complete already-durable Run-wide DIRECT usage,
+including direct node/provider/framework charges and unknown cost events,
+excluding isolated child-subtree charges. Bind it to the supplied
+`GraphDirectUsageEvidenceContext`'s exact provenance, Root checkpoint, leaf,
+journal head and fence. A usage floor, zero substitution or re-executed external
+call cannot replace this evidence. Missing or crossed evidence grants no frame
+mutation or dispatch authority.
+
+DIRECT observation is read-only and cancellable. Before an Entry, Rebind,
+scoped barrier or Return, its wait is bounded by the original admitted deadline
+and configured `node_execution_timeout`, using actual database time. Shutdown
+or durable cancellation stops observation; incomplete usage cannot advance the
+frame or erase already-durable work. The next iteration handles the original
+control request without starting a replacement provider call.
+
+During scoped cancellation, `DurableAgentLoop` forwards its shutdown signal and
+node timeout; standalone `confirm_cancellation` uses the existing default Driver
+node timeout. The guardian renews only the same fence with the configured Store
+lease duration. Validation may quarantine corrupt owning records, so validation
+and every in-flight renewal finish their complete SQL ACK even when the guardian
+fails. Only provider observation can be cancelled. After observation the runtime
+drains the guardian, authenticates settled child usage, checks the live fence and
+awaits the original whole Closure write/retry independently. Cleanup may finish
+after admission expiry, with no new execution authority; unknown or unpriced
+usage still prevents closure.
+
+The Driver's outer recovery guardian also retains complete owning recovery and
+mutation acknowledgements. A guardian failure signals cooperative stop and
+awaits the original drive; it cannot discard committed quarantine or Start ACKs.
+A completed drive stops only the next pure maintenance wait, then drains any
+already-started lease observation or renewal. Original release and recovery
+results keep precedence. The stop signal grants no authority: full owning
+readers and final live-fence checks still reject expired or superseded claims
+before application dispatch.
+
+If the guardian finishes first, an already acknowledged Join, Wait, scheduled
+retry or ownership release still retains its original result. A cancelled
+release retains precedence only when external shutdown was already requested
+before guardian cleanup; internal cancellation cannot hide a guardian error.
+Live-authority handoffs still require the original guardian. See the
+[exact component evidence](qualification/experimental-driver-release-acks-2026-10-12.md)
+and its remaining Native failures.
+
+The node-execution guardian also owns the complete in-flight renewal ACK across
+node completion, shutdown, durable cancellation and errors. Its original
+monotonic lease deadline still stops and aborts application tasks; a late ACK
+cannot restart them or extend that launch authority. The Driver drains the
+renewal before committing a completed node result or releasing ownership.
+Original execution errors retain precedence, and a failed guardian prevents a
+successful batch from committing fresh results. Only the next pure maintenance
+wait can be stopped; the final composed native qualification remains open.
+
+`FrameWaiting` means the scoped Wait compound and lease release are already
+committed. An authorized resolver or timer must complete the stored Wait facts;
+scheduler discovery and a fresh claim then recover the original scope. Do not
+commit a second Root Wait through the lifecycle coordinator. Reachable scoped
+isolated-child Join still returns `ScopedChildJoinUnsupported`; Store primitives
+alone do not qualify that Driver path. Full history cost, process-loss and
+restore evidence are separate remaining gates.
 
 ## Startup integration
 
@@ -157,9 +249,26 @@ Every `GraphDriveOutcome` has an explicit ownership rule:
 | `Blocked` with `in_flight > 0` | Supervise or relinquish ownership; do not dispatch another same-fence attempt. | Retained |
 | `Blocked` with `failed` or `exhausted` | Apply the run-level failure policy using the plan's exact evidence and cumulative usage. Do not infer retry authority. | Retained |
 | `Deferred` | Schedule no timer in process; the indexed database-time gate is already committed. | Released by the Driver |
+| `FrameWaiting` (unreleased, Draft RFC-0022) | Resolve or fire the durable scoped Wait, then re-enter through scheduler discovery and a fresh claim. Do not create another lifecycle Wait. | Released atomically with the scoped Wait |
 | `Yielded` | Re-enter through scheduler discovery and a new claim if work remains. | Released by the Driver |
 | `CancellationRequested` | Immediately call lifecycle cancellation confirmation with the exact handoff, or use `DurableAgentLoop`, which does so automatically. Never synthesize usage. | Retained and must still be live at a fresh confirmation commit |
 | `Cancelled` | Process shutdown stopped local work; a later scheduler claim performs recovery. | Released by the Driver |
+
+A successful Pending result can contain an absolute Timer Wait whose original
+due instant passes before its barrier commits, including recovery after process
+loss. The experimental schema-36 path addresses this recovery gap under Draft
+RFC-0022; combined CI and production qualification remain open. Recovery must preserve the
+original due/specification and complete successful result, with no earlier
+registration time or larger Wait/lease window. [RFC-0022](rfcs/0022-namespaced-graph-frames.md#recovering-original-absolute-wait-conditions)
+defines the complete original condition inventory and authenticated Waiting/Ready
+effect; durable writers/readers, ACK behavior and full qualification are required
+before this recovery behavior is available.
+
+A Root all-elapsed Wait returns lifecycle/Agent Loop
+`ReadyReleased` with its complete original Root receipt and original-fence normal
+release result. A late ACK after fence supersession preserves the Ready receipt
+without releasing the replacement lease. Scheduler discovery and a fresh claim
+continue execution; a Ready receipt never authorizes another node launch.
 
 `GraphLifecycleBarrierHandoff` is deliberately not serializable or detached
 from its `RunLease`. It is short-lived commit input, not a queue message. If the
@@ -242,7 +351,9 @@ limit above one does not make an executor eligible by itself.
   anchors, result set, and checkpoint parentage as the original commit.
 - Missing or contradictory durable graph evidence is quarantined under the
   current live fence before execution.
-- Continue is the only lifecycle barrier the Driver commits autonomously.
+- Root Wait and Terminal go through the lifecycle integration layer. The
+  experimental frame path commits scoped Wait itself and settles a scoped
+  Terminal through Return before resuming its original parent.
 - Eligible ready siblings may overlap, but their starts and completions remain
   canonical `NodeId`-ordered journal facts. Exclusive nodes still run alone.
 

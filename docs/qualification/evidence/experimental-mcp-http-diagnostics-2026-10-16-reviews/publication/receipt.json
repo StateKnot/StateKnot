@@ -1,0 +1,23 @@
+{
+  "classification": "non-author independent offline publication evidence and claims review",
+  "observed_utc": "2026-10-16T03:51:30.942450+00:00",
+  "candidate_manifest_sha256": "29815d58e4d758bd2e65e99966f5811e2785d5de73bc772edf859ebc19ecc679",
+  "candidate_paths": 98,
+  "candidate_bytes": 595170,
+  "candidate_freeze_sha256": "b51dadcb17feadce1aba0c2eb26db3e3f62bbc5b8ea33d93194b4e526cf31e29",
+  "evidence_manifest_sha256": "fa851d1a2e82d25dfbca99749a31fea315961109260370f1e5f8973c05d9349f",
+  "source_tree": "31a5ff5596ead9f859a20e7b483d6b660e0577fcf47327ec0a572eb3493e6fca",
+  "conservative_inputs": 536,
+  "compiled_canonical_sha256": "1ec97f720269934853dcb3fd66241b38a5b381fda48f4164c11f3dcc091f945c",
+  "offline_outer_exit": 0,
+  "published_explicit_repository_root_offline_exit": 0,
+  "published_workspace_expected_unadopted_source_rejection_exit": 1,
+  "remaining_findings": 0,
+  "original_artifact_comparisons": 62,
+  "original_candidate_before_after_exact": true,
+  "reviewer_authored_this_Debug_source_tests_docs_or_publication": false,
+  "independent_source_or_test_Spec_qualification_claimed": false,
+  "new_product_build_network_DB_Docker_cache_or_main_operations": false,
+  "published_verifier_report_integrity_scope_and_workspace536_scope_explicit_in_review": true,
+  "prior_docsStandards_receipt_sha256": "78ff0f7e32c99b18adefb682b39073e261a6b0ac60cb97e7d29a4d8be2362101"
+}

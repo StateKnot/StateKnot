@@ -1,0 +1,74 @@
+{
+  "files": [
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-source-v3/CONTRIBUTING.md",
+      "bytes": 3407,
+      "sha256": "eced710f5f2f5e5408576ddd5ff3720ec41ab0283270c0c984edadbda01ac523"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-source-v3/Cargo.toml",
+      "bytes": 3624,
+      "sha256": "d73912078dd7ea3c34ff854cebc84088b6c1dade7a675ddfc6b3a23c3643a622"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-source-v3/docs/rfcs/README.md",
+      "bytes": 4069,
+      "sha256": "af2c9be6d82f2ff6bebe778a2515f6d10d88a808dab8ce15611f4476207693e8"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-source-v3/SECURITY.md",
+      "bytes": 1970,
+      "sha256": "41afcd53d6e0e1b39e0cdb535db80906945d4ad69ff83767046b24c2fdf091d4"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations/src/mcp_client.rs",
+      "bytes": 85744,
+      "sha256": "069d23e5b0917f67e2d8f1ca31908ddb8b441c3e3b7496a7f05da15acbde3472"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-source-v3/crates/stateknot-integrations/tests/mcp_client_contract.rs",
+      "bytes": 26951,
+      "sha256": "1eaeaa9e4eacce0a4600a5270be770797a843489770cdb821e17a3fe26f691c3"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-lossless-bound-state-source-v3/crates/stateknot-integrations/src/mcp_client.rs",
+      "bytes": 83689,
+      "sha256": "d65f932be5b6461e808c06758cf88a130f3a28641e361cd3b03c49846d14deab"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-lossless-bound-state-source-v3/crates/stateknot-integrations/tests/mcp_client_contract.rs",
+      "bytes": 13917,
+      "sha256": "b093e27d5a430f821585bd9bb87032f8e4b313cee351d7edc6faeb915bc7b26e"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-qualification-v3/frozen-source-manifest.json",
+      "bytes": 168897,
+      "sha256": "21739dd9400139ae922a60de00003625f3692c47e2ee883f9500bab58e65eb9c"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-qualification-v3/compiled-inputs.json",
+      "bytes": 101435,
+      "sha256": "ddb5b8f32a4071422d9c568576512093a77bde9b662eb1e912f55fc260e9d816"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-qualification-v3/six-gates-summary.json",
+      "bytes": 4771,
+      "sha256": "3c46272da151c6cbc133f6618f4c84959c2fd1d05bf9f5c1caec431a21ca6f39"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-authoring-v1/contract-v1/CONTRACT.zh-CN.md",
+      "bytes": 3472,
+      "sha256": "9f5e8793942b5e11362b250058ceb7351550d116db07cdda8319f97041426a24"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-authoring-v1/contract-v1/oracle.json",
+      "bytes": 1032,
+      "sha256": "5970a4b4271b8bef55d7a0188c50c0d1e77a99b0abc07d798a1695ed59c0e9cd"
+    },
+    {
+      "path": ".local-verification/2026-10-16/mcp-http-debug-authoring-v1/contract-v1/freeze.json",
+      "bytes": 329,
+      "sha256": "a3fd8a09c6e5a3380913eb0446380ffbf466ba1296247b68d1936d1455975064"
+    }
+  ]
+}

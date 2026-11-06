@@ -1,0 +1,14 @@
+{
+  "state": "passed",
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "binary_sha256": "792acfb788c19a8d387771f1a13c511d06ec6567d795375b9f928b0fcc57d8c2",
+  "summary": [
+    "ok",
+    "26",
+    "0",
+    "0",
+    "0",
+    "0"
+  ],
+  "finished_unix": 1792067086.4090838
+}

@@ -1,0 +1,23 @@
+{
+  "argv": [
+    "docker",
+    "exec",
+    "stateknot-r1-oct15-pg17",
+    "psql",
+    "-X",
+    "-v",
+    "ON_ERROR_STOP=1",
+    "-U",
+    "postgres",
+    "-d",
+    "stateknot_r1_waitfaultv1_20261016_pg17_runtime_b",
+    "-At",
+    "-c",
+    "SELECT current_database();"
+  ],
+  "start_unix": 1792141929.561683,
+  "seconds": 0.059568166732788086,
+  "exit_code": 0,
+  "stdout_sha256": "e272e825a67b306b30692b667b95f14a6560561b8264af834604b6232c2f5ddc",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+}

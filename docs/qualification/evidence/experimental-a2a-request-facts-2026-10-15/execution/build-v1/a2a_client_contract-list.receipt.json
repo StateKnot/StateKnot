@@ -1,0 +1,14 @@
+{
+  "runner_pid": 55112,
+  "pid": 57820,
+  "step": "a2a_client_contract-list",
+  "command": [
+    "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-15/evidence/a2a-auth-facts-preparation-v2/build-v1/artifacts/a2a_client_contract",
+    "--list"
+  ],
+  "source_tree": "250066800739a33390a316c7fbb40181335de67394cd9de6bb67ccb425226433",
+  "started_unix": 1792067022.647168,
+  "exit_code": 0,
+  "seconds": 0.7916891574859619,
+  "log_sha256": "e888e096e795fb200f74a8a93b7cd2c3bdd1d83a35c4a200ba341b42a32b143d"
+}

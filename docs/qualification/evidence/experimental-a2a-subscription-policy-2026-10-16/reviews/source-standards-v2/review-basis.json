@@ -1,0 +1,125 @@
+{
+  "role": "independent Standards incremental review, not fixture author;no executed product commands",
+  "observed_utc": "2026-10-16T04:32:40.910710+00:00",
+  "parent_review_receipt": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/a2a-subscription-source-standards-review-v1/receipt.json",
+    "bytes": 1086,
+    "sha256": "22666ccbe74ad97714897188a11e468edde0b7c060ec2a960038ebbf7ddd106f"
+  },
+  "parent_review_manifest": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/evidence/a2a-subscription-source-standards-review-v1/artifact-manifest.json",
+    "bytes": 858,
+    "sha256": "562d435fe8ef40570650599998fca5b1ec83270d32555eb8ce6f76e28a966f89"
+  },
+  "source_tree_sha256": "0e91c287e33ccf7f33c0f11e3ed0c204c2826f3373c4a6f3e701a56cd66c7bad",
+  "source_count": 930,
+  "compiled_sha256": "43e9cb48b9fe45bb8631b99fe9548db84f8e652dba2d147c8198bd04dff3a6f4",
+  "compiled_count": 538,
+  "frozen_manifest": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v5/frozen-source-manifest.json",
+    "bytes": 169297,
+    "sha256": "7401cb72b22d1a44094c6954697149057d5e3b98eaeb00d0f05a059cb0a6366f"
+  },
+  "compiled_manifest": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v5/compiled-inputs.json",
+    "bytes": 101942,
+    "sha256": "4c1eadd1290662fd615000d3ba3c561010d9286763945987dd43193fce764ef4"
+  },
+  "v3_to_v5_changed_paths": [
+    "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+    "crates/stateknot-integrations/tests/a2a_server_subscription.rs"
+  ],
+  "other928_paths_byte_identical": true,
+  "production_byte_identical": {
+    "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v5/crates/stateknot-integrations/src/a2a_server.rs",
+    "bytes": 98954,
+    "sha256": "a5997b0857ca7dfd0979faf1fda6f8394d18f89a8e941cbe0bb23eb96529b9c5"
+  },
+  "test_inventory": [
+    {
+      "path": "crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+      "before": {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v3/crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+        "bytes": 14864,
+        "sha256": "6fae77ae9bb89aaa7b54096b126cf5352bd4ab668b733827d0aca847c74ce0b8"
+      },
+      "after": {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v5/crates/stateknot-integrations/src/a2a_server/subscription_tests.rs",
+        "bytes": 14901,
+        "sha256": "b498c091c580665e0f4d584ca8b36ca39723f7753b8c3831cb85afa07877e042"
+      },
+      "assertion_macro_count": 56,
+      "test_function_names_unchanged": [
+        "enabling_is_idempotent_clone_and_other_options_preserve_exact_limits",
+        "terminal_error_eof_and_limit_retire_before_the_first_return_not_next_poll",
+        "pre_and_post_denial_drop_resources_before_yielding_and_preserve_original_facts",
+        "one_idle_deadline_covers_pre_backend_and_post_without_restarts",
+        "ready_after_request_deadline_cannot_bypass_the_actual_clock_check",
+        "ready_after_idle_deadline_and_ready_cancelled_checks_cannot_deliver",
+        "unpolled_stream_starts_no_idle_timer_or_authorization_task",
+        "shutdown_and_owner_drop_cancel_each_pending_phase_and_release_once"
+      ]
+    },
+    {
+      "path": "crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+      "before": {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v3/crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+        "bytes": 41418,
+        "sha256": "fcea742f4e0cbaaafc187efd39e4a44d7656929c59d3cbb27cb7bc804d392b52"
+      },
+      "after": {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-source-v5/crates/stateknot-integrations/tests/a2a_server_subscription.rs",
+        "bytes": 41547,
+        "sha256": "ce8ca227d3c4e032dbf6c5d2ded45df7e560c13016c6c8e6ade4071431860458"
+      },
+      "assertion_macro_count": 81,
+      "test_function_names_unchanged": [
+        "real_server_subscription_authorization_matrix_covers_both_bindings"
+      ]
+    }
+  ],
+  "semantic_review": {
+    "private_fixture_alias": "type alias names the same existing four-element tuple;no new state or runtime work",
+    "setup_capabilities": "reuse existing capability type:normal fixture streaming=true and other fields default;unsupported fixture all defaults exactly reproduces old streaming=false",
+    "borrow_fixes": "open borrows context but still clones original principal into evidence;assert_error borrows same error and keeps full normalized envelope equality",
+    "syntax_fixes": "single match to equivalent if-let,semicolon and ordinary documentation wording;no policy/assertion/timing/limit/matrix reduction",
+    "formatting": "repository2024 formatting applied after preserved v4 format mismatch"
+  },
+  "known_original_tooling_reds_preserved": [
+    {
+      "version": "v3",
+      "gate": "clippy",
+      "exit_code": 101,
+      "receipt": {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v3/clippy.receipt.json",
+        "bytes": 1557,
+        "sha256": "ba103fd9823c4a39dbbdc31163e9a0b8d9ac89164aa9d51a249aa43d96757b91"
+      },
+      "log": {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v3/clippy.log",
+        "bytes": 5789,
+        "sha256": "9152d15ed966317e7173b8e82a8048eaff4f5f8bcc3eb3fec24ccebab6d77e1a"
+      }
+    },
+    {
+      "version": "v4",
+      "gate": "fmt",
+      "exit_code": 1,
+      "receipt": {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v4/fmt.receipt.json",
+        "bytes": 1464,
+        "sha256": "0ba0c25972addbef19cb98d015538f63b5ac72525198e91c727281c7f4921fc4"
+      },
+      "log": {
+        "path": "/Users/jiawy/Documents/RustAgentFramework/.local-verification/2026-10-16/a2a-subscription-qualification-v4/fmt.log",
+        "bytes": 7581,
+        "sha256": "475a484e5a45083a1040f4e7b9575a0e483c5bf2763e93aa1c71efc67625cd45"
+      }
+    }
+  ],
+  "non_tooling_standards_findings": [],
+  "actionable_smells": [],
+  "source_before_after_exact": true,
+  "qualification": "incremental static review only;final v5 gate results are independently executed and not inferred from these edits",
+  "delivery_docs": "five-doc ignored draft prepared separately;final qualification numbers and report links still require actual results/publication"
+}

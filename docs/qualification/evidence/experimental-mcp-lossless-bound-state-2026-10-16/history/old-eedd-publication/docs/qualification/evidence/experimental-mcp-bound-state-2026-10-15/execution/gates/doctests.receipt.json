@@ -1,0 +1,22 @@
+{
+  "gate": "doctests",
+  "command": [
+    "cargo",
+    "+1.88.0",
+    "test",
+    "--workspace",
+    "--doc",
+    "--all-features",
+    "--locked"
+  ],
+  "runner_pid": 11584,
+  "pid": 11594,
+  "start_unix": 1792075314.911565,
+  "source_tree": "eeddc9f7e9c92023a0b0c1f9a7220cccc1b4c5d846ae4281d4a4aeff9b0f30f4",
+  "profile": "original opt0; debug/overflow assertions unchanged; no stack override",
+  "exit_code": 0,
+  "seconds": 6.328779935836792,
+  "log_sha256": "aa7721e43876215405fb62060e651e9ff5339dc0140bec74efdfa2c1f24f678e",
+  "source_before_after_exact": true,
+  "native_database_execution": false
+}

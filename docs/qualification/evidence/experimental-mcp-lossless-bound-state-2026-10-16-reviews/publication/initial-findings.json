@@ -1,0 +1,12 @@
+{
+  "schema": "mcp-lossless-publication-review-initial-finding/v2",
+  "id": "F1",
+  "priority": 3,
+  "status": "open_pending_separate_public_execution_appendix",
+  "title": "Current isolated six-gate runner is absent from frozen public bundle",
+  "evidence": "P2 index includes execute-six.py/parent-execute-six.py, both call same-directory run-gate.py; index has no Oct16 run-gate.py. Only the historical eedd runner is retained inside history. P2 verifies raw gates/receipts but is not self-contained for the current isolated runner environment configuration.",
+  "impact": "Evidence coverage gap; no demonstrated product or command failure. Do not describe every current gate environment configuration as independently verifiable from P2 alone.",
+  "requested_resolution": "Keep P2 immutable; separately publish the exact retained isolated runner and observation binding, plus the planned actual-main execution appendix.",
+  "independent_local_observation": "isolated-runner-observation.json",
+  "root_acknowledged_gap_and_will_append_without_modifying_P2": true
+}
