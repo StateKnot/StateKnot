@@ -1,7 +1,7 @@
 #!/usr/bin/python3
 # Copyright 2026 StateKnot contributors
 # SPDX-License-Identifier: Apache-2.0
-"""Native Linux owner probe for P0-P5, separate from stdio qualification."""
+"""Independent native witness for the Rust Linux owner, P0-P5."""
 import argparse
 import hashlib
 import json
@@ -25,6 +25,10 @@ ENV = {"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"}
 UID = 65534
 LEASE_NS = 5_000_000_000
 MAX_STREAM = 512 * 1024
+MAX_OWNER_BINARY = 32 * 1024 * 1024
+LITERAL_ARGUMENT = "literal $HOME; $(false) *"
+LITERAL_ENV = "value ${HOME}; no expansion"
+PIPE_MARKER = b"stateknot-application-pipe\n"
 SUCCESS_FIXTURE_EXIT = 42  # Intentional failed-unit retention, not a suite status.
 REJECT_FIXTURE_EXIT = 44
 CASES = ("P0", "P1", "P2", "P3", "P4", "P5")
@@ -237,15 +241,6 @@ def cgroup_members(path):
     return sorted(members)
 
 
-def notify(message):
-    address = os.environ.get("NOTIFY_SOCKET")
-    require(address is not None, "manager notify socket absent")
-    if address.startswith("@"):
-        address = "\0" + address[1:]
-    with socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM) as sock:
-        sock.sendto(message.encode(), address)
-
-
 def fixture():
     """Fixed hostile tree, reached only after setpriv's complete drop."""
     me = proc_fact(os.getpid())
@@ -253,6 +248,10 @@ def fixture():
             and me["groups"] == [] and all(v == 0 for v in me["caps"].values())
             and me["nnp"] == 1, "fixture privilege drop failed")
     require("NOTIFY_SOCKET" not in os.environ, "notify authority leaked")
+    require(sys.argv[1:] == ["fixture", LITERAL_ARGUMENT], "literal argv was not preserved")
+    require(os.environ.get("STATEKNOT_OWNER_FIXTURE") == LITERAL_ENV, "explicit env differs")
+    require(sys.stdin.buffer.read(len(PIPE_MARKER) + 1) == PIPE_MARKER,
+            "post-drop launch changed application bytes")
     for descriptor in os.listdir("/proc/self/fd"):
         if int(descriptor) > 2:
             try:
@@ -282,88 +281,19 @@ def fixture():
         time.sleep(1)
 
 
-def helper(private, code):
-    require(os.geteuid() == 0 and os.getpid() == 1, "not trusted private PID1")
-    config = json.loads((private / "config.json").read_bytes())
-    require(ns_identity(1) != config["host_namespace"], "shared host PID namespace")
-    server = socket.socket(socket.AF_UNIX, socket.SOCK_SEQPACKET)
-    server.bind(str(private / "control.sock"))
-    os.chmod(private / "control.sock", 0o600)
-    server.listen(1)
-    server.settimeout(0.2)
-    save(private / "helper-ready.json",
-         {"pid": 1, "namespace": ns_identity(1), "target_spawns": 0,
-          "generation": config["generation"]}, True)
-    notify("READY=1\nWATCHDOG=1")
-    accepting_until = time.monotonic() + 12
-    while True:
-        notify("WATCHDOG=1")
-        try:
-            connection, _ = server.accept()
-            break
-        except socket.timeout:
-            require(time.monotonic() < accepting_until, "owner never connected")
-    server.close()
-    last_renewal_ns = time.monotonic_ns()
-    deadline_ns = last_renewal_ns + LEASE_NS
-    accepted_renewals = 0
-    child = None
-    try:
-        while True:
-            remaining_ns = deadline_ns - time.monotonic_ns()
-            if remaining_ns <= 0:
-                reason = "owner-lease-expired"
-                break
-            notify("WATCHDOG=1")
-            connection.settimeout(min(0.2, remaining_ns / 1_000_000_000))
-            try:
-                raw = connection.recv(2048)
-            except socket.timeout:
-                continue
-            received_ns = time.monotonic_ns()
-            if received_ns >= deadline_ns:
-                # A packet observed after expiry cannot extend the lease.
-                reason = "owner-lease-expired"
-                break
-            if not raw:
-                reason = "owner-eof"
-                break
-            require(len(raw) < 2048, "oversize control packet")
-            frame = json.loads(raw)
-            if frame.get("generation") != config["generation"]:
-                save(private / "helper-terminal.json",
-                     {"reason": "generation-rejected", "target_spawns": int(child is not None)}, True)
-                return REJECT_FIXTURE_EXIT
-            op = frame.get("op")
-            if op == "go" and child is None:
-                argv = [SETPRIV, "--bounding-set=-all", "--inh-caps=-all",
-                        "--ambient-caps=-all", "--clear-groups",
-                        "--reuid=" + str(UID), "--regid=" + str(UID),
-                        "--no-new-privs", PYTHON, "-I", str(code), "fixture"]
-                child = subprocess.Popen(argv, stdin=subprocess.DEVNULL,
-                                         env=ENV, close_fds=True, cwd="/")
-                save(private / "target-started.json",
-                     {"child_namespace_pid": child.pid, "target_spawns": 1}, True)
-            elif op == "renew" and child is not None:
-                last_renewal_ns = received_ns
-                deadline_ns = last_renewal_ns + LEASE_NS
-                accepted_renewals += 1
-            elif op == "stop" and child is not None:
-                reason = "owner-stop"
-                break
-            else:
-                raise ValueError("invalid control transition")
-            if child is not None:
-                require(child.poll() is None, "fixed fixture exited before trigger")
-        save(private / "helper-terminal.json",
-             {"reason": reason, "target_spawns": int(child is not None),
-              "accepted_renewals": accepted_renewals,
-              "last_renewal_monotonic_ns": last_renewal_ns,
-              "lease_deadline_monotonic_ns": deadline_ns,
-              "terminal_monotonic_ns": time.monotonic_ns()}, True)
-    finally:
-        connection.close()
-    return SUCCESS_FIXTURE_EXIT
+def launch_fixture(stdin, code):
+    """Send an exact launch prelude and independent application bytes."""
+    body = json.dumps({
+        "executable": list(os.fsencode(PYTHON)),
+        "cwd": [ord("/")],
+        "arguments": [list(os.fsencode(s)) for s in ("-I", str(code), "fixture", LITERAL_ARGUMENT)],
+        "environment": [{"name": list(b"STATEKNOT_OWNER_FIXTURE"),
+                         "value": list(os.fsencode(LITERAL_ENV))}],
+    }, separators=(",", ":")).encode()
+    frame = len(body).to_bytes(4, "big") + body + PIPE_MARKER
+    require(len(frame) <= 4096, "fixed launch frame exceeds PIPE_BUF")
+    require(stdin.write(frame) == len(frame), "incomplete fixed launch write")
+    stdin.flush()
 
 
 def session_owner(private):
@@ -515,14 +445,15 @@ def validate_manager_exit(final, invocation, pid, case, fault_ns):
     return launcher
 
 
-def run_case(output, work, code, case, sequence):
+def run_case(output, work, code, owner_binary, case, sequence):
     directory = output / case
     directory.mkdir(mode=0o755)
     private = work / case
     private.mkdir(mode=0o700)
     generation = os.urandom(16).hex()
     unit = "stateknot-owner-" + generation + ".service"
-    config = {"generation": generation, "host_namespace": ns_identity(os.getpid())}
+    config = {"generation": generation, "host_namespace": ns_identity(os.getpid()),
+              "boot_id": boot_id(), "target_uid": UID, "target_gid": UID}
     save(private / "config.json", config, True)
     save(directory / "intent.json", {"unit": unit, "boot_id": boot_id(), **config})
     identities = []
@@ -544,9 +475,9 @@ def run_case(output, work, code, case, sequence):
                      "CapabilityBoundingSet=CAP_SETUID CAP_SETGID CAP_SETPCAP",
                      "AmbientCapabilities="):
             argv.extend(["--property=" + prop])
-        argv.extend(["--", PYTHON, "-I", str(code), "helper", str(private), str(code)])
+        argv.extend(["--", str(owner_binary), "namespace-init", str(private)])
         save(directory / "service-start.json", {"argv": argv})
-        service = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+        service = subprocess.Popen(argv, stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                                    stderr=subprocess.PIPE, env=ENV, cwd="/", close_fds=True)
         service_capture = Capture(service, directory, "service")
         captures.append(service_capture)
@@ -558,6 +489,8 @@ def run_case(output, work, code, case, sequence):
                 and props["Restart"] == "no", "unit profile mismatch")
         leader = ProcessIdentity(int(props["MainPID"]), directory / "proc-observations.jsonl")
         identities.append(leader)
+        require(os.path.samefile("/proc/" + str(leader.pid) + "/exe", owner_binary),
+                "manager MainPID does not own the built Rust executable")
         require(leader.namespace != config["host_namespace"]
                 and leader.fact["nspid"][-1] == 1
                 and leader.fact["uids"] == [0] * 4 and leader.fact["ppid"] == 1,
@@ -587,6 +520,8 @@ def run_case(output, work, code, case, sequence):
         owner.stdin.write(b"REJECT\n" if case == "P0" else b"GO\n")
         owner.stdin.flush()
         if case != "P0":
+            launch_fixture(service.stdin, code)
+            service.stdin.close()
             def topology():
                 if not (private / "target-started.json").is_file():
                     return False
@@ -754,6 +689,8 @@ def run_case(output, work, code, case, sequence):
                 answer["cleanup_error"] = "reset-failed failed after strict retirement"
         for capture in captures:
             capture.close()
+        if service is not None:
+            service.stdin.close()
         for identity in identities:
             identity.close()
         answer["ended_monotonic_ns"] = time.monotonic_ns()
@@ -777,6 +714,11 @@ def controller(args):
         source_sha256 = digest(source_bytes)
         require(source_binding["files_sha256"][".github/scripts/qualify-stdio-linux-owner.py"]
                 == source_sha256, "executed probe differs from verified checkout")
+        with Path(args.owner_binary).open("rb") as executable:
+            owner_bytes = executable.read(MAX_OWNER_BINARY + 1)
+        require(0 < len(owner_bytes) <= MAX_OWNER_BINARY and owner_bytes.startswith(b"\x7fELF")
+                and digest(owner_bytes) == source_binding["owner_binary_sha256"],
+                "compiled owner differs from the bound Linux executable")
         preflight(output, args.image_os, args.image_version)
         work = Path(tempfile.mkdtemp(prefix="stateknot-owner-", dir="/run"))
         os.chmod(work, 0o755)
@@ -785,13 +727,18 @@ def controller(args):
         code = public / "probe.py"
         code.write_bytes(source_bytes)
         os.chmod(code, 0o644)
-        require(code.stat().st_uid == 0, "helper copy must be root-owned")
+        owner_binary = public / "stateknot-mcp-stdio-owner"
+        owner_binary.write_bytes(owner_bytes)
+        os.chmod(owner_binary, 0o755)
+        require(code.stat().st_uid == owner_binary.stat().st_uid == 0,
+                "fixture and owner copies must be root-owned")
         save(output / "probe-source.json",
              {"sha256": digest(code.read_bytes()), "run_id": args.run_id,
               "run_attempt": args.attempt, "source_binding": source_binding,
+              "owner_binary_sha256": digest(owner_bytes),
               "public_code_path": str(code), "private_case_dirs_mode": "0700"})
         for index, case in enumerate(CASES):
-            row = run_case(output, work, code, case, 10 * index)
+            row = run_case(output, work, code, owner_binary, case, 10 * index)
             result["actual_cases"].append(row)
             if not row["passed"]:
                 break
@@ -820,13 +767,12 @@ def main():
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
     if mode == "fixture":
         fixture()
-    elif mode == "helper" and len(sys.argv) == 4:
-        return helper(Path(sys.argv[2]), Path(sys.argv[3]))
     elif mode == "owner" and len(sys.argv) == 3:
         return session_owner(Path(sys.argv[2]))
     elif mode == "controller":
         parser = argparse.ArgumentParser()
-        for name in ("output", "run-id", "attempt", "source-binding", "image-os", "image-version"):
+        for name in ("output", "run-id", "attempt", "source-binding", "owner-binary",
+                     "image-os", "image-version"):
             parser.add_argument("--" + name, required=True)
         return controller(parser.parse_args(sys.argv[2:]))
     else:

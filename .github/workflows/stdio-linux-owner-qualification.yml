@@ -1,23 +1,27 @@
 # Copyright 2026 StateKnot contributors
 # SPDX-License-Identifier: Apache-2.0
-name: Native owner foundation
+name: Native Rust owner foundation
 on:
   pull_request:
     types: [opened, synchronize, reopened]
     paths:
       - .github/scripts/qualify-stdio-linux-owner.py
       - .github/workflows/stdio-linux-owner-qualification.yml
+      - Cargo.toml
+      - Cargo.lock
+      - crates/stateknot-integrations/Cargo.toml
+      - crates/stateknot-integrations/src/bin/**
   workflow_dispatch:
 permissions:
   contents: read
 jobs:
   native-owner-foundation:
-    name: Ubuntu 26.04 owner foundation (P0-P5)
+    name: Ubuntu 26.04 Rust owner foundation (P0-P5)
     if: >-
       github.event_name != 'pull_request' ||
       github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-26.04
-    timeout-minutes: 8
+    timeout-minutes: 30
     steps:
       - name: Checkout reviewed candidate
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -25,7 +29,21 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 2
           persist-credentials: false
-      - name: Observe native owner foundation
+      - name: Build the reviewed Rust owner
+        timeout-minutes: 20
+        env:
+          CARGO_INCREMENTAL: "0"
+          CARGO_PROFILE_DEV_DEBUG: "0"
+          RUSTFLAGS: "-D warnings"
+        run: |
+          output="$RUNNER_TEMP/stdio-native-owner-foundation"
+          mkdir "$output"
+          rustup toolchain install 1.88.0 --profile minimal > "$output/rustup.stdout" 2> "$output/rustup.stderr"
+          cargo +1.88.0 build --locked -p stateknot-integrations --bin stateknot-mcp-stdio-owner \
+            --features experimental-mcp-stdio-linux-owner --message-format=json \
+            > "$output/cargo.stdout.jsonl" 2> "$output/cargo.stderr"
+      - name: Observe native Rust owner foundation
+        timeout-minutes: 8
         shell: /usr/bin/python3 {0}
         run: |
           import hashlib
@@ -36,7 +54,6 @@ jobs:
           import time
 
           output = Path(os.environ["RUNNER_TEMP"]) / "stdio-native-owner-foundation"
-          output.mkdir(mode=0o755)
           workspace = Path(os.environ["GITHUB_WORKSPACE"])
           script_path = ".github/scripts/qualify-stdio-linux-owner.py"
           workflow_path = ".github/workflows/stdio-linux-owner-qualification.yml"
@@ -67,13 +84,36 @@ jobs:
                              pull_request_base=base)
           elif binding["event"] != "workflow_dispatch":
               raise ValueError("unsupported event for root probe")
-          for path in (script_path, workflow_path):
+          owner_sources = git("ls-files", "-z", "--", "crates/stateknot-integrations/src/bin").decode().split("\0")
+          owner_sources = [path for path in owner_sources if path.endswith(".rs")]
+          if not owner_sources:
+              raise ValueError("Rust owner source inventory is empty")
+          for path in (script_path, workflow_path, "Cargo.toml", "Cargo.lock",
+                       "crates/stateknot-integrations/Cargo.toml", *owner_sources):
               raw = (workspace / path).read_bytes()
               if raw != git("show", "HEAD:" + path):
                   raise ValueError("executed qualification file differs from checkout: " + path)
               if binding["event"] == "pull_request" and raw != git("show", head + ":" + path):
                   raise ValueError("executed qualification file differs from PR head: " + path)
               binding["files_sha256"][path] = hashlib.sha256(raw).hexdigest()
+          cargo_rows = [json.loads(line) for line in (output / "cargo.stdout.jsonl").read_bytes().splitlines()]
+          artifacts = [row for row in cargo_rows if row.get("reason") == "compiler-artifact"
+                       and row["target"]["name"] == "stateknot-mcp-stdio-owner"
+                       and row["target"]["kind"] == ["bin"] and row.get("executable")]
+          if len(artifacts) != 1 or not any(row.get("reason") == "build-finished"
+                                           and row.get("success") is True for row in cargo_rows):
+              raise ValueError("missing successful Rust owner executable build")
+          artifact = artifacts[0]
+          binary = Path(artifact["executable"]).resolve(strict=True)
+          if (artifact["manifest_path"] != str(workspace / "crates/stateknot-integrations/Cargo.toml")
+                  or artifact["target"]["src_path"].removeprefix(str(workspace) + "/") not in owner_sources
+                  or binary != workspace / "target/debug/stateknot-mcp-stdio-owner"):
+              raise ValueError("compiled Rust owner has an unexpected source or path")
+          with binary.open("rb") as executable:
+              raw = executable.read(32 * 1024 * 1024 + 1)
+          if not 0 < len(raw) <= 32 * 1024 * 1024 or not raw.startswith(b"\x7fELF"):
+              raise ValueError("invalid Linux Rust owner binary")
+          binding["owner_binary_sha256"] = hashlib.sha256(raw).hexdigest()
           (output / "source-binding.json").write_text(json.dumps(binding, indent=2, sort_keys=True) + "\n")
 
           argv = [
@@ -82,6 +122,7 @@ jobs:
               "--run-id", os.environ["GITHUB_RUN_ID"],
               "--attempt", os.environ["GITHUB_RUN_ATTEMPT"],
               "--source-binding", json.dumps(binding, sort_keys=True),
+              "--owner-binary", str(binary),
               "--image-os", os.environ.get("ImageOS", ""),
               "--image-version", os.environ.get("ImageVersion", ""),
           ]
