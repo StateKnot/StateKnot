@@ -1,7 +1,6 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use chrono::{DateTime, Utc};
 use sqlx_core::{from_row::FromRow, query::query, query_as::query_as, row::Row};
 use sqlx_postgres::PgRow;
 use stateknot_core::{
@@ -9,6 +8,7 @@ use stateknot_core::{
     ToolAuthorizationOperation, ToolAuthorizationReceipt, ToolAuthorizationReceiptSink,
     ToolAuthorizationReceiptSinkError, ToolAuthorizationReceiptSinkFailure, ToolInvocationIntent,
 };
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 use super::{
@@ -650,8 +650,8 @@ struct ToolAuthorizationReceiptRow {
     authorization_window_id: Option<Uuid>,
     receipt_digest: Vec<u8>,
     has_recovery_handle: bool,
-    authorized_at: DateTime<Utc>,
-    recorded_at: DateTime<Utc>,
+    authorized_at: OffsetDateTime,
+    recorded_at: OffsetDateTime,
     receipt_bytes: Vec<u8>,
     receipt_bytes_digest: Vec<u8>,
 }

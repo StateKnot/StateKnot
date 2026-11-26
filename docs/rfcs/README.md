@@ -34,6 +34,7 @@ security, or operational commitments.
 | [0020](0020-core-optional-output-schemas.md) | Accepted | Core optional producer schema profiles |
 | [0021](0021-core-object-readers.md) | Accepted | Core object reader shapes |
 | [0023](0023-media-type-input-schema.md) | Draft | Case-insensitive media type input schemas |
+| [0026](0026-a2a-timestamp.md) | Draft | A2A timestamp migration for the next preview |
 
 ## When an RFC is required
 

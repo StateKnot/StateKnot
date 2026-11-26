@@ -1373,6 +1373,67 @@ async fn runtime_connection_refuses_an_unmigrated_database() {
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
+async fn run_load_preserves_postgres_microseconds_and_rejects_out_of_range_rows() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let pool = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+        .await
+        .unwrap();
+    let tenant_id = tenant("run-timestamps");
+    let run_id = RunId::generate();
+    let identity = provenance(tenant_id.clone(), run_id);
+    store.admit_run(identity.clone()).await.unwrap();
+
+    // PostgreSQL spells proleptic year zero as 1 BC. The fixtures use SQL
+    // text so the expected instants are independent of the Rust SQL codec.
+    for (sql_time, expected) in [
+        ("0001-01-01 00:00:00+00 BC", Timestamp::MIN),
+        (
+            "1969-12-31 23:59:59.999999+00",
+            Timestamp::from_unix_micros(-1).unwrap(),
+        ),
+        ("9999-12-31 23:59:59.999999+00", Timestamp::MAX),
+    ] {
+        let lifecycle = stateknot_core::RunLifecycle::admitted(identity.clone(), expected);
+        query(
+            "UPDATE stateknot.runs SET admitted_at = $3::text::timestamptz,
+             changed_at = $3::text::timestamptz, scheduler_ready_at = $3::text::timestamptz,
+             lifecycle_bytes = $4 WHERE tenant_id = $1 AND run_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(sql_time)
+        .bind(serde_json_canonicalizer::to_vec(&lifecycle).unwrap())
+        .execute(&pool)
+        .await
+        .unwrap();
+        let run = store.load_run(&tenant_id, run_id).await.unwrap();
+        assert_eq!(run.lifecycle().admitted_at(), expected);
+        assert_eq!(run.lifecycle().changed_at(), expected);
+        assert_eq!(run.scheduler_ready_at(), Some(expected));
+    }
+
+    for sql_time in ["10000-01-01 00:00:00+00", "infinity"] {
+        query(
+            "UPDATE stateknot.runs SET changed_at = $3::text::timestamptz
+             WHERE tenant_id = $1 AND run_id = $2",
+        )
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(sql_time)
+        .execute(&pool)
+        .await
+        .unwrap();
+        let error = store.load_run(&tenant_id, run_id).await.unwrap_err();
+        assert_eq!(error.corrupt_record(), Some("timestamp"));
+    }
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 2)]
 #[allow(clippy::too_many_lines)]
 async fn current_migrations_upgrade_existing_v1_history_without_guessing_projection_intent() {
     let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
@@ -1430,8 +1491,10 @@ async fn current_migrations_upgrade_existing_v1_history_without_guessing_project
     let thread_id = provenance.thread_id();
     let invocation_id = provenance.invocation_id();
     let recorded_at = "2030-01-01T00:00:00.000001Z".parse::<Timestamp>().unwrap();
-    let recorded_at_db = chrono::DateTime::from_timestamp_micros(recorded_at.unix_micros())
-        .expect("fixture timestamp must fit PostgreSQL");
+    let recorded_at_db = time::OffsetDateTime::from_unix_timestamp_nanos(
+        i128::from(recorded_at.unix_micros()) * 1_000,
+    )
+    .expect("fixture timestamp must fit PostgreSQL");
     let lifecycle = stateknot_core::RunLifecycle::admitted(provenance, recorded_at);
     let lifecycle_bytes =
         serde_json_canonicalizer::to_vec(&lifecycle).expect("legacy lifecycle must canonicalize");

@@ -39,8 +39,8 @@ use crate::{
     A2aCancelTaskRequest, A2aContractError, A2aDeletePushConfigRequest, A2aGetPushConfigRequest,
     A2aGetTaskRequest, A2aListPushConfigsRequest, A2aListTasksRequest, A2aMessage, A2aMessageRole,
     A2aPushConfig, A2aPushConfigPage, A2aSendMessageRequest, A2aSendMessageResponse,
-    A2aStreamEvent, A2aSubscribeTaskRequest, A2aTask, A2aTaskPage, A2aTaskState, ApiKey,
-    ProviderHttpOptions,
+    A2aStreamEvent, A2aSubscribeTaskRequest, A2aTask, A2aTaskPage, A2aTaskState, A2aTimestamp,
+    ApiKey, ProviderHttpOptions,
     http::build_client,
     sse::{SseDecoder, SseEvent},
 };
@@ -792,7 +792,7 @@ impl A2aSendExpectation {
 struct A2aListTasksExpectation {
     context_id: Option<Box<str>>,
     status: Option<A2aTaskState>,
-    status_timestamp_after: Option<chrono::DateTime<chrono::Utc>>,
+    status_timestamp_after: Option<A2aTimestamp>,
     page_size: u16,
     history_length: Option<u32>,
     include_artifacts: bool,
@@ -1249,11 +1249,8 @@ impl A2aClient {
             if let Some(value) = wire.history_length {
                 query.append_pair("historyLength", &value.to_string());
             }
-            if let Some(value) = wire.status_timestamp_after {
-                query.append_pair(
-                    "statusTimestampAfter",
-                    &value.to_rfc3339_opts(chrono::SecondsFormat::AutoSi, true),
-                );
+            if let Some(value) = expectation.status_timestamp_after {
+                query.append_pair("statusTimestampAfter", &value.to_string());
             }
             if let Some(value) = wire.include_artifacts {
                 query.append_pair("includeArtifacts", if value { "true" } else { "false" });
@@ -3033,15 +3030,9 @@ mod tests {
 
     #[test]
     fn task_pages_enforce_timestamp_filters_and_newest_first_ordering() {
-        let after = "2026-09-03T08:00:00Z"
-            .parse::<chrono::DateTime<chrono::Utc>>()
-            .unwrap();
-        let newer = "2026-09-03T08:00:02Z"
-            .parse::<chrono::DateTime<chrono::Utc>>()
-            .unwrap();
-        let before = "2026-09-03T07:59:59Z"
-            .parse::<chrono::DateTime<chrono::Utc>>()
-            .unwrap();
+        let after = "2026-09-03T08:00:00Z".parse::<A2aTimestamp>().unwrap();
+        let newer = "2026-09-03T08:00:02Z".parse::<A2aTimestamp>().unwrap();
+        let before = "2026-09-03T07:59:59Z".parse::<A2aTimestamp>().unwrap();
         let request = A2aListTasksRequest::new()
             .with_page_size(2)
             .unwrap()

@@ -176,7 +176,7 @@ impl PostgresStore {
             if key.tenant_id() != tenant {
                 return Err(StoreError::ChildRunRejected);
             }
-            Some(query_as::<_, (DateTime<Utc>, Uuid)>("SELECT queued_at, child_run_id FROM stateknot.child_run_cancellations WHERE tenant_id=$1 AND parent_run_id=$2 AND key_digest=$3")
+            Some(query_as::<_, (OffsetDateTime, Uuid)>("SELECT queued_at, child_run_id FROM stateknot.child_run_cancellations WHERE tenant_id=$1 AND parent_run_id=$2 AND key_digest=$3")
                 .bind(tenant.as_str()).bind(*key.parent_run_id().as_uuid()).bind(key.digest().as_bytes())
                 .fetch_optional(&self.pool).await.map_err(|source| StoreError::database("child cancellation cursor", source))?
                 .ok_or(StoreError::ChildCancellationNotFound)?)
@@ -458,7 +458,7 @@ async fn load_cancellation(
     verify_head(tx, &head).await?;
     let child_id = child.child().admission().intent().provenance().run_id();
     let queued_at = from_database_time(row.try_get("queued_at").map_err(get_error)?)?;
-    let delivered: Option<DateTime<Utc>> = row.try_get("delivered_at").map_err(get_error)?;
+    let delivered: Option<OffsetDateTime> = row.try_get("delivered_at").map_err(get_error)?;
     let valid_source = if lifecycle.status() == RunStatus::Active {
         let close = failure_closes::load(tx, parent)
             .await?
