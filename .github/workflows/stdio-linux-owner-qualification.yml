@@ -161,7 +161,7 @@ jobs:
                   or root["name"] != "stateknot-mcp-stdio-consumer"
                   or root["manifest_path"] != str(staged / "Cargo.toml") or root["source"] is not None):
               raise ValueError("consumer metadata does not identify the staged standalone crate")
-          revision = "64190661ef722130f04cc0915a6b077c0d6062f8"
+          revision = "a5657f5b1a0710128c07206feae88a5dbdadf525"
           source = f"git+https://github.com/StateKnot/StateKnot.git?rev={revision}#{revision}"
           stateknot_names = {"stateknot-core", "stateknot-integrations", "stateknot-runtime"}
           nodes = {node["id"]: node for node in resolve["nodes"]}
