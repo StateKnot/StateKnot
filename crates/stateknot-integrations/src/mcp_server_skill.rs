@@ -14,25 +14,27 @@ use std::{
     collections::{BTreeMap, BTreeSet},
     fmt,
     rc::Rc,
-    sync::Arc,
+    sync::{Arc, Mutex},
 };
 
 use base64::{Engine as _, engine::general_purpose::STANDARD};
+use bytes::{Buf, Bytes};
 use rmcp::{
     ErrorData, RoleServer, ServerHandler,
     model::{
-        CustomRequest, CustomResult, DiscoverResult, ExtensionCapabilities, Implementation,
-        ListResourceTemplatesResult, ListResourcesResult, PaginatedRequestParams, ProtocolVersion,
-        ReadResourceRequestParams, ReadResourceResponse, ReadResourceResult, Resource,
-        ResourceContents, ResourcesCapability, ServerCapabilities, ServerConfig,
+        CustomRequest, CustomResult, DiscoverResult, ExtensionCapabilities, GetSkillRequestParams,
+        GetSkillResult, Implementation, ListResourceTemplatesResult, ListResourcesResult,
+        ListSkillsResult, PaginatedRequestParams, ProtocolVersion, ReadResourceRequestParams,
+        ReadResourceResponse, ReadResourceResult, Resource, ResourceContents, ResourcesCapability,
+        ServerCapabilities, ServerConfig, Skill, SkillFrontmatter, SkillResource, SkillResources,
     },
     service::RequestContext,
 };
 use serde::{
     Deserialize, Deserializer,
-    de::{self, DeserializeSeed, MapAccess, SeqAccess, Visitor},
+    de::{self, DeserializeSeed, IgnoredAny, MapAccess, SeqAccess, Visitor},
 };
-use serde_json::{Map, Value, json};
+use serde_json::{Map, Value};
 use stateknot_core::{BoxFuture, Digest};
 use thiserror::Error;
 
@@ -320,24 +322,25 @@ impl McpServerSkillDefinition {
             .all(|scope| principal.has_scope(scope))
     }
 
-    fn to_wire(&self) -> Value {
+    fn to_wire(&self) -> Skill {
+        let mut frontmatter = SkillFrontmatter::new(self.name(), self.description());
+        for (key, value) in self.frontmatter() {
+            if key != "name" && key != "description" {
+                frontmatter.extra.insert(key.clone(), value.clone());
+            }
+        }
         let resources = self
-            .files
-            .values()
+            .files()
             .map(|file| {
-                json!({
-                    "uri": resource_uri(&self.uri, file.relative_path())
+                SkillResource::new(
+                    resource_uri(self.uri(), file.relative_path())
                         .expect("validated Skill paths always produce valid URIs"),
-                    "digest": file.digest(),
-                    "size": file.size(),
-                })
+                    file.digest(),
+                    u64::try_from(file.size()).expect("Skill file size is bounded"),
+                )
             })
-            .collect::<Vec<_>>();
-        json!({
-            "uri": self.uri(),
-            "frontmatter": self.frontmatter(),
-            "resources": resources,
-        })
+            .collect();
+        Skill::new(self.uri(), frontmatter, SkillResources::Files(resources))
     }
 }
 
@@ -876,69 +879,6 @@ impl McpServerSkillService {
         Ok(visible)
     }
 
-    async fn list_skills(
-        &self,
-        request: &CustomRequest,
-        context: &RequestContext<RoleServer>,
-    ) -> Result<CustomResult, ErrorData> {
-        let params = parse_list_params(request)?;
-        let principal = required_principal(context)?;
-        let scope = self.scope_tag(principal);
-        let visible = self
-            .visible_skills(principal, McpServerSkillOperation::List)
-            .await?;
-        let start = params
-            .cursor
-            .as_deref()
-            .map_or(Ok(0), |cursor| self.parse_cursor(cursor, "skills", &scope))?;
-        if start > visible.len() {
-            return Err(invalid_cursor());
-        }
-        let end = start
-            .saturating_add(self.options.page_size)
-            .min(visible.len());
-        let skills = visible[start..end]
-            .iter()
-            .map(|skill| skill.to_wire())
-            .collect::<Vec<_>>();
-        let next_cursor = (end < visible.len()).then(|| self.cursor("skills", &scope, end));
-        let mut result = Map::new();
-        result.insert("resultType".to_owned(), json!("complete"));
-        result.insert("skills".to_owned(), Value::Array(skills));
-        result.insert("ttlMs".to_owned(), json!(self.options.cache_ttl_ms));
-        result.insert("cacheScope".to_owned(), json!(self.cache_scope_name()));
-        if let Some(cursor) = next_cursor {
-            result.insert("nextCursor".to_owned(), Value::String(cursor));
-        }
-        Ok(CustomResult::new(Value::Object(result)))
-    }
-
-    async fn get_skill(
-        &self,
-        request: &CustomRequest,
-        context: &RequestContext<RoleServer>,
-    ) -> Result<CustomResult, ErrorData> {
-        let params = parse_get_params(request)?;
-        validate_absolute_uri(&params.uri).map_err(|_| skill_not_found())?;
-        let principal = required_principal(context)?;
-        if !self
-            .authorized(principal, McpServerSkillOperation::Get, &params.uri)
-            .await?
-        {
-            return Err(skill_not_found());
-        }
-        let skill = self.catalog.get(&params.uri).ok_or_else(skill_not_found)?;
-        if !skill.has_required_scopes(principal) {
-            return Err(skill_not_found());
-        }
-        Ok(CustomResult::new(json!({
-            "resultType": "complete",
-            "skill": skill.to_wire(),
-            "ttlMs": self.options.cache_ttl_ms,
-            "cacheScope": self.cache_scope_name(),
-        })))
-    }
-
     async fn list_skill_resources(
         &self,
         request: Option<&PaginatedRequestParams>,
@@ -1041,29 +981,6 @@ impl McpServerSkillService {
             .into())
     }
 
-    fn cache_scope_name(&self) -> &'static str {
-        match self.options.cache_scope {
-            McpServerCacheScope::Public => "public",
-            McpServerCacheScope::Private => "private",
-        }
-    }
-
-    pub(crate) async fn dispatch_custom(
-        &self,
-        request: CustomRequest,
-        context: RequestContext<RoleServer>,
-    ) -> Result<CustomResult, ErrorData> {
-        match request.method.as_str() {
-            SKILL_LIST_METHOD => self.list_skills(&request, &context).await,
-            SKILL_GET_METHOD => self.get_skill(&request, &context).await,
-            _ => Err(ErrorData::new(
-                rmcp::model::ErrorCode::METHOD_NOT_FOUND,
-                request.method,
-                None,
-            )),
-        }
-    }
-
     pub(crate) async fn dispatch_read(
         &self,
         request: ReadResourceRequestParams,
@@ -1112,12 +1029,84 @@ impl ServerHandler for McpServerSkillService {
         )
     }
 
+    async fn list_skills(
+        &self,
+        request: Option<PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<ListSkillsResult, ErrorData> {
+        validate_http_skill_params::<ListParams>(&context)?;
+        let cursor = request.and_then(|params| params.cursor);
+        if cursor
+            .as_ref()
+            .is_some_and(|value| value.is_empty() || value.len() > 224)
+        {
+            return Err(invalid_cursor());
+        }
+        let principal = required_principal(&context)?;
+        let scope = self.scope_tag(principal);
+        let visible = self
+            .visible_skills(principal, McpServerSkillOperation::List)
+            .await?;
+        let start = cursor
+            .as_deref()
+            .map_or(Ok(0), |cursor| self.parse_cursor(cursor, "skills", &scope))?;
+        if start > visible.len() {
+            return Err(invalid_cursor());
+        }
+        let end = start
+            .saturating_add(self.options.page_size)
+            .min(visible.len());
+        let skills = visible[start..end]
+            .iter()
+            .map(|skill| skill.to_wire())
+            .collect::<Vec<_>>();
+        let next_cursor = (end < visible.len()).then(|| self.cursor("skills", &scope, end));
+        let mut result = ListSkillsResult::with_all_items(skills)
+            .with_ttl_ms(self.options.cache_ttl_ms)
+            .with_cache_scope(self.options.cache_scope.into());
+        result.next_cursor = next_cursor;
+        Ok(result)
+    }
+
+    async fn get_skill(
+        &self,
+        request: GetSkillRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<GetSkillResult, ErrorData> {
+        validate_http_skill_params::<GetParams>(&context)?;
+        validate_absolute_uri(&request.uri).map_err(|_| skill_not_found())?;
+        let principal = required_principal(&context)?;
+        if !self
+            .authorized(principal, McpServerSkillOperation::Get, &request.uri)
+            .await?
+        {
+            return Err(skill_not_found());
+        }
+        let skill = self.catalog.get(&request.uri).ok_or_else(skill_not_found)?;
+        if !skill.has_required_scopes(principal) {
+            return Err(skill_not_found());
+        }
+        Ok(GetSkillResult::new(skill.to_wire())
+            .with_ttl_ms(self.options.cache_ttl_ms)
+            .with_cache_scope(self.options.cache_scope.into()))
+    }
+
     async fn on_custom_request(
         &self,
         request: CustomRequest,
         context: RequestContext<RoleServer>,
     ) -> Result<CustomResult, ErrorData> {
-        self.dispatch_custom(request, context).await
+        let _ = context;
+        Err(match request.method.as_str() {
+            SKILL_LIST_METHOD | SKILL_GET_METHOD => {
+                ErrorData::invalid_params("Invalid Skill request parameters", None)
+            }
+            _ => ErrorData::new(
+                rmcp::model::ErrorCode::METHOD_NOT_FOUND,
+                request.method,
+                None,
+            ),
+        })
     }
 
     async fn list_resources(
@@ -1159,47 +1148,69 @@ pub enum McpServerSkillServiceBuildError {
     PublicCacheWithDynamicPolicy,
 }
 
-#[derive(Debug, Default, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SkillListParams {
-    cursor: Option<String>,
+// rmcp's typed Skill params discard unknown fields. Preserve the authenticated HTTP
+// request only for these methods while the SDK consumes its own bounded body.
+#[derive(Clone, Default)]
+pub(super) struct SkillRequestBody(Arc<Mutex<Vec<u8>>>);
+
+impl SkillRequestBody {
+    pub(super) fn capture<B: Buf>(&self, mut data: B, limit: usize) -> impl Buf + use<B> {
+        let mut saved = self
+            .0
+            .lock()
+            .expect("Skill request buffer lock is not poisoned");
+        let bytes = if data.remaining() <= limit.saturating_sub(saved.len()) {
+            let bytes = data.copy_to_bytes(data.remaining());
+            saved.extend_from_slice(&bytes);
+            bytes
+        } else {
+            // Pass the oversized frame through for the SDK's normal rejection.
+            Bytes::new()
+        };
+        bytes.chain(data)
+    }
 }
 
-#[derive(Debug, Deserialize)]
-#[serde(deny_unknown_fields)]
-struct SkillGetParams {
-    uri: String,
+#[derive(Deserialize)]
+struct SkillEnvelope<P> {
+    #[serde(rename = "params")]
+    _params: Option<P>,
 }
 
-fn parse_list_params(request: &CustomRequest) -> Result<SkillListParams, ErrorData> {
-    let params = match &request.params {
-        None => SkillListParams::default(),
-        Some(value) => serde_json::from_value(value.clone())
-            .map_err(|_| ErrorData::invalid_params("Invalid skills/list parameters", None))?,
-    };
-    if params
-        .cursor
-        .as_ref()
-        .is_some_and(|cursor| cursor.is_empty() || cursor.len() > 224)
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct ListParams {
+    #[serde(rename = "_meta")]
+    _meta: Option<IgnoredAny>,
+    #[serde(rename = "cursor")]
+    _cursor: Option<IgnoredAny>,
+}
+
+#[derive(Deserialize)]
+#[serde(deny_unknown_fields)]
+struct GetParams {
+    #[serde(rename = "_meta")]
+    _meta: Option<IgnoredAny>,
+    #[serde(rename = "uri")]
+    _uri: Option<IgnoredAny>,
+}
+
+fn validate_http_skill_params<P: serde::de::DeserializeOwned>(
+    context: &RequestContext<RoleServer>,
+) -> Result<(), ErrorData> {
+    if let Some(body) = context
+        .extensions
+        .get::<http::request::Parts>()
+        .and_then(|parts| parts.extensions.get::<SkillRequestBody>())
     {
-        return Err(invalid_cursor());
+        let saved = body
+            .0
+            .lock()
+            .expect("Skill request buffer lock is not poisoned");
+        serde_json::from_slice::<SkillEnvelope<P>>(&saved)
+            .map_err(|_| ErrorData::invalid_params("Invalid Skill request parameters", None))?;
     }
-    Ok(params)
-}
-
-fn parse_get_params(request: &CustomRequest) -> Result<SkillGetParams, ErrorData> {
-    let Some(value) = &request.params else {
-        return Err(ErrorData::invalid_params(
-            "Invalid skills/get parameters",
-            None,
-        ));
-    };
-    let params: SkillGetParams = serde_json::from_value(value.clone())
-        .map_err(|_| ErrorData::invalid_params("Invalid skills/get parameters", None))?;
-    if params.uri.is_empty() || params.uri.len() > MAX_URI_BYTES {
-        return Err(skill_not_found());
-    }
-    Ok(params)
+    Ok(())
 }
 
 pub(crate) fn parse_frontmatter(
@@ -1589,6 +1600,7 @@ fn digest_hex(value: impl AsRef<[u8]>) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use serde_json::json;
 
     fn skill(name: &str) -> McpServerSkillDefinition {
         let document = format!(
@@ -1614,7 +1626,7 @@ mod tests {
         let definition = skill("code-review");
         assert_eq!(definition.name(), "code-review");
         assert_eq!(definition.files().len(), 2);
-        let wire = definition.to_wire();
+        let wire = serde_json::to_value(definition.to_wire()).unwrap();
         assert_eq!(
             wire.pointer("/frontmatter/name"),
             Some(&json!("code-review"))

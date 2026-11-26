@@ -33,6 +33,9 @@ use crate::{
     sse::{SseDecodeError, SseDecoder},
 };
 
+#[cfg(all(target_os = "linux", feature = "experimental-mcp-stdio-linux-owner"))]
+pub(crate) mod stdio;
+
 /// The modern, stateless MCP revision implemented by this client.
 pub const MCP_PROTOCOL_VERSION_2026_07_28: &str = "2026-07-28";
 
@@ -740,7 +743,7 @@ impl McpToolCatalog {
 }
 
 /// One request-scoped server notification received before an SSE final response.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct McpNotification {
     method: Box<str>,
     params: Option<Value>,
@@ -767,14 +770,34 @@ impl McpNotification {
     }
 }
 
+impl fmt::Debug for McpNotification {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpNotification")
+            .field("has_params", &self.params.is_some())
+            .finish_non_exhaustive()
+    }
+}
+
 /// A complete Tool result. Tool-level failures remain results through
 /// [`Self::is_error`] so an Agent can inspect and recover from them.
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, PartialEq)]
 pub struct McpCompleteToolResult {
     content: Vec<Value>,
     structured_content: Option<Value>,
     is_error: bool,
     raw: Value,
+}
+
+impl fmt::Debug for McpCompleteToolResult {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        formatter
+            .debug_struct("McpCompleteToolResult")
+            .field("content_count", &self.content.len())
+            .field("has_structured_content", &self.structured_content.is_some())
+            .field("is_error", &self.is_error)
+            .finish_non_exhaustive()
+    }
 }
 
 impl McpCompleteToolResult {
@@ -2156,25 +2179,7 @@ fn parse_tool_result(
         None => None,
     };
     match result_type {
-        None | Some("complete") => {
-            let content = object
-                .get("content")
-                .and_then(Value::as_array)
-                .cloned()
-                .ok_or(StatelessMcpClientError::InvalidToolResult)?;
-            let is_error = match object.get("isError") {
-                Some(value) => value
-                    .as_bool()
-                    .ok_or(StatelessMcpClientError::InvalidToolResult)?,
-                None => false,
-            };
-            Ok(McpToolCall::Complete(McpCompleteToolResult {
-                content,
-                structured_content: object.get("structuredContent").cloned(),
-                is_error,
-                raw: value,
-            }))
-        }
+        None | Some("complete") => parse_complete_tool_result(value).map(McpToolCall::Complete),
         Some("input_required") => {
             let input_requests = match object.get("inputRequests") {
                 Some(value) => value
@@ -2217,6 +2222,29 @@ fn parse_tool_result(
         }
         Some(_) => Err(StatelessMcpClientError::InvalidToolResult),
     }
+}
+
+fn parse_complete_tool_result(
+    value: Value,
+) -> Result<McpCompleteToolResult, StatelessMcpClientError> {
+    let error = || StatelessMcpClientError::InvalidToolResult;
+    let object = value.as_object().ok_or_else(error)?;
+    validate_complete_result_type(object, error())?;
+    let content = object
+        .get("content")
+        .and_then(Value::as_array)
+        .cloned()
+        .ok_or_else(error)?;
+    let is_error = match object.get("isError") {
+        Some(value) => value.as_bool().ok_or_else(error)?,
+        None => false,
+    };
+    Ok(McpCompleteToolResult {
+        content,
+        structured_content: object.get("structuredContent").cloned(),
+        is_error,
+        raw: value,
+    })
 }
 
 #[cfg(test)]

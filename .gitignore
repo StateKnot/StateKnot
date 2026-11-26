@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: Apache-2.0
 
 /target/
+/examples/mcp-stdio-consumer/target/
 **/*.rs.bk
 *.profraw
 *.profdata

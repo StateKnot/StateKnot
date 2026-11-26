@@ -19,6 +19,7 @@ use std::{
 };
 
 use bytes::Bytes;
+use futures_util::stream;
 use http::{
     HeaderValue, Request, Response, StatusCode,
     header::{AUTHORIZATION, CACHE_CONTROL, CONTENT_TYPE, PRAGMA, RETRY_AFTER, WWW_AUTHENTICATE},
@@ -26,7 +27,7 @@ use http::{
     uri::Authority,
 };
 use http_body::Body;
-use http_body_util::{BodyExt as _, Full, combinators::BoxBody};
+use http_body_util::{BodyExt as _, BodyStream, Full, StreamBody, combinators::BoxBody};
 use rmcp::{
     RoleServer, ServerHandler,
     model::ProtocolVersion,
@@ -915,7 +916,24 @@ where
             }
 
             request.extensions_mut().insert(principal);
-            self.inner.handle(request).await
+            let response = if matches!(
+                request
+                    .headers()
+                    .get(MCP_METHOD_HEADER)
+                    .and_then(|value| value.to_str().ok()),
+                Some("skills/list" | "skills/get")
+            ) {
+                let saved = crate::mcp_server_skill::SkillRequestBody::default();
+                request.extensions_mut().insert(saved.clone());
+                let limit = self.options.maximum_request_body_bytes();
+                let request = request.map(|body| {
+                    body.map_frame(move |frame| frame.map_data(|data| saved.capture(data, limit)))
+                });
+                self.inner.handle(request).await
+            } else {
+                self.inner.handle(request).await
+            };
+            invalid_params_http_status(response).await
         };
 
         match tokio::time::timeout(self.options.request_timeout(), operation).await {
@@ -944,6 +962,90 @@ where
         let service = self.clone();
         Box::pin(async move { Ok(service.handle(request).await) })
     }
+}
+
+// rmcp sends handler-level invalid params in a single JSON frame with HTTP 200.
+// Preserve the existing status without collecting streams or reserializing a body.
+async fn invalid_params_http_status(mut response: McpHttpResponse) -> McpHttpResponse {
+    if response.status() != StatusCode::OK
+        || response
+            .headers()
+            .get(CONTENT_TYPE)
+            .and_then(|value| value.to_str().ok())
+            != Some("application/json")
+        || response.body().size_hint().exact().is_none()
+    {
+        return response;
+    }
+    let Some(Ok(frame)) = response.body_mut().frame().await else {
+        return response;
+    };
+    if response.body().is_end_stream()
+        && let Some(bytes) = frame.data_ref()
+    {
+        if is_invalid_params_reply(bytes) {
+            *response.status_mut() = StatusCode::BAD_REQUEST;
+        }
+        return response.map(|_| Full::new(bytes.clone()).boxed());
+    }
+    response.map(|rest| {
+        StreamBody::new(futures_util::StreamExt::chain(
+            stream::iter([Ok(frame)]),
+            BodyStream::new(rest),
+        ))
+        .boxed()
+    })
+}
+
+fn is_invalid_params_reply(bytes: &[u8]) -> bool {
+    use serde::de::{DeserializeSeed, Deserializer, IgnoredAny, MapAccess, Visitor};
+    use std::{borrow::Cow, cell::Cell};
+
+    // Stop at the top-level result or error code. Large payloads that follow
+    // either field stay opaque, regardless of the position or shape of the ID.
+    struct ReplyFields<'a> {
+        invalid_params: &'a Cell<bool>,
+        inside_error: bool,
+    }
+    impl<'de> DeserializeSeed<'de> for ReplyFields<'_> {
+        type Value = ();
+        fn deserialize<D: Deserializer<'de>>(self, deserializer: D) -> Result<(), D::Error> {
+            deserializer.deserialize_map(self)
+        }
+    }
+    impl<'de> Visitor<'de> for ReplyFields<'_> {
+        type Value = ();
+        fn expecting(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+            formatter.write_str("a JSON-RPC reply or error object")
+        }
+        fn visit_map<A: MapAccess<'de>>(self, mut fields: A) -> Result<(), A::Error> {
+            while let Some(key) = fields.next_key::<Cow<'de, str>>()? {
+                match (self.inside_error, key.as_ref()) {
+                    (false, "result") => return Err(serde::de::Error::custom("result")),
+                    (false, "error") => fields.next_value_seed(Self {
+                        inside_error: true,
+                        ..self
+                    })?,
+                    (true, "code") => {
+                        self.invalid_params
+                            .set(fields.next_value::<i32>()? == -32602);
+                        return Err(serde::de::Error::custom("error code read"));
+                    }
+                    _ => {
+                        fields.next_value::<IgnoredAny>()?;
+                    }
+                }
+            }
+            Ok(())
+        }
+    }
+    let invalid_params = Cell::new(false);
+    let _ = ReplyFields {
+        invalid_params: &invalid_params,
+        inside_error: false,
+    }
+    .deserialize(&mut serde_json::Deserializer::from_slice(bytes));
+    invalid_params.get()
 }
 
 fn parse_bearer(headers: &http::HeaderMap) -> Result<McpServerBearerCredential, ()> {
@@ -1036,6 +1138,75 @@ mod tests {
     use serde_json::json;
 
     use super::*;
+
+    #[tokio::test]
+    async fn direct_invalid_params_preserve_status_and_original_bytes() {
+        use http::header::CONTENT_LENGTH;
+        let cases: &[(&[u8], StatusCode)] = &[
+            (
+                br#"{"jsonrpc":"2.0","id":42,"error":{"code":-32602,"message":"invalid"}}"#,
+                StatusCode::BAD_REQUEST,
+            ),
+            (
+                br#"{"id":"quoted\"id","error":{"message":"invalid","code":-32602},"jsonrpc":"2.0"}"#,
+                StatusCode::BAD_REQUEST,
+            ),
+            (
+                br#"{"jsonrpc":"2.0","error":{"code":-32602,"message":"invalid"}}"#,
+                StatusCode::BAD_REQUEST,
+            ),
+            (
+                br#"{"id":0,"jsonrpc":"2.0","result":{"isError":true,"structuredContent":{"error":{"code":-32602}}}}"#,
+                StatusCode::OK,
+            ),
+            (
+                br#"{"id":"x","jsonrpc":"2.0","error":{"code":-32603,"message":"other"}}"#,
+                StatusCode::OK,
+            ),
+        ];
+        for &(bytes, expected) in cases {
+            let response = Response::builder()
+                .header(CONTENT_TYPE, "application/json")
+                .header(CONTENT_LENGTH, bytes.len())
+                .body(Full::new(Bytes::from_static(bytes)).boxed())
+                .unwrap();
+            let response = invalid_params_http_status(response).await;
+            assert_eq!(response.status(), expected);
+            assert_eq!(response.headers()[CONTENT_LENGTH], bytes.len().to_string());
+            assert_eq!(
+                response
+                    .into_body()
+                    .collect()
+                    .await
+                    .unwrap()
+                    .to_bytes()
+                    .as_ref(),
+                bytes
+            );
+        }
+    }
+
+    #[tokio::test]
+    async fn invalid_params_status_leaves_streaming_replies_intact() {
+        let bytes = Bytes::from_static(br#"{"jsonrpc":"2.0","error":{"code":-32602}}"#);
+        for content_type in ["text/event-stream", "application/json"] {
+            let frames = stream::iter([
+                Ok(http_body::Frame::data(bytes.slice(..8))),
+                Ok(http_body::Frame::data(bytes.slice(8..))),
+            ]);
+            let response = Response::builder()
+                .header(CONTENT_TYPE, content_type)
+                .body(StreamBody::new(frames).boxed())
+                .unwrap();
+            assert!(response.body().size_hint().exact().is_none());
+            let response = invalid_params_http_status(response).await;
+            assert_eq!(response.status(), StatusCode::OK);
+            assert_eq!(
+                response.into_body().collect().await.unwrap().to_bytes(),
+                bytes
+            );
+        }
+    }
 
     #[derive(Clone)]
     struct TestHandler {

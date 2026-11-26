@@ -14,6 +14,16 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Added
 
+- The experimental Linux MCP stdio owner requires a synced systemd generation
+  record before target launch. Same-boot recovery pins the recorded namespace
+  init with a pidfd and verifies manager exit, reaping and cgroup retirement.
+  The host launcher claims the generation before creating the systemd unit
+  and publishes private readiness after recording the live invocation.
+  The experimental Linux Session admits locally pinned MCP Tools, supports
+  one bounded call at a time, and waits for verified retirement and pipe EOF.
+  A standalone Cargo consumer pins the SDK Git revision and exercises the
+  public Session through discovery, a Tool call, and verified shutdown.
+
 - Independent graph state, route and checkpoint property models: node insertion
   and result input order preserve fixed committed facts, while state/route
   references and canonical checksum preimages verify the actual root barrier.
@@ -93,6 +103,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   tenant-wide read grant for a one-request typed Agent run.
 
 ### Fixed
+
+- The generated `MediaType` input schema accepts mixed-case type and subtype
+  names such as `Application/JSON`. The serialization schema describes the
+  canonical lowercase names emitted by the existing writer.
 
 - Core object and tagged-object readers require maps instead of accepting
   positional struct/enum sequences. A streaming guard reuses existing field,

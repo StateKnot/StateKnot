@@ -154,6 +154,11 @@ pub use mcp_authorization::{
     McpToolApproval, McpToolAuthorizationRequest, McpToolAuthorizer, McpToolDigestError,
     mcp_tool_descriptor_digest,
 };
+#[cfg(all(target_os = "linux", feature = "experimental-mcp-stdio-linux-owner"))]
+pub use mcp_client::stdio::{
+    McpStdioClient, McpStdioCommand, McpStdioConfig, McpStdioError, McpStdioFailure,
+    McpStdioOwnerProfile, McpStdioSendPhase, McpStdioSession, McpStdioToolPin,
+};
 pub use mcp_client::{
     MCP_PROTOCOL_VERSION_2026_07_28, McpCachePolicy, McpClient, McpClientAuthorizationChallenge,
     McpClientAuthorizationChallengeStatus, McpClientAuthorizationProvider,

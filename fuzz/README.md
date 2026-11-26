@@ -87,8 +87,9 @@ provider payloads or customer data.
 The source-only optional output correction is specified in
 [RFC-0020](../docs/rfcs/0020-core-optional-output-schemas.md). All 308 input pins
 remain fixed, and a separate inventory fixes the 308 serialization pins.
-`schema_pins` prints candidate output pins for explicit review and does not
-rewrite fixtures. Actual parent-source output documents are retained only as
+`schema_pins` prints output pins for review. Pass `--deserialize` to print
+input pins. The two retained `MediaType-mixed-case*` seeds cover ASCII case in
+both type and subtype names through the public reader and schema validators. Actual parent-source output documents are retained only as
 regression baselines; they are not N-1/N-2 upgrade qualification.
 
 This finite qualification establishes the reproducible C4 entry points and

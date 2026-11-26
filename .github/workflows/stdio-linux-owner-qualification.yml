@@ -1,0 +1,545 @@
+# Copyright 2026 StateKnot contributors
+# SPDX-License-Identifier: Apache-2.0
+name: Native Rust owner foundation
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+    paths:
+      - .github/scripts/qualify-stdio-linux-owner.py
+      - .github/workflows/stdio-linux-owner-qualification.yml
+      - Cargo.toml
+      - Cargo.lock
+      - crates/stateknot-integrations/Cargo.toml
+      - crates/stateknot-integrations/src/bin/**
+      - crates/stateknot-integrations/src/lib.rs
+      - crates/stateknot-integrations/src/mcp.rs
+      - crates/stateknot-integrations/src/mcp_authorization.rs
+      - crates/stateknot-integrations/src/mcp_client.rs
+      - crates/stateknot-integrations/src/mcp_client/**
+      - examples/mcp-stdio-consumer/**
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  native-owner-foundation:
+    name: Ubuntu 26.04 Rust owner foundation (P0-P5)
+    if: >-
+      github.event_name != 'pull_request' ||
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-26.04
+    timeout-minutes: 30
+    steps:
+      - name: Checkout reviewed candidate
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.sha }}
+          fetch-depth: 2
+          persist-credentials: false
+      - name: Build the reviewed Rust owner
+        timeout-minutes: 20
+        env:
+          CARGO_INCREMENTAL: "0"
+          CARGO_PROFILE_DEV_DEBUG: "0"
+          CARGO_PROFILE_TEST_DEBUG: "0"
+          RUSTFLAGS: "-D warnings"
+        run: |
+          output="$RUNNER_TEMP/stdio-native-owner-foundation"
+          mkdir "$output"
+          rustup toolchain install 1.88.0 --profile minimal > "$output/rustup.stdout" 2> "$output/rustup.stderr"
+          consumer="$RUNNER_TEMP/stateknot-mcp-stdio-consumer"
+          example="$GITHUB_WORKSPACE/examples/mcp-stdio-consumer"
+          mkdir "$consumer"
+          mkdir "$consumer/tests"
+          cp "$example/Cargo.toml" "$example/Cargo.lock" "$consumer/"
+          cp "$example/tests/mcp_stdio_session.rs" "$consumer/tests/"
+          (
+            cd "$consumer"
+            export CARGO_TARGET_DIR="$GITHUB_WORKSPACE/target"
+            cargo +1.88.0 metadata --locked --manifest-path Cargo.toml --format-version=1 \
+              > "$output/cargo-consumer.metadata.json" 2> "$output/cargo-consumer.metadata.stderr"
+            cargo +1.88.0 test --locked --no-run --manifest-path Cargo.toml --test mcp_stdio_session \
+              --message-format=json > "$output/cargo-consumer.stdout.jsonl" 2> "$output/cargo-consumer.stderr"
+          )
+          cargo +1.88.0 build --locked -p stateknot-integrations --bin stateknot-mcp-stdio-owner \
+            --features experimental-mcp-stdio-linux-owner --message-format=json \
+            > "$output/cargo.stdout.jsonl" 2> "$output/cargo.stderr"
+      - name: Observe native Rust owner foundation, recovery and launch
+        timeout-minutes: 8
+        shell: /usr/bin/python3 {0}
+        run: |
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import subprocess
+          import time
+
+          output = Path(os.environ["RUNNER_TEMP"]) / "stdio-native-owner-foundation"
+          workspace = Path(os.environ["GITHUB_WORKSPACE"])
+          script_path = ".github/scripts/qualify-stdio-linux-owner.py"
+          workflow_path = ".github/workflows/stdio-linux-owner-qualification.yml"
+          example = "examples/mcp-stdio-consumer"
+          consumer_files = ("Cargo.toml", "Cargo.lock", "tests/mcp_stdio_session.rs")
+          staged = (Path(os.environ["RUNNER_TEMP"]) / "stateknot-mcp-stdio-consumer").resolve(strict=True)
+          if staged.is_relative_to(workspace.resolve(strict=True)):
+              raise ValueError("consumer must be built outside the StateKnot workspace")
+          script = workspace / script_path
+
+          def git(*args):
+              return subprocess.check_output(["/usr/bin/git", *args], cwd=workspace, timeout=10)
+
+          checkout = git("rev-parse", "--verify", "HEAD").decode().strip()
+          if checkout != os.environ["GITHUB_SHA"]:
+              raise ValueError("checkout differs from the workflow event commit")
+          binding = {
+              "event": os.environ["GITHUB_EVENT_NAME"],
+              "workflow_commit": os.environ["GITHUB_WORKFLOW_SHA"],
+              "checkout_commit": checkout,
+              "checkout_tree": git("rev-parse", "HEAD^{tree}").decode().strip(),
+              "files_sha256": {},
+          }
+          if binding["event"] == "pull_request":
+              event = json.loads(Path(os.environ["GITHUB_EVENT_PATH"]).read_bytes())
+              pr = event["pull_request"]
+              if pr["head"]["repo"]["full_name"] != os.environ["GITHUB_REPOSITORY"]:
+                  raise ValueError("root probe requires a same-repository PR")
+              head, base = pr["head"]["sha"], pr["base"]["sha"]
+              if git("show", "-s", "--format=%P", "HEAD").decode().split() != [base, head]:
+                  raise ValueError("checkout is not the merge of the event base and PR head")
+              binding.update(pull_request_number=pr["number"], pull_request_head=head,
+                             pull_request_base=base)
+          elif binding["event"] != "workflow_dispatch":
+              raise ValueError("unsupported event for root probe")
+          owner_sources = git("ls-files", "-z", "--", "crates/stateknot-integrations/src/bin").decode().split("\0")
+          owner_sources = [path for path in owner_sources if path.endswith(".rs")]
+          if not owner_sources:
+              raise ValueError("Rust owner source inventory is empty")
+          for path in (script_path, workflow_path, "Cargo.toml", "Cargo.lock",
+                       "crates/stateknot-integrations/Cargo.toml", *owner_sources,
+                       *(f"{example}/{name}" for name in consumer_files)):
+              raw = (workspace / path).read_bytes()
+              if raw != git("show", "HEAD:" + path):
+                  raise ValueError("executed qualification file differs from checkout: " + path)
+              if binding["event"] == "pull_request" and raw != git("show", head + ":" + path):
+                  raise ValueError("executed qualification file differs from PR head: " + path)
+              binding["files_sha256"][path] = hashlib.sha256(raw).hexdigest()
+          staged_hashes = {}
+          for name in consumer_files:
+              path = staged / name
+              digest = hashlib.sha256(path.read_bytes()).hexdigest()
+              if path.is_symlink() or digest != binding["files_sha256"][f"{example}/{name}"]:
+                  raise ValueError("staged consumer file differs from checkout: " + name)
+              staged_hashes[name] = digest
+          binding["consumer_staged_files_sha256"] = staged_hashes
+          cargo_rows = [json.loads(line) for line in (output / "cargo.stdout.jsonl").read_bytes().splitlines()]
+          artifacts = [row for row in cargo_rows if row.get("reason") == "compiler-artifact"
+                       and row["target"]["name"] == "stateknot-mcp-stdio-owner"
+                       and row["target"]["kind"] == ["bin"] and row.get("executable")]
+          if len(artifacts) != 1 or not any(row.get("reason") == "build-finished"
+                                           and row.get("success") is True for row in cargo_rows):
+              raise ValueError("missing successful Rust owner executable build")
+          artifact = artifacts[0]
+          binary = Path(artifact["executable"]).resolve(strict=True)
+          if (artifact["manifest_path"] != str(workspace / "crates/stateknot-integrations/Cargo.toml")
+                  or artifact["target"]["src_path"].removeprefix(str(workspace) + "/") not in owner_sources
+                  or binary != workspace / "target/debug/stateknot-mcp-stdio-owner"):
+              raise ValueError("compiled Rust owner has an unexpected source or path")
+          with binary.open("rb") as executable:
+              raw = executable.read(32 * 1024 * 1024 + 1)
+          if not 0 < len(raw) <= 32 * 1024 * 1024 or not raw.startswith(b"\x7fELF"):
+              raise ValueError("invalid Linux Rust owner binary")
+          binding["owner_binary_sha256"] = hashlib.sha256(raw).hexdigest()
+          metadata_bytes = (output / "cargo-consumer.metadata.json").read_bytes()
+          metadata = json.loads(metadata_bytes)
+          packages = {package["id"]: package for package in metadata["packages"]}
+          resolve = metadata["resolve"]
+          root_id = resolve["root"]
+          root = packages[root_id]
+          if (metadata["workspace_root"] != str(staged)
+                  or metadata["workspace_members"] != [root_id]
+                  or metadata["target_directory"] != str(workspace / "target")
+                  or root["name"] != "stateknot-mcp-stdio-consumer"
+                  or root["manifest_path"] != str(staged / "Cargo.toml") or root["source"] is not None):
+              raise ValueError("consumer metadata does not identify the staged standalone crate")
+          revision = "a5657f5b1a0710128c07206feae88a5dbdadf525"
+          source = f"git+https://github.com/StateKnot/StateKnot.git?rev={revision}#{revision}"
+          stateknot_names = {"stateknot-core", "stateknot-integrations", "stateknot-runtime"}
+          nodes = {node["id"]: node for node in resolve["nodes"]}
+          pinned = [packages[dep["pkg"]] for dep in nodes[root_id]["deps"]
+                    if packages[dep["pkg"]]["name"] in stateknot_names]
+          sdk_packages = [package for package in packages.values()
+                          if package["id"] != root_id and package["name"].startswith("stateknot-")]
+          if (len(pinned) != len(stateknot_names)
+                  or {package["name"] for package in pinned} != stateknot_names
+                  or any(package["source"] != source for package in sdk_packages)):
+              raise ValueError("consumer resolved a StateKnot dependency outside the pinned HTTPS Git revision")
+          binding["consumer_git_revision"] = revision
+          binding["consumer_git_source"] = source
+          binding["consumer_package_ids"] = {package["name"]: package["id"] for package in sdk_packages}
+          binding["consumer_metadata_sha256"] = hashlib.sha256(metadata_bytes).hexdigest()
+          consumer_rows = [json.loads(line) for line in (output / "cargo-consumer.stdout.jsonl").read_bytes().splitlines()]
+          for package in pinned:
+              compiled = [row for row in consumer_rows if row.get("reason") == "compiler-artifact"
+                          and row.get("package_id") == package["id"]
+                          and row["target"]["kind"] == ["lib"]
+                          and row["manifest_path"] == package["manifest_path"]]
+              if (len(compiled) != 1 or package["name"] == "stateknot-integrations"
+                      and "experimental-mcp-stdio-linux-owner" not in compiled[0]["features"]):
+                  raise ValueError("consumer did not compile the resolved pinned package: " + package["name"])
+          consumer_artifacts = [
+              row for row in consumer_rows if row.get("reason") == "compiler-artifact"
+              and row.get("package_id") == root_id
+              and row["target"]["name"] == "mcp_stdio_session" and row["target"]["kind"] == ["test"]
+              and row.get("executable")
+          ]
+          if len(consumer_artifacts) != 1 or not any(row.get("reason") == "build-finished"
+                                                    and row.get("success") is True for row in consumer_rows):
+              raise ValueError("missing successful Rust session consumer build")
+          consumer_artifact = consumer_artifacts[0]
+          consumer_binary = Path(consumer_artifact["executable"]).resolve(strict=True)
+          if (consumer_artifact["manifest_path"] != str(staged / "Cargo.toml")
+                  or consumer_artifact["target"]["src_path"] != str(staged / consumer_files[2])
+                  or consumer_binary.parent != workspace / "target/debug/deps"):
+              raise ValueError("compiled consumer test has an unexpected source or path")
+          with consumer_binary.open("rb") as executable:
+              consumer_bytes = executable.read(64 * 1024 * 1024 + 1)
+          if not 0 < len(consumer_bytes) <= 64 * 1024 * 1024 or not consumer_bytes.startswith(b"\x7fELF"):
+              raise ValueError("invalid Linux Rust session consumer binary")
+          binding["consumer_binary_sha256"] = hashlib.sha256(consumer_bytes).hexdigest()
+          (output / "source-binding.json").write_text(json.dumps(binding, indent=2, sort_keys=True) + "\n")
+
+          argv = [
+              "/usr/bin/sudo", "-n", "--", "/usr/bin/python3", "-I", str(script),
+              "controller", "--output", str(output),
+              "--run-id", os.environ["GITHUB_RUN_ID"],
+              "--attempt", os.environ["GITHUB_RUN_ATTEMPT"],
+              "--source-binding", json.dumps(binding, sort_keys=True),
+              "--owner-binary", str(binary),
+              "--image-os", os.environ.get("ImageOS", ""),
+              "--image-version", os.environ.get("ImageVersion", ""),
+          ]
+          started = time.monotonic_ns()
+          with (output / "launcher.stdout").open("xb") as out, (output / "launcher.stderr").open("xb") as err:
+              result = subprocess.run(argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                                      env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"},
+                                      check=False)
+          foundation_qualified = recovery_qualified = host_launcher_qualified = False
+          try:
+              outcome = json.loads((output / "qualification.json").read_bytes())
+              actual = outcome["actual_cases"]
+              common = (outcome["schema"] == "stateknot-native-owner-foundation-v3"
+                        and outcome["stdio_supported"] is False and outcome["R1_closed"] is False)
+              foundation, controls, launch = actual[:6], actual[6:9], actual[9:]
+              foundation_qualified = (common and outcome["full_six_case_qualification"] is True
+                                      and [row["case"] for row in foundation] == ["P0", "P1", "P2", "P3", "P4", "P5"]
+                                      and all(row["passed"] is True and row["fallback_used"] is False for row in foundation))
+              recovery_qualified = (common and outcome["broker_recovery_controls_qualified"] is True
+                                    and [row["case"] for row in controls] == ["C0", "C1", "C2"]
+                                    and all(row["passed"] is True and row["fallback_used"] is False for row in controls))
+              host_launcher_qualified = (common and outcome["host_launcher_qualified"] is True
+                                         and [row["case"] for row in launch] == ["L0"]
+                                         and all(row["passed"] is True and row["fallback_used"] is False
+                                                 and row["duplicate_launch_rejected"] is True for row in launch))
+          except (OSError, ValueError, KeyError, TypeError):
+              pass  # Keep the raw output and fail the gate below.
+          qualified = (result.returncode == 0 and foundation_qualified and recovery_qualified
+                       and host_launcher_qualified)
+          consumer_exit = None
+          consumer_qualified = False
+          consumer_cases = ["happy", "handshake-timeout", "malformed", "oversized",
+                            "wrong-version", "wrong-id", "cancelled"]
+          if qualified:
+              # Stage verified copies on a root-owned path. Execute the test
+              # binary directly so the privileged step never invokes Cargo.
+              root_launcher = r"""
+          import hashlib
+          import json
+          import os
+          from pathlib import Path
+          import runpy
+          import shutil
+          import stat
+          import subprocess
+          import sys
+          import tempfile
+          import time
+
+          script, owner, test, output, script_hash, owner_hash, test_hash = sys.argv[1:]
+          cases = ("happy", "handshake-timeout", "malformed", "oversized",
+                   "wrong-version", "wrong-id", "cancelled")
+          os.umask(0o022)
+          staging = Path(tempfile.mkdtemp(prefix="stateknot-stdio-test-", dir="/run"))
+          staging.chmod(0o755)
+
+          def stage(source, name, digest, mode, limit):
+              with Path(source).open("rb") as stream:
+                  raw = stream.read(limit + 1)
+              if not 0 < len(raw) <= limit or hashlib.sha256(raw).hexdigest() != digest:
+                  raise ValueError("root staging bytes differ for " + name)
+              dest = staging / name
+              with dest.open("xb") as stream:
+                  stream.write(raw)
+              dest.chmod(mode)
+              if dest.stat().st_uid != 0 or dest.stat().st_mode & 0o022:
+                  raise ValueError("untrusted root staging path")
+              return dest
+
+          probe = runpy.run_path(str(stage(script, "probe.py", script_hash, 0o644, 512 * 1024)))
+          owner_binary = stage(owner, "stateknot-mcp-stdio-owner", owner_hash, 0o755, 32 * 1024 * 1024)
+          test_binary = stage(test, "consumer", test_hash, 0o755, 64 * 1024 * 1024)
+          require, save, wait_for = (probe[key] for key in ("require", "save", "wait_for"))
+          uid = probe["UID"]
+          evidence = Path(output) / "consumer-cases"
+          evidence.mkdir(mode=0o755)
+
+          def read_witness(path):
+              try:
+                  fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+              except FileNotFoundError:
+                  return None
+              with os.fdopen(fd, "rb") as stream:
+                  info = os.fstat(stream.fileno())
+                  require(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600
+                          and info.st_uid == uid and info.st_gid == uid and info.st_nlink == 1
+                          and 0 < info.st_size <= 512, "untrusted consumer witness file")
+                  raw = stream.read(513)
+              require(len(raw) == info.st_size, "consumer witness size changed")
+              return json.loads(raw)
+
+          def capture_tree(directory, unit, generation, tree, record, identities):
+              require(type(tree) is dict and set(tree) == {"target_pid", "descendant_pid"}
+                      and all(type(pid) is int and pid > 1 for pid in tree.values())
+                      and tree["target_pid"] != tree["descendant_pid"], "invalid namespace witness")
+              props = probe["unit_properties"](directory, unit, 0)
+              leader = record["main_pid"]
+              require(record["generation"] == generation and record["unit"] == unit
+                      and record["boot_id"] == probe["boot_id"]()
+                      and props["InvocationID"] == record["invocation_id"]
+                      and int(props["MainPID"]) == int(props["ExecMainPID"]) == leader
+                      and props["ActiveState"] == "active" and props["SubState"] == "running"
+                      and props["PrivatePIDs"] == "yes"
+                      and props["ControlGroup"] == "/system.slice/" + unit,
+                      "consumer journal differs from the live manager invocation")
+              cg = probe["cgroup_path"](props["ControlGroup"])
+              info = cg.stat()
+              require([info.st_dev, info.st_ino] == record["cgroup_identity"],
+                      "consumer original cgroup differs from journal")
+              members = probe["cgroup_members"](cg)
+              require(len(members) == 3 and leader in members, "unexpected live cgroup membership")
+              for pid in members:
+                  identities.append(probe["ProcessIdentity"](pid, directory / "proc-observations.jsonl"))
+              mapped = {identity.fact["nspid"][-1]: identity for identity in identities}
+              require(set(mapped) == {1, tree["target_pid"], tree["descendant_pid"]},
+                      "witness namespace PIDs do not map to exact cgroup members")
+              init, target, leaf = (mapped[number] for number in (1, tree["target_pid"], tree["descendant_pid"]))
+              require(init.pid == leader and init.fact["ppid"] == 1
+                      and int(init.fact["start_ticks"]) == record["main_start_ticks"]
+                      and target.fact["ppid"] == init.pid and leaf.fact["ppid"] == target.pid,
+                      "unexpected init, target or descendant ancestry")
+              for identity in identities:
+                  require(identity.namespace == record["pid_namespace"], "original namespace mismatch")
+                  fd = os.open("cgroup", os.O_RDONLY | os.O_CLOEXEC, dir_fd=identity.procfd)
+                  with os.fdopen(fd) as stream:
+                      require(stream.read(4096) == "0::" + props["ControlGroup"] + "\n",
+                              "pinned process is outside the original cgroup")
+              for identity in (target, leaf):
+                  fact = identity.fact
+                  require(fact["uids"] == [uid] * 4 and fact["gids"] == [uid] * 4
+                          and not fact["groups"] and fact["nnp"] == 1
+                          and not any(fact["caps"].values()), "fixture privilege drop differs")
+              save(directory / "identity.json", {"unit": props, "tree": tree, "init": init.fact,
+                   "target": target.fact, "descendant": leaf.fact, "journal": record})
+              return cg
+
+          def cgroup_retired(cg, identity):
+              try:
+                  info = cg.stat()
+                  require([info.st_dev, info.st_ino] == identity, "original cgroup identity replaced")
+                  require(not probe["cgroup_members"](cg)
+                          and "populated 0" in (cg / "cgroup.events").read_text().splitlines(),
+                          "original cgroup remains populated")
+                  return False
+              except FileNotFoundError:
+                  try:
+                      cg.lstat()
+                  except FileNotFoundError:
+                      return True
+                  raise
+
+          def consumer_case(case):
+              directory = evidence / case
+              directory.mkdir(mode=0o755)
+              generation = os.urandom(16).hex()
+              unit = "stateknot-owner-" + generation + ".service"
+              work = staging / case
+              answer = {"case": case, "generation": generation, "passed": False, "fallback_used": False,
+                        "started_monotonic_ns": time.monotonic_ns()}
+              process = capture = None
+              identities = []
+              try:
+                  work.mkdir(mode=0o755)
+                  os.link(owner_binary, work / owner_binary.name)
+                  control = work / "control"
+                  control.mkdir(mode=0o700)
+                  witness = work / "witness"
+                  witness.mkdir(mode=0o700)
+                  os.chown(witness, uid, uid)
+                  recovery = probe["provision_managed_recovery"](generation)
+                  save(control / "config.json", {
+                      "generation": generation, "boot_id": probe["boot_id"](),
+                      "host_namespace": probe["ns_identity"](os.getpid()),
+                      "target_uid": uid, "target_gid": uid, "recovery_directory": str(recovery),
+                  }, True)
+                  env = dict(probe["ENV"], STATEKNOT_STDIO_TEST_WORK=str(work),
+                             STATEKNOT_STDIO_TEST_GENERATION=generation, STATEKNOT_STDIO_TEST_CASE=case)
+                  argv = [str(test_binary), "--exact", "--ignored", "--nocapture",
+                          "owned_session_discovers_calls_and_retires"]
+                  process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE, env=env, cwd=work, close_fds=True)
+                  capture = probe["Capture"](process, directory, "test")
+                  tree = wait_for(lambda: read_witness(witness / "tree.json"), (capture,), 8,
+                                  "consumer never reached live witness handshake")
+                  journal = recovery / probe["RECORD_NAME"]
+                  intent_path = recovery / probe["LAUNCH_INTENT_NAME"]
+                  original = probe["journal_snapshot"](journal)
+                  original_intent = probe["journal_snapshot"](intent_path)
+                  record, intent = json.loads(original[0]), json.loads(original_intent[0])
+                  require(intent["generation"] == generation and intent["control_directory"] == str(control),
+                          "consumer launch intent differs from its generation")
+                  save(directory / "journal.json", {"generation_record": record, "record_metadata": original[1],
+                       "launch_intent": intent, "intent_metadata": original_intent[1]})
+                  cg = capture_tree(directory, unit, generation, tree, record, identities)
+                  observed = time.monotonic_ns()
+                  answer["observed_monotonic_ns"] = observed
+                  probe["save_bytes"](work / "observed", b"observed\n")
+                  wait_for(capture.complete, (), 32, "consumer test or its own streams did not finish")
+                  answer["actual_test_exit_code"] = process.wait(timeout=1)
+                  marker = f"STATEKNOT_MCP_STDIO_SESSION_CASE={case}:passed".encode()
+                  stdout = (directory / "test.stdout").read_bytes()
+                  require(answer["actual_test_exit_code"] == 0 and stdout.count(marker) == 1
+                          and b"test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;" in stdout,
+                          "exact case did not pass with its in-test EOF and retirement assertion")
+                  if case == "handshake-timeout":
+                      observed_request = read_witness(witness / "discovery.json")
+                      require(observed_request == {"id": 1, "method": "server/discover"},
+                              "handshake deadline did not observe a real discovery request")
+                      save(directory / "protocol-witness.json", observed_request)
+                  elif case == "cancelled":
+                      observed_request = read_witness(witness / "request.json")
+                      require(observed_request == {"id": 3, "method": "tools/call",
+                                                  "nonce": "external-cancel-canary"},
+                              "cancelled case did not observe the exact outstanding Tool request")
+                      save(directory / "protocol-witness.json", observed_request)
+                  wait_for(lambda: all(identity.exited_and_reaped() for identity in identities), (), 5,
+                           "original consumer init or target tree remains live or zombie")
+                  final = probe["unit_properties"](directory, unit, 1)
+                  probe["validate_manager_exit"](final, record["invocation_id"], record["main_pid"], "L0", observed)
+                  require(int(final["MainPID"]) == 0, "manager still reports a live original init")
+                  removed = cgroup_retired(cg, record["cgroup_identity"])
+                  terminal = json.loads(probe["journal_snapshot"](control / "helper-terminal.json")[0])
+                  require(terminal["target_spawns"] == 1 and terminal["reason"] in ("owner-stop", "owner-eof")
+                          and terminal["terminal_monotonic_ns"] >= observed,
+                          "consumer did not cooperatively retire the observed generation")
+                  require(probe["journal_snapshot"](journal) == original
+                          and probe["journal_snapshot"](intent_path) == original_intent
+                          and probe["boot_id"]() == record["boot_id"], "consumer durable identity changed")
+                  answer.update(manager_exit=final, helper_terminal=terminal, cgroup_removed=removed,
+                                full_tree_reaped=True, cgroup_empty=True, in_test_verified_eof=True)
+                  reset = probe["command"](directory, "reset-failed", [probe["SYSTEMCTL"], "reset-failed", unit])
+                  require(reset.returncode == 0, "could not retire failed-unit metadata after proof")
+                  shutil.rmtree(recovery)
+                  answer["passed"] = True
+              except Exception as exc:
+                  answer["error"] = type(exc).__name__ + ": " + str(exc)
+              finally:
+                  if process is not None and process.poll() is None:
+                      answer["fallback_used"] = True
+                      try:
+                          probe["kill_direct_child"](process)
+                      except Exception as exc:
+                          answer["fallback_error"] = type(exc).__name__ + ": " + str(exc)
+                  if process is not None:
+                      answer["actual_test_exit_code"] = process.poll()
+                  if capture is not None:
+                      capture.close()
+                  for identity in identities:
+                      identity.close()
+                  answer["ended_monotonic_ns"] = time.monotonic_ns()
+                  save(directory / "case-result.json", answer)
+              return answer
+
+          actual = []
+          for case in cases:
+              row = consumer_case(case)
+              actual.append(row)
+              if not row["passed"]:
+                  break
+          passed = len(actual) == len(cases) and all(row["passed"] for row in actual)
+          save(Path(output) / "consumer-root.json", {
+              "schema": "stateknot-native-consumer-matrix-v1", "cases": actual, "passed": passed,
+              "owner_binary_sha256": owner_hash, "consumer_binary_sha256": test_hash,
+          })
+          if passed:
+              shutil.rmtree(staging)
+          raise SystemExit(0 if passed else 1)
+          """
+              consumer_argv = [
+                  "/usr/bin/sudo", "-n", "--", "/usr/bin/python3", "-I", "-c", root_launcher,
+                  str(script), str(binary), str(consumer_binary), str(output),
+                  binding["files_sha256"][script_path], binding["owner_binary_sha256"],
+                  binding["consumer_binary_sha256"],
+              ]
+              with (output / "consumer.stdout").open("xb") as out, (output / "consumer.stderr").open("xb") as err:
+                  consumer_exit = subprocess.run(consumer_argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
+                                                 env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"},
+                                                 check=False).returncode
+              try:
+                  matrix = json.loads((output / "consumer-root.json").read_bytes())
+                  rows = matrix["cases"]
+                  consumer_qualified = (
+                      consumer_exit == 0 and matrix["schema"] == "stateknot-native-consumer-matrix-v1"
+                      and matrix["passed"] is True and [row["case"] for row in rows] == consumer_cases
+                      and len({row["generation"] for row in rows}) == len(consumer_cases)
+                      and matrix["owner_binary_sha256"] == binding["owner_binary_sha256"]
+                      and matrix["consumer_binary_sha256"] == binding["consumer_binary_sha256"]
+                      and all(row["passed"] is True and row["fallback_used"] is False
+                              and row["full_tree_reaped"] is True and row["cgroup_empty"] is True
+                              and row["in_test_verified_eof"] is True and row["actual_test_exit_code"] == 0
+                              for row in rows)
+                  )
+              except (OSError, ValueError, KeyError, TypeError):
+                  pass  # Preserve the failed matrix and raw case outputs.
+          receipt = {
+              "argv": argv, "actual_exit_code": result.returncode,
+              "started_monotonic_ns": started, "ended_monotonic_ns": time.monotonic_ns(),
+              "stdout_sha256": hashlib.sha256((output / "launcher.stdout").read_bytes()).hexdigest(),
+              "stderr_sha256": hashlib.sha256((output / "launcher.stderr").read_bytes()).hexdigest(),
+              "source_binding": binding,
+              "full_six_case_qualification": foundation_qualified,
+              "broker_recovery_controls_qualified": recovery_qualified,
+              "host_launcher_qualified": host_launcher_qualified, "stdio_supported": False,
+              "consumer_actual_exit_code": consumer_exit,
+              "consumer_session_qualified": consumer_qualified,
+          }
+          (output / "launcher.receipt.json").write_text(json.dumps(receipt, indent=2, sort_keys=True) + "\n")
+          rows = [
+              {"path": str(p.relative_to(output)), "bytes": p.stat().st_size,
+               "sha256": hashlib.sha256(p.read_bytes()).hexdigest()}
+              for p in sorted(output.rglob("*")) if p.is_file() and p.name != "upload-manifest.json"
+          ]
+          (output / "upload-manifest.json").write_text(
+              json.dumps({"files": rows, "qualification": False,
+                          "full_six_case_qualification": foundation_qualified,
+                          "broker_recovery_controls_qualified": recovery_qualified,
+                          "host_launcher_qualified": host_launcher_qualified,
+                          "consumer_session_qualified": consumer_qualified}, indent=2, sort_keys=True) + "\n"
+          )
+          raise SystemExit(0 if qualified and consumer_qualified else (result.returncode or consumer_exit or 1))
+      - name: Preserve actual raw foundation, recovery and launch evidence
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: stdio-native-owner-foundation-${{ github.run_id }}-${{ github.run_attempt }}
+          path: ${{ runner.temp }}/stdio-native-owner-foundation
+          if-no-files-found: error
+          retention-days: 14
