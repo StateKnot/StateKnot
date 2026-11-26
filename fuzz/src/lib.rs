@@ -395,6 +395,19 @@ mod tests {
     }
 
     #[test]
+    fn retained_mixed_case_media_type_matches_the_reader_contract() {
+        assert!(core_readers(include_bytes!(
+            "../seeds/core_readers/MediaType-mixed-case"
+        )));
+        let mixed = serde_json::json!("Application/JSON");
+        let canonical = serde_json::json!("application/json");
+        assert!(input_validator::<MediaType>().is_valid(&mixed));
+        let output = output_validator::<MediaType>();
+        assert!(!output.is_valid(&mixed));
+        assert!(output.is_valid(&canonical));
+    }
+
+    #[test]
     fn retained_malformed_timestamp_is_rejected_by_the_real_reader() {
         assert!(!core_readers(include_bytes!(
             "../seeds/core_readers/RunTransition-invalid-timestamp"

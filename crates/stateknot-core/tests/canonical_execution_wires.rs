@@ -294,9 +294,9 @@ fn compact_result_head_retains_its_context_bound_validation_contract() {
 }
 
 #[test]
-fn empty_variant_reader_fix_preserves_all_seven_generated_schema_pins() {
-    // These fingerprints were captured on a312b0c2 before changing readers.
-    // The private map visitor must not alter valid Rust or schema contracts.
+fn execution_wire_input_schemas_match_the_reviewed_pins() {
+    // The original pins came from a312b0c2. The three schemas that embed
+    // MediaType include its case-insensitive input pattern.
     macro_rules! unchanged_schema {
         ($($ty:ty),+) => { $(
             let bounded = BoundedJson::try_from_value_with_limits(

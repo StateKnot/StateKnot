@@ -183,6 +183,12 @@ variant combinations and the complete C2/C3 audit stay open.
 
 ### Closed public type and schema inventory
 
+When validating artifact metadata, use the deserialization schema for input.
+For example, `Application/JSON` is valid input for `MediaType` and serializes
+as `application/json`. If a Tool pins an affected generated input schema,
+publish a new schema and Tool version for new work. Keep the previous registry
+and executable available for work admitted under the old digest.
+
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
 checks all 570 named root exports against a
 [machine-readable inventory](../crates/stateknot-core/tests/fixtures/core-public-type-inventory-v1.json):
