@@ -115,7 +115,7 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
   <section aria-labelledby="core-contract-fixtures">
     <h2 id="core-contract-fixtures">封闭兼容性证据语料库</h2>
     <p>
-      版本化目录对当前提交的全部 44 份 Core Fixture 文档建立封闭清单。每个条目以
+      版本化目录对当前提交的全部 45 份 Core Fixture 文档建立封闭清单。每个条目以
       SHA-256 固定文件的精确字节，从而保留刻意非 Canonical 的非法输入反例；带
       Domain Separation 的 RFC 8785 根摘要绑定有序的路径、Schema 与 Digest
       元数据。
@@ -139,9 +139,12 @@ PROPTEST_RNG_SEED=20261008 cargo test -p stateknot-core --test canonical_values 
       个序列化 schema 摘要。 原有 38 个值类型和 67
       个执行类型的正向与负向证据继续保留。完整的
       Graph、Checkpoint、invocation、Outbox 和 wait wire 保留原有构造器摘要。
-      无字段的带标签变体拒绝额外字段和数组形式，有效 wire 字节及七个生成的
-      schema pin 保持一致。44 个有界属性模型也以固定 CI 种子运行。嵌套 JSON
-      具有六维独立资源与 UTF-16 规范树模型；Opaque/schema-bound
+      无字段的带标签变体拒绝额外字段和数组形式。原有七个 schema
+      摘要中，三个包含已修正的 MediaType 输入 schema。读取时接受
+      Application/JSON，写出时使用 application/json。 受影响的输入须发布新的
+      schema 和 Tool 版本，已准入的任务继续使用原注册表。 44
+      个有界属性模型也以固定 CI 种子运行。嵌套 JSON 具有六维独立资源与 UTF-16
+      规范树模型；Opaque/schema-bound
       扩展收紧限制时会重新验证原先较宽的值。七个复合预算模型使用独立宽整数会计，
       核对全部 20 个用量字段、部分限制与币种交集、direct + child
       预留和精确剩余容量。 逐字段溢出、deadline

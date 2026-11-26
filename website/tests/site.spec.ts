@@ -854,7 +854,7 @@ test("core contracts expose executable evidence and the draft boundary", async (
     }),
   ).toBeVisible();
   await expect(
-    page.getByText("all 44 committed Core", { exact: false }),
+    page.getByText("all 45 committed Core", { exact: false }),
   ).toBeVisible();
   await expect(
     page.getByText("Complete Tool authorization receipts", { exact: false }),
@@ -878,7 +878,7 @@ test("core contracts expose executable evidence and the draft boundary", async (
     page.getByRole("heading", { level: 2, name: "封闭兼容性证据语料库" }),
   ).toBeVisible();
   await expect(
-    page.getByText("全部 44 份 Core Fixture", { exact: false }),
+    page.getByText("全部 45 份 Core Fixture", { exact: false }),
   ).toBeVisible();
   await expect(
     page.getByText("完整的 Tool 授权 Receipt", { exact: false }),

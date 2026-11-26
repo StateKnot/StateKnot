@@ -41,7 +41,7 @@ core runtime-neutrality review is updated deliberately.
 
 ## Sealed compatibility fixture corpus
 
-The versioned `catalog-v1.json` closes the inventory around all 44 currently
+The versioned `catalog-v1.json` closes the inventory around all 45 currently
 committed Core compatibility fixture documents. Every entry binds the exact file
 bytes with SHA-256, including negative vectors that deliberately cannot be RFC
 8785 canonicalized. The catalog root separately binds the ordered path, schema,
@@ -182,6 +182,12 @@ N-1/N-2 migration corpus or a production load result. Remaining public families,
 variant combinations and the complete C2/C3 audit stay open.
 
 ### Closed public type and schema inventory
+
+When validating artifact metadata, use the deserialization schema for input.
+For example, `Application/JSON` is valid input for `MediaType` and serializes
+as `application/json`. If a Tool pins an affected generated input schema,
+publish a new schema and Tool version for new work. Keep the previous registry
+and executable available for work admitted under the old digest.
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
 checks all 570 named root exports against a

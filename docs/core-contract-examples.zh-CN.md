@@ -40,7 +40,7 @@ Metadata，并把全部直接普通依赖和开发依赖与已审查白名单比
 
 ## 封闭的兼容性 Fixture 语料库
 
-版本化的 `catalog-v1.json` 对当前提交的全部 44 份 Core 兼容性 Fixture
+版本化的 `catalog-v1.json` 对当前提交的全部 45 份 Core 兼容性 Fixture
 文档建立封闭清单。每个条目以 SHA-256 绑定文件的精确字节，其中包括刻意无法按
 RFC 8785 Canonicalize 的非法输入反例。目录根摘要则通过带 Domain Separation 的
 RFC 8785 Preimage，绑定有序的路径、Schema 与内容摘要记录。
@@ -157,6 +157,11 @@ control、model/tool 两种绑定、模型重试及已提交工具调用历史�
 fixture 证据；N-1/N-2 迁移、剩余类型族/变体组合及完整 C2/C3 审计继续开放。
 
 ### 封闭的公开类型与 schema 清单
+
+校验 Artifact 元数据时，请使用反序列化方向的输入 schema。例如，`MediaType`
+接受 `Application/JSON`，序列化时写出 `application/json`。如果 Tool 固定了受影响的
+输入 schema 摘要，请为新任务发布新的 schema 和 Tool 版本。已按旧摘要准入的任务
+继续使用原注册表和可执行版本。
 
 [`public_type_inventory.rs`](../crates/stateknot-core/tests/public_type_inventory.rs)
 将全部 570 个根导出项与
