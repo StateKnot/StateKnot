@@ -17,6 +17,8 @@ use crate::{
 
 const MEDIA_TYPE_PATTERN: &str =
     "^[a-z0-9][a-z0-9!#$&.^_+-]{0,126}/[a-z0-9][a-z0-9!#$&.^_+-]{0,126}(?:;.*)?$";
+const MEDIA_TYPE_INPUT_PATTERN: &str =
+    "^[A-Za-z0-9][A-Za-z0-9!#$&.^_+-]{0,126}/[A-Za-z0-9][A-Za-z0-9!#$&.^_+-]{0,126}(?:;.*)?$";
 const RETENTION_CLASS_PATTERN: &str = "^[A-Za-z0-9][A-Za-z0-9._:/-]{0,63}$";
 
 /// A concrete, canonical media type for stored artifact bytes.
@@ -268,13 +270,24 @@ impl JsonSchema for MediaType {
         concat!(module_path!(), "::MediaType").into()
     }
 
-    fn json_schema(_: &mut SchemaGenerator) -> Schema {
+    fn json_schema(generator: &mut SchemaGenerator) -> Schema {
+        let (pattern, description) = if generator.contract().is_serialize() {
+            (
+                MEDIA_TYPE_PATTERN,
+                "A canonical concrete media type. StateKnot additionally enforces RFC name syntax, unique sorted parameters, parameter count/value bounds, and canonical quoting at runtime.",
+            )
+        } else {
+            (
+                MEDIA_TYPE_INPUT_PATTERN,
+                "A concrete media type normalized by the reader. Type, subtype and parameter names are case-insensitive. StateKnot additionally enforces RFC name syntax, unique parameters, parameter count/value bounds, and canonical quoting at runtime.",
+            )
+        };
         json_schema!({
             "type": "string",
             "minLength": 3,
             "maxLength": 512,
-            "pattern": MEDIA_TYPE_PATTERN,
-            "description": "A canonical concrete media type. StateKnot additionally enforces RFC name syntax, unique sorted parameters, parameter count/value bounds, and canonical quoting at runtime."
+            "pattern": pattern,
+            "description": description
         })
     }
 
@@ -1942,7 +1955,12 @@ mod tests {
         let schema = to_value(schemars::schema_for!(MediaType)).unwrap();
         assert_eq!(schema["type"], "string");
         assert_eq!(schema["maxLength"], MediaType::MAX_LEN);
-        assert_eq!(schema["pattern"], MEDIA_TYPE_PATTERN);
+        assert_eq!(schema["pattern"], MEDIA_TYPE_INPUT_PATTERN);
+        let output = schemars::generate::SchemaSettings::draft2020_12()
+            .for_serialize()
+            .into_generator()
+            .into_root_schema_for::<MediaType>();
+        assert_eq!(output.as_value()["pattern"], MEDIA_TYPE_PATTERN);
     }
 
     #[test]

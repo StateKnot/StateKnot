@@ -94,6 +94,10 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Fixed
 
+- The generated `MediaType` input schema accepts mixed-case type and subtype
+  names such as `Application/JSON`. The serialization schema describes the
+  canonical lowercase names emitted by the existing writer.
+
 - Core object and tagged-object readers require maps instead of accepting
   positional struct/enum sequences. A streaming guard reuses existing field,
   constructor and integrity checks; scalar/collection and opaque JSON shapes
