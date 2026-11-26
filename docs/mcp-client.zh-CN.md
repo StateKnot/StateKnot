@@ -17,6 +17,10 @@ Identity/Schema Pin 与基于持久化记录的结果核对（Reconciliation）�
 Run，并且必须保存 Admission、Ambiguity 与 Reconciliation 证据时，使用
 `McpRemoteTool`。
 
+在 Linux systemd 宿主上接入本地可执行程序时，可使用实验性的
+[`McpStdioSession` 指南](mcp-stdio-linux-owner.zh-CN.md)。指南说明宿主预配、Tool
+描述符固定和关闭验证，并提供固定 SDK Git 提交的独立消费者示例。
+
 ## 已实现合约
 
 - 一个不可变 HTTPS Endpoint；仅受管 Sidecar 与测试可使用 Literal-loopback HTTP；

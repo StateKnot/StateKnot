@@ -119,6 +119,12 @@ whether a write was attempted. Reconcile uncertain external effects before
 dispatching another write. If shutdown reports pending cleanup, retain the
 generation and use the recovery procedure above.
 
+A Tool can decline an operation with `Ok` and a complete result whose
+`is_error()` is true. Its `content()` carries the Tool's diagnostic. A valid
+JSON-RPC error for the outstanding call returns `McpStdioFailure::Remote`
+with send phase `MayHaveBeenSent`. In both cases the Session remains available
+for the caller's next explicit request.
+
 ### Reproduce the standalone Cargo consumer
 
 The [consumer manifest](../examples/mcp-stdio-consumer/Cargo.toml) pins
@@ -139,6 +145,12 @@ test binary and owner launcher, then provisions the private directories and
 the root-owned systemd fixture described above. The privileged step runs the
 exact staged test binary directly to exercise discovery, a pinned Tool call,
 and verified shutdown. The workflow result records the native outcome.
+
+The workflow also requires a blocked handshake, an unsupported protocol
+version, malformed and oversized replies, an unexpected response ID, and a
+cancelled in-flight call. The successful case checks that interleaved progress
+notifications stay associated with the right request. Each case runs in a
+fresh generation and checks retirement of the observed process tree.
 
 ## Standalone qualification
 

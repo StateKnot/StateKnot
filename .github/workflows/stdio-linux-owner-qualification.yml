@@ -246,6 +246,8 @@ jobs:
                        and host_launcher_qualified)
           consumer_exit = None
           consumer_qualified = False
+          consumer_cases = ["happy", "handshake-timeout", "malformed", "oversized",
+                            "wrong-version", "wrong-id", "cancelled"]
           if qualified:
               # Stage verified copies on a root-owned path. Execute the test
               # binary directly so the privileged step never invokes Cargo.
@@ -256,21 +258,25 @@ jobs:
           from pathlib import Path
           import runpy
           import shutil
+          import stat
           import subprocess
           import sys
           import tempfile
+          import time
 
           script, owner, test, output, script_hash, owner_hash, test_hash = sys.argv[1:]
+          cases = ("happy", "handshake-timeout", "malformed", "oversized",
+                   "wrong-version", "wrong-id", "cancelled")
           os.umask(0o022)
-          work = Path(tempfile.mkdtemp(prefix="stateknot-stdio-test-", dir="/run"))
-          work.chmod(0o755)
+          staging = Path(tempfile.mkdtemp(prefix="stateknot-stdio-test-", dir="/run"))
+          staging.chmod(0o755)
 
           def stage(source, name, digest, mode, limit):
               with Path(source).open("rb") as stream:
                   raw = stream.read(limit + 1)
               if not 0 < len(raw) <= limit or hashlib.sha256(raw).hexdigest() != digest:
                   raise ValueError("root staging bytes differ for " + name)
-              dest = work / name
+              dest = staging / name
               with dest.open("xb") as stream:
                   stream.write(raw)
               dest.chmod(mode)
@@ -279,38 +285,203 @@ jobs:
               return dest
 
           probe = runpy.run_path(str(stage(script, "probe.py", script_hash, 0o644, 512 * 1024)))
-          stage(owner, "stateknot-mcp-stdio-owner", owner_hash, 0o755, 32 * 1024 * 1024)
+          owner_binary = stage(owner, "stateknot-mcp-stdio-owner", owner_hash, 0o755, 32 * 1024 * 1024)
           test_binary = stage(test, "consumer", test_hash, 0o755, 64 * 1024 * 1024)
-          generation = os.urandom(16).hex()
-          recovery = probe["provision_managed_recovery"](generation)
-          control = work / "control"
-          control.mkdir(mode=0o700)
-          probe["save"](control / "config.json", {
-              "generation": generation, "boot_id": probe["boot_id"](),
-              "host_namespace": probe["ns_identity"](os.getpid()),
-              "target_uid": probe["UID"], "target_gid": probe["UID"],
-              "recovery_directory": str(recovery),
-          }, True)
-          env = dict(probe["ENV"], STATEKNOT_STDIO_TEST_WORK=str(work),
-                     STATEKNOT_STDIO_TEST_GENERATION=generation)
-          result = subprocess.run([str(test_binary), "--exact", "--ignored", "--nocapture",
-                                   "owned_session_discovers_calls_and_retires"],
-                                  stdin=subprocess.DEVNULL, env=env, cwd=work, timeout=45, check=False)
-          if result.returncode != 0:
-              raise SystemExit(result.returncode if result.returncode > 0 else 1)
-          record, record_metadata = probe["journal_snapshot"](recovery / probe["RECORD_NAME"])
-          intent, intent_metadata = probe["journal_snapshot"](recovery / probe["LAUNCH_INTENT_NAME"])
-          record, intent = json.loads(record), json.loads(intent)
-          if record["generation"] != generation or intent["generation"] != generation:
-              raise ValueError("consumer retirement records differ from its generation")
-          probe["save"](Path(output) / "consumer-root.json", {
-              "generation": generation, "owner_binary_sha256": owner_hash,
-              "consumer_binary_sha256": test_hash,
-              "generation_record": record, "generation_record_metadata": record_metadata,
-              "launch_intent": intent, "launch_intent_metadata": intent_metadata,
+          require, save, wait_for = (probe[key] for key in ("require", "save", "wait_for"))
+          uid = probe["UID"]
+          evidence = Path(output) / "consumer-cases"
+          evidence.mkdir(mode=0o755)
+
+          def read_witness(path):
+              try:
+                  fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK | os.O_CLOEXEC)
+              except FileNotFoundError:
+                  return None
+              with os.fdopen(fd, "rb") as stream:
+                  info = os.fstat(stream.fileno())
+                  require(stat.S_ISREG(info.st_mode) and stat.S_IMODE(info.st_mode) == 0o600
+                          and info.st_uid == uid and info.st_gid == uid and info.st_nlink == 1
+                          and 0 < info.st_size <= 512, "untrusted consumer witness file")
+                  raw = stream.read(513)
+              require(len(raw) == info.st_size, "consumer witness size changed")
+              return json.loads(raw)
+
+          def capture_tree(directory, unit, generation, tree, record, identities):
+              require(type(tree) is dict and set(tree) == {"target_pid", "descendant_pid"}
+                      and all(type(pid) is int and pid > 1 for pid in tree.values())
+                      and tree["target_pid"] != tree["descendant_pid"], "invalid namespace witness")
+              props = probe["unit_properties"](directory, unit, 0)
+              leader = record["main_pid"]
+              require(record["generation"] == generation and record["unit"] == unit
+                      and record["boot_id"] == probe["boot_id"]()
+                      and props["InvocationID"] == record["invocation_id"]
+                      and int(props["MainPID"]) == int(props["ExecMainPID"]) == leader
+                      and props["ActiveState"] == "active" and props["SubState"] == "running"
+                      and props["PrivatePIDs"] == "yes"
+                      and props["ControlGroup"] == "/system.slice/" + unit,
+                      "consumer journal differs from the live manager invocation")
+              cg = probe["cgroup_path"](props["ControlGroup"])
+              info = cg.stat()
+              require([info.st_dev, info.st_ino] == record["cgroup_identity"],
+                      "consumer original cgroup differs from journal")
+              members = probe["cgroup_members"](cg)
+              require(len(members) == 3 and leader in members, "unexpected live cgroup membership")
+              for pid in members:
+                  identities.append(probe["ProcessIdentity"](pid, directory / "proc-observations.jsonl"))
+              mapped = {identity.fact["nspid"][-1]: identity for identity in identities}
+              require(set(mapped) == {1, tree["target_pid"], tree["descendant_pid"]},
+                      "witness namespace PIDs do not map to exact cgroup members")
+              init, target, leaf = (mapped[number] for number in (1, tree["target_pid"], tree["descendant_pid"]))
+              require(init.pid == leader and init.fact["ppid"] == 1
+                      and int(init.fact["start_ticks"]) == record["main_start_ticks"]
+                      and target.fact["ppid"] == init.pid and leaf.fact["ppid"] == target.pid,
+                      "unexpected init, target or descendant ancestry")
+              for identity in identities:
+                  require(identity.namespace == record["pid_namespace"], "original namespace mismatch")
+                  fd = os.open("cgroup", os.O_RDONLY | os.O_CLOEXEC, dir_fd=identity.procfd)
+                  with os.fdopen(fd) as stream:
+                      require(stream.read(4096) == "0::" + props["ControlGroup"] + "\n",
+                              "pinned process is outside the original cgroup")
+              for identity in (target, leaf):
+                  fact = identity.fact
+                  require(fact["uids"] == [uid] * 4 and fact["gids"] == [uid] * 4
+                          and not fact["groups"] and fact["nnp"] == 1
+                          and not any(fact["caps"].values()), "fixture privilege drop differs")
+              save(directory / "identity.json", {"unit": props, "tree": tree, "init": init.fact,
+                   "target": target.fact, "descendant": leaf.fact, "journal": record})
+              return cg
+
+          def cgroup_retired(cg, identity):
+              try:
+                  info = cg.stat()
+                  require([info.st_dev, info.st_ino] == identity, "original cgroup identity replaced")
+                  require(not probe["cgroup_members"](cg)
+                          and "populated 0" in (cg / "cgroup.events").read_text().splitlines(),
+                          "original cgroup remains populated")
+                  return False
+              except FileNotFoundError:
+                  try:
+                      cg.lstat()
+                  except FileNotFoundError:
+                      return True
+                  raise
+
+          def consumer_case(case):
+              directory = evidence / case
+              directory.mkdir(mode=0o755)
+              generation = os.urandom(16).hex()
+              unit = "stateknot-owner-" + generation + ".service"
+              work = staging / case
+              answer = {"case": case, "generation": generation, "passed": False, "fallback_used": False,
+                        "started_monotonic_ns": time.monotonic_ns()}
+              process = capture = None
+              identities = []
+              try:
+                  work.mkdir(mode=0o755)
+                  os.link(owner_binary, work / owner_binary.name)
+                  control = work / "control"
+                  control.mkdir(mode=0o700)
+                  witness = work / "witness"
+                  witness.mkdir(mode=0o700)
+                  os.chown(witness, uid, uid)
+                  recovery = probe["provision_managed_recovery"](generation)
+                  save(control / "config.json", {
+                      "generation": generation, "boot_id": probe["boot_id"](),
+                      "host_namespace": probe["ns_identity"](os.getpid()),
+                      "target_uid": uid, "target_gid": uid, "recovery_directory": str(recovery),
+                  }, True)
+                  env = dict(probe["ENV"], STATEKNOT_STDIO_TEST_WORK=str(work),
+                             STATEKNOT_STDIO_TEST_GENERATION=generation, STATEKNOT_STDIO_TEST_CASE=case)
+                  argv = [str(test_binary), "--exact", "--ignored", "--nocapture",
+                          "owned_session_discovers_calls_and_retires"]
+                  process = subprocess.Popen(argv, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                                             stderr=subprocess.PIPE, env=env, cwd=work, close_fds=True)
+                  capture = probe["Capture"](process, directory, "test")
+                  tree = wait_for(lambda: read_witness(witness / "tree.json"), (capture,), 8,
+                                  "consumer never reached live witness handshake")
+                  journal = recovery / probe["RECORD_NAME"]
+                  intent_path = recovery / probe["LAUNCH_INTENT_NAME"]
+                  original = probe["journal_snapshot"](journal)
+                  original_intent = probe["journal_snapshot"](intent_path)
+                  record, intent = json.loads(original[0]), json.loads(original_intent[0])
+                  require(intent["generation"] == generation and intent["control_directory"] == str(control),
+                          "consumer launch intent differs from its generation")
+                  save(directory / "journal.json", {"generation_record": record, "record_metadata": original[1],
+                       "launch_intent": intent, "intent_metadata": original_intent[1]})
+                  cg = capture_tree(directory, unit, generation, tree, record, identities)
+                  observed = time.monotonic_ns()
+                  answer["observed_monotonic_ns"] = observed
+                  probe["save_bytes"](work / "observed", b"observed\n")
+                  wait_for(capture.complete, (), 32, "consumer test or its own streams did not finish")
+                  answer["actual_test_exit_code"] = process.wait(timeout=1)
+                  marker = f"STATEKNOT_MCP_STDIO_SESSION_CASE={case}:passed".encode()
+                  stdout = (directory / "test.stdout").read_bytes()
+                  require(answer["actual_test_exit_code"] == 0 and stdout.count(marker) == 1
+                          and b"test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;" in stdout,
+                          "exact case did not pass with its in-test EOF and retirement assertion")
+                  if case == "handshake-timeout":
+                      observed_request = read_witness(witness / "discovery.json")
+                      require(observed_request == {"id": 1, "method": "server/discover"},
+                              "handshake deadline did not observe a real discovery request")
+                      save(directory / "protocol-witness.json", observed_request)
+                  elif case == "cancelled":
+                      observed_request = read_witness(witness / "request.json")
+                      require(observed_request == {"id": 3, "method": "tools/call",
+                                                  "nonce": "external-cancel-canary"},
+                              "cancelled case did not observe the exact outstanding Tool request")
+                      save(directory / "protocol-witness.json", observed_request)
+                  wait_for(lambda: all(identity.exited_and_reaped() for identity in identities), (), 5,
+                           "original consumer init or target tree remains live or zombie")
+                  final = probe["unit_properties"](directory, unit, 1)
+                  probe["validate_manager_exit"](final, record["invocation_id"], record["main_pid"], "L0", observed)
+                  require(int(final["MainPID"]) == 0, "manager still reports a live original init")
+                  removed = cgroup_retired(cg, record["cgroup_identity"])
+                  terminal = json.loads(probe["journal_snapshot"](control / "helper-terminal.json")[0])
+                  require(terminal["target_spawns"] == 1 and terminal["reason"] in ("owner-stop", "owner-eof")
+                          and terminal["terminal_monotonic_ns"] >= observed,
+                          "consumer did not cooperatively retire the observed generation")
+                  require(probe["journal_snapshot"](journal) == original
+                          and probe["journal_snapshot"](intent_path) == original_intent
+                          and probe["boot_id"]() == record["boot_id"], "consumer durable identity changed")
+                  answer.update(manager_exit=final, helper_terminal=terminal, cgroup_removed=removed,
+                                full_tree_reaped=True, cgroup_empty=True, in_test_verified_eof=True)
+                  reset = probe["command"](directory, "reset-failed", [probe["SYSTEMCTL"], "reset-failed", unit])
+                  require(reset.returncode == 0, "could not retire failed-unit metadata after proof")
+                  shutil.rmtree(recovery)
+                  answer["passed"] = True
+              except Exception as exc:
+                  answer["error"] = type(exc).__name__ + ": " + str(exc)
+              finally:
+                  if process is not None and process.poll() is None:
+                      answer["fallback_used"] = True
+                      try:
+                          probe["kill_direct_child"](process)
+                      except Exception as exc:
+                          answer["fallback_error"] = type(exc).__name__ + ": " + str(exc)
+                  if process is not None:
+                      answer["actual_test_exit_code"] = process.poll()
+                  if capture is not None:
+                      capture.close()
+                  for identity in identities:
+                      identity.close()
+                  answer["ended_monotonic_ns"] = time.monotonic_ns()
+                  save(directory / "case-result.json", answer)
+              return answer
+
+          actual = []
+          for case in cases:
+              row = consumer_case(case)
+              actual.append(row)
+              if not row["passed"]:
+                  break
+          passed = len(actual) == len(cases) and all(row["passed"] for row in actual)
+          save(Path(output) / "consumer-root.json", {
+              "schema": "stateknot-native-consumer-matrix-v1", "cases": actual, "passed": passed,
+              "owner_binary_sha256": owner_hash, "consumer_binary_sha256": test_hash,
           })
-          shutil.rmtree(work)
-          shutil.rmtree(recovery)
+          if passed:
+              shutil.rmtree(staging)
+          raise SystemExit(0 if passed else 1)
           """
               consumer_argv = [
                   "/usr/bin/sudo", "-n", "--", "/usr/bin/python3", "-I", "-c", root_launcher,
@@ -322,10 +493,22 @@ jobs:
                   consumer_exit = subprocess.run(consumer_argv, stdin=subprocess.DEVNULL, stdout=out, stderr=err,
                                                  env={"PATH": "/usr/bin:/bin", "LANG": "C", "LC_ALL": "C"},
                                                  check=False).returncode
-              consumer_stdout = (output / "consumer.stdout").read_bytes()
-              consumer_qualified = (consumer_exit == 0 and (output / "consumer-root.json").is_file()
-                                    and consumer_stdout.count(b"STATEKNOT_MCP_STDIO_SESSION_DISCOVERY_CALL_RETIREMENT=passed") == 1
-                                    and b"test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out;" in consumer_stdout)
+              try:
+                  matrix = json.loads((output / "consumer-root.json").read_bytes())
+                  rows = matrix["cases"]
+                  consumer_qualified = (
+                      consumer_exit == 0 and matrix["schema"] == "stateknot-native-consumer-matrix-v1"
+                      and matrix["passed"] is True and [row["case"] for row in rows] == consumer_cases
+                      and len({row["generation"] for row in rows}) == len(consumer_cases)
+                      and matrix["owner_binary_sha256"] == binding["owner_binary_sha256"]
+                      and matrix["consumer_binary_sha256"] == binding["consumer_binary_sha256"]
+                      and all(row["passed"] is True and row["fallback_used"] is False
+                              and row["full_tree_reaped"] is True and row["cgroup_empty"] is True
+                              and row["in_test_verified_eof"] is True and row["actual_test_exit_code"] == 0
+                              for row in rows)
+                  )
+              except (OSError, ValueError, KeyError, TypeError):
+                  pass  # Preserve the failed matrix and raw case outputs.
           receipt = {
               "argv": argv, "actual_exit_code": result.returncode,
               "started_monotonic_ns": started, "ended_monotonic_ns": time.monotonic_ns(),
