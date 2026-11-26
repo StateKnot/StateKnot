@@ -20,6 +20,11 @@ Use `McpClient` to discover and call ordinary remote Tools. Use
 `McpRemoteTool` when an external write participates in a durable Agent run and
 must preserve admission, ambiguity, and reconciliation evidence.
 
+For a local executable on a Linux systemd host, the experimental
+[`McpStdioSession` guide](mcp-stdio-linux-owner.md) covers provisioning,
+Tool pins, and verified shutdown. Its standalone consumer pins the SDK to a
+Git revision.
+
 ## Implemented contract
 
 - one immutable HTTPS endpoint, or literal-loopback HTTP for managed sidecars
