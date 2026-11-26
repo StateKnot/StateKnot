@@ -92,7 +92,7 @@ async fn fixture_with(behavior: CallBehavior) -> (McpRemoteTool, Arc<Policy>, Te
         release: Notify::new(),
     });
     let server = TestMcpServer::start_tool(raw, behavior, 8).await;
-    let adapter = McpRemoteTool::connect_authorized(
+    let adapter = Box::pin(McpRemoteTool::connect_authorized(
         policy.descriptor.clone(),
         "echo",
         server.endpoint.clone(),
@@ -100,7 +100,7 @@ async fn fixture_with(behavior: CallBehavior) -> (McpRemoteTool, Arc<Policy>, Te
         registry,
         McpToolApproval::new(policy.digest, policy.clone()),
         McpHttpOptions::default(),
-    )
+    ))
     .await
     .unwrap();
     (adapter, policy, server)

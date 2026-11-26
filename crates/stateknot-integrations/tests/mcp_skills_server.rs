@@ -318,10 +318,17 @@ async fn hidden_unknown_and_malformed_requests_do_not_disclose_skills() {
     .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
     assert!(read.pointer("/error").is_some());
-    let (status, invalid) =
-        invoke(&mut service, "skills/list", json!({ "unexpected": true })).await;
-    assert_eq!(status, StatusCode::BAD_REQUEST);
-    assert_eq!(invalid.pointer("/error/code"), Some(&json!(-32602)));
+    for (method, params) in [
+        ("skills/list", json!({ "unexpected": true })),
+        (
+            "skills/get",
+            json!({ "uri": "skill://code-review/SKILL.md", "unexpected": true }),
+        ),
+    ] {
+        let (status, invalid) = invoke(&mut service, method, params).await;
+        assert_eq!(status, StatusCode::BAD_REQUEST);
+        assert_eq!(invalid.pointer("/error/code"), Some(&json!(-32602)));
+    }
 }
 
 #[tokio::test]
