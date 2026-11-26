@@ -72,7 +72,10 @@ while not Path("observed").is_file():
     assert time.monotonic() < observe_deadline, "root observer acknowledgement did not arrive"
     time.sleep(0.01)
 
-expected = iter(("server/discover", "tools/list", "tools/call"))
+messages = ["external-cancel-canary" if case == "cancelled" else "from consumer"]
+if case == "happy":
+    messages.extend(["business failure", "rpc failure", "after errors"])
+expected = iter(["server/discover", "tools/list"] + ["tools/call"] * len(messages))
 for request_id, line in enumerate(sys.stdin.buffer, 1):
     request = json.loads(line)
     method = request["method"]
@@ -95,8 +98,16 @@ for request_id, line in enumerate(sys.stdin.buffer, 1):
         result["tools"] = [tool]
     else:
         params = request["params"]
-        expected_message = "external-cancel-canary" if case == "cancelled" else "from consumer"
-        assert params["name"] == "echo" and params["arguments"] == {"message": expected_message}
+        message = messages[request_id - 3]
+        assert params["name"] == "echo" and params["arguments"] == {"message": message}
+        if message == "business failure":
+            result.update(content=[{"type": "text", "text": "operation declined"}], isError=True)
+            print(json.dumps(response), flush=True)
+            continue
+        if message == "rpc failure":
+            print(json.dumps({"jsonrpc": "2.0", "id": request_id,
+                              "error": {"code": -32602, "message": "invalid parameters"}}), flush=True)
+            continue
         if case == "cancelled":
             witness("request.json", {"id": request_id, "method": method,
                                      "nonce": params["arguments"]["message"]})
@@ -104,8 +115,8 @@ for request_id, line in enumerate(sys.stdin.buffer, 1):
         if case == "malformed":
             print('{"jsonrpc":"2.0","id":', flush=True)
             idle()
-        result.update(content=[{"type": "text", "text": "from consumer"}],
-                      structuredContent={"echo": "from consumer"}, isError=False)
+        result.update(content=[{"type": "text", "text": message}],
+                      structuredContent={"echo": message}, isError=False)
         if case == "oversized":
             # One byte past the frame bound, with otherwise valid JSON and strings.
             maximum_frame = 256 * 1024
@@ -117,7 +128,7 @@ for request_id, line in enumerate(sys.stdin.buffer, 1):
             idle()
         if case == "wrong-id":
             response["id"] = request_id + 1
-        if case == "happy":
+        if case == "happy" and request_id == 3:
             token = params["_meta"]["progressToken"]
             assert token == request_id
             notify("notifications/progress", {"progressToken": token, "progress": 1, "total": 2})
@@ -198,6 +209,48 @@ fn configured_session(work: &Path, case: &str) -> McpStdioSession {
 fn assert_fault(error: McpStdioError, failure: McpStdioFailure, phase: McpStdioSendPhase) {
     assert_eq!(error.failure(), failure);
     assert_eq!(error.send_phase(), phase);
+}
+
+async fn verify_calls_after_errors(
+    client: &stateknot_integrations::McpStdioClient,
+    tool: &stateknot_integrations::McpTool,
+) {
+    let response = client
+        .call_tool(tool, json!({"message": "business failure"}))
+        .await
+        .expect("the Tool returned a complete business error");
+    let McpToolCall::Complete(result) = response.outcome() else {
+        panic!("expected the Tool's complete error result");
+    };
+    assert!(result.is_error());
+    assert_eq!(
+        result.content(),
+        &[json!({"type": "text", "text": "operation declined"})]
+    );
+    assert!(result.structured_content().is_none());
+
+    let rpc_error = client
+        .call_tool(tool, json!({"message": "rpc failure"}))
+        .await
+        .expect_err("the peer rejected the request");
+    assert_fault(
+        rpc_error,
+        McpStdioFailure::Remote,
+        McpStdioSendPhase::MayHaveBeenSent,
+    );
+
+    let response = client
+        .call_tool(tool, json!({"message": "after errors"}))
+        .await
+        .expect("the same Session must accept a new explicit call");
+    let McpToolCall::Complete(result) = response.outcome() else {
+        panic!("expected the final Tool result");
+    };
+    assert!(!result.is_error());
+    assert_eq!(
+        result.structured_content(),
+        Some(&json!({"echo": "after errors"}))
+    );
 }
 
 fn witness_identity(metadata: &fs::Metadata) -> (u64, u64) {
@@ -331,6 +384,7 @@ async fn owned_session_discovers_calls_and_retires() {
                         }))
                     );
                 }
+                verify_calls_after_errors(&client, tool).await;
                 session
                     .shutdown()
                     .await

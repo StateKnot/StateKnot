@@ -119,6 +119,12 @@ whether a write was attempted. Reconcile uncertain external effects before
 dispatching another write. If shutdown reports pending cleanup, retain the
 generation and use the recovery procedure above.
 
+A Tool can decline an operation with `Ok` and a complete result whose
+`is_error()` is true. Its `content()` carries the Tool's diagnostic. A valid
+JSON-RPC error for the outstanding call returns `McpStdioFailure::Remote`
+with send phase `MayHaveBeenSent`. In both cases the Session remains available
+for the caller's next explicit request.
+
 ### Reproduce the standalone Cargo consumer
 
 The [consumer manifest](../examples/mcp-stdio-consumer/Cargo.toml) pins

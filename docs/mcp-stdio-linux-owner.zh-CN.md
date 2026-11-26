@@ -93,6 +93,11 @@ launcher 和上述预配代际。通过显式命令、预期服务端身份、�
 安全范围使用独立 Session。调用失败会标记是否尝试过写入。在再次发起写操作前先核实
 不确定的外部结果。若关闭返回待核验，保留原代际并按上节流程恢复。
 
+Tool 拒绝业务操作时，调用可返回 `Ok`，完整结果的 `is_error()` 为真，可从
+`content()` 读取工具给出的诊断。对端为当前调用返回合法 JSON-RPC 错误时，调用返回
+`McpStdioFailure::Remote`，发送阶段为 `MayHaveBeenSent`。两种情况下，会话均可接收
+调用方主动发起的下一次请求。
+
 ### 复现独立 Cargo 消费者
 
 [消费者清单](../examples/mcp-stdio-consumer/Cargo.toml) 将 StateKnot 固定到 Git 提交
