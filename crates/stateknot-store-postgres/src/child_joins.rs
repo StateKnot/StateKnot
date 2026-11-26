@@ -287,7 +287,7 @@ impl PostgresStore {
             if after.activation().tenant_id() != tenant {
                 return Err(StoreError::ChildJoinRejected);
             }
-            cursor = query_as::<_, (DateTime<Utc>, Uuid, Vec<u8>)>("SELECT queued_at,parent_run_id,activation_digest FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND request_digest=$3")
+            cursor = query_as::<_, (OffsetDateTime, Uuid, Vec<u8>)>("SELECT queued_at,parent_run_id,activation_digest FROM stateknot.child_run_joins WHERE tenant_id=$1 AND parent_run_id=$2 AND request_digest=$3")
                 .bind(tenant.as_str()).bind(*after.activation().run_id().as_uuid()).bind(after.digest().as_bytes())
                 .fetch_optional(&mut *tx).await.map_err(|source| StoreError::database("child Join cursor", source))?;
             if cursor.is_none() {
@@ -491,7 +491,7 @@ async fn load_inner(
         head: None,
         consumed: None,
     };
-    let ready_at: Option<DateTime<Utc>> = row.try_get("ready_at").map_err(err)?;
+    let ready_at: Option<OffsetDateTime> = row.try_get("ready_at").map_err(err)?;
     if let Some(publication) = publication {
         let bytes: Vec<u8> = publication.try_get("binding_bytes").map_err(err)?;
         let binding: ChildRunJoinBinding = decode(&bytes)?;
@@ -537,7 +537,7 @@ async fn load_inner(
     } else if ready_at.is_some() {
         return Err(StoreError::corrupt("child Join ready projection"));
     }
-    let consumption = query_as::<_, (i64,DateTime<Utc>)>("SELECT journal_sequence,consumed_at FROM stateknot.child_run_join_consumptions WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3")
+    let consumption = query_as::<_, (i64,OffsetDateTime)>("SELECT journal_sequence,consumed_at FROM stateknot.child_run_join_consumptions WHERE tenant_id=$1 AND parent_run_id=$2 AND activation_digest=$3")
         .bind(activation.tenant_id().as_str()).bind(*activation.run_id().as_uuid()).bind(record.request.activation_digest().as_bytes())
         .fetch_optional(&mut **tx).await.map_err(|source| StoreError::database("child Join consumption load", source))?;
     if let Some((seq, at)) = consumption {
@@ -549,7 +549,7 @@ async fn load_inner(
             || result.intent().child_join() != record.head.as_ref()
             || sequence(result.journal_head())? != seq
             || row
-                .try_get::<Option<DateTime<Utc>>, _>("consumed_at")
+                .try_get::<Option<OffsetDateTime>, _>("consumed_at")
                 .map_err(err)?
                 != Some(at)
         {
@@ -584,7 +584,7 @@ async fn load_inner(
         .await?;
         record.consumed = Some(result.journal_head().clone());
     } else if row
-        .try_get::<Option<DateTime<Utc>>, _>("consumed_at")
+        .try_get::<Option<OffsetDateTime>, _>("consumed_at")
         .map_err(err)?
         .is_some()
     {

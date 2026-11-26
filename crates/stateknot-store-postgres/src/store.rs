@@ -14,7 +14,6 @@ use std::{
     time::Duration,
 };
 
-use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use sqlx_core::{
     from_row::FromRow,
@@ -55,6 +54,7 @@ use stateknot_core::{
     ToolInvocationIntent, ToolInvocationRevision, ToolInvocationStatus, ToolInvocationTransition,
     ToolInvocationTransitionKind, WaitRegistrationIntent,
 };
+use time::OffsetDateTime;
 use uuid::Uuid;
 
 #[path = "child_runs.rs"]
@@ -3308,7 +3308,7 @@ impl PostgresStore {
     /// Returns [`StoreError`] when the database is unavailable or its timestamp
     /// cannot be represented by the protocol-neutral clock type.
     pub async fn observe_database_clock(&self) -> Result<Timestamp, StoreError> {
-        let observed_at = query_scalar::<_, DateTime<Utc>>("SELECT clock_timestamp()")
+        let observed_at = query_scalar::<_, OffsetDateTime>("SELECT clock_timestamp()")
             .fetch_one(&self.pool)
             .await
             .map_err(|source| StoreError::database("database clock observation", source))?;
@@ -3754,7 +3754,7 @@ ON CONFLICT (shard_id) DO NOTHING
         let mut transaction = self
             .begin_mutation("scheduler fairness reservation retention")
             .await?;
-        let (observed_at, cutoff) = query_as::<_, (DateTime<Utc>, DateTime<Utc>)>(
+        let (observed_at, cutoff) = query_as::<_, (OffsetDateTime, OffsetDateTime)>(
             r"
 WITH observed AS MATERIALIZED (
     SELECT clock_timestamp() AS observed_at
@@ -7691,7 +7691,7 @@ WHERE tenant_id = $1
             .map_err(|_| StoreError::JournalSequenceExhausted)?;
         let checkpoint_superstep = i64::try_from(plan.checkpoint().superstep().get())
             .map_err(|_| StoreError::StaleCheckpointHead)?;
-        let scheduled_at = query_scalar::<_, DateTime<Utc>>(
+        let scheduled_at = query_scalar::<_, OffsetDateTime>(
             r"
 WITH observation AS MATERIALIZED (
     SELECT clock_timestamp() AS observed_at
@@ -10091,7 +10091,7 @@ struct GraphDefinitionRow {
     graph_version: String,
     definition_digest: Vec<u8>,
     definition_bytes: Vec<u8>,
-    registered_at: DateTime<Utc>,
+    registered_at: OffsetDateTime,
 }
 
 struct ArtifactRow {
@@ -10108,7 +10108,7 @@ struct ArtifactRow {
     object_key: String,
     object_version: Option<String>,
     object_etag: Option<String>,
-    registered_at: DateTime<Utc>,
+    registered_at: OffsetDateTime,
 }
 
 struct AgentAdmissionRow {
@@ -10130,16 +10130,16 @@ struct AgentAdmissionRow {
     policy_digest: Vec<u8>,
     intent_digest: Vec<u8>,
     admission_digest: Vec<u8>,
-    admitted_at: DateTime<Utc>,
+    admitted_at: OffsetDateTime,
     journal_sequence: i64,
     journal_event_id: Uuid,
-    journal_recorded_at: DateTime<Utc>,
+    journal_recorded_at: OffsetDateTime,
     journal_digest: Vec<u8>,
     checkpoint_id: Uuid,
     checkpoint_superstep: i64,
     checkpoint_digest: Vec<u8>,
     admission_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct AgentSubmissionRow {
@@ -10148,7 +10148,7 @@ struct AgentSubmissionRow {
     submission_digest: Vec<u8>,
     run_id: Uuid,
     admission_digest: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 #[derive(Clone)]
@@ -10159,9 +10159,9 @@ struct SchedulerFairnessShardRow {
     cycle_length: i32,
     next_slot: i32,
     next_sequence: i64,
-    registered_at: DateTime<Utc>,
+    registered_at: OffsetDateTime,
     #[allow(dead_code)]
-    updated_at: DateTime<Utc>,
+    updated_at: OffsetDateTime,
 }
 
 struct SchedulerFairnessReservationRow {
@@ -10170,7 +10170,7 @@ struct SchedulerFairnessReservationRow {
     policy_digest: Vec<u8>,
     sequence: i64,
     slot: i32,
-    reserved_at: DateTime<Utc>,
+    reserved_at: OffsetDateTime,
     shard_policy_digest: Vec<u8>,
     cycle_length: i32,
 }
@@ -10180,13 +10180,13 @@ struct RunQuarantineTargetRow {
     run_id: Uuid,
     journal_sequence: Option<i64>,
     journal_event_id: Option<Uuid>,
-    journal_recorded_at: Option<DateTime<Utc>>,
+    journal_recorded_at: Option<OffsetDateTime>,
     journal_digest: Option<Vec<u8>>,
     lease_attempt_id: Option<Uuid>,
     fencing_epoch: i64,
-    lease_renewed_at: Option<DateTime<Utc>>,
-    lease_expires_at: Option<DateTime<Utc>>,
-    quarantined_at: Option<DateTime<Utc>>,
+    lease_renewed_at: Option<OffsetDateTime>,
+    lease_expires_at: Option<OffsetDateTime>,
+    quarantined_at: Option<OffsetDateTime>,
     quarantine_reason: Option<String>,
 }
 
@@ -10194,27 +10194,27 @@ struct RunQuarantineRow {
     tenant_id: String,
     run_id: Uuid,
     quarantine_id: Uuid,
-    quarantined_at: DateTime<Utc>,
+    quarantined_at: OffsetDateTime,
     cause_kind: String,
     component: String,
     evidence_digest: Vec<u8>,
     expected_journal_sequence: Option<i64>,
     expected_journal_event_id: Option<Uuid>,
-    expected_journal_recorded_at: Option<DateTime<Utc>>,
+    expected_journal_recorded_at: Option<OffsetDateTime>,
     expected_journal_digest: Option<Vec<u8>>,
     expected_fence_attempt_id: Option<Uuid>,
     expected_fence_epoch: Option<i64>,
     record_digest: Vec<u8>,
-    created_at: DateTime<Utc>,
-    run_quarantined_at: Option<DateTime<Utc>>,
+    created_at: OffsetDateTime,
+    run_quarantined_at: Option<OffsetDateTime>,
     run_quarantine_reason: Option<String>,
     run_lease_attempt_id: Option<Uuid>,
-    run_lease_acquired_at: Option<DateTime<Utc>>,
-    run_lease_renewed_at: Option<DateTime<Utc>>,
-    run_lease_expires_at: Option<DateTime<Utc>>,
+    run_lease_acquired_at: Option<OffsetDateTime>,
+    run_lease_renewed_at: Option<OffsetDateTime>,
+    run_lease_expires_at: Option<OffsetDateTime>,
     run_fencing_epoch: i64,
-    run_scheduler_ready_at: Option<DateTime<Utc>>,
-    run_updated_at: DateTime<Utc>,
+    run_scheduler_ready_at: Option<OffsetDateTime>,
+    run_updated_at: OffsetDateTime,
 }
 
 struct RunRow {
@@ -10225,27 +10225,27 @@ struct RunRow {
     lifecycle_bytes: Vec<u8>,
     lifecycle_revision: String,
     lifecycle_status: String,
-    admitted_at: DateTime<Utc>,
-    changed_at: DateTime<Utc>,
+    admitted_at: OffsetDateTime,
+    changed_at: OffsetDateTime,
     journal_sequence: Option<i64>,
     journal_event_id: Option<Uuid>,
-    journal_recorded_at: Option<DateTime<Utc>>,
+    journal_recorded_at: Option<OffsetDateTime>,
     journal_digest: Option<Vec<u8>>,
     checkpoint_id: Option<Uuid>,
     checkpoint_superstep: Option<i64>,
     checkpoint_digest: Option<Vec<u8>>,
     fencing_epoch: i64,
     lease_attempt_id: Option<Uuid>,
-    lease_acquired_at: Option<DateTime<Utc>>,
-    lease_renewed_at: Option<DateTime<Utc>>,
-    lease_expires_at: Option<DateTime<Utc>>,
-    scheduler_ready_at: Option<DateTime<Utc>>,
-    scheduler_not_before: Option<DateTime<Utc>>,
+    lease_acquired_at: Option<OffsetDateTime>,
+    lease_renewed_at: Option<OffsetDateTime>,
+    lease_expires_at: Option<OffsetDateTime>,
+    scheduler_ready_at: Option<OffsetDateTime>,
+    scheduler_not_before: Option<OffsetDateTime>,
     wait_set_digest: Option<Vec<u8>>,
     unresolved_wait_count: i16,
-    next_timer_due_at: Option<DateTime<Utc>>,
-    next_interrupt_expiry_at: Option<DateTime<Utc>>,
-    quarantined_at: Option<DateTime<Utc>>,
+    next_timer_due_at: Option<OffsetDateTime>,
+    next_interrupt_expiry_at: Option<OffsetDateTime>,
+    quarantined_at: Option<OffsetDateTime>,
 }
 
 struct EventRow {
@@ -10253,7 +10253,7 @@ struct EventRow {
     run_id: Uuid,
     sequence: i64,
     event_id: Uuid,
-    recorded_at: DateTime<Utc>,
+    recorded_at: OffsetDateTime,
     source_kind: String,
     worker_attempt_id: Option<Uuid>,
     worker_epoch: Option<i64>,
@@ -10276,9 +10276,9 @@ struct WaitRegistrationRow {
     wait_kind: String,
     interrupt_kind: Option<String>,
     timer_kind: Option<String>,
-    registered_at: DateTime<Utc>,
-    due_at: Option<DateTime<Utc>>,
-    expires_at: Option<DateTime<Utc>>,
+    registered_at: OffsetDateTime,
+    due_at: Option<OffsetDateTime>,
+    expires_at: Option<OffsetDateTime>,
     action_digest: Option<Vec<u8>>,
     registration_sequence: i64,
     registration_event_id: Uuid,
@@ -10289,13 +10289,13 @@ struct WaitRegistrationRow {
     status: String,
     terminal_sequence: Option<i64>,
     terminal_event_id: Option<Uuid>,
-    terminal_recorded_at: Option<DateTime<Utc>>,
+    terminal_recorded_at: Option<OffsetDateTime>,
     terminal_event_digest: Option<Vec<u8>>,
     resolution_digest: Option<Vec<u8>>,
     firing_digest: Option<Vec<u8>>,
     abandonment_digest: Option<Vec<u8>>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
+    updated_at: OffsetDateTime,
 }
 
 struct InterruptResolutionRow {
@@ -10305,12 +10305,12 @@ struct InterruptResolutionRow {
     request_digest: Vec<u8>,
     resolution_sequence: i64,
     resolution_event_id: Uuid,
-    resolved_at: DateTime<Utc>,
+    resolved_at: OffsetDateTime,
     resolution_event_digest: Vec<u8>,
     intent_digest: Vec<u8>,
     resolution_digest: Vec<u8>,
     resolution_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct TimerFiringRow {
@@ -10320,12 +10320,12 @@ struct TimerFiringRow {
     timer_digest: Vec<u8>,
     firing_sequence: i64,
     firing_event_id: Uuid,
-    fired_at: DateTime<Utc>,
+    fired_at: OffsetDateTime,
     firing_event_digest: Vec<u8>,
     intent_digest: Vec<u8>,
     firing_digest: Vec<u8>,
     firing_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct WaitAbandonmentRow {
@@ -10337,10 +10337,10 @@ struct WaitAbandonmentRow {
     reason_kind: String,
     abandonment_sequence: i64,
     abandonment_event_id: Uuid,
-    abandoned_at: DateTime<Utc>,
+    abandoned_at: OffsetDateTime,
     abandonment_event_digest: Vec<u8>,
     abandonment_digest: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct CheckpointRow {
@@ -10353,7 +10353,7 @@ struct CheckpointRow {
     parent_digest: Option<Vec<u8>>,
     journal_sequence: i64,
     journal_event_id: Uuid,
-    journal_recorded_at: DateTime<Utc>,
+    journal_recorded_at: OffsetDateTime,
     journal_digest: Vec<u8>,
     graph_definition_digest: Vec<u8>,
     state_schema_id: String,
@@ -10381,8 +10381,8 @@ struct ToolInvocationRow {
     current_status: String,
     current_attempt_id: Option<Uuid>,
     current_record_digest: Vec<u8>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
+    updated_at: OffsetDateTime,
 }
 
 struct ToolInvocationRevisionRow {
@@ -10394,7 +10394,7 @@ struct ToolInvocationRevisionRow {
     previous_digest: Option<Vec<u8>>,
     journal_sequence: i64,
     journal_event_id: Uuid,
-    journal_recorded_at: DateTime<Utc>,
+    journal_recorded_at: OffsetDateTime,
     journal_digest: Vec<u8>,
     status: String,
     attempt_id: Option<Uuid>,
@@ -10403,7 +10403,7 @@ struct ToolInvocationRevisionRow {
     transition_digest: Option<Vec<u8>>,
     record_digest: Vec<u8>,
     record_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct ModelInvocationRow {
@@ -10422,8 +10422,8 @@ struct ModelInvocationRow {
     current_status: String,
     current_attempt_id: Option<Uuid>,
     current_record_digest: Vec<u8>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
+    updated_at: OffsetDateTime,
 }
 
 struct ModelInvocationRevisionRow {
@@ -10435,7 +10435,7 @@ struct ModelInvocationRevisionRow {
     previous_digest: Option<Vec<u8>>,
     journal_sequence: i64,
     journal_event_id: Uuid,
-    journal_recorded_at: DateTime<Utc>,
+    journal_recorded_at: OffsetDateTime,
     journal_digest: Vec<u8>,
     status: String,
     attempt_id: Option<Uuid>,
@@ -10444,7 +10444,7 @@ struct ModelInvocationRevisionRow {
     transition_digest: Option<Vec<u8>>,
     record_digest: Vec<u8>,
     record_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct NodeAttemptStartRow {
@@ -10455,7 +10455,7 @@ struct NodeAttemptStartRow {
     base_checkpoint_digest: Vec<u8>,
     base_journal_sequence: i64,
     base_journal_event_id: Uuid,
-    base_journal_recorded_at: DateTime<Utc>,
+    base_journal_recorded_at: OffsetDateTime,
     base_journal_digest: Vec<u8>,
     graph_namespace: String,
     node_id: String,
@@ -10466,11 +10466,11 @@ struct NodeAttemptStartRow {
     fence_epoch: i64,
     journal_sequence: i64,
     journal_event_id: Uuid,
-    journal_recorded_at: DateTime<Utc>,
+    journal_recorded_at: OffsetDateTime,
     journal_digest: Vec<u8>,
     start_digest: Vec<u8>,
     start_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct NodeAttemptCompletionRow {
@@ -10488,22 +10488,22 @@ struct NodeAttemptCompletionRow {
     fence_epoch: i64,
     start_journal_sequence: i64,
     start_journal_event_id: Uuid,
-    start_journal_recorded_at: DateTime<Utc>,
+    start_journal_recorded_at: OffsetDateTime,
     start_journal_digest: Vec<u8>,
     start_digest: Vec<u8>,
     status: String,
     journal_sequence: i64,
     journal_event_id: Uuid,
-    journal_recorded_at: DateTime<Utc>,
+    journal_recorded_at: OffsetDateTime,
     journal_digest: Vec<u8>,
     result_intent_digest: Option<Vec<u8>>,
     result_record_digest: Option<Vec<u8>>,
     failure_id: Option<Uuid>,
     retry_kind: Option<String>,
-    retry_not_before: Option<DateTime<Utc>>,
+    retry_not_before: Option<OffsetDateTime>,
     completion_digest: Vec<u8>,
     completion_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct PendingNodeResultRow {
@@ -10514,7 +10514,7 @@ struct PendingNodeResultRow {
     base_checkpoint_digest: Vec<u8>,
     base_journal_sequence: i64,
     base_journal_event_id: Uuid,
-    base_journal_recorded_at: DateTime<Utc>,
+    base_journal_recorded_at: OffsetDateTime,
     base_journal_digest: Vec<u8>,
     graph_namespace: String,
     node_id: String,
@@ -10526,11 +10526,11 @@ struct PendingNodeResultRow {
     fence_epoch: i64,
     journal_sequence: i64,
     journal_event_id: Uuid,
-    journal_recorded_at: DateTime<Utc>,
+    journal_recorded_at: OffsetDateTime,
     journal_digest: Vec<u8>,
     record_digest: Vec<u8>,
     result_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct PendingNodeResultHeadRow {
@@ -10547,7 +10547,7 @@ struct PendingNodeResultHeadRow {
     fence_epoch: i64,
     journal_sequence: i64,
     journal_event_id: Uuid,
-    journal_recorded_at: DateTime<Utc>,
+    journal_recorded_at: OffsetDateTime,
     journal_digest: Vec<u8>,
     record_digest: Vec<u8>,
 }
@@ -10566,9 +10566,9 @@ struct PendingNodeResultConsumptionRow {
     successor_checkpoint_digest: Vec<u8>,
     successor_journal_sequence: i64,
     successor_journal_event_id: Uuid,
-    successor_journal_recorded_at: DateTime<Utc>,
+    successor_journal_recorded_at: OffsetDateTime,
     successor_journal_digest: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct PendingNodeResultBindingRow {
@@ -10582,14 +10582,14 @@ struct PendingNodeResultBindingRow {
     activation_input_digest: Vec<u8>,
     result_record_digest: Vec<u8>,
     result_journal_sequence: i64,
-    result_journal_recorded_at: DateTime<Utc>,
+    result_journal_recorded_at: OffsetDateTime,
     result_journal_digest: Vec<u8>,
     invocation_id: Uuid,
     invocation_revision: i64,
     invocation_record_digest: Vec<u8>,
     invocation_status: String,
     invocation_journal_sequence: i64,
-    invocation_journal_recorded_at: DateTime<Utc>,
+    invocation_journal_recorded_at: OffsetDateTime,
     invocation_journal_digest: Vec<u8>,
 }
 
@@ -10602,7 +10602,7 @@ struct OutboxDestinationRow {
     schema_version: String,
     schema_digest: Vec<u8>,
     config_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct OutboxDeliveryRow {
@@ -10611,40 +10611,40 @@ struct OutboxDeliveryRow {
     delivery_id: Uuid,
     origin_sequence: i64,
     origin_event_id: Uuid,
-    origin_recorded_at: DateTime<Utc>,
+    origin_recorded_at: OffsetDateTime,
     origin_digest: Vec<u8>,
     destination_id: Uuid,
     destination_snapshot_digest: Vec<u8>,
     intent_digest: Vec<u8>,
-    expires_at: DateTime<Utc>,
+    expires_at: OffsetDateTime,
     delivery_digest: Vec<u8>,
     delivery_bytes: Vec<u8>,
     status: String,
     attempt_count: i64,
     current_attempt_id: Option<Uuid>,
     current_epoch: Option<i64>,
-    current_attempt_started_at: Option<DateTime<Utc>>,
-    current_attempt_expires_at: Option<DateTime<Utc>>,
-    next_attempt_at: Option<DateTime<Utc>>,
+    current_attempt_started_at: Option<OffsetDateTime>,
+    current_attempt_expires_at: Option<OffsetDateTime>,
+    next_attempt_at: Option<OffsetDateTime>,
     last_completion_digest: Option<Vec<u8>>,
-    terminal_at: Option<DateTime<Utc>>,
-    created_at: DateTime<Utc>,
-    updated_at: DateTime<Utc>,
+    terminal_at: Option<OffsetDateTime>,
+    created_at: OffsetDateTime,
+    updated_at: OffsetDateTime,
 }
 
 struct OutboxAttemptStartRow {
     tenant_id: String,
     run_id: Uuid,
     delivery_id: Uuid,
-    delivery_expires_at: DateTime<Utc>,
+    delivery_expires_at: OffsetDateTime,
     delivery_digest: Vec<u8>,
     epoch: i64,
     attempt_id: Uuid,
-    started_at: DateTime<Utc>,
-    expires_at: DateTime<Utc>,
+    started_at: OffsetDateTime,
+    expires_at: OffsetDateTime,
     start_digest: Vec<u8>,
     start_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 struct OutboxAttemptCompletionRow {
@@ -10653,16 +10653,16 @@ struct OutboxAttemptCompletionRow {
     delivery_id: Uuid,
     epoch: i64,
     attempt_id: Uuid,
-    started_at: DateTime<Utc>,
-    attempt_expires_at: DateTime<Utc>,
+    started_at: OffsetDateTime,
+    attempt_expires_at: OffsetDateTime,
     start_digest: Vec<u8>,
     outcome_kind: String,
     retry_advice_kind: Option<String>,
     retry_delay_millis: Option<i64>,
-    completed_at: DateTime<Utc>,
+    completed_at: OffsetDateTime,
     completion_digest: Vec<u8>,
     completion_bytes: Vec<u8>,
-    created_at: DateTime<Utc>,
+    created_at: OffsetDateTime,
 }
 
 impl<'row> FromRow<'row, PgRow> for GraphDefinitionRow {
@@ -11365,11 +11365,11 @@ struct PreparedProjection {
     lifecycle_bytes: Vec<u8>,
     revision: String,
     status: &'static str,
-    changed_at: DateTime<Utc>,
+    changed_at: OffsetDateTime,
     wait_set_digest: Option<Digest>,
     unresolved_wait_count: i16,
-    next_timer_due_at: Option<DateTime<Utc>>,
-    next_interrupt_expiry_at: Option<DateTime<Utc>>,
+    next_timer_due_at: Option<OffsetDateTime>,
+    next_interrupt_expiry_at: Option<OffsetDateTime>,
 }
 
 struct WaitSetProjection {
@@ -11517,7 +11517,7 @@ async fn database_now(
     transaction: &mut Transaction<'_, Postgres>,
     operation: &'static str,
 ) -> Result<Timestamp, StoreError> {
-    let value = query_scalar::<_, DateTime<Utc>>("SELECT clock_timestamp()")
+    let value = query_scalar::<_, OffsetDateTime>("SELECT clock_timestamp()")
         .fetch_one(&mut **transaction)
         .await
         .map_err(|source| StoreError::database(operation, source))?;
@@ -11528,7 +11528,7 @@ async fn database_scheduler_times(
     transaction: &mut Transaction<'_, Postgres>,
     operation: &'static str,
 ) -> Result<(Timestamp, Timestamp), StoreError> {
-    let (transaction_started_at, observed_at) = query_as::<_, (DateTime<Utc>, DateTime<Utc>)>(
+    let (transaction_started_at, observed_at) = query_as::<_, (OffsetDateTime, OffsetDateTime)>(
         "SELECT transaction_timestamp(), clock_timestamp()",
     )
     .fetch_one(&mut **transaction)
@@ -12485,8 +12485,8 @@ fn wait_set_projection(lifecycle: &RunLifecycle) -> Result<WaitSetProjection, ()
 }
 
 fn decode_scheduler_readiness(
-    scheduler_ready_at: Option<DateTime<Utc>>,
-    scheduler_not_before: Option<DateTime<Utc>>,
+    scheduler_ready_at: Option<OffsetDateTime>,
+    scheduler_not_before: Option<OffsetDateTime>,
     lifecycle: &RunLifecycle,
 ) -> Result<(Option<Timestamp>, Option<Timestamp>), StoreError> {
     let scheduler_ready_at = scheduler_ready_at.map(from_database_time).transpose()?;
@@ -15291,7 +15291,7 @@ fn node_attempt_status_text(status: NodeAttemptStatus) -> Result<&'static str, S
 
 fn node_attempt_retry_projection(
     completion: &NodeAttemptCompletion,
-) -> Result<(Option<&'static str>, Option<DateTime<Utc>>), StoreError> {
+) -> Result<(Option<&'static str>, Option<OffsetDateTime>), StoreError> {
     let Some(failure) = completion.outcome().failure() else {
         return Ok((None, None));
     };
@@ -19196,7 +19196,7 @@ struct PendingBindingValues {
     record_digests: Vec<Vec<u8>>,
     statuses: Vec<String>,
     journal_sequences: Vec<i64>,
-    journal_recorded_at: Vec<DateTime<Utc>>,
+    journal_recorded_at: Vec<OffsetDateTime>,
     journal_digests: Vec<Vec<u8>>,
 }
 
@@ -19975,14 +19975,15 @@ fn decode_digest(bytes: &[u8], record: &'static str) -> Result<Digest, StoreErro
     Ok(Digest::from_sha256(bytes))
 }
 
-fn from_database_time(value: DateTime<Utc>) -> Result<Timestamp, StoreError> {
-    Timestamp::from_unix_micros(value.timestamp_micros())
-        .map_err(|_| StoreError::corrupt("timestamp"))
+fn from_database_time(value: OffsetDateTime) -> Result<Timestamp, StoreError> {
+    let micros = i64::try_from(value.unix_timestamp_nanos().div_euclid(1_000))
+        .map_err(|_| StoreError::corrupt("timestamp"))?;
+    Timestamp::from_unix_micros(micros).map_err(|_| StoreError::corrupt("timestamp"))
 }
 
-fn to_database_time(value: Timestamp) -> Result<DateTime<Utc>, StoreError> {
-    DateTime::from_timestamp_micros(value.unix_micros())
-        .ok_or_else(|| StoreError::encoding("timestamp"))
+fn to_database_time(value: Timestamp) -> Result<OffsetDateTime, StoreError> {
+    OffsetDateTime::from_unix_timestamp_nanos(i128::from(value.unix_micros()) * 1_000)
+        .map_err(|_| StoreError::encoding("timestamp"))
 }
 
 fn add_duration(value: Timestamp, duration: Duration) -> Result<Timestamp, StoreError> {

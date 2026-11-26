@@ -218,7 +218,7 @@ impl PostgresStore {
         } else {
             "SELECT run_id,journal_recorded_at FROM stateknot.run_failure_closes WHERE tenant_id=$1 AND completed_at IS NULL ORDER BY journal_recorded_at,run_id LIMIT 16"
         };
-        let mut listing = query_as::<_, (Uuid, DateTime<Utc>)>(sql).bind(tenant.as_str());
+        let mut listing = query_as::<_, (Uuid, OffsetDateTime)>(sql).bind(tenant.as_str());
         if let Some(cursor) = after {
             listing = listing
                 .bind(to_database_time(cursor.requested_at)?)
@@ -363,7 +363,7 @@ pub(super) async fn load(
     )
     .await?;
     let completed_at = row
-        .try_get::<Option<DateTime<Utc>>, _>("completed_at")
+        .try_get::<Option<OffsetDateTime>, _>("completed_at")
         .map_err(err)?
         .map(from_database_time)
         .transpose()?;
