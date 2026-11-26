@@ -395,16 +395,24 @@ mod tests {
     }
 
     #[test]
-    fn retained_mixed_case_media_type_matches_the_reader_contract() {
+    fn retained_case_insensitive_media_type_reaches_both_schema_oracles() {
         assert!(core_readers(include_bytes!(
             "../seeds/core_readers/MediaType-mixed-case"
         )));
-        let mixed = serde_json::json!("Application/JSON");
-        let canonical = serde_json::json!("application/json");
-        assert!(input_validator::<MediaType>().is_valid(&mixed));
-        let output = output_validator::<MediaType>();
-        assert!(!output.is_valid(&mixed));
-        assert!(output.is_valid(&canonical));
+        assert!(core_readers(include_bytes!(
+            "../seeds/core_readers/MediaType-mixed-case-type"
+        )));
+        for input in [
+            "IMAGE/PNG",
+            "Application/Vnd.StateKnot+JSON",
+            "Text/Plain; Format=Flowed; Charset=UTF-8",
+            "Video/MP4; codecs=\"avc1.42E01E, mp4a.40.2\"",
+            &format!("{}/{}", "A".repeat(127), "B".repeat(127)),
+        ] {
+            let mut seed = b"MediaType\n".to_vec();
+            seed.extend(serde_json::to_vec(input).unwrap());
+            assert!(core_readers(&seed), "{input}");
+        }
     }
 
     #[test]
