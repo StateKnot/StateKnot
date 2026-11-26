@@ -10,10 +10,11 @@ use rmcp::{
     model::{
         CallToolRequestParams, CallToolResponse, CompleteRequestParams, CompleteResult,
         CustomRequest, CustomResult, DiscoverResult, ErrorCode, GetPromptRequestParams,
-        GetPromptResponse, Implementation, ListPromptsResult, ListResourceTemplatesResult,
-        ListResourcesResult, ListToolsResult, PaginatedRequestParams, PromptsCapability,
-        ProtocolVersion, ReadResourceRequestParams, ReadResourceResponse, ResourcesCapability,
-        ServerCapabilities, ServerConfig, Tool, ToolsCapability,
+        GetPromptResponse, GetSkillRequestParams, GetSkillResult, Implementation,
+        ListPromptsResult, ListResourceTemplatesResult, ListResourcesResult, ListSkillsResult,
+        ListToolsResult, PaginatedRequestParams, PromptsCapability, ProtocolVersion,
+        ReadResourceRequestParams, ReadResourceResponse, ResourcesCapability, ServerCapabilities,
+        ServerConfig, Tool, ToolsCapability,
     },
     service::RequestContext,
 };
@@ -371,6 +372,28 @@ impl ServerHandler for McpServerApplication {
         ServerHandler::call_tool(service, request, context).await
     }
 
+    async fn list_skills(
+        &self,
+        request: Option<PaginatedRequestParams>,
+        context: RequestContext<RoleServer>,
+    ) -> Result<ListSkillsResult, ErrorData> {
+        let Some(service) = &self.skills else {
+            return Err(method_not_found("skills/list"));
+        };
+        ServerHandler::list_skills(service, request, context).await
+    }
+
+    async fn get_skill(
+        &self,
+        request: GetSkillRequestParams,
+        context: RequestContext<RoleServer>,
+    ) -> Result<GetSkillResult, ErrorData> {
+        let Some(service) = &self.skills else {
+            return Err(method_not_found("skills/get"));
+        };
+        ServerHandler::get_skill(service, request, context).await
+    }
+
     async fn on_custom_request(
         &self,
         request: CustomRequest,
@@ -379,7 +402,7 @@ impl ServerHandler for McpServerApplication {
         let Some(service) = &self.skills else {
             return Err(method_not_found_owned(request.method));
         };
-        service.dispatch_custom(request, context).await
+        ServerHandler::on_custom_request(service, request, context).await
     }
 
     async fn list_resources(
