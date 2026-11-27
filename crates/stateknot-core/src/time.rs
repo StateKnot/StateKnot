@@ -5,19 +5,19 @@
 
 use std::{
     fmt,
-    ops::Range,
     str::FromStr,
     time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
-use chrono::{DateTime, Datelike, NaiveDate, Timelike, Utc};
 use schemars::{JsonSchema, Schema, SchemaGenerator, json_schema};
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use thiserror::Error;
+use time::{OffsetDateTime, PrimitiveDateTime, macros::format_description};
 
 use crate::decimal::{UnsignedDecimalError, parse_bounded_u64};
 
-const TIMESTAMP_LEN: usize = 27;
+const TIMESTAMP_LAYOUT: &[u8; 27] = b"0000-00-00T00:00:00.000000Z";
+const TIMESTAMP_LEN: usize = TIMESTAMP_LAYOUT.len();
 const TIMESTAMP_PATTERN: &str =
     "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}\\.[0-9]{6}Z$";
 const DURATION_MILLIS_PATTERN: &str = "^(0|[1-9][0-9]{0,18})$";
@@ -87,17 +87,18 @@ impl fmt::Debug for Timestamp {
 
 impl fmt::Display for Timestamp {
     fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
-        let date_time = DateTime::<Utc>::from_timestamp_micros(self.0).ok_or(fmt::Error)?;
+        let date_time = OffsetDateTime::from_unix_timestamp_nanos(i128::from(self.0) * 1_000)
+            .map_err(|_| fmt::Error)?;
         write!(
             formatter,
             "{:04}-{:02}-{:02}T{:02}:{:02}:{:02}.{:06}Z",
             date_time.year(),
-            date_time.month(),
+            u8::from(date_time.month()),
             date_time.day(),
             date_time.hour(),
             date_time.minute(),
             date_time.second(),
-            date_time.nanosecond() / 1_000,
+            date_time.microsecond(),
         )
     }
 }
@@ -112,32 +113,30 @@ impl FromStr for Timestamp {
                 actual: value.len(),
             });
         }
-        let bytes = value.as_bytes();
-        if bytes[4] != b'-'
-            || bytes[7] != b'-'
-            || bytes[10] != b'T'
-            || bytes[13] != b':'
-            || bytes[16] != b':'
-            || bytes[19] != b'.'
-            || bytes[26] != b'Z'
+        // Validate every field's spelling before reporting an invalid calendar or clock value.
+        if !value
+            .bytes()
+            .zip(TIMESTAMP_LAYOUT)
+            .all(|(actual, &layout)| {
+                if layout == b'0' {
+                    actual.is_ascii_digit()
+                } else {
+                    actual == layout
+                }
+            })
         {
             return Err(TimestampError::InvalidFormat);
         }
 
-        let year =
-            i32::try_from(parse_decimal(bytes, 0..4)?).map_err(|_| TimestampError::InvalidValue)?;
-        let month = parse_decimal(bytes, 5..7)?;
-        let day = parse_decimal(bytes, 8..10)?;
-        let hour = parse_decimal(bytes, 11..13)?;
-        let minute = parse_decimal(bytes, 14..16)?;
-        let second = parse_decimal(bytes, 17..19)?;
-        let microsecond = parse_decimal(bytes, 20..26)?;
-
-        let date = NaiveDate::from_ymd_opt(year, month, day).ok_or(TimestampError::InvalidValue)?;
-        let date_time = date
-            .and_hms_micro_opt(hour, minute, second, microsecond)
-            .ok_or(TimestampError::InvalidValue)?;
-        let unix_micros = date_time.and_utc().timestamp_micros();
+        let date_time = PrimitiveDateTime::parse(
+            value,
+            format_description!(
+                "[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:6]Z"
+            ),
+        )
+        .map_err(|_| TimestampError::InvalidValue)?;
+        let unix_micros = i64::try_from(date_time.assume_utc().unix_timestamp_nanos() / 1_000)
+            .map_err(|_| TimestampError::OutOfRange)?;
         Self::from_unix_micros(unix_micros)
     }
 }
@@ -252,16 +251,6 @@ impl de::Visitor<'_> for TimestampVisitor {
     {
         value.parse().map_err(E::custom)
     }
-}
-
-fn parse_decimal(bytes: &[u8], range: Range<usize>) -> Result<u32, TimestampError> {
-    bytes[range]
-        .iter()
-        .try_fold(0_u32, |value, byte| {
-            byte.is_ascii_digit()
-                .then(|| value * 10 + u32::from(*byte - b'0'))
-        })
-        .ok_or(TimestampError::InvalidFormat)
 }
 
 fn timestamp_from_duration(
@@ -513,17 +502,40 @@ mod tests {
         for value in [
             "1970-01-01T00:00:00Z",
             "1970-01-01T00:00:00.000Z",
+            "1970-01-01T00:00:00.000000+00:00",
+            "٢٠٢٤-01-01T00:00:00.000000Z",
+        ] {
+            assert_eq!(
+                value.parse::<Timestamp>(),
+                Err(TimestampError::InvalidLength {
+                    expected: TIMESTAMP_LEN,
+                    actual: value.len(),
+                })
+            );
+        }
+
+        for value in [
             "1970-01-01t00:00:00.000000Z",
             "1970-01-01T00:00:00.000000z",
-            "1970-01-01T00:00:00.000000+00:00",
+            "2024-13-01T00:00:00.00000xZ",
+        ] {
+            assert_eq!(
+                value.parse::<Timestamp>(),
+                Err(TimestampError::InvalidFormat)
+            );
+        }
+
+        for value in [
             "2025-02-29T00:00:00.000000Z",
             "2024-13-01T00:00:00.000000Z",
             "2024-01-01T24:00:00.000000Z",
             "2024-01-01T23:60:00.000000Z",
             "2024-01-01T23:59:60.000000Z",
-            "٢٠٢٤-01-01T00:00:00.000000Z",
         ] {
-            assert!(value.parse::<Timestamp>().is_err(), "accepted {value:?}");
+            assert_eq!(
+                value.parse::<Timestamp>(),
+                Err(TimestampError::InvalidValue)
+            );
         }
 
         assert_eq!(

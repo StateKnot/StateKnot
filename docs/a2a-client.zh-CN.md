@@ -22,6 +22,40 @@ SPDX-License-Identifier: Apache-2.0
 可恢复 Adapter。若可恢复 Graph 直接调用 `send_message`，就会绕过
 Durable-before-dispatch Record，不属于生产支持的组合方式。
 
+<a id="timestamp-migration"></a>
+
+## 下一预览版的任务时间戳迁移
+
+已发布的 `0.1.0-alpha.1` 使用 `chrono::DateTime<Utc>`。下一预览版提案中，
+`A2aTaskStatus::new`、`timestamp()`、`A2aListTasksRequest::with_status_timestamp_after`
+和 `status_timestamp_after()` 改用 `stateknot_integrations::A2aTimestamp`。
+整组升级 StateKnot crate 时，请同步修改应用中显式声明的字段、参数和返回类型。
+
+```rust
+use stateknot_integrations::{A2aListTasksRequest, A2aTimestamp};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let at: A2aTimestamp = "2026-10-08T10:00:00.123456789+08:00".parse()?;
+    let request = A2aListTasksRequest::new().with_status_timestamp_after(at);
+    assert_eq!(request.status_timestamp_after(), Some(at));
+    assert_eq!(at.to_string(), "2026-10-08T02:00:00.123456789Z");
+    Ok(())
+}
+```
+
+已有 chrono 值 `old` 可用
+`A2aTimestamp::from_unix_parts(old.timestamp(), old.timestamp_subsec_nanos())`
+转换，结果为 `Option<A2aTimestamp>`。下游如果仍需 chrono，可用
+`chrono::DateTime::<chrono::Utc>::from_timestamp(at.unix_seconds(), at.subsec_nanos())`
+转回。秒数和秒内纳秒数需一起传递，才能保留 1970 年以前的小数秒及闰秒。
+客户端接受时间等于筛选下界的返回任务，拒绝早于下界的任务。A2A 协议保留纳秒精度，
+Core 和 PostgreSQL 继续使用微秒。
+
+旧应用如果手工修改过闰秒分量，转换可能返回 `None`。此时可用
+`serde_json::from_value::<A2aTimestamp>(serde_json::to_value(old)?)?`
+保留该值以往发给对端的时间。旧协议在序列化、再读取时已将这种特殊闰秒归一化。
+[兼容性 RFC](rfcs/0026-a2a-timestamp.md)
+
 ## 已实现的 Operation Surface
 
 | Operation | Interface 下的 HTTP+JSON Route | JSON-RPC Method | Result |

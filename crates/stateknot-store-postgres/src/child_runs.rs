@@ -431,7 +431,7 @@ impl PostgresStore {
             if key.tenant_id() != tenant {
                 return Err(StoreError::ChildRunRejected);
             }
-            Some(query_as::<_, (DateTime<Utc>, Uuid)>("SELECT terminal.journal_recorded_at, terminal.child_run_id FROM stateknot.child_run_ownership AS owner JOIN stateknot.child_run_terminals AS terminal ON terminal.tenant_id=owner.tenant_id AND terminal.child_run_id=owner.child_run_id WHERE owner.tenant_id=$1 AND owner.parent_run_id=$2 AND owner.key_digest=$3")
+            Some(query_as::<_, (OffsetDateTime, Uuid)>("SELECT terminal.journal_recorded_at, terminal.child_run_id FROM stateknot.child_run_ownership AS owner JOIN stateknot.child_run_terminals AS terminal ON terminal.tenant_id=owner.tenant_id AND terminal.child_run_id=owner.child_run_id WHERE owner.tenant_id=$1 AND owner.parent_run_id=$2 AND owner.key_digest=$3")
                 .bind(tenant.as_str()).bind(*key.parent_run_id().as_uuid()).bind(key.digest().as_bytes())
                 .fetch_optional(&self.pool).await.map_err(|source| StoreError::database("child notification cursor", source))?
                 .ok_or(StoreError::ChildRunNotFound)?)
@@ -1167,8 +1167,8 @@ pub(super) async fn load_record_inner(
         return Err(StoreError::corrupt("child ancestry projection"));
     }
     let settled: bool = row.try_get("settled").map_err(get_error)?;
-    let pending: Option<DateTime<Utc>> = row.try_get("terminal_pending_at").map_err(get_error)?;
-    let terminal_at = query_scalar::<_, DateTime<Utc>>("SELECT journal_recorded_at FROM stateknot.child_run_terminals WHERE tenant_id=$1 AND child_run_id=$2")
+    let pending: Option<OffsetDateTime> = row.try_get("terminal_pending_at").map_err(get_error)?;
+    let terminal_at = query_scalar::<_, OffsetDateTime>("SELECT journal_recorded_at FROM stateknot.child_run_terminals WHERE tenant_id=$1 AND child_run_id=$2")
         .bind(key.tenant_id().as_str()).bind(*child_id.as_uuid()).fetch_optional(&mut **tx).await
         .map_err(|source| StoreError::database("child notification evidence", source))?;
     if terminal_at.is_some() != child.run().lifecycle().status().is_terminal()

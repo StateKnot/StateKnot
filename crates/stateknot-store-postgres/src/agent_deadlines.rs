@@ -73,7 +73,7 @@ impl PostgresStore {
         } else {
             "SELECT agent_deadline_at,run_id FROM stateknot.runs WHERE tenant_id=$1 AND agent_deadline_at IS NOT NULL AND lifecycle_status IN ('pending','active','waiting') AND NOT EXISTS (SELECT 1 FROM stateknot.run_failure_closes c WHERE c.tenant_id=stateknot.runs.tenant_id AND c.run_id=stateknot.runs.run_id) AND agent_deadline_at <= statement_timestamp() ORDER BY agent_deadline_at,run_id LIMIT 16"
         };
-        let mut listing = query_as::<_, (DateTime<Utc>, Uuid)>(sql).bind(tenant.as_str());
+        let mut listing = query_as::<_, (OffsetDateTime, Uuid)>(sql).bind(tenant.as_str());
         if let Some(cursor) = after {
             listing = listing
                 .bind(to_database_time(cursor.deadline)?)
@@ -137,7 +137,7 @@ impl PostgresStore {
         let stored = verify_stored_agent_admission(&mut tx, run, row).await?;
         let run = stored.run();
         let deadline = stored.admission().intent().budget().deadline();
-        let indexed = query_scalar::<_, Option<DateTime<Utc>>>(
+        let indexed = query_scalar::<_, Option<OffsetDateTime>>(
             "SELECT agent_deadline_at FROM stateknot.runs WHERE tenant_id=$1 AND run_id=$2",
         )
         .bind(tenant.as_str())

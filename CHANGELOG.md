@@ -96,6 +96,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
 
 ### Changed
 
+- **Breaking for the next preview.** A2A task status timestamps and task-list
+  timestamp filters use `stateknot_integrations::A2aTimestamp`. Applications
+  with explicit `chrono::DateTime<Utc>` types must update their uses of the
+  affected methods. [Migration guide](docs/a2a-client.md#timestamp-migration) ·
+  [中文迁移说明](docs/a2a-client.zh-CN.md#timestamp-migration)
+
 - `InProcessAgent::run` now performs its post-admission and polling reads through
   the caller-retained submission key, with an exact Run-ID consistency check.
   Deployments using this convenience path must grant `Read` on that submission
