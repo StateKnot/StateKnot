@@ -78,7 +78,14 @@ fn composition(
     let mut models = ModelProviderRegistryBuilder::new();
     models
         .register(Arc::new(ProviderNativeScriptedModel {
-            tool_count: 1,
+            tool_count: usize::try_from(
+                definition
+                    .descriptor()
+                    .execution()
+                    .max_tool_calls_per_turn()
+                    .get(),
+            )
+            .unwrap(),
             descriptor: definition.descriptor().model().clone(),
             tool: tool.clone(),
             output_schema: definition.descriptor().output_schema().clone(),
@@ -123,6 +130,15 @@ fn composition(
     let Some(pause) = pause else {
         return original;
     };
+    pause_tools_node(&original, definition, pause)
+}
+
+fn pause_tools_node(
+    original: &ExecutableGraphRegistry,
+    definition: &ProviderNativeAgentGraph,
+    pause: &Arc<Pause>,
+) -> ExecutableGraphRegistry {
+    let schemas = original.schemas().clone();
     let executable = original.resolve(&definition.graph().reference()).unwrap();
     let mut builder = ExecutableGraphRegistryBuilder::new(schemas);
     builder.register_graph(definition.graph().clone()).unwrap();
@@ -371,6 +387,19 @@ fn expected_tool_usage(tool: &ToolInvocation) -> BudgetUsage {
         .unwrap()
 }
 
+async fn interrupt_after_sdk(driver: &DurableGraphDriver, actor: &RunFence, pause: &Pause) {
+    let mut driving = driver.drive(actor.clone(), CancellationSignal::never());
+    tokio::select! {
+        () = pause.entered.notified() => {},
+        result = &mut driving => panic!("Driver returned before the Node completion gap: {result:?}"),
+        () = tokio::time::sleep(Duration::from_secs(90)) => panic!("real SDK Tool did not commit"),
+    }
+    drop(driving);
+    tokio::time::timeout(Duration::from_secs(5), pause.dropped.notified())
+        .await
+        .unwrap();
+}
+
 async fn interrupt_three_attempts(
     store: &PostgresStore,
     fixture: &ProviderNativeFixture,
@@ -392,16 +421,7 @@ async fn interrupt_three_attempts(
             DurableGraphDriverOptions::default(),
         )
         .unwrap();
-        let mut driving = driver.drive(actor.clone(), CancellationSignal::never());
-        tokio::select! {
-            () = pause.entered.notified() => {},
-            result = &mut driving => panic!("Driver returned before the Node completion gap: {result:?}"),
-            () = tokio::time::sleep(Duration::from_secs(90)) => panic!("real SDK Tool did not commit"),
-        }
-        drop(driving);
-        tokio::time::timeout(Duration::from_secs(5), pause.dropped.notified())
-            .await
-            .unwrap();
+        interrupt_after_sdk(&driver, &actor, &pause).await;
         drop(driver);
         actor = store
             .supersede_lease(tenant, run_id, AttemptId::generate())
@@ -693,4 +713,172 @@ async fn committed_tool_without_node_completion_is_charged_once_after_cold_recov
     };
     Box::pin(qualify(&store)).await;
     store.close().await;
+}
+
+async fn two_tool_records(
+    store: &PostgresStore,
+    actor: &RunFence,
+    plans: &[stateknot_runtime::ProviderNativeToolPlan],
+) -> [ToolInvocation; 2] {
+    let [first, second] = plans else {
+        panic!("the checkpoint must contain exactly two Tool plans");
+    };
+    let load = |plan: &stateknot_runtime::ProviderNativeToolPlan| {
+        store.load_tool_invocation(actor.tenant_id(), actor.run_id(), plan.invocation_id())
+    };
+    let records = [load(first).await.unwrap(), load(second).await.unwrap()];
+    assert_ne!(first.invocation_id(), second.invocation_id());
+    assert_ne!(first.attempt_id(), second.attempt_id());
+    for (record, plan) in records.iter().zip(plans) {
+        assert_eq!(record.attempt_id(), Some(plan.attempt_id()));
+        assert_eq!(record.intent().invocation_id(), plan.invocation_id());
+    }
+    records
+}
+
+#[allow(clippy::too_many_lines)]
+pub(super) async fn complete_after_interrupted_reconciliation(
+    store: &PostgresStore,
+    fixture: &ProviderNativeFixture,
+    activation: &NodeActivation,
+    plans: &[stateknot_runtime::ProviderNativeToolPlan],
+    actor: &RunFence,
+    database_url: &str,
+) {
+    let [paid, pending] = two_tool_records(store, actor, plans).await;
+    assert!(matches!(
+        pending.state(),
+        ToolInvocationState::Unknown { .. }
+    ));
+    let prefix = history(store, activation).await;
+    assert_eq!(prefix.len(), 1);
+    let first = prefix[0].completion().unwrap();
+    let paid_usage = expected_tool_usage(&paid);
+    assert_eq!(first.usage(), &paid_usage);
+
+    let pause = Arc::new(Pause::default());
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        pause_tools_node(&fixture.registry, &fixture.definition, &pause),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    interrupt_after_sdk(&driver, actor, &pause).await;
+    drop(driver);
+    let interrupted = pause
+        .starts
+        .lock()
+        .unwrap()
+        .as_slice()
+        .first()
+        .unwrap()
+        .clone();
+    assert_eq!(interrupted.activation(), activation);
+    assert_eq!(interrupted.fence(), actor);
+    let at_cut = history(store, activation).await;
+    assert_eq!(at_cut.len(), 2);
+    assert_eq!(at_cut[0].completion().unwrap().digest(), first.digest());
+    assert_eq!(at_cut[1].start().head(), interrupted);
+    assert!(at_cut[1].completion().is_none());
+    let [unchanged, reconciled] = two_tool_records(store, actor, plans).await;
+    assert_eq!(unchanged.head(), paid.head());
+    assert_ne!(reconciled.head(), pending.head());
+    let reconciled_usage = expected_tool_usage(&reconciled);
+    assert_ne!(paid_usage.output_bytes(), reconciled_usage.output_bytes());
+    assert!(first.journal_head().sequence() < interrupted.journal_head().sequence());
+    assert!(interrupted.journal_head().sequence() < reconciled.journal_head().sequence());
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_probes.load(Ordering::SeqCst), 2);
+
+    let cold = PostgresStore::connect(database_url, store.options().clone())
+        .await
+        .unwrap();
+    let replacement = cold
+        .supersede_lease(actor.tenant_id(), actor.run_id(), AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    assert!(replacement.epoch() > actor.epoch());
+    let registry = composition(&cold, fixture, None);
+    let driver = DurableGraphDriver::new(
+        cold.clone(),
+        registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let outcome = driver
+        .drive(replacement.clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    let GraphDriveOutcome::LifecycleBarrierReady(handoff) = outcome.into_parts().0 else {
+        panic!("cold recovery must complete from the two stored Tool results");
+    };
+    let attempts = history(&cold, activation).await;
+    assert_eq!(attempts.len(), 3);
+    assert_eq!(attempts[0].completion().unwrap().digest(), first.digest());
+    assert_eq!(attempts[1].start().head(), interrupted);
+    assert!(attempts[1].completion().is_none());
+    assert_eq!(attempts[2].start().fence(), &replacement);
+    assert!(reconciled.journal_head().sequence() < attempts[2].start().journal_head().sequence());
+    let page = cold
+        .load_node_attempt_history_page(
+            activation,
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    let paid_charge = [(
+        stateknot_core::NodeInvocationBinding::from_tool(&paid).unwrap(),
+        paid_usage,
+    )];
+    assert_eq!(
+        page.tool_charges(attempts[0].start().attempt_id()),
+        Some(paid_charge.as_slice())
+    );
+    assert_eq!(page.tool_charges(interrupted.attempt_id()), None);
+    let [old_paid, old_reconciled] = two_tool_records(&cold, &replacement, plans).await;
+    assert_eq!(old_paid.head(), paid.head());
+    assert_eq!(old_reconciled.head(), reconciled.head());
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.tool_probes.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.model_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.policy_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(*fixture.transcript_lengths.lock().await, vec![0, 1]);
+
+    let lifecycle = DurableGraphLifecycle::new(
+        cold.clone(),
+        registry,
+        Arc::new(ProviderNativeAgentLifecycleEvidence::new(
+            fixture.definition.clone(),
+            cold.clone(),
+        )),
+        DurableGraphLifecycleOptions::default(),
+    )
+    .unwrap();
+    assert!(matches!(
+        lifecycle.commit_barrier(*handoff).await.unwrap(),
+        GraphBarrierLifecycleOutcome::Succeeded(BarrierCommitOutcome::Committed { .. })
+    ));
+    let run = cold
+        .load_run(actor.tenant_id(), actor.run_id())
+        .await
+        .unwrap();
+    assert_eq!(run.lifecycle().status(), RunStatus::Succeeded);
+    let usage = run.lifecycle().result().unwrap().usage();
+    assert_eq!(usage.tool_calls(), ExecutionCount::new(2));
+    assert_eq!(usage.write_calls(), ExecutionCount::new(2));
+    assert_eq!(usage.model_attempts(), ExecutionCount::new(2));
+    assert_eq!(
+        usage.known_costs().get("USD".parse().unwrap()),
+        Some(Money::new("USD".parse().unwrap(), 36))
+    );
+    assert_eq!(
+        attempts[2].completion().unwrap().usage(),
+        &reconciled_usage,
+        "cold Node DIRECT must charge the reconciled Tool once and preserve the first charge"
+    );
+    cold.close().await;
 }

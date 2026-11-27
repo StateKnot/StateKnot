@@ -2381,11 +2381,45 @@ async fn migration_eight_preserves_v7_attempts_and_installs_exact_outbox_guards(
                 lease.fence().clone(),
                 741,
             ),
-            activation,
+            activation.clone(),
             node_attempt_id,
         )
         .await
         .expect("authentic v7 node attempt fixture must commit");
+    let event = EventId::generate();
+    let failure = Failure::new(
+        FailureId::generate(),
+        FailureCategory::Internal,
+        FailureCode::new("node.legacy_charge").unwrap(),
+        FailureOrigin::new("graph.integration").unwrap(),
+        FailureMessage::new("Legacy attempt recorded aggregate Tool usage.").unwrap(),
+        RetryAdvice::Never,
+    )
+    .unwrap()
+    .with_caused_by_event(event);
+    let usage = BudgetUsage::builder()
+        .tool_calls(stateknot_core::ExecutionCount::new(1))
+        .build()
+        .unwrap();
+    let failure_append = || {
+        worker_append(
+            tenant_id.clone(),
+            run_id,
+            event,
+            JournalExpectation::exact(started.event().head()),
+            lease.fence().clone(),
+            742,
+        )
+    };
+    let failed = fixture_store
+        .fail_node_attempt(
+            failure_append(),
+            &started.attempt().start().head(),
+            failure.clone(),
+            usage.clone(),
+        )
+        .await
+        .unwrap();
     fixture_store.close().await;
 
     let fixture_pool = PgPoolOptions::new()
@@ -2399,6 +2433,10 @@ async fn migration_eight_preserves_v7_attempts_and_installs_exact_outbox_guards(
         .await
         .unwrap();
     assert_eq!(legacy_version, 7);
+    assert!(query_scalar::<_, bool>(
+        "SELECT NOT EXISTS (SELECT 1 FROM information_schema.columns
+         WHERE table_schema='stateknot' AND table_name='node_attempt_completions' AND column_name='tool_charges')"
+    ).fetch_one(&fixture_pool).await.unwrap());
     let preserved_claims = query_scalar::<_, i64>(
         "SELECT count(*) FROM stateknot.run_attempt_claims \
          WHERE tenant_id = $1 AND run_id = $2 AND attempt_id = $3 \
@@ -2425,7 +2463,37 @@ async fn migration_eight_preserves_v7_attempts_and_installs_exact_outbox_guards(
         .load_node_attempt(&tenant_id, &run_id, node_attempt_id)
         .await
         .expect("pre-v8 node attempt must remain fully verifiable");
-    assert_eq!(restored.start().head(), started.attempt().start().head());
+    assert_eq!(restored.start().head(), failed.attempt().start().head());
+    let completion = restored.completion().unwrap();
+    let original = failed.attempt().completion().unwrap();
+    assert_eq!(completion.digest(), original.digest());
+    assert_eq!(completion.status(), NodeAttemptStatus::Failed);
+    assert_eq!(completion.outcome().failure().unwrap().id(), failure.id());
+    assert_eq!(completion.usage(), &usage);
+    let history = upgraded_store
+        .load_node_attempt_history_page(
+            &activation,
+            None,
+            NodeAttemptHistoryPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    let [record] = history.records() else {
+        panic!("one legacy Node attempt required");
+    };
+    assert_eq!(record.start().head(), restored.start().head());
+    assert_eq!(record.completion().unwrap().digest(), completion.digest());
+    assert_eq!(history.tool_charges(node_attempt_id), None);
+    let retry = upgraded_store
+        .fail_node_attempt(
+            failure_append(),
+            &started.attempt().start().head(),
+            failure,
+            usage,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(retry, NodeAttemptCommitOutcome::Idempotent { .. }));
 
     let verification_pool = PgPoolOptions::new()
         .max_connections(1)
@@ -2488,8 +2556,8 @@ async fn migration_eight_preserves_v7_attempts_and_installs_exact_outbox_guards(
                 tenant_id.clone(),
                 run_id,
                 event_id,
-                JournalExpectation::exact(started.event().head()),
-                742,
+                JournalExpectation::exact(failed.event().head()),
+                743,
             ),
             RunProjection::unchanged(),
             vec![outbox_intent(
@@ -3920,6 +3988,50 @@ async fn commit_ready_results(
         result_heads.push(committed.result().head());
     }
     (result_heads, journal_head)
+}
+
+async fn commit_tool_for_activation(
+    store: &PostgresStore,
+    activation: &NodeActivation,
+    fence: &stateknot_core::RunFence,
+    previous: JournalHead,
+    index: u64,
+) -> ToolInvocationCommitOutcome {
+    let intent =
+        tool_invocation_intent_for_activation(activation.clone(), InvocationId::generate());
+    let append = |head, event_index| {
+        worker_append(
+            activation.tenant_id().clone(),
+            activation.run_id(),
+            EventId::generate(),
+            JournalExpectation::exact(head),
+            fence.clone(),
+            event_index,
+        )
+    };
+    let prepared = store
+        .prepare_tool_invocation(append(previous, index), intent.clone())
+        .await
+        .unwrap();
+    let attempt_id = AttemptId::generate();
+    let executing = store
+        .advance_tool_invocation(
+            append(prepared.event().head(), index + 1),
+            &prepared.invocation().head(),
+            ToolInvocationTransition::StartAttempt { attempt_id },
+        )
+        .await
+        .unwrap();
+    store
+        .advance_tool_invocation(
+            append(executing.event().head(), index + 2),
+            &executing.invocation().head(),
+            ToolInvocationTransition::RecordResult {
+                result: tool_result(&intent, attempt_id),
+            },
+        )
+        .await
+        .unwrap()
 }
 
 async fn prepare_tool_invocation_fixture(
@@ -5871,6 +5983,19 @@ async fn node_attempt_failure_is_atomic_idempotent_and_blocks_unsafe_retry() {
         NodeAttemptStatus::Failed
     );
 
+    let history = store
+        .load_node_attempt_history_page(
+            &activation,
+            None,
+            NodeAttemptHistoryPageSize::new(1).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(
+        history.tool_charges(started.attempt().start().attempt_id()),
+        None
+    );
+
     assert!(matches!(
         store
             .start_node_attempt(
@@ -5893,7 +6018,230 @@ async fn node_attempt_failure_is_atomic_idempotent_and_blocks_unsafe_retry() {
         .await
         .unwrap();
     assert_eq!(journal.events().len(), 3);
+    Box::pin(verify_failure_tool_charges(&store)).await;
     store.close().await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn verify_failure_tool_charges(store: &PostgresStore) {
+    use stateknot_core::{ExecutionCount, KnownCosts, Money, ToolInvocationState, ToolRisk};
+
+    let tenant = tenant("node-failure-tool-charges");
+    let run = RunId::generate();
+    let initial = Box::pin(start_run_with_checkpoint(store, &tenant, run, 1_320)).await;
+    let fence = store
+        .claim_lease(&tenant, run, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    let activation = pending_activation(initial.checkpoint(), b"two exact tool charges");
+    let append = |head, event, index| {
+        worker_append(
+            tenant.clone(),
+            run,
+            event,
+            JournalExpectation::exact(head),
+            fence.clone(),
+            index,
+        )
+    };
+    let started = store
+        .start_node_attempt(
+            append(initial.event().head(), EventId::generate(), 1_321),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let start = started.attempt().start().head();
+    let mut head = started.event().head();
+    let mut charges = Vec::new();
+    for index in [1_322, 1_325] {
+        let committed = commit_tool_for_activation(store, &activation, &fence, head, index).await;
+        head = committed.event().head();
+        let tool = committed.invocation();
+        let ToolInvocationState::Committed { result } = tool.state() else {
+            panic!("terminal Tool revision required");
+        };
+        let usage = BudgetUsage::builder()
+            .tool_calls(ExecutionCount::new(1))
+            .write_calls(ExecutionCount::new(u64::from(
+                tool.intent().descriptor().semantics().risk() != ToolRisk::ReadOnly,
+            )))
+            .input_bytes(ByteCount::new(
+                tool.intent().input().value().stats().compact_bytes() as u64,
+            ))
+            .output_bytes(ByteCount::new(
+                result.output().stats().compact_bytes() as u64
+            ))
+            .artifact_bytes(result.artifacts().total_bytes())
+            .known_costs(KnownCosts::try_new([Money::new("USD".parse().unwrap(), index)]).unwrap())
+            .build()
+            .unwrap();
+        charges.push((NodeInvocationBinding::from_tool(tool).unwrap(), usage));
+    }
+    let total = charges[0].1.checked_accumulate(&charges[1].1).unwrap();
+    let failed_event = EventId::generate();
+    let failure_for = |id| {
+        Failure::new(
+            FailureId::generate(),
+            FailureCategory::DependencyUnavailable,
+            FailureCode::new("node.retry_tool_charge").unwrap(),
+            FailureOrigin::new("graph.integration").unwrap(),
+            FailureMessage::new("Tool reconciliation is pending.").unwrap(),
+            RetryAdvice::SafeAfter {
+                delay: DurationMillis::ZERO,
+            },
+        )
+        .unwrap()
+        .with_caused_by_event(id)
+    };
+    let failure = failure_for(failed_event);
+    let failed_append = || append(head.clone(), failed_event, 1_328);
+    let mut duplicate = charges.clone();
+    duplicate[1].0 = duplicate[0].0.clone();
+    assert!(
+        store
+            .fail_node_attempt_with_tool_charges(
+                failed_append(),
+                &start,
+                failure.clone(),
+                total.clone(),
+                &duplicate
+            )
+            .await
+            .is_err()
+    );
+    assert_eq!(
+        store
+            .load_run(&tenant, run)
+            .await
+            .unwrap()
+            .journal_head()
+            .unwrap(),
+        &head
+    );
+    let committed = store
+        .fail_node_attempt_with_tool_charges(
+            failed_append(),
+            &start,
+            failure.clone(),
+            total.clone(),
+            &charges,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        committed,
+        NodeAttemptCommitOutcome::Committed { .. }
+    ));
+    let db = PgPoolOptions::new()
+        .max_connections(1)
+        .connect(&std::env::var(DATABASE_URL_ENV).unwrap())
+        .await
+        .unwrap();
+    for rewrite in ["NULL", "convert_to('[]', 'UTF8')"] {
+        let error = query(&format!(
+            "UPDATE stateknot.node_attempt_completions SET tool_charges={rewrite}
+            WHERE tenant_id=$1 AND run_id=$2 AND attempt_id=$3"
+        ))
+        .bind(tenant.as_str())
+        .bind(*run.as_uuid())
+        .bind(*start.attempt_id().as_uuid())
+        .execute(&db)
+        .await
+        .unwrap_err();
+        assert_eq!(
+            error.as_database_error().unwrap().constraint(),
+            Some("node_attempt_failure_projection_fk")
+        );
+    }
+    db.close().await;
+    charges.reverse();
+    let retry = store
+        .fail_node_attempt_with_tool_charges(
+            failed_append(),
+            &start,
+            failure.clone(),
+            total.clone(),
+            &charges,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(retry, NodeAttemptCommitOutcome::Idempotent { .. }));
+    let mut altered = charges.clone();
+    altered[0].1 = charges[1].1.clone();
+    altered[1].1 = charges[0].1.clone();
+    assert!(
+        store
+            .fail_node_attempt_with_tool_charges(
+                failed_append(),
+                &start,
+                failure.clone(),
+                total.clone(),
+                &altered
+            )
+            .await
+            .is_err()
+    );
+    assert!(
+        store
+            .fail_node_attempt(failed_append(), &start, failure, total)
+            .await
+            .is_err()
+    );
+
+    let next = store
+        .start_node_attempt(
+            append(committed.event().head(), EventId::generate(), 1_329),
+            activation.clone(),
+            AttemptId::generate(),
+        )
+        .await
+        .unwrap();
+    let next_failure = EventId::generate();
+    assert!(
+        store
+            .fail_node_attempt_with_tool_charges(
+                append(next.event().head(), next_failure, 1_330),
+                &next.attempt().start().head(),
+                failure_for(next_failure),
+                charges[0].1.clone(),
+                &charges[..1],
+            )
+            .await
+            .is_err()
+    );
+    let history = store
+        .load_node_attempt_history_page(
+            &activation,
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(history.records().len(), 2);
+    assert!(history.records()[1].completion().is_none());
+    assert_eq!(
+        history.tool_charges(next.attempt().start().attempt_id()),
+        None
+    );
+    charges.sort_by_key(|(binding, _)| binding.invocation_id());
+    assert_eq!(
+        history.tool_charges(start.attempt_id()),
+        Some(charges.as_slice())
+    );
+    assert_eq!(
+        store
+            .load_run(&tenant, run)
+            .await
+            .unwrap()
+            .journal_head()
+            .unwrap(),
+        &next.event().head()
+    );
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -8337,60 +8685,15 @@ async fn pending_node_result_recovery_batches_large_binding_sets() {
     let mut bindings = Vec::new();
 
     for _ in 0..5 {
-        let intent =
-            tool_invocation_intent_for_activation(activation.clone(), InvocationId::generate());
-        let prepared = store
-            .prepare_tool_invocation(
-                worker_append(
-                    tenant_id.clone(),
-                    run_id,
-                    EventId::generate(),
-                    JournalExpectation::exact(journal_head),
-                    lease.fence().clone(),
-                    event_index,
-                ),
-                intent.clone(),
-            )
-            .await
-            .unwrap();
-        event_index += 1;
-        let attempt = AttemptId::generate();
-        let executing = store
-            .advance_tool_invocation(
-                worker_append(
-                    tenant_id.clone(),
-                    run_id,
-                    EventId::generate(),
-                    JournalExpectation::exact(prepared.event().head()),
-                    lease.fence().clone(),
-                    event_index,
-                ),
-                &prepared.invocation().head(),
-                ToolInvocationTransition::StartAttempt {
-                    attempt_id: attempt,
-                },
-            )
-            .await
-            .unwrap();
-        event_index += 1;
-        let committed = store
-            .advance_tool_invocation(
-                worker_append(
-                    tenant_id.clone(),
-                    run_id,
-                    EventId::generate(),
-                    JournalExpectation::exact(executing.event().head()),
-                    lease.fence().clone(),
-                    event_index,
-                ),
-                &executing.invocation().head(),
-                ToolInvocationTransition::RecordResult {
-                    result: tool_result(&intent, attempt),
-                },
-            )
-            .await
-            .unwrap();
-        event_index += 1;
+        let committed = commit_tool_for_activation(
+            &store,
+            &activation,
+            lease.fence(),
+            journal_head,
+            event_index,
+        )
+        .await;
+        event_index += 3;
         journal_head = committed.event().head();
         bindings.push(NodeInvocationBinding::from_tool(committed.invocation()).unwrap());
     }

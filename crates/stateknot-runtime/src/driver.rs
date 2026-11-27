@@ -42,6 +42,7 @@ use tokio::{
     time::Instant,
 };
 
+use crate::registry::{NodeUsageHistory, ToolCharge};
 use crate::{
     ExecutableGraph, ExecutableGraphRegistry, GraphLifecycleEvidenceProvider, GraphNodeContext,
     GraphNodeContextError, GraphNodeExecution, GraphNodeExecutionError, GraphNodeScheduling,
@@ -884,8 +885,8 @@ impl DurableGraphDriver {
                 // future. Object-safe executors are third-party code and may
                 // panic before they construct their future.
                 let execution = AssertUnwindSafe(async move {
-                    let uncompleted = load_uncompleted_usage_history(&store, context.attempt()).await?;
-                    let mut context = context.with_uncompleted_usage_history(uncompleted);
+                    let history = load_node_usage_history(&store, context.attempt()).await?;
+                    let mut context = context.with_usage_history(history);
                     preparing_usage_marker.store(false, Ordering::Release);
                     if has_children {
                         if let Some(record) = store.load_child_join(context.attempt().activation()).await? {
@@ -1205,7 +1206,7 @@ impl DurableGraphDriver {
                     }
                 }
                 Err(execution) => {
-                    let (failure, usage) = execution.into_parts();
+                    let (failure, usage, charges) = execution.into_charged_parts();
                     let event_id = EventId::generate();
                     let payload = self.node_failed_payload(
                         &executable.graph().reference(),
@@ -1215,7 +1216,14 @@ impl DurableGraphDriver {
                     let append = worker_append(fence, head, event_id, payload)?;
                     let failure = failure.with_caused_by_event(event_id);
                     match self
-                        .fail_node_with_retry(append, start, failure, usage, report)
+                        .fail_node_with_retry(
+                            append,
+                            start,
+                            failure,
+                            usage,
+                            charges.as_deref(),
+                            report,
+                        )
                         .await
                     {
                         Ok(
@@ -1368,16 +1376,36 @@ impl DurableGraphDriver {
         start: &'a NodeAttemptStartHead,
         failure: Failure,
         usage: BudgetUsage,
+        charges: Option<&'a [ToolCharge]>,
         report: &'a mut GraphDriveReport,
     ) -> BoxFuture<'a, Result<NodeAttemptCommitOutcome, GraphDriverError>> {
         Box::pin(async move {
             let mut attempt = 1_u8;
             loop {
-                match self
-                    .store
-                    .fail_node_attempt(append.clone(), start, failure.clone(), usage.clone())
-                    .await
-                {
+                let result = match charges {
+                    Some(charges) => {
+                        self.store
+                            .fail_node_attempt_with_tool_charges(
+                                append.clone(),
+                                start,
+                                failure.clone(),
+                                usage.clone(),
+                                charges,
+                            )
+                            .await
+                    }
+                    None => {
+                        self.store
+                            .fail_node_attempt(
+                                append.clone(),
+                                start,
+                                failure.clone(),
+                                usage.clone(),
+                            )
+                            .await
+                    }
+                };
+                match result {
                     Ok(outcome) => return Ok(outcome),
                     Err(error) if self.can_retry_mutation(&error, attempt) => {
                         report.mutation_retries = report.mutation_retries.saturating_add(1);
@@ -2323,10 +2351,10 @@ impl From<StoreError> for GraphDriverError {
     }
 }
 
-async fn load_uncompleted_usage_history(
+async fn load_node_usage_history(
     store: &PostgresStore,
     current: &NodeAttemptStartHead,
-) -> Result<bool, GraphDriverError> {
+) -> Result<NodeUsageHistory, GraphDriverError> {
     let unavailable = || GraphDriverError::DirectUsageEvidence {
         source: crate::GraphLifecycleEvidenceError::Unavailable,
     };
@@ -2340,7 +2368,7 @@ async fn load_uncompleted_usage_history(
     let mut cursor = None;
     let mut verifier = stateknot_core::NodeAttemptHistoryVerifier::new();
     let mut observed = 0_usize;
-    let mut uncompleted = true;
+    let mut history = NodeUsageHistory::default();
     loop {
         let page = store
             .load_node_attempt_history_page(current.activation(), cursor.as_ref(), page_size)
@@ -2362,7 +2390,11 @@ async fn load_uncompleted_usage_history(
         }
         for attempt in page.records() {
             verifier.verify_next(attempt).map_err(|_| corrupt())?;
-            uncompleted &= attempt.completion().is_none();
+            if attempt.completion().is_some() {
+                history
+                    .record_completion(page.tool_charges(attempt.start().attempt_id()))
+                    .ok_or_else(corrupt)?;
+            }
         }
         if !page.has_more() {
             break;
@@ -2376,7 +2408,7 @@ async fn load_uncompleted_usage_history(
     // A prior unfinished attempt requires a higher epoch for its successor.
     // Older fences cannot append late completions; loss of the current fence
     // is still rejected by the eventual existing Store completion transaction.
-    Ok(uncompleted)
+    Ok(history)
 }
 
 struct StartedNode {

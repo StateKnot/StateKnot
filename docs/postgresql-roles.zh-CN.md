@@ -4,14 +4,14 @@
 
 [English](postgresql-roles.md)
 
-`trusted-server-roles-v1` 是适用于 PostgreSQL 16/17、schema38 的可执行最小权限
+`trusted-server-roles-v1` 是适用于 PostgreSQL 16/17、schema39 的可执行最小权限
 部署配置，分离迁移、服务端运行时和公平调度预留记录清理账号。它**不构成不可信
 Worker 或租户的 SQL 安全边界**：运行时仍能跨租户读取并更新控制面投影。不得向
 用户、Tool、插件或远程 Worker 分发数据库凭证。RFC-0003 的 Worker 专用过程/服务
 边界和 RFC-0004 的完整子任务验收仍未完成。
 迁移38为完整帧关闭 guard 增加独立版本的 published、未消费 Join 停止证明。
-schema37 与 schema38 的54表库存及精确 ACL 白名单保持不变。下文 schema37
-记录仍是历史资格；当前 schema38 的角色与升级资格必须分别实际执行。
+迁移39记录失败 Node attempt 已计费的 Tool 终态版本，并将计费明细绑定到失败事件。
+54 张表及其表级授权沿用 schema38。当前 schema39 的角色资格和升级资格需要分别实测。
 
 纯远端计算可以使用单独的 [MCP 计算 Worker](mcp-compute-worker.zh-CN.md)：
 不传数据库凭证，Driver 仍留在受信任宿主，不改变上述 SQL 角色边界。
@@ -82,7 +82,7 @@ PGSERVICE=stateknot_migration psql -X --no-password \
 
 - 新表、函数不会自动得到运行时授权；已有表新增列会继承表级 SELECT/INSERT，但
   不会自动得到 UPDATE。新迁移必须配套审核版本化白名单，再依次
-  迁移、应用、审计、功能冒烟，最后启动应用。本脚本检查 schema38，迁移校验和
+  迁移、应用、审计、功能冒烟，最后启动应用。本脚本检查 schema39，迁移校验和
   由固定版本的 provider 验证。
 - 重复应用幂等，并在已有持久化历史的数据上验证。只读审计只报告漂移，修复必须显式
   应用；其他 Schema 的异常创建权限会让操作回滚，不会被广泛撤销。
@@ -113,6 +113,10 @@ AgentLoop 运行实际 provider-native child。先结算并发布，再请求取
 closure、未消费的原始 publication/owner、完整且只累计一次的用量、Root 终结确认
 和相同凭证下的新 owning read。该路径必须有绑定当前源码的角色实测；历史
 schema37 记录不转授此资格。
+
+schema39 角色测试使用运行时 LOGIN 对第一个 Tool 计费，在第二个 Tool 完成协调后中断
+Node attempt，再使用相同凭据建立新连接恢复。测试核对两次 Node 计费与终态 Run 用量，
+并验证运行时账号直接修改计费明细会被数据库拒绝。
 
 给隔离 loopback 管理员测试库设置 `STATEKNOT_TEST_DATABASE_URL` 后复现：
 
