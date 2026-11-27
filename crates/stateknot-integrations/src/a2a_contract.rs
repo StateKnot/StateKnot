@@ -12,8 +12,8 @@ use std::{
     fmt,
 };
 
+use crate::A2aTimestamp;
 use a2a as wire;
-use chrono::{DateTime, Utc};
 use serde_json::Value;
 use thiserror::Error;
 use zeroize::Zeroizing;
@@ -794,7 +794,7 @@ impl A2aTaskStatus {
     pub fn new(
         state: A2aTaskState,
         message: Option<A2aMessage>,
-        timestamp: Option<DateTime<Utc>>,
+        timestamp: Option<A2aTimestamp>,
     ) -> Result<Self, A2aContractError> {
         if matches!(state, A2aTaskState::AuthRequired) && message.is_none() {
             return Err(A2aContractError::InvalidLifecycle(
@@ -805,7 +805,7 @@ impl A2aTaskStatus {
             inner: wire::TaskStatus {
                 state: state.into(),
                 message: message.map(A2aMessage::into_wire),
-                timestamp,
+                timestamp: timestamp.map(A2aTimestamp::to_wire),
             },
         })
     }
@@ -819,8 +819,8 @@ impl A2aTaskStatus {
 
     /// Returns the optional status timestamp.
     #[must_use]
-    pub const fn timestamp(&self) -> Option<DateTime<Utc>> {
-        self.inner.timestamp
+    pub const fn timestamp(&self) -> Option<A2aTimestamp> {
+        A2aTimestamp::from_task_status(&self.inner)
     }
 
     /// Clones the optional status message.
@@ -1539,7 +1539,7 @@ pub struct A2aListTasksRequest {
     page_size: u16,
     page_token: Option<Box<str>>,
     history_length: Option<u32>,
-    status_timestamp_after: Option<DateTime<Utc>>,
+    status_timestamp_after: Option<A2aTimestamp>,
     include_artifacts: bool,
 }
 
@@ -1612,7 +1612,7 @@ impl A2aListTasksRequest {
 
     /// Filters task status timestamps to this instant or later.
     #[must_use]
-    pub const fn with_status_timestamp_after(mut self, value: DateTime<Utc>) -> Self {
+    pub const fn with_status_timestamp_after(mut self, value: A2aTimestamp) -> Self {
         self.status_timestamp_after = Some(value);
         self
     }
@@ -1656,7 +1656,7 @@ impl A2aListTasksRequest {
 
     /// Returns the timestamp lower bound.
     #[must_use]
-    pub const fn status_timestamp_after(&self) -> Option<DateTime<Utc>> {
+    pub const fn status_timestamp_after(&self) -> Option<A2aTimestamp> {
         self.status_timestamp_after
     }
 
@@ -1695,7 +1695,10 @@ impl A2aListTasksRequest {
                 })?)?;
         }
         if let Some(timestamp) = value.status_timestamp_after {
-            request = request.with_status_timestamp_after(timestamp);
+            request = request.with_status_timestamp_after(A2aTimestamp::from_sdk_parts(
+                timestamp.timestamp(),
+                timestamp.timestamp_subsec_nanos(),
+            ));
         }
         request.include_artifacts = value.include_artifacts.unwrap_or(false);
         Ok(request)
@@ -1710,7 +1713,7 @@ impl A2aListTasksRequest {
             history_length: self
                 .history_length
                 .map(|value| i32::try_from(value).expect("bounded history length fits i32")),
-            status_timestamp_after: self.status_timestamp_after,
+            status_timestamp_after: self.status_timestamp_after.map(A2aTimestamp::to_wire),
             include_artifacts: self.include_artifacts.then_some(true),
             tenant,
         }

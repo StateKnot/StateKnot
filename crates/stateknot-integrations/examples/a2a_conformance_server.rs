@@ -18,10 +18,9 @@ use std::{
         Arc,
         atomic::{AtomicU64, Ordering},
     },
-    time::{Duration, SystemTime},
+    time::Duration,
 };
 
-use chrono::{DateTime, SecondsFormat, Utc};
 use futures_util::StreamExt as _;
 use serde_json::json;
 use stateknot_core::{BoxFuture, IssuerId, PrincipalIdentity, SubjectId, TenantId};
@@ -34,8 +33,9 @@ use stateknot_integrations::{
     A2aServerAuthenticationRequest, A2aServerAuthenticator, A2aServerHttpOptions,
     A2aServerPrincipal, A2aStreamEvent, A2aSubscribeTaskRequest, A2aTask, A2aTaskPage,
     A2aTaskService, A2aTaskServiceCapabilities, A2aTaskServiceError, A2aTaskState, A2aTaskStatus,
-    AllowA2aServerAdmission, AllowA2aServerAuthorization,
+    A2aTimestamp, AllowA2aServerAdmission, AllowA2aServerAuthorization,
 };
+use time::{OffsetDateTime, macros::format_description};
 use tokio::sync::{RwLock, watch};
 use tokio_util::sync::CancellationToken;
 
@@ -77,9 +77,14 @@ struct TaskRecord {
     id: String,
     context_id: String,
     state: A2aTaskState,
-    updated_at: DateTime<Utc>,
+    updated_at: OffsetDateTime,
     history: Vec<A2aMessage>,
     artifacts: Vec<A2aArtifact>,
+}
+
+fn a2a_timestamp(utc: OffsetDateTime) -> A2aTimestamp {
+    A2aTimestamp::from_unix_parts(utc.unix_timestamp(), utc.nanosecond())
+        .expect("the fixture uses the current UTC date")
 }
 
 impl TaskRecord {
@@ -88,7 +93,7 @@ impl TaskRecord {
         history_length: Option<u32>,
         include_artifacts: bool,
     ) -> Result<A2aTask, A2aTaskServiceError> {
-        let status = A2aTaskStatus::new(self.state, None, Some(self.updated_at))
+        let status = A2aTaskStatus::new(self.state, None, Some(a2a_timestamp(self.updated_at)))
             .map_err(|_| A2aTaskServiceError::InvalidAgentResponse)?;
         let mut task = A2aTask::new(self.id.clone(), self.context_id.clone(), status)
             .map_err(|_| A2aTaskServiceError::InvalidAgentResponse)?;
@@ -144,8 +149,8 @@ impl ConformanceTaskService {
         )
     }
 
-    fn now() -> DateTime<Utc> {
-        DateTime::<Utc>::from(SystemTime::now())
+    fn now() -> OffsetDateTime {
+        OffsetDateTime::now_utc()
     }
 
     fn requested_history(request: &A2aSendMessageRequest) -> Option<u32> {
@@ -270,7 +275,7 @@ impl ConformanceTaskService {
                 "contextId": record.context_id,
                 "status": {
                     "state": task_state_name(record.state),
-                    "timestamp": record.updated_at.to_rfc3339_opts(SecondsFormat::Micros, true)
+                    "timestamp": record.updated_at.format(format_description!("[year]-[month]-[day]T[hour]:[minute]:[second].[subsecond digits:6]Z")).expect("valid UTC format")
                 }
             }
         });
@@ -464,11 +469,18 @@ impl A2aTaskService for ConformanceTaskService {
                 artifacts: Self::artifacts_for(message.message_id())?,
             };
             let submitted_task = submitted.project(Self::requested_history(&request), true)?;
-            let working_status = A2aTaskStatus::new(A2aTaskState::Working, None, Some(Self::now()))
-                .map_err(|_| A2aTaskServiceError::InvalidAgentResponse)?;
-            let completed_status =
-                A2aTaskStatus::new(A2aTaskState::Completed, None, Some(Self::now()))
-                    .map_err(|_| A2aTaskServiceError::InvalidAgentResponse)?;
+            let working_status = A2aTaskStatus::new(
+                A2aTaskState::Working,
+                None,
+                Some(a2a_timestamp(Self::now())),
+            )
+            .map_err(|_| A2aTaskServiceError::InvalidAgentResponse)?;
+            let completed_status = A2aTaskStatus::new(
+                A2aTaskState::Completed,
+                None,
+                Some(a2a_timestamp(Self::now())),
+            )
+            .map_err(|_| A2aTaskServiceError::InvalidAgentResponse)?;
             let working = stateknot_integrations::A2aStatusUpdate::new(
                 task_id.clone(),
                 context_id.clone(),
@@ -534,7 +546,7 @@ impl A2aTaskService for ConformanceTaskService {
                         && request.status().is_none_or(|state| state == record.state)
                         && request
                             .status_timestamp_after()
-                            .is_none_or(|timestamp| record.updated_at > timestamp)
+                            .is_none_or(|timestamp| a2a_timestamp(record.updated_at) > timestamp)
                 })
                 .cloned()
                 .collect::<Vec<_>>();

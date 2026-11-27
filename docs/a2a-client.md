@@ -24,6 +24,43 @@ directly, while a graph-side message submission must use the durable adapter.
 Calling `send_message` directly from recoverable graph code would bypass the
 durable-before-dispatch record and is not a supported production composition.
 
+<a id="timestamp-migration"></a>
+
+## Migrating task timestamps in the next preview
+
+The published `0.1.0-alpha.1` accepts and returns `chrono::DateTime<Utc>`.
+The proposed next preview uses `stateknot_integrations::A2aTimestamp` in
+`A2aTaskStatus::new`, `timestamp()`, `A2aListTasksRequest::with_status_timestamp_after`
+and `status_timestamp_after()`. Update explicit field and argument types in
+your application when upgrading the lockstep StateKnot packages.
+
+```rust
+use stateknot_integrations::{A2aListTasksRequest, A2aTimestamp};
+
+fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let at: A2aTimestamp = "2026-10-08T10:00:00.123456789+08:00".parse()?;
+    let request = A2aListTasksRequest::new().with_status_timestamp_after(at);
+    assert_eq!(request.status_timestamp_after(), Some(at));
+    assert_eq!(at.to_string(), "2026-10-08T02:00:00.123456789Z");
+    Ok(())
+}
+```
+
+For an existing chrono value `old`, use
+`A2aTimestamp::from_unix_parts(old.timestamp(), old.timestamp_subsec_nanos())`.
+It returns `Option<A2aTimestamp>`. A chrono-based caller reading the new type
+can use `chrono::DateTime::<chrono::Utc>::from_timestamp(at.unix_seconds(), at.subsec_nanos())`.
+Pass both fields to preserve pre-epoch fractions and leap seconds. The client
+accepts a returned task at the filter instant and rejects one earlier than
+it. The A2A wire retains nanosecond precision. Core and PostgreSQL keep their
+existing microsecond precision.
+
+If the conversion returns `None` for a legacy chrono value constructed by
+editing its leap-second components, recover its historical wire value with
+`serde_json::from_value::<A2aTimestamp>(serde_json::to_value(old)?)?`.
+That wire form has already normalized the unusual leap marker.
+[Compatibility RFC](rfcs/0026-a2a-timestamp.md)
+
 ## Implemented operation surface
 
 | Operation | HTTP+JSON route below the interface | JSON-RPC method | Result |

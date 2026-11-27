@@ -1,7 +1,6 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use chrono::{DateTime, Utc};
 use sqlx_core::{from_row::FromRow, query::query, query_as::query_as, query_scalar::query_scalar};
 use sqlx_postgres::{PgRow, Postgres};
 use stateknot_core::{
@@ -10,6 +9,7 @@ use stateknot_core::{
     SkillActivationSource, SkillActivationStore, SkillActivationStoreError,
     SkillActivationStoreFailure, TenantId, Timestamp, ToolAuthorizationReceipt,
 };
+use time::OffsetDateTime;
 
 use super::{
     PostgresStore, StoreError, decode_digest, from_database_time, has_database_constraint,
@@ -35,8 +35,8 @@ struct WindowRow {
     run_id: uuid::Uuid,
     thread_id: uuid::Uuid,
     subject_digest: Vec<u8>,
-    opened_at: DateTime<Utc>,
-    expires_at: DateTime<Utc>,
+    opened_at: OffsetDateTime,
+    expires_at: OffsetDateTime,
     window_digest: Vec<u8>,
     window_bytes: Vec<u8>,
     window_bytes_digest: Vec<u8>,
@@ -113,7 +113,7 @@ impl PostgresStore {
             }
         }
 
-        let now: DateTime<Utc> = query_scalar("SELECT clock_timestamp()")
+        let now: OffsetDateTime = query_scalar("SELECT clock_timestamp()")
             .fetch_one(&mut *transaction)
             .await
             .map_err(|source| StoreError::database("Skill acting window database clock", source))?;
@@ -298,7 +298,7 @@ window_digest,window_bytes
             transaction.commit().await.map_err(|source| StoreError::database("Skill acting window revocation retry commit", source))?;
             return Ok(existing);
         }
-        let now: DateTime<Utc> = query_scalar("SELECT clock_timestamp()")
+        let now: OffsetDateTime = query_scalar("SELECT clock_timestamp()")
             .fetch_one(&mut *transaction)
             .await
             .map_err(|source| StoreError::database("Skill revocation database clock", source))?;
@@ -397,7 +397,7 @@ async fn locked_window_inactive(
     transaction: &mut sqlx_core::transaction::Transaction<'_, Postgres>,
     tenant: &TenantId,
     window_id: SkillActingWindowId,
-    expires_at: DateTime<Utc>,
+    expires_at: OffsetDateTime,
     operation: &'static str,
 ) -> Result<bool, StoreError> {
     query_scalar(

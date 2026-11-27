@@ -509,12 +509,16 @@ async fn write_operation_matrix_response(
     let result = match operation {
         "SendMessage" => successful_send_response(),
         "GetTask" | "CancelTask" => matrix_task(),
-        "ListTasks" => json!({
-            "tasks": [matrix_task()],
-            "nextPageToken": "",
-            "pageSize": 1,
-            "totalSize": 1
-        }),
+        "ListTasks" => {
+            let mut task = matrix_task();
+            task["status"]["timestamp"] = json!("2016-12-31T23:59:60.123456789Z");
+            json!({
+                "tasks": [task],
+                "nextPageToken": "",
+                "pageSize": 1,
+                "totalSize": 1
+            })
+        }
         "CreateTaskPushNotificationConfig" | "GetTaskPushNotificationConfig" => {
             matrix_push_config()
         }
@@ -2059,17 +2063,20 @@ async fn exercise_operation_matrix(binding: A2aBinding) {
         .unwrap();
     assert_eq!(task.id(), "task-1");
 
+    let lower_bound = "2017-01-01T00:59:60.123456789+01:00".parse().unwrap();
     let tasks = client
         .list_tasks(
             A2aListTasksRequest::new()
                 .with_context_id("context-1")
                 .unwrap()
                 .with_page_size(1)
-                .unwrap(),
+                .unwrap()
+                .with_status_timestamp_after(lower_bound),
         )
         .await
         .unwrap();
     assert_eq!(tasks.tasks().len(), 1);
+    assert_eq!(tasks.tasks()[0].status().timestamp(), Some(lower_bound));
     assert_eq!(tasks.page_size(), 1);
     assert_eq!(tasks.total_size(), 1);
 
@@ -2152,7 +2159,10 @@ async fn exercise_operation_matrix(binding: A2aBinding) {
                 ("POST", "/a2a/message:send"),
                 ("POST", "/a2a/message:stream"),
                 ("GET", "/a2a/tasks/task-1?historyLength=1"),
-                ("GET", "/a2a/tasks?contextId=context-1&pageSize=1"),
+                (
+                    "GET",
+                    "/a2a/tasks?contextId=context-1&pageSize=1&statusTimestampAfter=2016-12-31T23%3A59%3A60.123456789Z",
+                ),
                 ("POST", "/a2a/tasks/task-1:cancel"),
                 ("POST", "/a2a/tasks/task-1:subscribe"),
                 ("POST", "/a2a/tasks/task-1/pushNotificationConfigs"),
@@ -2196,6 +2206,12 @@ async fn exercise_operation_matrix(binding: A2aBinding) {
                 assert_eq!(value["jsonrpc"], "2.0");
                 assert_eq!(value["method"], expected_method);
                 assert_eq!(value["id"], i64::try_from(index).unwrap() + 1);
+                if expected_method == "ListTasks" {
+                    assert_eq!(
+                        value["params"]["statusTimestampAfter"],
+                        "2016-12-31T23:59:60.123456789Z"
+                    );
+                }
             }
         }
         _ => unreachable!("matrix covers the implemented A2A client bindings"),

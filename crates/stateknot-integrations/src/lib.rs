@@ -86,6 +86,7 @@ mod a2a_client;
 mod a2a_contract;
 mod a2a_remote_agent;
 mod a2a_server;
+mod a2a_timestamp;
 mod adapter;
 mod anthropic;
 mod credential;
@@ -139,6 +140,7 @@ pub use a2a_server::{
     A2aTaskService, A2aTaskServiceCapabilities, A2aTaskServiceError, AllowA2aServerAdmission,
     AllowA2aServerAuthorization,
 };
+pub use a2a_timestamp::A2aTimestamp;
 pub use adapter::ModelAdapterBuildError;
 pub use anthropic::AnthropicMessagesModel;
 pub use credential::{ApiKey, ApiKeyError, ApiKeyProvider, ApiKeyResolutionError, StaticApiKey};

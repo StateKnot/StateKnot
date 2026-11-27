@@ -70,7 +70,6 @@ fn core_direct_dependencies_match_the_reviewed_runtime_neutral_boundary() {
 
     let expected = [
         ("dev", "proptest"),
-        ("normal", "chrono"),
         ("normal", "fluent-uri"),
         ("normal", "futures-core"),
         ("normal", "language-tags"),
@@ -81,6 +80,7 @@ fn core_direct_dependencies_match_the_reviewed_runtime_neutral_boundary() {
         ("normal", "serde_json_canonicalizer"),
         ("normal", "sha2"),
         ("normal", "thiserror"),
+        ("normal", "time"),
         ("normal", "uuid"),
     ]
     .into_iter()

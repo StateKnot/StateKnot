@@ -128,7 +128,7 @@ for the caller's next explicit request.
 ### Reproduce the standalone Cargo consumer
 
 The [consumer manifest](../examples/mcp-stdio-consumer/Cargo.toml) pins
-StateKnot to Git revision `a5657f5b1a0710128c07206feae88a5dbdadf525`.
+StateKnot to Git revision `2e12060f46b6cbcecfbf6cb2daa59688b7a3035c`.
 The standalone [lockfile](../examples/mcp-stdio-consumer/Cargo.lock) fixes the
 resolved dependencies. From the repository root on Linux, compile the test
 as an ordinary user.

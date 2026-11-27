@@ -101,7 +101,7 @@ Tool 拒绝业务操作时，调用可返回 `Ok`，完整结果的 `is_error()`
 ### 复现独立 Cargo 消费者
 
 [消费者清单](../examples/mcp-stdio-consumer/Cargo.toml) 将 StateKnot 固定到 Git 提交
-`a5657f5b1a0710128c07206feae88a5dbdadf525`。
+`2e12060f46b6cbcecfbf6cb2daa59688b7a3035c`。
 独立的[锁文件](../examples/mcp-stdio-consumer/Cargo.lock)固定解析后的依赖。在 Linux 上，
 以普通用户身份从仓库根目录编译测试。
 
