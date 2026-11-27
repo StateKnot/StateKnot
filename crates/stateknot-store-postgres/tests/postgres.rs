@@ -41,6 +41,8 @@ mod result_namespace_corruption;
 mod root_barrier_upgrade;
 #[path = "postgres/root_graph_barriers.rs"]
 mod root_graph_barriers;
+#[path = "postgres/schema39_interruption.rs"]
+mod schema39_interruption;
 
 use std::{
     borrow::Cow,

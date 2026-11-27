@@ -9,17 +9,21 @@
   },
   "roles": {
     "store": {
-      "file": "c9-store-inventory.stdout",
-      "inventory": 276,
-      "bytes": 24307,
-      "sha256": "8102425660ba2c4b09eb5eee122091cef019bf61487377dfa32c656b4d201fa3",
+      "file": "local-14b0-store-inventory.stdout",
+      "inventory": 278,
+      "bytes": 24480,
+      "sha256": "14b0a848da4bc4f9ac13ee3d970bb7890c95bc9fa1d2eeb245c5f6397c492547",
       "origin": {
-        "kind": "actual-linux-CI-producer-list",
-        "head": "c9c3398015ea3183f915c7ec1dd4d7aa81d497ac",
-        "run_id": 39548415549,
-        "run_attempt": 1,
-        "major": 17,
-        "source_directory": "r1-d4-c9c339-native17-streams-v1/import/producer"
+        "kind": "actual-local-macos-aarch64-native-build-list",
+        "base_head": "d9c8c573e6ef8546dab4354a296a791dcf090e19",
+        "source_scope": "working checkout including schema 39 interruption tests",
+        "compiled_inputs_sha256": "47a8f3fa0411e8d94b7100054b893d053c2ada048d629525377d2430ec1fb481",
+        "binary_sha256": "86d1d5af9c7128fea3425cf15e684ec1552260393a57b17e118eeb377540f5ee",
+        "build_receipt_sha256": "2e4322bb0ac9c9c6891602a08080df024ba3b54871584b03b901c772ff2c35e7",
+        "test_opt_level": "1",
+        "capture_directory": "p7-39-list-final",
+        "cold_build_observed": false,
+        "linux_CI": false
       }
     },
     "runtime": {
@@ -57,7 +61,7 @@
   "protocol_receipt_source_is_synthetic": true,
   "protocol_receipt_source_purpose": "Unit-only consistent source binding for fabricated artifact-shaped receipts; not the historical provenance of either actual inventory list.",
   "qualification_awarded": false,
-  "verification": "The fixture preserves the original local Runtime test-list bytes. Its 236 unique names include all 235 names from local-ccf1 in the original order plus provider_native_uncompleted_usage::committed_tool_without_node_completion_is_charged_once_after_cold_recovery. The two sorted alternating lanes select 118 names each. This list is a local inventory from a reused target directory. The build receipt binds the checkout inputs used for this list. Historical c9, local-ce3b, local-f208 and local-ccf1 fixture bytes are retained.",
+  "verification": "The fixture preserves the original local Runtime test-list bytes. Its 236 unique names include all 235 names from local-ccf1 in the original order plus provider_native_uncompleted_usage::committed_tool_without_node_completion_is_charged_once_after_cold_recovery. The two sorted alternating lanes select 118 names each. This list is a local inventory from a reused target directory. The build receipt binds the checkout inputs used for this list. Historical c9, local-ce3b, local-f208 and local-ccf1 fixture bytes are retained. The updated Store list preserves the original 276 names in order and adds the two schema39_interruption cases. The historical Store list remains in provenance.json.",
   "retained_runtime_fixtures": [
     {
       "file": "local-ce3b-runtime-inventory.stdout",

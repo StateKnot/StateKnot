@@ -76,6 +76,9 @@ the schema 39 binary. To roll back, restore the pre-upgrade database and its
 matching binary. Removing receipts from live history would discard billing
 evidence.
 
+The [PostgreSQL configuration guide](../postgresql-configuration.md#recovering-an-interrupted-schema-38-to-39-upgrade)
+covers a lost migration acknowledgement and the rollback window.
+
 ## Acceptance
 
 On both supported PostgreSQL majors, replay the failure, reconciliation and
@@ -85,3 +88,12 @@ both writes and both model attempts, totaling 36 micro-USD. Check actual
 business dispatch counts independently. Exercise receipt-preserving retries,
 altered receipts, duplicate attribution and legacy history through the Store.
 The public compatibility commitment remains subject to RFC review.
+
+On PostgreSQL 16.15 and 17.11, the schema 38 SDK at `efcbf47` read a
+restored backup of a nested Run before upgrade. The schema 39 migrator and
+SDK at `d9c8c57` upgraded the restored database and read the same journal
+head (sequence 13) and Tool result (revision 2). The old SDK rejected the
+upgraded database with `IncompatibleSchema` and read the original digests
+again from a separate restore of the pre-upgrade backup. The Store suite
+also interrupts the deployment migrator on both sides of the schema 39 commit
+and retries through the public deployment entry point.

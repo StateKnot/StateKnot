@@ -62,6 +62,21 @@ let store = PostgresStore::connect_config(config).await?;
 `PostgresStore::migrate_database(migration_url, options)` 仍是最明确的部署方式。
 配置对象用于减少应用样板代码，不会合并权限边界。
 
+## 恢复中断的 schema 38 → 39 升级
+
+排空所有写入端，先在隔离数据库还原升级前的备份，确认 schema 38 程序能打开它，
+再执行迁移 39。如果 `PostgresStore::migrate_database` 报错或部署连接断开，
+保持停写。迁移程序丢失确认时，PostgreSQL 可能已经提交了迁移 39。
+
+用同一份 schema 39 程序和迁移角色重试 `PostgresStore::migrate_database`。
+SQLx 会重新执行已回滚的迁移，或跳过已提交的迁移。随后 Store 校验固定版本的迁移历史
+和数据库对象。如果校验失败，继续停写并排查报出的差异。重试成功后，应用并审计配套的
+角色权限配置，再用运行时角色通过 `PostgresStore::connect` 打开数据库，验证成功后恢复写入。
+
+如需在维护窗口内回滚，将已验证的备份还原到隔离数据库，用 schema 38 程序连接，
+核对一个已知 Run 的最后一条 journal 记录后再切换流量。一旦 schema 39 恢复写入，
+还原旧备份会丢失之后写入的数据，包括工具计费凭据。要保留这些写入，应向前修复。
+
 ## 显式本地开发模式
 
 可信本机上的 PostgreSQL 可以使用：
