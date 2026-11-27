@@ -231,11 +231,15 @@ Start 是最新、尚未完成的一次尝试。执行 Context 携带核验结�
 准备阶段超时、panic 时，返回 `GraphDriverError::DirectUsageEvidence`，当前 Attempt
 保持未完成，不写入零用量的 Failed completion。
 
-如果核验后的历史从未有过 completion，当前 Start 之前已提交且完整定价的终态响应
-将首次计入 Node DIRECT。Recovery 复用原 Tool 结果，不再次 Dispatch。如果已有旧
-completion，则沿用现有重放去重规则。部分已计费 Node 的逐调用用量归属仍待完成。
-当前 Start 之后提交的事实保留实际用量，生命周期账本只累计原费用一次。Unknown 和
-未定价证据继续保留既有阻塞。
+实验性 schema 39 支持在 Provider Native Tools 节点失败时，将本次 DIRECT 用量中每个
+已完整定价的工具终态随节点费用原子保存。冷恢复时，Driver 核对同一 activation 的凭据，
+执行器复用原工具结果；已收费的终态跳过定价，完整历史中尚未收费的终态首次计入当前
+尝试。例如，第一次尝试已为工具 A 付费，第二次尝试对账得到工具 B 的结果后进程退出，
+恢复后的节点只计 B，整次 Run 对每次实际工具调用各计一次。
+
+旧版本和自定义执行器可能只保存节点汇总费用。混合历史中的精确凭据仍能证明某笔费用
+已经入账，其余终态沿用汇总记录原有的重放规则。升级无法据此重建历史明细账。
+Unknown 和未定价记录沿用现有处理。Model 节点继续依据此前是否存在 completion 判断。
 
 已知失败的 Tool 会继续作为有序 Transcript Outcome；其精确 Terminal Revision 绑定到
 Node Result，下一轮 Model 会收到失败结果，而不是虚构 Success。Write Tool 的 `Unknown`

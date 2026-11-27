@@ -1,18 +1,18 @@
 // Copyright 2026 StateKnot contributors
 // SPDX-License-Identifier: Apache-2.0
 
-use std::{fmt, time::Duration};
+use std::{collections::BTreeMap, fmt, time::Duration};
 
 use serde::{Deserialize, Serialize};
 use stateknot_core::{
-    AgentAdmission, ArtifactRef, Checkpoint, CheckpointHead, CheckpointId, CompiledGraph,
-    DeliveryFence, Digest, DurableTimer, DurableTimerRecord, DurableWait, FencingEpoch,
-    InterruptRecord, InterruptRequest, JournalEvent, JournalExpectation, JournalHead,
-    JournalPayload, ModelInvocation, NodeAttempt, OutboxAttempt, OutboxAttemptCompletion,
-    OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef, PendingNodeResult,
-    PendingNodeResultHead, QuarantineId, RunFence, RunId, RunLease, RunLifecycle, RunRevision,
-    RunTransition, SchedulerReservationId, SchedulerShardId, Superstep, TenantId, Timestamp,
-    ToolInvocation,
+    AgentAdmission, ArtifactRef, AttemptId, BudgetUsage, Checkpoint, CheckpointHead, CheckpointId,
+    CompiledGraph, DeliveryFence, Digest, DurableTimer, DurableTimerRecord, DurableWait,
+    FencingEpoch, InterruptRecord, InterruptRequest, JournalEvent, JournalExpectation, JournalHead,
+    JournalPayload, ModelInvocation, NodeAttempt, NodeInvocationBinding, OutboxAttempt,
+    OutboxAttemptCompletion, OutboxAttemptStart, OutboxDelivery, OutboxDestinationRef,
+    PendingNodeResult, PendingNodeResultHead, QuarantineId, RunFence, RunId, RunLease,
+    RunLifecycle, RunRevision, RunTransition, SchedulerReservationId, SchedulerShardId, Superstep,
+    TenantId, Timestamp, ToolInvocation,
 };
 
 use crate::StoreError;
@@ -1828,9 +1828,8 @@ pub struct NodeAttemptHistoryPageSize(u8);
 impl NodeAttemptHistoryPageSize {
     /// Largest page accepted by the provider.
     ///
-    /// A start and completion can occupy about 17 MiB together, so two
-    /// records cap provider-owned decoded page memory near 34 MiB before
-    /// driver overhead.
+    /// A start, completion and Tool receipt allow up to 18 MiB of canonical
+    /// bytes together. Two records bound the serialized payload to 36 MiB.
     pub const MAX: u8 = 2;
 
     /// Constructs a positive bounded history page size.
@@ -1858,9 +1857,20 @@ impl NodeAttemptHistoryPageSize {
 pub struct NodeAttemptHistoryPage {
     pub(crate) records: Vec<NodeAttempt>,
     pub(crate) has_more: bool,
+    pub(crate) tool_charges: BTreeMap<AttemptId, Vec<(NodeInvocationBinding, BudgetUsage)>>,
 }
 
 impl NodeAttemptHistoryPage {
+    /// Returns the fully verified priced terminal Tool charges for this attempt on this page.
+    /// A present empty slice is a receipt for zero usage. Legacy failures have no receipt.
+    #[must_use]
+    pub fn tool_charges(
+        &self,
+        attempt: AttemptId,
+    ) -> Option<&[(NodeInvocationBinding, BudgetUsage)]> {
+        self.tool_charges.get(&attempt).map(Vec::as_slice)
+    }
+
     /// Returns immutable physical attempts in ascending start order.
     #[must_use]
     pub fn records(&self) -> &[NodeAttempt] {

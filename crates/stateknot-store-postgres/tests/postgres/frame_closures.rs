@@ -699,6 +699,14 @@ async fn seven_level_closure_preserves_mixed_physical_fences_and_lifetime_counte
 }
 
 async fn facts(db: &PgPool, fence: &RunFence) -> Vec<String> {
+    facts_with_completion_row(db, fence, "to_jsonb(t)").await
+}
+
+async fn facts_with_completion_row(
+    db: &PgPool,
+    fence: &RunFence,
+    completion_row: &str,
+) -> Vec<String> {
     let mut result = Vec::new();
     for table in [
         "runs",
@@ -716,7 +724,12 @@ async fn facts(db: &PgPool, fence: &RunFence) -> Vec<String> {
         "pending_node_results",
         "run_failure_closes",
     ] {
-        result.push(query_scalar(&format!("SELECT COALESCE(jsonb_agg(to_jsonb(t) ORDER BY to_jsonb(t)::text),'[]'::jsonb)::text FROM stateknot.{table} t WHERE tenant_id=$1 AND run_id=$2"))
+        let row = if table == "node_attempt_completions" {
+            completion_row
+        } else {
+            "to_jsonb(t)"
+        };
+        result.push(query_scalar(&format!("SELECT COALESCE(jsonb_agg({row} ORDER BY {row}::text),'[]'::jsonb)::text FROM stateknot.{table} t WHERE tenant_id=$1 AND run_id=$2"))
             .bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid()).fetch_one(db).await.unwrap());
     }
     result
@@ -1237,8 +1250,25 @@ async fn populated_schema_32_upgrade_keeps_waits_returns_and_checksums_before_wh
         .unwrap();
     let upgraded = PostgresStore::connect(&url, options).await.unwrap();
     assert_eq!(checksums, query_as::<_, (i64, Vec<u8>)>("SELECT version,checksum FROM public._sqlx_migrations WHERE version<=32 ORDER BY version").fetch_all(&fixture).await.unwrap());
-    assert_eq!(facts(&fixture, &fence).await, before);
-    assert_eq!(facts(&fixture, &prior_fence).await, prior);
+    let legacy_completion =
+        super::root_barrier_upgrade::historical_row_json("node_attempt_completions");
+    for (source_run, expected_facts) in [(&fence, &before), (&prior_fence, &prior)] {
+        assert_eq!(
+            &facts_with_completion_row(&fixture, source_run, legacy_completion).await,
+            expected_facts
+        );
+        // Both frozen Runs contain successful completions. Migration39 must
+        // leave them without Tool charges or a failed-event projection.
+        assert!(query_scalar::<_, bool>(
+            "SELECT bool_and(status = 'succeeded' AND tool_charges IS NULL AND failure_projection_digest IS NULL)
+             FROM stateknot.node_attempt_completions WHERE tenant_id=$1 AND run_id=$2"
+        )
+        .bind(source_run.tenant_id().as_str())
+        .bind(*source_run.run_id().as_uuid())
+        .fetch_one(&fixture)
+        .await
+        .unwrap());
+    }
     assert_eq!(query_scalar::<_, String>("SELECT jsonb_agg(to_jsonb(w) ORDER BY wait_id)::text FROM stateknot.run_wait_registrations w WHERE tenant_id=$1 AND run_id=$2")
         .bind(fence.tenant_id().as_str()).bind(*fence.run_id().as_uuid()).fetch_one(&fixture).await.unwrap(), waits_before);
     assert_eq!(

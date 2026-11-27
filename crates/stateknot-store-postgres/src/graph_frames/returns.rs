@@ -1248,7 +1248,8 @@ impl PostgresStore {
         )
         .await?;
         insert_pending_node_result_bindings(replay.tx, &record.result, &fence).await?;
-        insert_node_attempt_completion(replay.tx, &history.current, &record.completion).await?;
+        insert_node_attempt_completion(replay.tx, &history.current, &record.completion, None)
+            .await?;
         update_run_head(replay.tx, &record.event, None).await?;
         revalidate_worker_after_components(replay.tx, &fence).await?;
         tx.commit()

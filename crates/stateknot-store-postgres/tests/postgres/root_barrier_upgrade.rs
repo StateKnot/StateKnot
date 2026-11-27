@@ -9,6 +9,16 @@ use sqlx_postgres::{PgConnectOptions, PgPool, PgPoolOptions, PgSslMode};
 use stateknot_core::GraphFrameEntryPlan;
 use stateknot_store_postgres::GraphFrameEntryCommitOutcome;
 
+// Compare all columns that existed on both sides of a reconstructed upgrade.
+// Schema39 adds two receipt columns to the existing completion table.
+pub(super) fn historical_row_json(table: &str) -> &'static str {
+    if table == "node_attempt_completions" {
+        "(to_jsonb(t) - 'tool_charges' - 'failure_projection_digest')"
+    } else {
+        "row_to_json(t)"
+    }
+}
+
 async fn table_fingerprints(pool: &PgPool) -> Vec<(String, i64, String)> {
     let names = query_scalar::<_, String>(
         "SELECT tablename FROM pg_catalog.pg_tables WHERE schemaname='stateknot' AND tablename NOT IN ('root_graph_barriers','graph_wait_conditions') ORDER BY tablename",
@@ -19,9 +29,10 @@ async fn table_fingerprints(pool: &PgPool) -> Vec<(String, i64, String)> {
     let mut records = Vec::new();
     for name in names {
         // Names come from this isolated schema's catalog, not application input.
+        let row = historical_row_json(&name);
         let identifier = name.replace('"', "\"\"");
         let sql = format!(
-            "SELECT count(*),encode(sha256(convert_to(coalesce(string_agg(row_hash,'' ORDER BY row_hash),''),'UTF8')),'hex') FROM (SELECT encode(sha256(convert_to(row_to_json(t)::text,'UTF8')),'hex') row_hash FROM stateknot.\"{identifier}\" t) rows"
+            "SELECT count(*),encode(sha256(convert_to(coalesce(string_agg(row_hash,'' ORDER BY row_hash),''),'UTF8')),'hex') FROM (SELECT encode(sha256(convert_to({row}::text,'UTF8')),'hex') row_hash FROM stateknot.\"{identifier}\" t) rows"
         );
         let (count, digest) = query_as::<_, (i64, String)>(&sql)
             .fetch_one(pool)

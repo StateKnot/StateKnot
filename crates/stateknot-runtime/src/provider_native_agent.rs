@@ -1811,26 +1811,26 @@ impl GraphNodeExecutor for ProviderNativeToolsNode {
         context: GraphNodeContext,
     ) -> BoxFuture<'_, Result<GraphNodeExecution, GraphNodeExecutionError>> {
         Box::pin(async move {
-            Box::pin(self.execute_tools(context))
+            let mut charges = ProviderNativeToolCharges::new();
+            self.execute_tools(context, &mut charges)
                 .await
-                .map_err(ProviderNativeAgentExecutionError::into_graph_error)
+                .map_err(|error| charges.into_graph_error(error))
         })
     }
 }
 
 impl ProviderNativeToolsNode {
-    #[allow(clippy::too_many_lines)]
-    fn execute_tools(
-        &self,
+    fn execute_tools<'a>(
+        &'a self,
         context: GraphNodeContext,
-    ) -> BoxFuture<'_, Result<GraphNodeExecution, ProviderNativeAgentExecutionError>> {
+        charges: &'a mut ProviderNativeToolCharges,
+    ) -> BoxFuture<'a, Result<GraphNodeExecution, ProviderNativeAgentNodeError>> {
         Box::pin(async move {
             let mut observation = self.observe_tools(&context).await?;
 
             let mut head = context.attempt().journal_head().clone();
             let mut outcomes = Vec::with_capacity(observation.plans.len());
             let mut bindings = Vec::with_capacity(observation.plans.len());
-            let mut usage = BudgetUsage::zero();
             let proposals = observation
                 .response
                 .tool_calls()
@@ -1860,7 +1860,7 @@ impl ProviderNativeToolsNode {
                     }
                 };
                 let steps = if parallel_end.saturating_sub(index) > 1 {
-                    Box::pin(self.execute_read_only_tool_wave(
+                    self.execute_read_only_tool_wave(
                         &context,
                         &observation.stored,
                         observation.model_invocation_id,
@@ -1868,14 +1868,12 @@ impl ProviderNativeToolsNode {
                         index,
                         &proposals[index..parallel_end],
                         &observation.plans[index..parallel_end],
-                    ))
-                    .await
-                    .map_err(|source| {
-                        ProviderNativeAgentExecutionError::observed(source, usage.clone())
-                    })?
+                        charges,
+                    )
+                    .await?
                 } else {
-                    vec![
-                        self.execute_tool_plan(
+                    let step = self
+                        .execute_tool_plan(
                             &context,
                             &observation.stored,
                             observation.model_invocation_id,
@@ -1884,33 +1882,19 @@ impl ProviderNativeToolsNode {
                             &proposals[index],
                             &observation.plans[index],
                         )
-                        .await
-                        .map_err(|source| {
-                            ProviderNativeAgentExecutionError::observed(source, usage.clone())
-                        })?,
-                    ]
+                        .await?;
+                    charges.record(&step)?;
+                    vec![step]
                 };
                 for step in steps {
-                    usage = usage.checked_accumulate(&step.usage).map_err(|_| {
-                        ProviderNativeAgentExecutionError::observed(
-                            ProviderNativeAgentNodeError::Budget,
-                            usage.clone(),
-                        )
-                    })?;
                     bindings.push(step.binding);
-                    head = latest_journal_head(head, step.journal_head).map_err(|source| {
-                        ProviderNativeAgentExecutionError::observed(source, usage.clone())
-                    })?;
+                    head = latest_journal_head(head, step.journal_head)?;
                     outcomes.push(step.outcome);
                 }
                 index = parallel_end;
             }
-            ModelTranscriptTurn::new(observation.response, outcomes).map_err(|_| {
-                ProviderNativeAgentExecutionError::observed(
-                    ProviderNativeAgentNodeError::Integrity,
-                    usage.clone(),
-                )
-            })?;
+            ModelTranscriptTurn::new(observation.response, outcomes)
+                .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
             observation
                 .state
                 .completed_turns
@@ -1925,27 +1909,15 @@ impl ProviderNativeToolsNode {
             observation.state.phase = ProviderNativeAgentPhase::Model {
                 plan: ProviderNativeModelPlan::generate(),
             };
-            let update = self
-                .shared
-                .definition
-                .encode_update(&observation.state)
-                .map_err(|source| {
-                    ProviderNativeAgentExecutionError::observed(source, usage.clone())
-                })?;
+            let update = self.shared.definition.encode_update(&observation.state)?;
             let bindings =
-                NodeInvocationBindings::try_new(context.attempt().activation(), bindings).map_err(
-                    |_| {
-                        ProviderNativeAgentExecutionError::observed(
-                            ProviderNativeAgentNodeError::Integrity,
-                            usage.clone(),
-                        )
-                    },
-                )?;
+                NodeInvocationBindings::try_new(context.attempt().activation(), bindings)
+                    .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
             Ok(GraphNodeExecution::new(
                 NodeStateChange::Update { update },
                 NodeControl::Continue,
                 bindings,
-                usage,
+                std::mem::replace(&mut charges.total, BudgetUsage::zero()),
             ))
         })
     }
@@ -2048,15 +2020,26 @@ impl ProviderNativeToolsNode {
                 return Err(ProviderNativeAgentNodeError::UncertainInvocation);
             }
         };
-        let usage = physical_invocation_usage(
-            context,
-            invocation.intent().activation(),
-            invocation.journal_head(),
-            tool_usage(invocation, self.shared.definition.accounting.as_ref())?,
-            true,
-        )?;
         let binding = NodeInvocationBinding::from_tool(invocation)
             .map_err(|_| ProviderNativeAgentNodeError::Integrity)?;
+        if binding.activation() != context.attempt().activation()
+            || binding.journal_head().sequence() == context.attempt().journal_head().sequence()
+        {
+            return Err(ProviderNativeAgentNodeError::Integrity);
+        }
+        // A recorded charge already carries its price. Consult it before
+        // invoking the accounting implementation again on a retry.
+        let usage = match context.previous_tool_charge(&binding) {
+            Some(true) => BudgetUsage::zero(),
+            Some(false) => tool_usage(invocation, self.shared.definition.accounting.as_ref())?,
+            None => physical_invocation_usage(
+                context,
+                binding.activation(),
+                binding.journal_head(),
+                tool_usage(invocation, self.shared.definition.accounting.as_ref())?,
+                true,
+            )?,
+        };
         Ok(ProviderNativeToolStep {
             outcome,
             binding,
@@ -2089,6 +2072,7 @@ impl ProviderNativeToolsNode {
         first_index: usize,
         proposals: &'a [ModelToolCallProposal],
         plans: &'a [ProviderNativeToolPlan],
+        charges: &'a mut ProviderNativeToolCharges,
     ) -> BoxFuture<'a, Result<Vec<ProviderNativeToolStep>, ProviderNativeAgentNodeError>> {
         Box::pin(async move {
             if proposals.len() < 2 || proposals.len() != plans.len() {
@@ -2122,7 +2106,9 @@ impl ProviderNativeToolsNode {
                 }
             }
 
-            let settled = self.settle_read_only_tool_wave(context, entries).await;
+            let settled = self
+                .settle_read_only_tool_wave(context, entries, charges)
+                .await;
             if let Some(error) = launch_error {
                 // Every already-started provider call was awaited and offered to
                 // the ordered terminal commit path before the launch error wins.
@@ -2223,6 +2209,7 @@ impl ProviderNativeToolsNode {
         &self,
         context: &GraphNodeContext,
         entries: Vec<ProviderNativeToolWaveEntry>,
+        charges: &mut ProviderNativeToolCharges,
     ) -> Result<Vec<ProviderNativeToolStep>, ProviderNativeAgentNodeError> {
         let mut steps = Vec::with_capacity(entries.len());
         let mut first_error = None;
@@ -2251,7 +2238,12 @@ impl ProviderNativeToolsNode {
                     Err(_) => Err(ProviderNativeAgentNodeError::InvocationExecutor),
                 },
             };
-            match result {
+            // A sibling can settle after the first failure. Its terminal result
+            // still contributes to this physical attempt's durable usage.
+            match result.and_then(|step| {
+                charges.record(&step)?;
+                Ok(step)
+            }) {
                 Ok(step) if first_error.is_none() => steps.push(step),
                 Err(error) if first_error.is_none() => first_error = Some(error),
                 Ok(_) | Err(_) => {}
@@ -2476,6 +2468,45 @@ struct ProviderNativeToolStep {
     binding: NodeInvocationBinding,
     journal_head: stateknot_core::JournalHead,
     usage: BudgetUsage,
+}
+
+struct ProviderNativeToolCharges {
+    total: BudgetUsage,
+    entries: Vec<(NodeInvocationBinding, BudgetUsage)>,
+}
+
+impl ProviderNativeToolCharges {
+    fn new() -> Self {
+        Self {
+            total: BudgetUsage::zero(),
+            entries: Vec::new(),
+        }
+    }
+
+    fn record(
+        &mut self,
+        step: &ProviderNativeToolStep,
+    ) -> Result<(), ProviderNativeAgentNodeError> {
+        self.total = self
+            .total
+            .checked_accumulate(&step.usage)
+            .map_err(|_| ProviderNativeAgentNodeError::Budget)?;
+        if step.usage.tool_calls() != ExecutionCount::ZERO {
+            self.entries
+                .push((step.binding.clone(), step.usage.clone()));
+        }
+        Ok(())
+    }
+
+    fn into_graph_error(self, source: ProviderNativeAgentNodeError) -> GraphNodeExecutionError {
+        let fully_priced = self.total.unpriced_cost_events() == ExecutionCount::ZERO;
+        let error = node_execution_error(source, self.total);
+        if fully_priced {
+            error.with_tool_charges(self.entries)
+        } else {
+            error
+        }
+    }
 }
 
 enum ProviderNativeToolWaveEntry {

@@ -288,9 +288,10 @@ async fn facts(db: &PgPool) -> Vec<(String, i64, String)> {
     .unwrap();
     let mut values = Vec::new();
     for name in names {
+        let row = crate::root_barrier_upgrade::historical_row_json(&name);
         let quoted = name.replace('"', "\"\"");
         let sql = format!(
-            "SELECT count(*),encode(sha256(convert_to(coalesce(string_agg(hash,'' ORDER BY hash),''),'UTF8')),'hex') FROM (SELECT encode(sha256(convert_to(row_to_json(t)::text,'UTF8')),'hex') hash FROM stateknot.\"{quoted}\" t) rows"
+            "SELECT count(*),encode(sha256(convert_to(coalesce(string_agg(hash,'' ORDER BY hash),''),'UTF8')),'hex') FROM (SELECT encode(sha256(convert_to({row}::text,'UTF8')),'hex') hash FROM stateknot.\"{quoted}\" t) rows"
         );
         let (count, digest) = query_as(&sql).fetch_one(db).await.unwrap();
         values.push((name, count, digest));

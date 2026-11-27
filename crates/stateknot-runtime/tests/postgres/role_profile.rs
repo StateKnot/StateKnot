@@ -179,6 +179,7 @@ async fn privilege_rejections(fixture: &Fixture) {
             "DELETE FROM stateknot.graph_frame_returns WHERE false",
             "UPDATE stateknot.graph_wait_conditions SET condition_bytes=condition_bytes WHERE false",
             "DELETE FROM stateknot.graph_wait_conditions WHERE false",
+            "UPDATE stateknot.node_attempt_completions SET tool_charges=NULL WHERE false",
             "DELETE FROM stateknot.run_events WHERE false",
             "DELETE FROM stateknot.tool_authorization_receipts WHERE false",
             "TRUNCATE stateknot.run_events",
@@ -1086,6 +1087,12 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
     Box::pin(super::super::join::qualify_join_with_store(&store)).await;
     Box::pin(crate::qualify_agent_service_with_store(&store)).await;
     Box::pin(crate::qualify_provider_native_with_store(&store, false)).await;
+    Box::pin(crate::qualify_provider_native_tool_recovery(
+        &store,
+        2,
+        crate::ToolRecovery::ColdAfterReconciliation(&fixture.runtime_url),
+    ))
+    .await;
     node_completion_race(&store).await;
     skill_acting_window_authorization(&store).await;
     Box::pin(compound_frame_entry(
@@ -1123,7 +1130,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         .fetch_one(&fixture.owner)
         .await
         .unwrap();
-    assert_eq!(schema_version, 38);
+    assert_eq!(schema_version, 39);
     store.close().await;
     fixture.cleanup().await;
     println!(
@@ -1147,6 +1154,7 @@ async fn trusted_sql_role_profile_enforces_privileges_and_runs_durable_work() {
         "graph_wait_runtime_update_delete_and_retention_rejected":true,
         "whole_frame_closure_retry_reload_terminal":true,
         "published_unconsumed_scoped_join_stop_v3_real_runtime_login":true,
+        "partial_tool_charge_cold_recovery_real_runtime_login":true,
         "populated_reapply":true,
         "isolated_retention":true,"fixture_cleaned":true,
             "invariants":"passed"

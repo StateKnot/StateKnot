@@ -291,8 +291,12 @@ and released versions will follow [Semantic Versioning](https://semver.org/).
   without recording a zero-usage Failed completion. Existing completed-attempt
   deduplication, Unknown and unpriced blockers, and once-only cumulative
   lifecycle accounting remain intact.
-  This does not establish general per-invocation attribution for partially
-  charged multi-invocation nodes.
+
+- Record the exact, fully priced Tool terminals charged by a failed Provider
+  Native Tools attempt. Cold recovery can charge a newly reconciled sibling
+  after a partial failure without calling either Tool again. Schema 39 keeps
+  existing aggregate-only completions readable. See the draft
+  [RFC-0027](docs/rfcs/0027-provider-native-tool-charge-recovery.md).
 
 - Flush deferred Join-registration guards before rechecking the released
   original worker epoch, lease expiry and Agent deadline. Expiry rolls back

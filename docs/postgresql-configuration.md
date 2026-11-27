@@ -67,6 +67,28 @@ let store = PostgresStore::connect_config(config).await?;
 fully explicit deployment sequence. The configuration object exists to remove
 application boilerplate, not to merge privilege boundaries.
 
+## Recovering an interrupted schema 38 to 39 upgrade
+
+Drain all writers and verify that the schema 38 binary can open a restored
+pre-upgrade backup before applying migration 39. Keep writers drained if
+`PostgresStore::migrate_database` returns an error or the deployment loses its
+connection. PostgreSQL may already have committed migration 39 when the
+migration process loses its acknowledgement.
+
+Retry `PostgresStore::migrate_database` with the same schema 39 binary and
+migration role. SQLx reapplies a rolled-back migration or skips an already
+committed one. The Store then checks the pinned migration history and catalog.
+Leave the deployment stopped if these checks fail and investigate the reported
+mismatch. After a successful retry, apply and audit the matching role profile
+and open the database through `PostgresStore::connect` with the runtime role
+before resuming writers.
+
+To roll back during the maintenance window, restore the verified backup to an
+isolated database, connect with the schema 38 binary and check a known Run's
+journal head before switching traffic. Once schema 39 writers have resumed,
+restoring that backup would lose subsequent writes, including Tool charge
+receipts. Use a forward repair to preserve those writes.
+
 ## Explicit local development
 
 For a local PostgreSQL instance on a trusted machine:

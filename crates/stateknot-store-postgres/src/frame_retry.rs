@@ -471,11 +471,12 @@ fn verify_attempt<'a>(
         let Some(completion) = attempt.completion() else {
             return Ok(());
         };
+        let (projection, _) = node_tool_charges::verified_projection(tx, completion).await?;
         verify_node_attempt_anchor(
             tx,
             completion.journal_head(),
             start.fence(),
-            completion.digest(),
+            projection,
             "retry attempt completion anchor",
         )
         .await?;

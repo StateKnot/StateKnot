@@ -219,8 +219,8 @@ while [[ ${worker_state[store]} == active || ${worker_state[runtime-0]} == activ
 done
 [[ ${suite_code[store]} == 0 && ${suite_code[runtime-0]} == 0 && ${suite_code[runtime-1]} == 0 ]]
 # Each actual original case belongs to exactly one explicit execution lane.
-[[ $(grep -Fxc 'running 276 tests' "$out/store.stdout") == 1 ]]
-[[ $(grep -Ec '^test result: ok[.] 276 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' "$out/store.stdout") == 1 ]]
+[[ $(grep -Fxc 'running 278 tests' "$out/store.stdout") == 1 ]]
+[[ $(grep -Ec '^test result: ok[.] 278 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in [0-9.]+s$' "$out/store.stdout") == 1 ]]
 # Runtime selected/filtered counts are derived only from the bound full inventory plan.
 # verify-sharded in the successful EXIT path checks every actual selected case and summary.
 psql_in_service "$settings" > "$out/settings-after.tsv"

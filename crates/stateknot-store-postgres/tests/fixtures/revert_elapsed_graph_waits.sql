@@ -1,6 +1,19 @@
 -- Copyright 2026 StateKnot contributors
 -- SPDX-License-Identifier: Apache-2.0
 
+-- Only historical rows without an invocation-level charge receipt can be
+-- represented by schema38. Source reconstruction must preserve paid history.
+SELECT 1 / CASE WHEN EXISTS (
+    SELECT 1 FROM stateknot.node_attempt_completions WHERE tool_charges IS NOT NULL
+) THEN 0 ELSE 1 END;
+ALTER TABLE stateknot.node_attempt_completions
+    DROP CONSTRAINT node_attempt_failure_projection_fk,
+    DROP CONSTRAINT node_attempt_tool_charges_bounded,
+    DROP COLUMN failure_projection_digest,
+    DROP COLUMN tool_charges;
+ALTER TABLE stateknot.run_events DROP CONSTRAINT run_events_sequence_projection_unique;
+DELETE FROM _sqlx_migrations WHERE version=39;
+
 -- Schema38 and schema37 change only the closure guard. Restore its exact schema36
 -- body before reconstructing schema35 or earlier. Never relabel retained v2/v3 proofs.
 SELECT 1 / CASE WHEN EXISTS (

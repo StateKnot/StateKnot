@@ -58,6 +58,9 @@ use stateknot_core::{
 };
 use uuid::Uuid;
 
+#[path = "node_tool_charges.rs"]
+mod node_tool_charges;
+
 #[path = "child_runs.rs"]
 mod child_runs;
 pub use child_runs::{ChildRunCommitOutcome, ChildRunRecord, ChildRunSettlementOutcome};
@@ -502,6 +505,15 @@ static MIGRATOR: LazyLock<Migrator> = LazyLock::new(|| Migrator {
             )),
             false,
         ),
+        Migration::new(
+            39,
+            Cow::Borrowed("failed node attempt tool charges"),
+            MigrationType::Simple,
+            Cow::Borrowed(include_str!(
+                "../migrations/0039_failed_node_tool_charges.sql"
+            )),
+            false,
+        ),
     ]),
     ignore_missing: false,
     locking: true,
@@ -721,6 +733,38 @@ SELECT to_regclass('stateknot.runs') IS NOT NULL
    AND to_regclass('stateknot.pending_node_result_consumptions') IS NOT NULL
    AND to_regclass('stateknot.node_attempts') IS NOT NULL
    AND to_regclass('stateknot.node_attempt_completions') IS NOT NULL
+   AND EXISTS (
+       SELECT FROM pg_catalog.pg_index
+       WHERE indexrelid = to_regclass('stateknot.node_attempts_charged_activation')
+         AND indisvalid AND indisready AND indislive
+         AND pg_get_indexdef(indexrelid) =
+             'CREATE INDEX node_attempts_charged_activation ON stateknot.node_attempt_completions USING btree (tenant_id, run_id, activation_digest) WHERE (tool_charges IS NOT NULL)'
+   )
+   AND NOT EXISTS (
+       SELECT FROM (VALUES
+           ('run_events', 'run_events_sequence_projection_unique',
+            'UNIQUE (tenant_id, run_id, sequence, projection_digest)'),
+           ('node_attempt_completions', 'node_attempt_failure_projection_fk',
+            'FOREIGN KEY (tenant_id, run_id, journal_sequence, failure_projection_digest) REFERENCES stateknot.run_events(tenant_id, run_id, sequence, projection_digest) ON DELETE RESTRICT'),
+           ('node_attempt_completions', 'node_attempt_tool_charges_bounded',
+            $definition$CHECK (((tool_charges IS NULL) OR ((status = 'failed'::text) AND ((octet_length(tool_charges) >= 2) AND (octet_length(tool_charges) <= 1048576)))))$definition$)
+       ) AS required(relation, name, definition)
+       WHERE NOT EXISTS (
+           SELECT FROM pg_catalog.pg_constraint c
+           WHERE c.conrelid = to_regclass('stateknot.' || required.relation)
+             AND c.conname = required.name AND c.convalidated AND NOT c.condeferrable
+             AND pg_get_constraintdef(c.oid) = required.definition
+       )
+   )
+   AND EXISTS (
+       SELECT FROM pg_catalog.pg_attribute a JOIN pg_catalog.pg_attrdef d
+         ON (a.attrelid, a.attnum) = (d.adrelid, d.adnum)
+       WHERE a.attrelid = to_regclass('stateknot.node_attempt_completions')
+         AND a.attname = 'failure_projection_digest' AND a.attgenerated = 's'
+         AND a.atttypid = 'bytea'::regtype AND NOT a.attisdropped
+         AND trim(regexp_replace(pg_get_expr(d.adbin, d.adrelid), '[[:space:]]+', ' ', 'g')) =
+             $generated$CASE WHEN (status = 'failed'::text) THEN CASE WHEN (tool_charges IS NULL) THEN completion_digest ELSE sha256((('\x73746174656b6e6f742e6e6f64652d6661696c7572652d746f6f6c2d636861726765732e763100'::bytea || completion_digest) || tool_charges)) END ELSE NULL::bytea END$generated$
+   )
    AND to_regclass('stateknot.runs_scheduler_ready') IS NOT NULL
    AND to_regclass('stateknot.outbox_destinations') IS NOT NULL
    AND to_regclass('stateknot.outbox_deliveries') IS NOT NULL
@@ -5514,71 +5558,9 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
         revision: ToolInvocationRevision,
     ) -> Result<(JournalEvent, ToolInvocation), StoreError> {
         let mut transaction = self.begin_repeatable_read("exact tool revision").await?;
-        let row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
-            .bind(tenant_id.as_str())
-            .bind(*run_id.as_uuid())
-            .bind(*invocation_id.as_uuid())
-            .fetch_optional(&mut *transaction)
-            .await
-            .map_err(|source| StoreError::database("exact tool intent", source))?
-            .ok_or(StoreError::ToolInvocationNotFound)?;
-        let intent = decode_tool_invocation_intent(&row)?;
-        if intent.tenant_id() != tenant_id
-            || intent.run_id() != run_id
-            || intent.invocation_id() != invocation_id
-        {
-            return Err(StoreError::corrupt("exact tool invocation scope"));
-        }
-        let current = nonnegative_tool_invocation_revision(row.current_revision)?;
-        if revision > current {
-            return Err(StoreError::ToolInvocationNotFound);
-        }
-        verify_tool_invocation_base_checkpoint(&mut transaction, &intent).await?;
-        let stored = load_tool_invocation_revision_row(
-            &mut transaction,
-            tenant_id,
-            run_id,
-            invocation_id,
-            revision,
-        )
-        .await
-        .map_err(|error| match error {
-            StoreError::ToolInvocationNotFound => {
-                StoreError::corrupt("missing exact tool revision")
-            }
-            other => other,
-        })?;
-        let invocation = decode_tool_invocation_revision(stored, &intent)?;
-        if revision == current {
-            validate_tool_invocation_current_projection(&row, &invocation)?;
-        }
-        let mut verifier = if revision.get() == 0 {
-            ToolInvocationHistoryVerifier::new()
-        } else {
-            let previous = ToolInvocationRevision::new(revision.get() - 1)
-                .map_err(|_| StoreError::corrupt("exact tool predecessor"))?;
-            let stored = load_tool_invocation_revision_row(
-                &mut transaction,
-                tenant_id,
-                run_id,
-                invocation_id,
-                previous,
-            )
-            .await
-            .map_err(|error| match error {
-                StoreError::ToolInvocationNotFound => {
-                    StoreError::corrupt("missing exact tool predecessor")
-                }
-                other => other,
-            })?;
-            let previous = decode_tool_invocation_revision(stored, &intent)?;
-            verify_tool_invocation_anchor(&mut transaction, &previous).await?;
-            ToolInvocationHistoryVerifier::after(previous)
-        };
-        verifier
-            .verify_next(&invocation)
-            .map_err(|_| StoreError::corrupt("exact tool transition"))?;
-        let event = verify_tool_invocation_anchor(&mut transaction, &invocation).await?;
+        let (event, invocation) =
+            verified_tool_revision(&mut transaction, tenant_id, run_id, invocation_id, revision)
+                .await?;
         transaction
             .commit()
             .await
@@ -5982,6 +5964,7 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             NodeAttemptHistoryVerifier::new,
             NodeAttemptHistoryVerifier::after,
         );
+        let mut tool_charges = BTreeMap::new();
         let mut records = Vec::with_capacity(rows.len());
         for row in rows {
             let start = decode_node_attempt_start(&row)?;
@@ -6011,17 +5994,21 @@ ON CONFLICT (tenant_id, destination_id, snapshot_digest) DO NOTHING
             verifier
                 .verify_next(&attempt)
                 .map_err(|_| StoreError::corrupt("node attempt history"))?;
-            verify_node_attempt(&mut transaction, &attempt).await?;
+            let (_, receipt) = verify_node_attempt_with_charges(&mut transaction, &attempt).await?;
+            if let Some(charges) = receipt {
+                tool_charges.insert(attempt.start().attempt_id(), charges);
+            }
             records.push(attempt);
-        }
-        if has_more && records.is_empty() {
-            return Err(StoreError::corrupt("node attempt history look-ahead"));
         }
         transaction
             .commit()
             .await
             .map_err(|source| StoreError::database("node attempt history commit", source))?;
-        Ok(NodeAttemptHistoryPage { records, has_more })
+        Ok(NodeAttemptHistoryPage {
+            records,
+            has_more,
+            tool_charges,
+        })
     }
 
     /// Loads and fully verifies one immutable pending node result.
@@ -8145,7 +8132,26 @@ WHERE tenant_id = $1
         failure: Failure,
         usage: BudgetUsage,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
-        Box::pin(self.fail_node_attempt_inner(append, expected, failure, usage)).await
+        Box::pin(self.fail_node_attempt_inner(append, expected, failure, usage, None)).await
+    }
+
+    /// Atomically records a failed attempt and every priced terminal Tool charge in its usage.
+    /// An empty receipt identifies a fully attributed zero-usage failure.
+    ///
+    /// # Errors
+    ///
+    /// Returns the errors of [`Self::fail_node_attempt`] and rejects incomplete,
+    /// conflicting, duplicated or unverifiable Tool evidence.
+    pub async fn fail_node_attempt_with_tool_charges(
+        &self,
+        append: JournalAppend,
+        expected: &NodeAttemptStartHead,
+        failure: Failure,
+        usage: BudgetUsage,
+        charges: &[(NodeInvocationBinding, BudgetUsage)],
+    ) -> Result<NodeAttemptCommitOutcome, StoreError> {
+        Box::pin(self.fail_node_attempt_inner(append, expected, failure, usage, Some(charges)))
+            .await
     }
 
     #[allow(clippy::too_many_lines)]
@@ -8155,6 +8161,7 @@ WHERE tenant_id = $1
         expected: &NodeAttemptStartHead,
         failure: Failure,
         usage: BudgetUsage,
+        charges: Option<&[(NodeInvocationBinding, BudgetUsage)]>,
     ) -> Result<NodeAttemptCommitOutcome, StoreError> {
         let fence = append
             .worker_fence()
@@ -8172,6 +8179,8 @@ WHERE tenant_id = $1
             return Err(StoreError::StaleFence);
         }
 
+        let receipt = charges.map(node_tool_charges::Receipt::new).transpose()?;
+        let charge_bytes = receipt.as_ref().map(|receipt| receipt.bytes.as_slice());
         let mut transaction = self.begin_mutation("node attempt failure").await?;
         let run_row = fetch_locked_run_row(&mut transaction, &tenant_id, run_id).await?;
         let stored = decode_run(run_row)?;
@@ -8213,7 +8222,11 @@ WHERE tenant_id = $1
             let completion = attempt
                 .completion()
                 .ok_or(StoreError::NodeAttemptCommitConflict)?;
-            if projection_digest != Some(expected_completion.digest())
+            if projection_digest
+                != Some(node_tool_charges::projection(
+                    &expected_completion,
+                    charge_bytes,
+                ))
                 || encode_node_attempt_completion(completion)?
                     != encode_node_attempt_completion(&expected_completion)?
             {
@@ -8244,7 +8257,11 @@ WHERE tenant_id = $1
             {
                 return Err(StoreError::InvalidNodeAttemptTransition);
             }
-            let event = verify_node_attempt(&mut transaction, &attempt).await?;
+            let (event, prior) =
+                verify_node_attempt_with_charges(&mut transaction, &attempt).await?;
+            if prior.as_deref() != receipt.as_ref().map(|receipt| receipt.entries.as_slice()) {
+                return Err(StoreError::InvalidNodeAttemptTransition);
+            }
             transaction
                 .commit()
                 .await
@@ -8278,8 +8295,25 @@ WHERE tenant_id = $1
         let completed = NodeAttempt::restore(attempt.start().clone(), Some(completion.clone()))
             .map_err(|_| StoreError::InvalidNodeAttemptTransition)?;
 
-        insert_event(&mut transaction, &event, completion.digest()).await?;
-        insert_node_attempt_completion(&mut transaction, attempt.start(), &completion).await?;
+        if let Some(receipt) = &receipt {
+            receipt.verify(&mut transaction, &completion).await?;
+            receipt
+                .reject_previously_charged(&mut transaction, attempt.start())
+                .await?;
+        }
+        insert_event(
+            &mut transaction,
+            &event,
+            node_tool_charges::projection(&completion, charge_bytes),
+        )
+        .await?;
+        insert_node_attempt_completion(
+            &mut transaction,
+            attempt.start(),
+            &completion,
+            charge_bytes,
+        )
+        .await?;
         update_run_head(&mut transaction, &event, None).await?;
         if !attempt.start().activation().graph_namespace().is_root() {
             graph_frames::revalidate_worker_after_components(
@@ -8468,7 +8502,8 @@ WHERE tenant_id = $1
         insert_pending_node_result(&mut transaction, &result, expected.attempt_id(), &fence)
             .await?;
         insert_pending_node_result_bindings(&mut transaction, &result, &fence).await?;
-        insert_node_attempt_completion(&mut transaction, attempt.start(), &completion).await?;
+        insert_node_attempt_completion(&mut transaction, attempt.start(), &completion, None)
+            .await?;
         update_run_head(&mut transaction, &event, None).await?;
         if !attempt.start().activation().graph_namespace().is_root() {
             graph_frames::revalidate_worker_after_components(
@@ -13485,6 +13520,76 @@ async fn verify_scoped_invocation_activation(
     Ok(())
 }
 
+async fn verified_tool_revision(
+    transaction: &mut Transaction<'_, Postgres>,
+    tenant_id: &TenantId,
+    run_id: RunId,
+    invocation_id: InvocationId,
+    revision: ToolInvocationRevision,
+) -> Result<(JournalEvent, ToolInvocation), StoreError> {
+    let row = query_as::<_, ToolInvocationRow>(SELECT_TOOL_INVOCATION)
+        .bind(tenant_id.as_str())
+        .bind(*run_id.as_uuid())
+        .bind(*invocation_id.as_uuid())
+        .fetch_optional(&mut **transaction)
+        .await
+        .map_err(|source| StoreError::database("exact tool intent", source))?
+        .ok_or(StoreError::ToolInvocationNotFound)?;
+    let intent = decode_tool_invocation_intent(&row)?;
+    if intent.tenant_id() != tenant_id
+        || intent.run_id() != run_id
+        || intent.invocation_id() != invocation_id
+    {
+        return Err(StoreError::corrupt("exact tool invocation scope"));
+    }
+    let current = nonnegative_tool_invocation_revision(row.current_revision)?;
+    if revision > current {
+        return Err(StoreError::ToolInvocationNotFound);
+    }
+    verify_tool_invocation_base_checkpoint(transaction, &intent).await?;
+    let stored =
+        load_tool_invocation_revision_row(transaction, tenant_id, run_id, invocation_id, revision)
+            .await
+            .map_err(|error| match error {
+                StoreError::ToolInvocationNotFound => {
+                    StoreError::corrupt("missing exact tool revision")
+                }
+                other => other,
+            })?;
+    let invocation = decode_tool_invocation_revision(stored, &intent)?;
+    if revision == current {
+        validate_tool_invocation_current_projection(&row, &invocation)?;
+    }
+    let mut verifier = if revision.get() == 0 {
+        ToolInvocationHistoryVerifier::new()
+    } else {
+        let previous = ToolInvocationRevision::new(revision.get() - 1)
+            .map_err(|_| StoreError::corrupt("exact tool predecessor"))?;
+        let stored = load_tool_invocation_revision_row(
+            transaction,
+            tenant_id,
+            run_id,
+            invocation_id,
+            previous,
+        )
+        .await
+        .map_err(|error| match error {
+            StoreError::ToolInvocationNotFound => {
+                StoreError::corrupt("missing exact tool predecessor")
+            }
+            other => other,
+        })?;
+        let previous = decode_tool_invocation_revision(stored, &intent)?;
+        verify_tool_invocation_anchor(transaction, &previous).await?;
+        ToolInvocationHistoryVerifier::after(previous)
+    };
+    verifier
+        .verify_next(&invocation)
+        .map_err(|_| StoreError::corrupt("exact tool transition"))?;
+    let event = verify_tool_invocation_anchor(transaction, &invocation).await?;
+    Ok((event, invocation))
+}
+
 async fn verify_tool_invocation_base_checkpoint(
     transaction: &mut Transaction<'_, Postgres>,
     intent: &ToolInvocationIntent,
@@ -16011,6 +16116,15 @@ async fn verify_node_attempt(
     transaction: &mut Transaction<'_, Postgres>,
     attempt: &NodeAttempt,
 ) -> Result<JournalEvent, StoreError> {
+    verify_node_attempt_with_charges(transaction, attempt)
+        .await
+        .map(|(event, _)| event)
+}
+
+async fn verify_node_attempt_with_charges(
+    transaction: &mut Transaction<'_, Postgres>,
+    attempt: &NodeAttempt,
+) -> Result<VerifiedNodeAttempt, StoreError> {
     let start_event = verify_node_attempt_start(transaction, attempt.start()).await?;
     Box::pin(verify_node_attempt_after_start(
         transaction,
@@ -16027,24 +16141,33 @@ struct VerifiedOrdinaryNodeAttemptBase<'start> {
     activation: &'start NodeActivation,
 }
 
+type VerifiedNodeAttempt = (
+    JournalEvent,
+    Option<Vec<(NodeInvocationBinding, BudgetUsage)>>,
+);
+
 async fn verify_node_attempt_after_start(
     transaction: &mut Transaction<'_, Postgres>,
     attempt: &NodeAttempt,
     start_event: JournalEvent,
     ordinary_base: Option<VerifiedOrdinaryNodeAttemptBase<'_>>,
-) -> Result<JournalEvent, StoreError> {
+) -> Result<VerifiedNodeAttempt, StoreError> {
     let start = attempt.start();
     let Some(completion) = attempt.completion() else {
-        return Ok(start_event);
+        return Ok((start_event, None));
     };
     if graph_frames::is_framework_kind(start_event.payload().kind().as_str()) {
-        return Box::pin(graph_frames::recognize_completion(transaction, attempt)).await;
+        return Box::pin(graph_frames::recognize_completion(transaction, attempt))
+            .await
+            .map(|event| (event, None));
     }
+    let (projection, charges) =
+        node_tool_charges::verified_projection(transaction, completion).await?;
     let event = verify_node_attempt_anchor(
         transaction,
         completion.journal_head(),
         start.fence(),
-        completion.digest(),
+        projection,
         "node attempt completion anchor",
     )
     .await?;
@@ -16076,7 +16199,7 @@ async fn verify_node_attempt_after_start(
         }
         verify_pending_node_result_bindings(transaction, &durable_result).await?;
     }
-    Ok(event)
+    Ok((event, charges))
 }
 
 // Ownership points to an immutable start, never to a result that may itself
@@ -19010,6 +19133,7 @@ async fn insert_node_attempt_completion(
     transaction: &mut Transaction<'_, Postgres>,
     durable_start: &NodeAttemptStart,
     completion: &NodeAttemptCompletion,
+    charge_bytes: Option<&[u8]>,
 ) -> Result<(), StoreError> {
     let start = completion.start();
     if start != &durable_start.head() {
@@ -19071,12 +19195,13 @@ INSERT INTO stateknot.node_attempt_completions (
     retry_not_before,
     completion_digest,
     completion_bytes,
-    created_at
+    created_at,
+    tool_charges
 )
 SELECT
     $1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12,
     $13, $14, $15, $16, $17, $18, $19, $20, $21, $22, $23, $24,
-    $25, $26, $27, $28, $29, $30
+    $25, $26, $27, $28, $29, $30, $31
 FROM stateknot.runs AS current_run
 WHERE current_run.tenant_id = $1
   AND current_run.run_id = $2
@@ -19115,6 +19240,7 @@ WHERE current_run.tenant_id = $1
     .bind(completion.digest().as_bytes())
     .bind(completion_bytes)
     .bind(created_at)
+    .bind(charge_bytes)
     .execute(&mut **transaction)
     .await;
     let inserted = match result {

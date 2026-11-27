@@ -6,14 +6,44 @@
 use std::{collections::HashMap, fmt, sync::Arc};
 
 use stateknot_core::{
-    BoxFuture, BudgetUsage, CancellationSignal, Checkpoint, ChildRunPolicyError, CompiledGraph,
-    Failure, GraphFrameCompileError, GraphReducer, GraphReducerReference, GraphReference,
-    NodeAttemptStartHead, NodeControl, NodeId, NodeInvocationBindings, NodeStateChange,
-    RetryAdvice,
+    AttemptId, BoxFuture, BudgetUsage, CancellationSignal, Checkpoint, ChildRunPolicyError,
+    CompiledGraph, Digest, Failure, GraphFrameCompileError, GraphReducer, GraphReducerReference,
+    GraphReference, InvocationId, NodeAttemptStartHead, NodeControl, NodeId, NodeInvocationBinding,
+    NodeInvocationBindings, NodeStateChange, RetryAdvice,
 };
 use thiserror::Error;
 
 use crate::{GraphChildJoin, JsonSchemaRegistry};
+
+pub(crate) type ToolCharge = (NodeInvocationBinding, BudgetUsage);
+
+/// Cumulative evidence for one activation, verified through the current Start.
+#[derive(Default)]
+pub(crate) struct NodeUsageHistory {
+    has_completion: bool,
+    has_legacy_completion: bool,
+    charged: HashMap<(InvocationId, AttemptId), Digest>,
+}
+
+impl NodeUsageHistory {
+    pub(crate) fn record_completion(&mut self, charges: Option<&[ToolCharge]>) -> Option<()> {
+        self.has_completion = true;
+        let Some(charges) = charges else {
+            self.has_legacy_completion = true;
+            return Some(());
+        };
+        for (binding, _) in charges {
+            let NodeInvocationBinding::Tool { head, .. } = binding else {
+                return None;
+            };
+            let key = (head.invocation_id(), head.attempt_id()?);
+            if self.charged.insert(key, head.digest()).is_some() {
+                return None;
+            }
+        }
+        Some(())
+    }
+}
 
 /// Exact, already-started execution context passed to one graph node.
 ///
@@ -29,7 +59,7 @@ pub struct GraphNodeContext {
     child_join: Option<Arc<GraphChildJoin>>,
     // Prepared by the Driver from the complete authenticated activation
     // history before executing application code; public construction has none.
-    uncompleted_usage_history: Option<bool>,
+    usage_history: Option<Arc<NodeUsageHistory>>,
 }
 
 impl GraphNodeContext {
@@ -59,7 +89,7 @@ impl GraphNodeContext {
             checkpoint,
             cancellation,
             child_join: None,
-            uncompleted_usage_history: None,
+            usage_history: None,
         })
     }
 
@@ -88,13 +118,30 @@ impl GraphNodeContext {
         self.child_join.as_deref()
     }
 
-    pub(crate) fn with_uncompleted_usage_history(mut self, uncompleted: bool) -> Self {
-        self.uncompleted_usage_history = Some(uncompleted);
+    pub(crate) fn with_usage_history(mut self, history: NodeUsageHistory) -> Self {
+        self.usage_history = Some(Arc::new(history));
         self
     }
 
-    pub(crate) const fn uncompleted_usage_history(&self) -> Option<bool> {
-        self.uncompleted_usage_history
+    pub(crate) fn uncompleted_usage_history(&self) -> Option<bool> {
+        self.usage_history
+            .as_ref()
+            .map(|history| !history.has_completion)
+    }
+
+    pub(crate) fn previous_tool_charge(&self, binding: &NodeInvocationBinding) -> Option<bool> {
+        let history = self.usage_history.as_ref()?;
+        let NodeInvocationBinding::Tool { activation, head } = binding else {
+            return None;
+        };
+        if activation != self.attempt.activation() {
+            return None;
+        }
+        let key = (head.invocation_id(), head.attempt_id()?);
+        match history.charged.get(&key) {
+            Some(digest) => (*digest == head.digest()).then_some(true),
+            None => (!history.has_legacy_completion).then_some(false),
+        }
     }
 
     pub(crate) fn with_child_join(mut self, join: Arc<GraphChildJoin>) -> Self {
@@ -191,6 +238,7 @@ impl GraphNodeExecution {
 pub struct GraphNodeExecutionError {
     failure: Failure,
     usage: BudgetUsage,
+    tool_charges: Option<Box<[ToolCharge]>>,
 }
 
 impl GraphNodeExecutionError {
@@ -210,7 +258,20 @@ impl GraphNodeExecutionError {
         if failure.retry_advice() == RetryAdvice::ReconcileFirst {
             return Err(GraphNodeExecutionErrorBuildError::ReconciliationNotAllowed);
         }
-        Ok(Self { failure, usage })
+        Ok(Self {
+            failure,
+            usage,
+            tool_charges: None,
+        })
+    }
+
+    pub(crate) fn with_tool_charges(mut self, charges: Vec<ToolCharge>) -> Self {
+        self.tool_charges = Some(charges.into_boxed_slice());
+        self
+    }
+
+    pub(crate) fn into_charged_parts(self) -> (Failure, BudgetUsage, Option<Box<[ToolCharge]>>) {
+        (self.failure, self.usage, self.tool_charges)
     }
 
     /// Returns public-safe failure evidence.

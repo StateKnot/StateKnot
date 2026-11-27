@@ -480,7 +480,7 @@ impl ErasedTool for ScriptedReconciliationTool {
             let result = ToolResult::for_invocation(
                 &context,
                 &self.descriptor,
-                BoundedJson::try_from_value(json!({"receipt": "confirmed"})).unwrap(),
+                BoundedJson::try_from_value(json!({"receipt": "confirmed on first call"})).unwrap(),
                 ToolArtifacts::empty(),
             );
             return Box::pin(async move { Ok(result) });
@@ -1787,7 +1787,10 @@ fn provider_native_repair_fixture_with_failures(
 }
 
 #[allow(clippy::too_many_lines)]
-fn provider_native_parallel_fixture(store: PostgresStore) -> ProviderNativeParallelFixture {
+fn provider_native_parallel_fixture(
+    store: PostgresStore,
+    accounting: Arc<dyn AgentInvocationAccounting>,
+) -> ProviderNativeParallelFixture {
     let (input_schema, input_document) = schema("provider-native-parallel-input");
     let (output_schema, output_document) = schema("provider-native-parallel-output");
     let (tool_input_schema, tool_input_document) = schema("provider-native-parallel-tool-input");
@@ -1869,12 +1872,7 @@ fn provider_native_parallel_fixture(store: PostgresStore) -> ProviderNativeParal
             fail_once: false,
             pause_first: None,
         }),
-        Arc::new(KnownFreeInvocationAccounting {
-            reference: AgentInvocationAccountingReference::new(
-                capability("provider-native-parallel-accounting"),
-                Digest::sha256(b"provider-native parallel known-free accounting v1"),
-            ),
-        }),
+        accounting,
     )
     .unwrap();
 
@@ -2692,19 +2690,11 @@ fn provider_native_admission_request_for(
     .unwrap()
 }
 
-#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
-#[allow(clippy::too_many_lines)]
-async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposal_order() {
-    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
-    let Some(store) = test_store().await else {
-        return;
-    };
-    let fixture = provider_native_parallel_fixture(store.clone());
-    assert!(matches!(
-        ProviderNativeAgentBudgetProvider::new(fixture.definition.clone(), store.clone()),
-        Err(ProviderNativeAgentBudgetBuildError::ParallelTools)
-    ));
-    let tenant_id = tenant("runtime-provider-native-parallel-tools");
+async fn admit_parallel_agent(
+    store: &PostgresStore,
+    fixture: &ProviderNativeParallelFixture,
+    tenant_id: &TenantId,
+) -> (RunId, RunFence) {
     let ids = AgentRunIds::generate();
     let run_id = ids.run_id();
     store
@@ -2721,12 +2711,38 @@ async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposa
         ))
         .await
         .unwrap();
-    let lease = store
-        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+    let fence = store
+        .claim_lease(tenant_id, run_id, AttemptId::generate())
         .await
         .unwrap()
         .lease()
+        .fence()
         .clone();
+    (run_id, fence)
+}
+
+#[tokio::test(flavor = "multi_thread", worker_threads = 4)]
+#[allow(clippy::too_many_lines)]
+async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposal_order() {
+    let _database_test_guard = DATABASE_TEST_MUTEX.lock().await;
+    let Some(store) = test_store().await else {
+        return;
+    };
+    let fixture = provider_native_parallel_fixture(
+        store.clone(),
+        Arc::new(KnownFreeInvocationAccounting {
+            reference: AgentInvocationAccountingReference::new(
+                capability("provider-native-parallel-accounting"),
+                Digest::sha256(b"provider-native parallel known-free accounting v1"),
+            ),
+        }),
+    );
+    assert!(matches!(
+        ProviderNativeAgentBudgetProvider::new(fixture.definition.clone(), store.clone()),
+        Err(ProviderNativeAgentBudgetBuildError::ParallelTools)
+    ));
+    let tenant_id = tenant("runtime-provider-native-parallel-tools");
+    let (run_id, fence) = admit_parallel_agent(&store, &fixture, &tenant_id).await;
     let driver = DurableGraphDriver::new(
         store.clone(),
         fixture.registry.clone(),
@@ -2736,7 +2752,7 @@ async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposa
 
     let drive_result = tokio::time::timeout(
         Duration::from_secs(20),
-        driver.drive(lease.fence().clone(), CancellationSignal::never()),
+        driver.drive(fence, CancellationSignal::never()),
     )
     .await
     .expect("bounded parallel read-only tools must complete")
@@ -2819,7 +2835,196 @@ async fn provider_native_parallel_read_only_tools_overlap_and_reenter_in_proposa
             .tool_calls(),
         ExecutionCount::new(4)
     );
+    Box::pin(assert_parallel_failure_replays_only_the_settled_sibling_charge(&store)).await;
     store.close().await;
+}
+
+#[allow(clippy::too_many_lines)]
+async fn assert_parallel_failure_replays_only_the_settled_sibling_charge(store: &PostgresStore) {
+    let fixture = provider_native_parallel_fixture(
+        store.clone(),
+        Arc::new(PricedInvocationAccounting {
+            unpriced: false,
+            reference: AgentInvocationAccountingReference::new(
+                capability("provider-native-parallel-priced-accounting"),
+                Digest::sha256(b"provider-native partial parallel read USD micros v1"),
+            ),
+        }),
+    );
+    let tenant_id = tenant("runtime-provider-native-parallel-partial");
+    let (run_id, fence) = admit_parallel_agent(store, &fixture, &tenant_id).await;
+    // Yield after the Model node and its checkpoint so both proposed IDs are durable.
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::new(
+            GraphReplayLimits::default(),
+            3,
+            Duration::from_secs(10),
+            Duration::from_secs(15 * 60),
+            3,
+            Duration::from_millis(25),
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let result = driver
+        .drive(fence, CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(matches!(
+        result.outcome(),
+        GraphDriveOutcome::Yielded { .. }
+    ));
+    let checkpoint = store
+        .load_current_checkpoint(&tenant_id, run_id)
+        .await
+        .unwrap()
+        .unwrap();
+    let state = fixture
+        .definition
+        .restore_state(checkpoint.state())
+        .unwrap();
+    let ProviderNativeAgentPhase::Tools { plans, .. } = state.phase() else {
+        panic!("expected the checkpoint before the parallel wave");
+    };
+    let fence = store
+        .claim_lease(&tenant_id, run_id, AttemptId::generate())
+        .await
+        .unwrap()
+        .lease()
+        .fence()
+        .clone();
+    // Occupy only the first terminal's event ID. Both providers run and the
+    // second commit can succeed after the first has returned an event conflict.
+    let head = store
+        .load_run(&tenant_id, run_id)
+        .await
+        .unwrap()
+        .journal_head()
+        .unwrap()
+        .clone();
+    store
+        .append_worker(
+            worker_append(
+                tenant_id.clone(),
+                run_id,
+                plans[0].attempt_terminal_event_id(),
+                head,
+                fence.clone(),
+            ),
+            RunProjection::unchanged(),
+        )
+        .await
+        .unwrap();
+    let driver = DurableGraphDriver::new(
+        store.clone(),
+        fixture.registry.clone(),
+        DurableGraphDriverOptions::default(),
+    )
+    .unwrap();
+    let result = driver
+        .drive(fence.clone(), CancellationSignal::never())
+        .await
+        .unwrap();
+    assert!(
+        matches!(result.outcome(), GraphDriveOutcome::Blocked(_)),
+        "{:?}",
+        result.outcome()
+    );
+    assert_eq!(fixture.tool_calls.load(Ordering::SeqCst), 2);
+    assert_eq!(fixture.maximum_active_tools.load(Ordering::SeqCst), 2);
+    let first = store
+        .load_tool_invocation(&tenant_id, run_id, plans[0].invocation_id())
+        .await
+        .unwrap();
+    assert!(matches!(
+        first.state(),
+        ToolInvocationState::Executing { .. }
+    ));
+    let sibling = store
+        .load_tool_invocation(&tenant_id, run_id, plans[1].invocation_id())
+        .await
+        .unwrap();
+    let ToolInvocationState::Committed { result } = sibling.state() else {
+        panic!("the later read-only sibling must still commit");
+    };
+    let usage = BudgetUsage::builder()
+        .tool_calls(ExecutionCount::new(1))
+        .input_bytes(ByteCount::new(
+            sibling.intent().input().value().stats().compact_bytes() as u64,
+        ))
+        .output_bytes(ByteCount::new(
+            result.output().stats().compact_bytes() as u64
+        ))
+        .known_costs(KnownCosts::try_new([Money::new("USD".parse().unwrap(), 11)]).unwrap())
+        .build()
+        .unwrap();
+    let binding = stateknot_core::NodeInvocationBinding::from_tool(&sibling).unwrap();
+    let cold = PostgresStore::connect(
+        &std::env::var(DATABASE_URL_ENV).unwrap(),
+        store.options().clone(),
+    )
+    .await
+    .unwrap();
+    let history = cold
+        .load_node_attempt_history_page(
+            binding.activation(),
+            None,
+            NodeAttemptHistoryPageSize::new(2).unwrap(),
+        )
+        .await
+        .unwrap();
+    let [attempt] = history.records() else {
+        panic!("expected a single failed Tools attempt")
+    };
+    let completion = attempt.completion().unwrap();
+    let failure = completion.outcome().failure().unwrap();
+    assert_eq!(failure.code().as_str(), "runtime.agent.invocation_executor");
+    assert_eq!(completion.usage(), &usage);
+    let charges = history.tool_charges(attempt.start().attempt_id()).unwrap();
+    assert_eq!(charges, &[(binding, usage.clone())]);
+    let journal = cold
+        .load_journal_page(&tenant_id, run_id, None, JournalPageSize::new(64).unwrap())
+        .await
+        .unwrap();
+    let event = journal.events().last().unwrap();
+    assert_eq!(event.head(), *completion.journal_head());
+    let intent = JournalEventIntent::worker(
+        tenant_id.clone(),
+        run_id,
+        event.event_id(),
+        fence,
+        event.payload().clone(),
+    )
+    .unwrap();
+    let append = JournalAppend::new(
+        JournalExpectation::exact(sibling.journal_head().clone()),
+        intent,
+    )
+    .unwrap();
+    let replay = cold
+        .fail_node_attempt_with_tool_charges(
+            append,
+            &attempt.start().head(),
+            failure.clone(),
+            usage,
+            charges,
+        )
+        .await
+        .unwrap();
+    assert!(matches!(
+        replay,
+        NodeAttemptCommitOutcome::Idempotent { .. }
+    ));
+    assert_eq!(
+        cold.load_run(&tenant_id, run_id)
+            .await
+            .unwrap()
+            .journal_head(),
+        Some(completion.journal_head())
+    );
+    cold.close().await;
 }
 
 #[tokio::test(flavor = "multi_thread", worker_threads = 2)]
@@ -3937,7 +4142,12 @@ async fn provider_native_graph_reconciles_unknown_tool_without_repeating_busines
     let Some(store) = test_store().await else {
         return;
     };
-    Box::pin(qualify_provider_native_tool_recovery(&store, 1)).await;
+    Box::pin(qualify_provider_native_tool_recovery(
+        &store,
+        1,
+        ToolRecovery::Uninterrupted,
+    ))
+    .await;
     store.close().await;
 }
 
@@ -3947,12 +4157,28 @@ async fn provider_native_partial_tool_retry_charges_only_newly_reconciled_usage(
     let Some(store) = test_store().await else {
         return;
     };
-    Box::pin(qualify_provider_native_tool_recovery(&store, 2)).await;
+    let database_url = std::env::var(DATABASE_URL_ENV).unwrap();
+    for recovery in [
+        ToolRecovery::Uninterrupted,
+        ToolRecovery::ColdAfterReconciliation(&database_url),
+    ] {
+        Box::pin(qualify_provider_native_tool_recovery(&store, 2, recovery)).await;
+    }
     store.close().await;
 }
 
+#[derive(Clone, Copy)]
+enum ToolRecovery<'a> {
+    Uninterrupted,
+    ColdAfterReconciliation(&'a str),
+}
+
 #[allow(clippy::too_many_lines)]
-async fn qualify_provider_native_tool_recovery(store: &PostgresStore, tool_count: usize) {
+async fn qualify_provider_native_tool_recovery(
+    store: &PostgresStore,
+    tool_count: usize,
+    recovery: ToolRecovery<'_>,
+) {
     let fixture = if tool_count == 1 {
         provider_native_reconciliation_fixture(store.clone())
     } else {
@@ -4086,6 +4312,21 @@ async fn qualify_provider_native_tool_recovery(store: &PostgresStore, tool_count
         .unwrap()
         .lease()
         .clone();
+    if let ToolRecovery::ColdAfterReconciliation(database_url) = recovery {
+        drop(driver);
+        Box::pin(
+            provider_native_uncompleted_usage::complete_after_interrupted_reconciliation(
+                store,
+                &fixture,
+                &tool_activation,
+                plans,
+                second_lease.fence(),
+                database_url,
+            ),
+        )
+        .await;
+        return;
+    }
     let second = driver
         .drive(second_lease.fence().clone(), CancellationSignal::never())
         .await

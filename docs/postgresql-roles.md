@@ -5,12 +5,13 @@
 [简体中文](postgresql-roles.zh-CN.md)
 
 `trusted-server-roles-v1` is an executable least-privilege deployment profile for
-the **trusted server-side** PostgreSQL 16/17 provider at schema38. It separates
+the **trusted server-side** PostgreSQL 16/17 provider at schema39. It separates
 migration, application runtime and fairness-reservation retention credentials.
 Migration38 extends the complete frame-closure guard with the separately versioned
-published, unconsumed Join stop proof. Schema37 and schema38 retain the same
-54-table inventory and exact ACL allowlist. The schema37 evidence below remains
-historical; current schema38 role and upgrade qualification must be run separately.
+published, unconsumed Join stop proof. Migration39 records which terminal Tool
+revisions a failed Node attempt charged and binds those charges to the failure
+event. The 54-table inventory and table grants are the same as in schema38.
+Current schema39 role and upgrade qualification require separate runs.
 For effect-free remote computation, the separate
 [MCP compute Worker profile](mcp-compute-worker.md) transmits no database
 credentials and retains the Driver in the trusted host.
@@ -108,7 +109,7 @@ timeout: investigate contention and retry the whole deployment step if it fails.
   on existing tables inherit table-level SELECT/INSERT, but never UPDATE. New
   migrations require a reviewed version-specific allowlist, migration, apply,
   audit and functional smoke tests before the new application starts. Schema
-  38 is checked here; migration checksums are checked by the pinned provider.
+  39 is checked here; migration checksums are checked by the pinned provider.
 - Reapplication is idempotent and is tested against populated durable histories.
   A read-only audit detects drift without silently fixing it; apply is a
   deliberate administrative change. Unrelated schema privilege drift is rejected
@@ -149,6 +150,11 @@ checks the v3 closure, original unconsumed publication/owner, complete once-only
 usage, terminal confirmation and a fresh owning read under the same credential.
 Its current-source role execution is required; the historical schema37 record
 does not qualify this new path.
+
+The schema39 role test also uses the runtime LOGIN to charge one Tool, interrupt
+a Node attempt after its second Tool reconciles, and recover through a fresh
+connection with the same credentials. It checks both Node charges, final Run
+usage and denial of direct updates to the persisted charges.
 
 With an isolated loopback administrator URL in `STATEKNOT_TEST_DATABASE_URL`:
 

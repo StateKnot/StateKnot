@@ -274,15 +274,21 @@ read failure, preparation timeout or preparation panic returns
 `GraphDriverError::DirectUsageEvidence`, leaving the current attempt unfinished
 without recording a zero-usage Failed completion.
 
-If the verified history contains no completion, a fully priced terminal
-response committed before the current Start contributes its first Node DIRECT
-charge. Recovery uses the original Tool result without dispatching the Tool
-again. If an earlier completion exists, recovery keeps the existing replay
-deduplication behavior. Per-invocation attribution within partially charged
-nodes remains open. Facts committed after the current Start retain their
-observed usage, and cumulative lifecycle accounting includes the original
-charge once. Unknown outcomes and unpriced evidence keep their existing
-blockers.
+In the experimental schema 39 path, a failed Provider Native Tools node can
+commit a receipt identifying every fully priced Tool terminal included in its
+DIRECT usage. On cold recovery, the Driver checks receipts for this activation.
+The executor reuses each original Tool result and skips pricing a previously
+charged terminal. A fully priced terminal with no charge in a complete history
+contributes its first charge to the recovering attempt. For example, if a
+failed attempt paid for Tool A and a later attempt stopped after reconciling
+Tool B, recovery charges only B. The Run still counts each physical Tool once.
+
+Older failures and custom executors can have aggregate-only completions. An
+exact receipt still proves a positive charge in mixed history. For other
+terminals, recovery retains the earlier replay rule for aggregate-only history.
+Upgrading does not reconstruct a historical invoice. Unknown outcomes and
+unpriced evidence retain their existing handling. The Model path uses the
+existing rule for histories with no completion.
 
 Known failed tools remain ordered transcript outcomes. Their exact terminal
 revision is bound into the node result, and the next model turn receives the

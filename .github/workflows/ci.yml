@@ -984,8 +984,9 @@ jobs:
           marker = json.loads(encoded[0], object_pairs_hook=unique_object, parse_constant=reject_constant)
           require(type(marker) is dict, "role marker must be an object")
           expected = {
-              "profile": "trusted-server-roles-v1", "schema": 38,
+              "profile": "trusted-server-roles-v1", "schema": 39,
               "published_unconsumed_scoped_join_stop_v3_real_runtime_login": True,
+              "partial_tool_charge_cold_recovery_real_runtime_login": True,
               "invariants": "passed", "fixture_cleaned": True,
           }
           for key, value in expected.items():
@@ -995,7 +996,7 @@ jobs:
           require(type(marker.get("postgres")) is str and re.fullmatch(
               re.escape(sys.argv[1]) + r"[.][0-9]+(?:[ .(].*)?", marker["postgres"]),
               "role profile PostgreSQL version differs from matrix major")
-          print("Schema38 published Join runtime LOGIN marker passed the required guards.")
+          print("Schema39 trusted runtime LOGIN passed the published Join and cold Tool charge guards.")
           PY
 
       - name: Upload trusted SQL role evidence
